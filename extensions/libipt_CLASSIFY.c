@@ -123,7 +123,7 @@ static struct iptables_target classify = {
 	.extra_opts	= opts
 };
 
-void _init(void)
+void ipt_CLASSIFY_init(void)
 {
 	register_target(&classify);
 }

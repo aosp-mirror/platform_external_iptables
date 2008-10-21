@@ -57,7 +57,7 @@ struct iptables_target notrack
 	.extra_opts = opts
 };
 
-void _init(void)
+void ipt_NOTRACK_init(void)
 {
 	register_target(&notrack);
 }

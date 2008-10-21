@@ -178,7 +178,7 @@ static struct iptables_match iprange = {
 	.extra_opts	= opts
 };
 
-void _init(void)
+void ipt_iprange_init(void)
 {
 	register_match(&iprange);
 }

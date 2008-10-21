@@ -262,7 +262,7 @@ static struct iptables_target clusterip = {
 	.extra_opts	= opts
 };
 
-void _init(void)
+void ipt_CLUSTERIP_init(void)
 {
 	register_target(&clusterip);
 }

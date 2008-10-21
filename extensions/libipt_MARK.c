@@ -236,7 +236,7 @@ struct iptables_target mark_v1 = {
 	.extra_opts	= opts
 };
 
-void _init(void)
+void ipt_MARK_init(void)
 {
 	register_target(&mark_v0);
 	register_target(&mark_v1);

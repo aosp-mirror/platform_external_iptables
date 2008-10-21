@@ -158,7 +158,7 @@ static struct iptables_target dscp = {
 	.extra_opts	= opts
 };
 
-void _init(void)
+void ipt_DSCP_init(void)
 {
 	register_target(&dscp);
 }

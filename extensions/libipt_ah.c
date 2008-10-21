@@ -184,7 +184,7 @@ static struct iptables_match ah = {
 };
 
 void
-_init(void)
+ipt_ah_init(void)
 {
 	register_match(&ah);
 }

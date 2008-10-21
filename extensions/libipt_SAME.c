@@ -202,7 +202,7 @@ static struct iptables_target same = {
 	.extra_opts	= opts
 };
 
-void _init(void)
+void ipt_SAME_init(void)
 {
 	register_target(&same);
 }

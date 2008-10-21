@@ -17,13 +17,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <netinet/in.h>
 
 #ifdef DEBUG_CONNTRACK
 #define inline
-#endif
-
-#if !defined(__GLIBC__) || (__GLIBC__ < 2)
-typedef unsigned int socklen_t;
 #endif
 
 #include "libiptc/libiptc.h"

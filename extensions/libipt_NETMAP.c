@@ -10,6 +10,7 @@
 #include <iptables.h>
 #include <linux/netfilter_ipv4/ip_tables.h>
 #include <linux/netfilter_ipv4/ip_nat_rule.h>
+#include <netinet/in.h>
 
 #define MODULENAME "NETMAP"
 
@@ -192,7 +193,7 @@ static struct iptables_target target_module = {
 	.extra_opts	= opts
 };
 
-void _init(void)
+void ipt_NETMAP_init(void)
 {
 	register_target(&target_module);
 }

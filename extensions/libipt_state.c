@@ -157,7 +157,7 @@ static struct iptables_match state = {
 	.extra_opts	= opts
 };
 
-void _init(void)
+void ipt_state_init(void)
 {
 	register_match(&state);
 }

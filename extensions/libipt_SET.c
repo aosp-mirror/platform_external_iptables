@@ -174,7 +174,7 @@ struct iptables_target ipt_set_target
 	.extra_opts	= opts
 };
 
-void _init(void)
+void ipt_SET_init(void)
 {
 	register_target(&ipt_set_target);
 }

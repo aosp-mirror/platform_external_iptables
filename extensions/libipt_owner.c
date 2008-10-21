@@ -244,7 +244,7 @@ static struct iptables_match owner = {
 	.extra_opts	= opts
 };
 
-void _init(void)
+void ipt_owner_init(void)
 {
 	register_match(&owner);
 }

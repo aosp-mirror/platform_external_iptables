@@ -187,7 +187,7 @@ static struct iptables_match physdev = {
 	.extra_opts	= opts
 };
 
-void _init(void)
+void ipt_physdev_init(void)
 {
 	register_match(&physdev);
 }

@@ -40,6 +40,7 @@
 #include <fcntl.h>
 #include <sys/wait.h>
 #include <sys/utsname.h>
+#include <netinet/in.h>
 
 #ifndef TRUE
 #define TRUE 1
@@ -227,6 +228,7 @@ struct pprot {
 static const struct pprot chain_protos[] = {
 	{ "tcp", IPPROTO_TCP },
 	{ "udp", IPPROTO_UDP },
+	{ "udplite", IPPROTO_UDPLITE },
 	{ "icmp", IPPROTO_ICMP },
 	{ "esp", IPPROTO_ESP },
 	{ "ah", IPPROTO_AH },
@@ -1164,9 +1166,10 @@ static int compatible_revision(const char *name, u_int8_t revision, int opt)
 			/* Assume only revision 0 support (old kernel) */
 			return (revision == 0);
 		} else {
-			fprintf(stderr, "getsockopt failed strangely: %s\n",
-				strerror(errno));
-			exit(1);
+			fprintf(stderr, "getsockopt for %s failed strangely: %s\n",
+                    name,
+                    strerror(errno));
+			/* exit(1); */
 		}
 	}
 	close(sockfd);

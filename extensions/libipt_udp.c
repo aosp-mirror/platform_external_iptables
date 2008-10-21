@@ -6,6 +6,7 @@
 #include <getopt.h>
 #include <iptables.h>
 #include <linux/netfilter_ipv4/ip_tables.h>
+#include <netinet/in.h>
 
 /* Function which prints out usage message. */
 static void
@@ -224,7 +225,7 @@ struct iptables_match udp = {
 };
 
 void
-_init(void)
+ipt_udp_init(void)
 {
 	register_match(&udp);
 }

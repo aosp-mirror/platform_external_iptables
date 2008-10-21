@@ -284,7 +284,7 @@ struct iptables_target log
     .extra_opts    = opts
 };
 
-void _init(void)
+void ipt_LOG_init(void)
 {
 	register_target(&log);
 }

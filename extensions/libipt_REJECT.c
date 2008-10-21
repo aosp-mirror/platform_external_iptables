@@ -183,7 +183,7 @@ static struct iptables_target reject = {
 	.extra_opts	= opts
 };
 
-void _init(void)
+void ipt_REJECT_init(void)
 {
 	register_target(&reject);
 }

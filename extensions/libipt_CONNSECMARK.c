@@ -120,7 +120,7 @@ static struct iptables_target connsecmark = {
 	.extra_opts	= opts
 };
 
-void _init(void)
+void ipt_CONNSECMARK_init(void)
 {
 	register_target(&connsecmark);
 }

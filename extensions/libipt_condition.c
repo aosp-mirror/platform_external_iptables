@@ -100,7 +100,7 @@ static struct iptables_match condition = {
 
 
 void
-_init(void)
+ipt_condition_init(void)
 {
 	register_match(&condition);
 }

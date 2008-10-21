@@ -544,7 +544,7 @@ static struct iptables_match conntrack = {
 	.extra_opts	= opts
 };
 
-void _init(void)
+void ipt_conntrack_init(void)
 {
 	register_match(&conntrack);
 }

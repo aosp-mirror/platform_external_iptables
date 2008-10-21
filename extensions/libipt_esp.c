@@ -187,7 +187,7 @@ static struct iptables_match esp = {
 };
 
 void
-_init(void)
+ipt_esp_init(void)
 {
 	register_match(&esp);
 }

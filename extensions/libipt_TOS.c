@@ -168,7 +168,7 @@ static struct iptables_target tos = {
 	.extra_opts	= opts
 };
 
-void _init(void)
+void ipt_TOS_init(void)
 {
 	register_target(&tos);
 }

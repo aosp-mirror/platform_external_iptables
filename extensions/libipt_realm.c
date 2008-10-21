@@ -264,7 +264,7 @@ static struct iptables_match realm = { NULL,
 	.extra_opts	= opts
 };
 
-void _init(void)
+void ipt_realm_init(void)
 {
 	register_match(&realm);
 }

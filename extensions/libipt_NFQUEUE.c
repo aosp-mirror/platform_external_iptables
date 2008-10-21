@@ -108,7 +108,7 @@ static struct iptables_target nfqueue = {
 	.extra_opts	= opts
 };
 
-void _init(void)
+void ipt_NFQUEUE_init(void)
 {
 	register_target(&nfqueue);
 }

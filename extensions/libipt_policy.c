@@ -430,7 +430,7 @@ struct iptables_match policy = {
 	.extra_opts	= opts
 };
 
-void _init(void)
+void ipt_policy_init(void)
 {
 	register_match(&policy);
 }

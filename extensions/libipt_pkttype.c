@@ -161,7 +161,7 @@ static struct iptables_match pkttype = {
 	.extra_opts	= opts
 };
 
-void _init(void)
+void ipt_pkttype_init(void)
 {
 	register_match(&pkttype);
 }

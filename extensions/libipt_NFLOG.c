@@ -155,7 +155,7 @@ static struct iptables_target nflog = {
 	.extra_opts	= opts,
 };
 
-void _init(void)
+void ipt_NFLOG_init(void)
 {
 	register_target(&nflog);
 }

@@ -231,7 +231,7 @@ static struct iptables_target ulog = {
 	.extra_opts	= opts
 };
 
-void _init(void)
+void ipt_ULOG_init(void)
 {
 	register_target(&ulog);
 }

@@ -201,7 +201,7 @@ struct iptables_match addrtype = {
 };
 
 
-void _init(void) 
+void ipt_addrtype_init(void) 
 {
 	register_match(&addrtype);
 }

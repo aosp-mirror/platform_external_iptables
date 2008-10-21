@@ -134,7 +134,7 @@ static struct iptables_match mac = {
 	.extra_opts	= opts
 };
 
-void _init(void)
+void ipt_mac_init(void)
 {
 	register_match(&mac);
 }

@@ -56,7 +56,7 @@ static struct iptables_target mirror = {
 	.extra_opts	= opts
 };
 
-void _init(void)
+void ipt_MIRROR_init(void)
 {
 	register_target(&mirror);
 }

@@ -160,7 +160,7 @@ static struct iptables_target TTL = {
 	.extra_opts	= opts 
 };
 
-void _init(void)
+void ipt_TTL_init(void)
 {
 	register_target(&TTL);
 }

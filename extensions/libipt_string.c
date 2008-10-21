@@ -307,7 +307,7 @@ print(const struct ipt_ip *ip,
 	if (info->from_offset != 0)
 		printf("FROM %u ", info->from_offset);
 	if (info->to_offset != 0)
-		printf("TO %u", info->to_offset);
+		printf("TO %u ", info->to_offset);
 }
 
 
@@ -348,7 +348,7 @@ static struct iptables_match string = {
 };
 
 
-void _init(void)
+void ipt_string_init(void)
 {
 	register_match(&string);
 }

@@ -6,6 +6,7 @@
 #include <getopt.h>
 #include <iptables.h>
 #include <linux/netfilter_ipv4/ip_tables.h>
+#include <netinet/in.h>
 
 /* Function which prints out usage message. */
 static void
@@ -410,7 +411,7 @@ static struct iptables_match tcp = {
 };
 
 void
-_init(void)
+ipt_tcp_init(void)
 {
 	register_match(&tcp);
 }

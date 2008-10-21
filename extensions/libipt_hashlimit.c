@@ -363,7 +363,7 @@ static struct iptables_match hashlimit = { NULL,
 	.extra_opts	= opts
 };
 
-void _init(void)
+void ipt_hashlimit_init(void)
 {
 	register_match(&hashlimit);
 }

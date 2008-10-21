@@ -128,7 +128,7 @@ static struct iptables_target mss = {
 	.extra_opts	= opts
 };
 
-void _init(void)
+void ipt_TCPMSS_init(void)
 {
 	register_target(&mss);
 }

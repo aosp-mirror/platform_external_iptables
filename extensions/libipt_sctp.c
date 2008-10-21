@@ -13,6 +13,7 @@
 #include <getopt.h>
 #include <netdb.h>
 #include <ctype.h>
+#include <netinet/in.h>
 
 #include <iptables.h>
 #include <linux/netfilter_ipv4/ip_tables.h>
@@ -543,7 +544,7 @@ struct iptables_match sctp
     .extra_opts    = opts
 };
 
-void _init(void)
+void ipt_sctp_init(void)
 {
 	register_match(&sctp);
 }

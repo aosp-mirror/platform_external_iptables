@@ -63,7 +63,7 @@ struct iptables_target standard = {
 	.extra_opts	= opts
 };
 
-void _init(void)
+void ipt_standard_init(void)
 {
 	register_target(&standard);
 }

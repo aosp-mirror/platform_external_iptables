@@ -301,7 +301,7 @@ static struct iptables_match icmp = {
 	.extra_opts	= opts
 };
 
-void _init(void)
+void ipt_icmp_init(void)
 {
 	register_match(&icmp);
 }

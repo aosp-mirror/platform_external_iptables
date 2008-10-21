@@ -179,7 +179,7 @@ struct iptables_target ecn = {
 	.extra_opts	= opts
 };
 
-void _init(void)
+void ipt_ECN_init(void)
 {
 	register_target(&ecn);
 }

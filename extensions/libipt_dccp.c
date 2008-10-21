@@ -367,7 +367,7 @@ struct iptables_match dccp
     .extra_opts    = opts
 };
 
-void _init(void)
+void ipt_dccp_init(void)
 {
 	register_match(&dccp);
 }

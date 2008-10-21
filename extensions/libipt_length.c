@@ -145,7 +145,7 @@ static struct iptables_match length = {
 	.extra_opts	= opts
 };
 
-void _init(void)
+void ipt_length_init(void)
 {
 	register_match(&length);
 }

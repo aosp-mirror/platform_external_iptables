@@ -234,7 +234,7 @@ static struct iptables_match recent = {
     .extra_opts    = opts
 };
 
-void _init(void)
+void ipt_recent_init(void)
 {
 	register_match(&recent);
 }

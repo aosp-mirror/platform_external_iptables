@@ -101,7 +101,7 @@ struct iptables_match quota = {
 };
 
 void
-_init(void)
+ipt_quota_init(void)
 {
         register_match(&quota);
 }

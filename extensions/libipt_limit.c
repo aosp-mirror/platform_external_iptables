@@ -190,7 +190,7 @@ static struct iptables_match limit = {
 	.extra_opts	= opts
 };
 
-void _init(void)
+void ipt_limit_init(void)
 {
 	register_match(&limit);
 }

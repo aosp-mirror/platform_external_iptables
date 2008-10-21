@@ -214,7 +214,7 @@ static struct iptables_target connmark_target = {
     .extra_opts    = opts
 };
 
-void _init(void)
+void ipt_CONNMARK_init(void)
 {
 	register_target(&connmark_target);
 }

@@ -7,6 +7,7 @@
 #include <iptables.h>
 #include <linux/netfilter_ipv4/ip_tables.h>
 #include <linux/netfilter_ipv4/ip_nat_rule.h>
+#include <netinet/in.h>
 
 /* Function which prints out usage message. */
 static void
@@ -164,7 +165,7 @@ static struct iptables_target redir = {
 	.extra_opts	= opts
 };
 
-void _init(void)
+void ipt_REDIRECT_init(void)
 {
 	register_target(&redir);
 }

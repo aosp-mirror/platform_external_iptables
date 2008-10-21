@@ -113,7 +113,7 @@ static struct iptables_match comment = {
     .extra_opts		= opts
 };
 
-void _init(void)
+void ipt_comment_init(void)
 {
 	register_match(&comment);
 }

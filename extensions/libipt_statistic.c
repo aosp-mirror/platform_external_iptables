@@ -169,7 +169,7 @@ static struct iptables_match statistic = {
 	.extra_opts	= opts
 };
 
-void _init(void)
+void ipt_statistic_init(void)
 {
 	register_match(&statistic);
 }

@@ -7,6 +7,7 @@
 #include <iptables.h>
 #include <linux/netfilter_ipv4/ip_tables.h>
 #include <linux/netfilter_ipv4/ip_nat_rule.h>
+#include <netinet/in.h>
 
 /* Dest NAT data consists of a multi-range, indicating where to map
    to. */
@@ -243,7 +244,7 @@ static struct iptables_target dnat = {
 	.extra_opts	= opts
 };
 
-void _init(void)
+void ipt_DNAT_init(void)
 {
 	register_target(&dnat);
 }
