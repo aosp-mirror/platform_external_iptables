@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 echo ""
 for i in $1; do
 	echo "extern void ${i}_init(void);";
