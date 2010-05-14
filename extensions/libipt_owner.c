@@ -145,7 +145,7 @@ print_item(struct ipt_owner_info *info, u_int8_t flag, int numeric, char *label)
 		if (info->invert & flag)
 			printf("! ");
 
-		printf(label);
+		printf("%s", label);
 
 		switch(info->match & flag) {
 		case IPT_OWNER_UID:
