@@ -31,7 +31,9 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <arpa/inet.h>
+#if !defined(__ANDROID__)
 #include <linux/magic.h> /* for PROC_SUPER_MAGIC */
+#endif
 
 #include <xtables.h>
 #include <limits.h> /* INT_MAX in ip_tables.h/ip6_tables.h */
