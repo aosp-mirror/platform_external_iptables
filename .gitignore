@@ -18,8 +18,6 @@ Makefile.in
 /extensions/matches?.man
 /extensions/targets?.man
 
-/include/xtables.h
-/include/iptables/internal.h
 
 /aclocal.m4
 /autom4te*.cache
