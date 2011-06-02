@@ -19,7 +19,8 @@ LOCAL_C_INCLUDES:= \
 	$(KERNEL_HEADERS) \
 	$(LOCAL_PATH)/include/
 
-LOCAL_CFLAGS:=
+# Accommodate arm-eabi-4.4.3 tools that don't set __ANDROID__
+LOCAL_CFLAGS:=-D__ANDROID__
 
 LOCAL_SRC_FILES:= \
 	libiptc/libip4tc.c \
@@ -40,7 +41,8 @@ LOCAL_C_INCLUDES:= \
 	$(KERNEL_HEADERS) \
 	$(LOCAL_PATH)/include/
 
-LOCAL_CFLAGS:=
+# Accommodate arm-eabi-4.4.3 tools that don't set __ANDROID__
+LOCAL_CFLAGS:=-D__ANDROID__
 
 LOCAL_SRC_FILES:= \
 	libiptc/libip6tc.c \
@@ -86,6 +88,8 @@ LOCAL_C_INCLUDES:= \
 LOCAL_CFLAGS:=-DNO_SHARED_LIBS=1
 LOCAL_CFLAGS+=-DXTABLES_INTERNAL
 LOCAL_CFLAGS+=-DXTABLES_LIBDIR=\"xtables_libdir_not_used\"
+# Accommodate arm-eabi-4.4.3 tools that don't set __ANDROID__
+LOCAL_CFLAGS+=-D__ANDROID__
 
 LOCAL_LDFLAGS:=-version-info 5:0:0
 LOCAL_SRC_FILES:= \
@@ -140,6 +144,8 @@ LOCAL_CFLAGS:=-DNO_SHARED_LIBS=1
 # The $* does not work as expected. It ends up empty. Even with SECONDEXPANSION.
 # LOCAL_CFLAGS+=-D_INIT=lib$*_init
 LOCAL_CFLAGS+=-DXTABLES_INTERNAL
+# Accommodate arm-eabi-4.4.3 tools that don't set __ANDROID__
+LOCAL_CFLAGS+=-D__ANDROID__
 
 MY_initext_func := $(addprefix xt_,${MY_pfx_build_mod})
 MY_GEN_INITEXT:= $(MY_intermediates)/extensions/initext.c
@@ -201,6 +207,8 @@ LOCAL_CFLAGS:=-DNO_SHARED_LIBS=1
 # The $* does not work as expected. It ends up empty. Even with SECONDEXPANSION.
 # LOCAL_CFLAGS+=-D_INIT=lib$*_init
 LOCAL_CFLAGS+=-DXTABLES_INTERNAL
+# Accommodate arm-eabi-4.4.3 tools that don't set __ANDROID__
+LOCAL_CFLAGS+=-D__ANDROID__
 
 MY_initext4_func  := $(addprefix ipt_,${MY_pf4_build_mod})
 MY_GEN_INITEXT4:= $(MY_intermediates)/extensions/initext4.c
@@ -262,6 +270,8 @@ LOCAL_CFLAGS:=-DNO_SHARED_LIBS=1
 # The $* does not work as expected. It ends up empty. Even with SECONDEXPANSION.
 # LOCAL_CFLAGS+=-D_INIT=lib$*_init
 LOCAL_CFLAGS+=-DXTABLES_INTERNAL
+# Accommodate arm-eabi-4.4.3 tools that don't set __ANDROID__
+LOCAL_CFLAGS+=-D__ANDROID__
 
 MY_initext6_func := $(addprefix ip6t_,${MY_pf6_build_mod})
 MY_GEN_INITEXT6:= $(MY_intermediates)/extensions/initext6.c
@@ -311,6 +321,8 @@ LOCAL_C_INCLUDES:= \
 LOCAL_CFLAGS:=-DNO_SHARED_LIBS=1
 LOCAL_CFLAGS+=-DALL_INCLUSIVE
 LOCAL_CFLAGS+=-DXTABLES_INTERNAL
+# Accommodate arm-eabi-4.4.3 tools that don't set __ANDROID__
+LOCAL_CFLAGS+=-D__ANDROID__
 
 LOCAL_SRC_FILES:= \
 	iptables-standalone.c iptables.c xshared.c
@@ -337,6 +349,8 @@ LOCAL_C_INCLUDES:= \
 LOCAL_CFLAGS:=-DNO_SHARED_LIBS=1
 LOCAL_CFLAGS+=-DALL_INCLUSIVE
 LOCAL_CFLAGS+=-DXTABLES_INTERNAL
+# Accommodate arm-eabi-4.4.3 tools that don't set __ANDROID__
+LOCAL_CFLAGS+=-D__ANDROID__
 
 LOCAL_SRC_FILES:= \
 	ip6tables-standalone.c ip6tables.c xshared.c
