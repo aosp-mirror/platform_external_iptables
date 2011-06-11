@@ -549,7 +549,6 @@ print_firewall(const struct ip6t_entry *fw,
 {
 	const struct xtables_target *target = NULL;
 	const struct ip6t_entry_target *t;
-	uint8_t flags;
 	char buf[BUFSIZ];
 
 	if (!ip6tc_is_chain(targname, handle))
@@ -559,7 +558,6 @@ print_firewall(const struct ip6t_entry *fw,
 		         XTF_LOAD_MUST_SUCCEED);
 
 	t = ip6t_get_target((struct ip6t_entry *)fw);
-	flags = fw->ipv6.flags;
 
 	if (format & FMT_LINENUMBERS)
 		printf(FMT("%-4u ", "%u "), num);
@@ -768,10 +766,10 @@ make_delete_mask(const struct xtables_rule_match *matches,
 
 	size = sizeof(struct ip6t_entry);
 	for (matchp = matches; matchp; matchp = matchp->next)
-		size += IP6T_ALIGN(sizeof(struct ip6t_entry_match)) + matchp->match->size;
+		size += XT_ALIGN(sizeof(struct ip6t_entry_match)) + matchp->match->size;
 
 	mask = xtables_calloc(1, size
-			 + IP6T_ALIGN(sizeof(struct ip6t_entry_target))
+			 + XT_ALIGN(sizeof(struct ip6t_entry_target))
 			 + target->size);
 
 	memset(mask, 0xFF, sizeof(struct ip6t_entry));
@@ -779,13 +777,13 @@ make_delete_mask(const struct xtables_rule_match *matches,
 
 	for (matchp = matches; matchp; matchp = matchp->next) {
 		memset(mptr, 0xFF,
-		       IP6T_ALIGN(sizeof(struct ip6t_entry_match))
+		       XT_ALIGN(sizeof(struct ip6t_entry_match))
 		       + matchp->match->userspacesize);
-		mptr += IP6T_ALIGN(sizeof(struct ip6t_entry_match)) + matchp->match->size;
+		mptr += XT_ALIGN(sizeof(struct ip6t_entry_match)) + matchp->match->size;
 	}
 
 	memset(mptr, 0xFF,
-	       IP6T_ALIGN(sizeof(struct ip6t_entry_target))
+	       XT_ALIGN(sizeof(struct ip6t_entry_target))
 	       + target->userspacesize);
 
 	return mask;
@@ -1272,73 +1270,6 @@ static void clear_rule_matches(struct xtables_rule_match **matches)
 	*matches = NULL;
 }
 
-static void command_default(struct iptables_command_state *cs)
-{
-	struct xtables_rule_match *matchp;
-	struct xtables_match *m;
-
-	if (cs->target != NULL &&
-	    (cs->target->parse != NULL || cs->target->x6_parse != NULL) &&
-	    cs->c >= cs->target->option_offset &&
-	    cs->c < cs->target->option_offset + XT_OPTION_OFFSET_SCALE) {
-		xtables_option_tpcall(cs->c, cs->argv, cs->invert,
-				      cs->target, &cs->fw);
-		return;
-	}
-
-	for (matchp = cs->matches; matchp; matchp = matchp->next) {
-		m = matchp->match;
-
-		if (matchp->completed ||
-		    (m->x6_parse == NULL && m->parse == NULL))
-			continue;
-		if (cs->c < matchp->match->option_offset ||
-		    cs->c >= matchp->match->option_offset + XT_OPTION_OFFSET_SCALE)
-			continue;
-		xtables_option_mpcall(cs->c, cs->argv, cs->invert, m, &cs->fw);
-		return;
-	}
-
-	/* Try loading protocol */
-	m = load_proto(cs);
-	if (m != NULL) {
-		size_t size;
-
-		cs->proto_used = 1;
-
-		size = IP6T_ALIGN(sizeof(struct ip6t_entry_match)) + m->size;
-
-		m->m = xtables_calloc(1, size);
-		m->m->u.match_size = size;
-		strcpy(m->m->u.user.name, m->name);
-		m->m->u.user.revision = m->revision;
-		if (m->init != NULL)
-			m->init(m->m);
-
-		if (m->x6_options != NULL)
-			opts = xtables_options_xfrm(ip6tables_globals.orig_opts,
-						    opts, m->x6_options,
-						    &m->option_offset);
-		else
-			opts = xtables_merge_options(ip6tables_globals.orig_opts,
-						     opts,
-						     m->extra_opts,
-						     &m->option_offset);
-		if (opts == NULL)
-			xtables_error(OTHER_PROBLEM, "can't alloc memory!");
-		optind--;
-		return;
-	}
-
-	if (cs->c == ':')
-		xtables_error(PARAMETER_PROBLEM, "option \"%s\" "
-		              "requires an argument", cs->argv[optind-1]);
-	if (cs->c == '?')
-		xtables_error(PARAMETER_PROBLEM, "unknown option "
-			      "\"%s\"", cs->argv[optind-1]);
-	xtables_error(PARAMETER_PROBLEM, "Unknown arg \"%s\"", optarg);
-}
-
 static void command_jump(struct iptables_command_state *cs)
 {
 	size_t size;
@@ -1351,7 +1282,7 @@ static void command_jump(struct iptables_command_state *cs)
 	if (cs->target == NULL)
 		return;
 
-	size = IP6T_ALIGN(sizeof(struct ip6t_entry_target)) + cs->target->size;
+	size = XT_ALIGN(sizeof(struct ip6t_entry_target)) + cs->target->size;
 
 	cs->target->t = xtables_calloc(1, size);
 	cs->target->t->u.target_size = size;
@@ -1381,7 +1312,7 @@ static void command_match(struct iptables_command_state *cs)
 			   "unexpected ! flag before --match");
 
 	m = xtables_find_match(optarg, XTF_LOAD_MUST_SUCCEED, &cs->matches);
-	size = IP6T_ALIGN(sizeof(struct ip6t_entry_match)) + m->size;
+	size = XT_ALIGN(sizeof(struct ip6t_entry_match)) + m->size;
 	m->m = xtables_calloc(1, size);
 	m->m->u.match_size = size;
 	strcpy(m->m->u.user.name, m->name);
@@ -1785,7 +1716,13 @@ int do_command6(int argc, char *argv[], char **table, struct ip6tc_handle **hand
 			exit_tryhelp(2);
 
 		default:
-			command_default(&cs);
+			if (command_default(&cs, &ip6tables_globals) == 1)
+				/*
+				 * If new options were loaded, we must retry
+				 * getopt immediately and not allow
+				 * cs.invert=FALSE to be executed.
+				 */
+				continue;
 			break;
 		}
 		cs.invert = FALSE;

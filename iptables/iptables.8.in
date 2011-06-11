@@ -1,10 +1,8 @@
-.TH IP6TABLES 8 "" "iptables 1.4.4" "iptables 1.4.4"
+.TH IPTABLES 8 "" "@PACKAGE_AND_VERSION@" "@PACKAGE_AND_VERSION@"
 .\"
-.\" Man page written by Andras Kis-Szabo <kisza@sch.bme.hu>
-.\" It is based on iptables man page.
-.\"
-.\" iptables page by Herve Eychenne <rv@wallfire.org>
-.\" It is based on ipchains man page.
+.\" Man page written by Herve Eychenne <rv@wallfire.org> (May 1999)
+.\" It is based on ipchains page.
+.\" TODO: add a word for protocol helpers (FTP, IRC, SNMP-ALG)
 .\"
 .\" ipchains page by Paul ``Rusty'' Russell March 1997
 .\" Based on the original ipfwadm man page by Jos Vos <jos@xos.nl>
@@ -25,36 +23,37 @@
 .\"
 .\"
 .SH NAME
-ip6tables \(em IPv6 packet filter administration
+iptables \(em administration tool for IPv4 packet filtering and NAT
 .SH SYNOPSIS
-\fBip6tables\fP [\fB\-t\fP \fItable\fP] {\fB\-A\fP|\fB\-C\fP|\fB\-D\fP}
-\fIchain rule-specification\fP [\fIoptions...\fP]
+\fBiptables\fP [\fB\-t\fP \fItable\fP] {\fB\-A\fP|\fB\-C\fP|\fB\-D\fP}
+\fIchain\fP \fIrule-specification\fP
 .PP
-\fBip6tables\fP [\fB\-t\fP \fItable\fP] \fB\-I\fP \fIchain\fP [\fIrulenum\fP]
-\fIrule-specification\fP [\fIoptions...\fP]
+\fBiptables\fP [\fB\-t\fP \fItable\fP] \fB\-I\fP \fIchain\fP [\fIrulenum\fP] \fIrule-specification\fP
 .PP
-\fBip6tables\fP [\fB\-t\fP \fItable\fP] \fB\-R\fP \fIchain rulenum
-rule-specification\fP [\fIoptions...\fP]
+\fBiptables\fP [\fB\-t\fP \fItable\fP] \fB\-R\fP \fIchain rulenum rule-specification\fP
 .PP
-\fBip6tables\fP [\fB\-t\fP \fItable\fP] \fB\-D\fP \fIchain rulenum\fP
-[\fIoptions...\fP]
+\fBiptables\fP [\fB\-t\fP \fItable\fP] \fB\-D\fP \fIchain rulenum\fP
 .PP
-\fBip6tables\fP [\fB\-t\fP \fItable\fP] \fB\-S\fP [\fIchain\fP [\fIrulenum\fP]]
+\fBiptables\fP [\fB\-t\fP \fItable\fP] \fB\-S\fP [\fIchain\fP [\fIrulenum\fP]]
 .PP
-\fBip6tables\fP [\fB\-t\fP \fItable\fP] {\fB\-F\fP|\fB\-L\fP|\fB\-Z\fP}
-[\fIchain\fP [\fIrulenum\fP]] [\fIoptions...\fP]
+\fBiptables\fP [\fB\-t\fP \fItable\fP] {\fB\-F\fP|\fB\-L\fP|\fB\-Z\fP} [\fIchain\fP [\fIrulenum\fP]] [\fIoptions...\fP]
 .PP
-\fBip6tables\fP [\fB\-t\fP \fItable\fP] \fB\-N\fP \fIchain\fP
+\fBiptables\fP [\fB\-t\fP \fItable\fP] \fB\-N\fP \fIchain\fP
 .PP
-\fBip6tables\fP [\fB\-t\fP \fItable\fP] \fB\-X\fP [\fIchain\fP]
+\fBiptables\fP [\fB\-t\fP \fItable\fP] \fB\-X\fP [\fIchain\fP]
 .PP
-\fBip6tables\fP [\fB\-t\fP \fItable\fP] \fB\-P\fP \fIchain target\fP
-[\fIoptions...\fP]
+\fBiptables\fP [\fB\-t\fP \fItable\fP] \fB\-P\fP \fIchain target\fP
 .PP
-\fBip6tables\fP [\fB\-t\fP \fItable\fP] \fB\-E\fP \fIold-chain-name new-chain-name\fP
+\fBiptables\fP [\fB\-t\fP \fItable\fP] \fB\-E\fP \fIold-chain-name new-chain-name\fP
+.PP
+rule-specification = [\fImatches...\fP] [\fItarget\fP]
+.PP
+match = \fB\-m\fP \fImatchname\fP [\fIper-match-options\fP]
+.PP
+target = \fB\-j\fP \fItargetname\fP [\fIper\-target\-options\fP]
 .SH DESCRIPTION
-\fBIp6tables\fP is used to set up, maintain, and inspect the
-tables of IPv6 packet
+\fBIptables\fP is used to set up, maintain, and inspect the
+tables of IPv4 packet
 filter rules in the Linux kernel.  Several different tables
 may be defined.  Each table contains a number of built-in
 chains and may also contain user-defined chains.
@@ -106,6 +105,13 @@ the built-in chains \fBINPUT\fP (for packets destined to local sockets),
 \fBFORWARD\fP (for packets being routed through the box), and
 \fBOUTPUT\fP (for locally-generated packets).
 .TP
+\fBnat\fP:
+This table is consulted when a packet that creates a new
+connection is encountered.  It consists of three built-ins: \fBPREROUTING\fP
+(for altering packets as soon as they come in), \fBOUTPUT\fP
+(for altering locally-generated packets before routing), and \fBPOSTROUTING\fP
+(for altering packets as they are about to go out).
+.TP
 \fBmangle\fP:
 This table is used for specialized packet alteration.  Until kernel
 2.4.17 it had two built-in chains: \fBPREROUTING\fP
@@ -137,13 +143,13 @@ before MAC rules.  This table provides the following built-in chains:
 .RE
 .SH OPTIONS
 The options that are recognized by
-\fBip6tables\fP can be divided into several different groups.
+\fBiptables\fP can be divided into several different groups.
 .SS COMMANDS
-These options specify the specific action to perform.  Only one of them
-can be specified on the command line unless otherwise specified
-below.  For all the long versions of the command and option names, you
+These options specify the desired action to perform. Only one of them
+can be specified on the command line unless otherwise stated
+below. For long versions of the command and option names, you
 need to use only enough letters to ensure that
-\fBip6tables\fP can differentiate it from all other options.
+\fBiptables\fP can differentiate it from all other options.
 .TP
 \fB\-A\fP, \fB\-\-append\fP \fIchain rule-specification\fP
 Append one or more rules to the end of the selected chain.
@@ -177,9 +183,11 @@ fail.  Rules are numbered starting at 1.
 .TP
 \fB\-L\fP, \fB\-\-list\fP [\fIchain\fP]
 List all rules in the selected chain.  If no chain is selected, all
-chains are listed. Like every other ip6tables command, it applies to the
-specified table (filter is the default).
-.IP ""
+chains are listed. Like every other iptables command, it applies to the
+specified table (filter is the default), so NAT rules get listed by
+.nf
+ iptables \-t nat \-n \-L
+.fi
 Please note that it is often used with the \fB\-n\fP
 option, in order to avoid long reverse DNS lookups.
 It is legal to specify the \fB\-Z\fP
@@ -187,12 +195,12 @@ It is legal to specify the \fB\-Z\fP
 listed and zeroed.  The exact output is affected by the other
 arguments given. The exact rules are suppressed until you use
 .nf
- ip6tables \-L \-v
+ iptables \-L \-v
 .fi
 .TP
 \fB\-S\fP, \fB\-\-list\-rules\fP [\fIchain\fP]
 Print all rules in the selected chain.  If no chain is selected, all
-chains are printed like ip6tables-save. Like every other ip6tables command,
+chains are printed like iptables-save. Like every other iptables command,
 it applies to the specified table (filter is the default).
 .TP
 \fB\-F\fP, \fB\-\-flush\fP [\fIchain\fP]
@@ -228,11 +236,6 @@ targets.
 Rename the user specified chain to the user supplied name.  This is
 cosmetic, and has no effect on the structure of the table.
 .TP
-\fB\-A\fP, \fB\-\-append\fP \fIchain rule-specification\fP
-Append one or more rules to the end of the selected chain.
-When the source and/or destination names resolve to more than one
-address, a rule will be added for each possible address combination.
-.TP
 \fB\-h\fP
 Help.
 Give a (currently very brief) description of the command syntax.
@@ -243,36 +246,32 @@ add, delete, insert, replace and append commands).
 [\fB!\fP] \fB\-p\fP, \fB\-\-protocol\fP \fIprotocol\fP
 The protocol of the rule or of the packet to check.
 The specified protocol can be one of \fBtcp\fP, \fBudp\fP, \fBudplite\fP,
-\fBicmpv6\fP, \fBesp\fP, \fBmh\fP or \fBall\fP,
+\fBicmp\fP, \fBesp\fP, \fBah\fP, \fBsctp\fP or the special keyword "\fBall\fP",
 or it can be a numeric value, representing one of these protocols or a
-different one. A protocol name from /etc/protocols is also allowed.
-But IPv6 extension headers except \fBesp\fP are not allowed.
-\fBesp\fP and \fBipv6\-nonext\fP
-can be used with Kernel version 2.6.11 or later.
+different one.  A protocol name from /etc/protocols is also allowed.
 A "!" argument before the protocol inverts the
-test.  The number zero is equivalent to \fBall\fP.
-Protocol \fBall\fP
+test.  The number zero is equivalent to \fBall\fP. "\fBall\fP"
 will match with all protocols and is taken as default when this
 option is omitted.
 .TP
-[\fB!\fP] \fB\-s\fP, \fB\-\-source\fP \fIaddress\fP[\fB/\fP\fImask\fP]
-Source specification.
-\fIAddress\fP can be either be a hostname,
-a network IP address (with \fB/\fP\fImask\fP), or a plain IP address.
-Names will be resolved once only, before the rule is submitted to the kernel.
+[\fB!\fP] \fB\-s\fP, \fB\-\-source\fP \fIaddress\fP[\fB/\fP\fImask\fP][\fB,\fP\fI...\fP]
+Source specification. \fIAddress\fP
+can be either a network name, a hostname, a network IP address (with
+\fB/\fP\fImask\fP), or a plain IP address. Hostnames will
+be resolved once only, before the rule is submitted to the kernel.
 Please note that specifying any name to be resolved with a remote query such as
 DNS is a really bad idea.
-(Resolving network names is not supported at this time.)
-The \fImask\fP is a plain number,
+The \fImask\fP
+can be either a network mask or a plain number,
 specifying the number of 1's at the left side of the network mask.
+Thus, a mask of \fI24\fP is equivalent to \fI255.255.255.0\fP.
 A "!" argument before the address specification inverts the sense of
-the address. The flag \fB\-\-src\fP
-is an alias for this option.
+the address. The flag \fB\-\-src\fP is an alias for this option.
 Multiple addresses can be specified, but this will \fBexpand to multiple
 rules\fP (when adding with \-A), or will cause multiple rules to be
 deleted (with \-D).
 .TP
-[\fB!\fP] \fB\-d\fP, \fB\-\-destination\fP \fIaddress\fP[\fB/\fP\fImask\fP]
+[\fB!\fP] \fB\-d\fP, \fB\-\-destination\fP \fIaddress\fP[\fB/\fP\fImask\fP][\fB,\fP\fI...\fP]
 Destination specification. 
 See the description of the \fB\-s\fP
 (source) flag for a detailed description of the syntax.  The flag
@@ -310,15 +309,14 @@ chains).  When the "!" argument is used before the interface name, the
 sense is inverted.  If the interface name ends in a "+", then any
 interface which begins with this name will match.  If this option is
 omitted, any interface name will match.
-.\" Currently not supported (header-based)
-.\" .TP
-.\" [\fB!\fP] \fB\-f\fP, \fB\-\-fragment\fP
-.\" This means that the rule only refers to second and further fragments
-.\" of fragmented packets.  Since there is no way to tell the source or
-.\" destination ports of such a packet (or ICMP type), such a packet will
-.\" not match any rules which specify them.  When the "!" argument
-.\" precedes the "\-f" flag, the rule will only match head fragments, or
-.\" unfragmented packets.
+.TP
+[\fB!\fP] \fB\-f\fP, \fB\-\-fragment\fP
+This means that the rule only refers to second and further fragments
+of fragmented packets.  Since there is no way to tell the source or
+destination ports of such a packet (or ICMP type), such a packet will
+not match any rules which specify them.  When the "!" argument
+precedes the "\-f" flag, the rule will only match head fragments, or
+unfragmented packets.
 .TP
 \fB\-c\fP, \fB\-\-set\-counters\fP \fIpackets bytes\fP
 This enables the administrator to initialize the packet and byte
@@ -357,7 +355,7 @@ corresponding to that rule's position in the chain.
 When adding or inserting rules into a chain, use \fIcommand\fP
 to load any necessary modules (targets, match extensions, etc).
 .SH MATCH EXTENSIONS
-ip6tables can use extended packet matching modules.  These are loaded
+iptables can use extended packet matching modules.  These are loaded
 in two ways: implicitly, when \fB\-p\fP or \fB\-\-protocol\fP
 is specified, or with the \fB\-m\fP or \fB\-\-match\fP
 options, followed by the matching module name; after these, various
@@ -371,7 +369,7 @@ The following are included in the base package, and most of these can
 be preceded by a "\fB!\fP" to invert the sense of the match.
 .\" @MATCH@
 .SH TARGET EXTENSIONS
-ip6tables can use extended target modules: the following are included
+iptables can use extended target modules: the following are included
 in the standard distribution.
 .\" @TARGET@
 .SH DIAGNOSTICS
@@ -381,9 +379,9 @@ invalid or abused command line parameters cause an exit code of 2, and
 other errors cause an exit code of 1.
 .SH BUGS
 Bugs?  What's this? ;-)
-Well... the counters are not reliable on sparc64.
+Well, you might want to have a look at http://bugzilla.netfilter.org/
 .SH COMPATIBILITY WITH IPCHAINS
-This \fBip6tables\fP
+This \fBiptables\fP
 is very similar to ipchains by Rusty Russell.  The main difference is
 that the chains \fBINPUT\fP and \fBOUTPUT\fP
 are only traversed for packets coming into the local host and
@@ -395,17 +393,28 @@ would pass through all three.
 The other main difference is that \fB\-i\fP refers to the input interface;
 \fB\-o\fP refers to the output interface, and both are available for packets
 entering the \fBFORWARD\fP chain.
-There are several other changes in ip6tables.
+.PP
+The various forms of NAT have been separated out; \fBiptables\fP
+is a pure packet filter when using the default `filter' table, with
+optional extension modules.  This should simplify much of the previous
+confusion over the combination of IP masquerading and packet filtering
+seen previously.  So the following options are handled differently:
+.nf
+ \-j MASQ
+ \-M \-S
+ \-M \-L
+.fi
+There are several other changes in iptables.
 .SH SEE ALSO
-\fBip6tables\-save\fP(8),
-\fBip6tables\-restore\fP(8),
-\fBiptables\fP(8),
 \fBiptables\-save\fP(8),
 \fBiptables\-restore\fP(8),
+\fBip6tables\fP(8),
+\fBip6tables\-save\fP(8),
+\fBip6tables\-restore\fP(8),
 \fBlibipq\fP(3).
 .PP
 The packet-filtering-HOWTO details iptables usage for
-packet filtering,
+packet filtering, the NAT-HOWTO details NAT,
 the netfilter-extensions-HOWTO details the extensions that are
 not in the standard distribution,
 and the netfilter-hacking-HOWTO details the netfilter internals.
@@ -413,7 +422,7 @@ and the netfilter-hacking-HOWTO details the netfilter internals.
 See
 .BR "http://www.netfilter.org/" .
 .SH AUTHORS
-Rusty Russell wrote iptables, in early consultation with Michael
+Rusty Russell originally wrote iptables, in early consultation with Michael
 Neuling.
 .PP
 Marc Boucher made Rusty abandon ipnatctl by lobbying for a generic packet
@@ -424,18 +433,17 @@ James Morris wrote the TOS target, and tos match.
 .PP
 Jozsef Kadlecsik wrote the REJECT target.
 .PP
-Harald Welte wrote the ULOG and NFQUEUE target, the new libiptc, as well as TTL match+target and libipulog.
+Harald Welte wrote the ULOG and NFQUEUE target, the new libiptc, as well as the TTL, DSCP, ECN matches and targets.
 .PP
 The Netfilter Core Team is: Marc Boucher, Martin Josefsson, Yasuyuki Kozakai,
 Jozsef Kadlecsik, Patrick McHardy, James Morris, Pablo Neira Ayuso,
 Harald Welte and Rusty Russell.
 .PP
-ip6tables man page created by Andras Kis-Szabo, based on
-iptables man page written by Herve Eychenne <rv@wallfire.org>.
+Man page originally written by Herve Eychenne <rv@wallfire.org>.
 .\" .. and did I mention that we are incredibly cool people?
 .\" .. sexy, too ..
 .\" .. witty, charming, powerful ..
 .\" .. and most of all, modest ..
 .SH VERSION
 .PP
-This manual page applies to ip6tables @PACKAGE_VERSION@.
+This manual page applies to iptables @PACKAGE_VERSION@.
