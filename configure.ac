@@ -1,5 +1,5 @@
 
-AC_INIT([iptables], [1.4.10])
+AC_INIT([iptables], [1.4.11.1])
 
 # See libtool.info "Libtool's versioning system"
 libxtables_vcurrent=6
@@ -41,7 +41,7 @@ AC_ARG_ENABLE([largefile],
 	AS_HELP_STRING([--disable-largefile], [Do not build largefile support]),
 	[enable_largefile="$enableval"],
 	[enable_largefile="yes";
-	largefile_cflags='-D_LARGEFILE_SOURCE=1 -D_LARGE_FILES -D_FILE_OFFSET_BITS=64'])
+	largefile_cppflags='-D_LARGEFILE_SOURCE=1 -D_LARGE_FILES -D_FILE_OFFSET_BITS=64'])
 AC_ARG_ENABLE([devel],
 	AS_HELP_STRING([--enable-devel],
 	[Install Xtables development headers]),
@@ -83,22 +83,23 @@ PKG_CHECK_MODULES([libnfnetlink], [libnfnetlink >= 1.0],
 	[nfnetlink=1], [nfnetlink=0])
 AM_CONDITIONAL([HAVE_LIBNFNETLINK], [test "$nfnetlink" = 1])
 
-regular_CFLAGS="${largefile_cflags} \
-	-D_REENTRANT -Wall -Waggregate-return -Wmissing-declarations \
+regular_CFLAGS="-Wall -Waggregate-return -Wmissing-declarations \
 	-Wmissing-prototypes -Wredundant-decls -Wshadow -Wstrict-prototypes \
-	-Winline -pipe \
+	-Winline -pipe";
+regular_CPPFLAGS="${largefile_cppflags} -D_REENTRANT \
 	-DXTABLES_LIBDIR=\\\"\${xtlibdir}\\\" -DXTABLES_INTERNAL";
-kinclude_CFLAGS="";
+kinclude_CPPFLAGS="";
 if [[ -n "$kbuilddir" ]]; then
-	kinclude_CFLAGS="$kinclude_CFLAGS -I $kbuilddir/include";
+	kinclude_CPPFLAGS="$kinclude_CPPFLAGS -I$kbuilddir/include";
 fi;
 if [[ -n "$ksourcedir" ]]; then
-	kinclude_CFLAGS="$kinclude_CFLAGS -I $ksourcedir/include";
+	kinclude_CPPFLAGS="$kinclude_CPPFLAGS -I$ksourcedir/include";
 fi;
 pkgdatadir='${datadir}/xtables';
 
 AC_SUBST([regular_CFLAGS])
-AC_SUBST([kinclude_CFLAGS])
+AC_SUBST([regular_CPPFLAGS])
+AC_SUBST([kinclude_CPPFLAGS])
 AC_SUBST([kbuilddir])
 AC_SUBST([ksourcedir])
 AC_SUBST([xtlibdir])
@@ -110,6 +111,7 @@ libxtables_vmajor=$(($libxtables_vcurrent - $libxtables_vage));
 AC_SUBST([libxtables_vmajor])
 
 AC_CONFIG_FILES([Makefile extensions/GNUmakefile include/Makefile
-	libipq/Makefile utils/Makefile
-	include/xtables.h include/iptables/internal.h libiptc.pc xtables.pc])
+	iptables/Makefile iptables/xtables.pc
+	libipq/Makefile libiptc/Makefile libiptc/libiptc.pc utils/Makefile
+	include/xtables.h include/iptables/internal.h])
 AC_OUTPUT

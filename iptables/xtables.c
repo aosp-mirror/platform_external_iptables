@@ -15,9 +15,10 @@
  *	along with this program; if not, write to the Free Software
  *	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-
+#include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <inttypes.h>
 #include <netdb.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -31,9 +32,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <arpa/inet.h>
-#if !defined(__ANDROID__)
 #include <linux/magic.h> /* for PROC_SUPER_MAGIC */
-#endif
 
 #include <xtables.h>
 #include <limits.h> /* INT_MAX in ip_tables.h/ip6_tables.h */
@@ -428,15 +427,20 @@ int xtables_load_ko(const char *modprobe, bool quiet)
  * Returns true/false whether number was accepted. On failure, *value has
  * undefined contents.
  */
-bool xtables_strtoul(const char *s, char **end, unsigned long long *value,
-                     unsigned long min, unsigned long max)
+bool xtables_strtoul(const char *s, char **end, uintmax_t *value,
+                     uintmax_t min, uintmax_t max)
 {
-	unsigned long v;
+	uintmax_t v;
+	const char *p;
 	char *my_end;
 
 	errno = 0;
-	v = strtoul(s, &my_end, 0);
-
+	/* Since strtoul allows leading minus, we have to check for ourself. */
+	for (p = s; isspace(*p); ++p)
+		;
+	if (*p == '-')
+		return false;
+	v = strtoumax(s, &my_end, 0);
 	if (my_end == s)
 		return false;
 	if (end != NULL)
@@ -456,7 +460,7 @@ bool xtables_strtoul(const char *s, char **end, unsigned long long *value,
 bool xtables_strtoui(const char *s, char **end, unsigned int *value,
                      unsigned int min, unsigned int max)
 {
-	unsigned long long v;
+	uintmax_t v;
 	bool ret;
 
 	ret = xtables_strtoul(s, end, &v, min, max);
@@ -1799,37 +1803,30 @@ const struct xtables_pprot xtables_chain_protos[] = {
 uint16_t
 xtables_parse_protocol(const char *s)
 {
-	unsigned int proto;
+	const struct protoent *pent;
+	unsigned int proto, i;
 
-	if (!xtables_strtoui(s, NULL, &proto, 0, UINT8_MAX)) {
-		struct protoent *pent;
+	if (xtables_strtoui(s, NULL, &proto, 0, UINT8_MAX))
+		return proto;
 
-		/* first deal with the special case of 'all' to prevent
-		 * people from being able to redefine 'all' in nsswitch
-		 * and/or provoke expensive [not working] ldap/nis/...
-		 * lookups */
-		if (!strcmp(s, "all"))
-			return 0;
+	/* first deal with the special case of 'all' to prevent
+	 * people from being able to redefine 'all' in nsswitch
+	 * and/or provoke expensive [not working] ldap/nis/...
+	 * lookups */
+	if (strcmp(s, "all") == 0)
+		return 0;
 
-		if ((pent = getprotobyname(s)))
-			proto = pent->p_proto;
-		else {
-			unsigned int i;
-			for (i = 0; i < ARRAY_SIZE(xtables_chain_protos); ++i) {
-				if (xtables_chain_protos[i].name == NULL)
-					continue;
+	pent = getprotobyname(s);
+	if (pent != NULL)
+		return pent->p_proto;
 
-				if (strcmp(s, xtables_chain_protos[i].name) == 0) {
-					proto = xtables_chain_protos[i].num;
-					break;
-				}
-			}
-			if (i == ARRAY_SIZE(xtables_chain_protos))
-				xt_params->exit_err(PARAMETER_PROBLEM,
-					   "unknown protocol `%s' specified",
-					   s);
-		}
+	for (i = 0; i < ARRAY_SIZE(xtables_chain_protos); ++i) {
+		if (xtables_chain_protos[i].name == NULL)
+			continue;
+		if (strcmp(s, xtables_chain_protos[i].name) == 0)
+			return xtables_chain_protos[i].num;
 	}
-
-	return proto;
+	xt_params->exit_err(PARAMETER_PROBLEM,
+		"unknown protocol \"%s\" specified", s);
+	return -1;
 }

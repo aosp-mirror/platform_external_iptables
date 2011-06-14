@@ -771,10 +771,10 @@ make_delete_mask(const struct xtables_rule_match *matches,
 
 	size = sizeof(struct ipt_entry);
 	for (matchp = matches; matchp; matchp = matchp->next)
-		size += IPT_ALIGN(sizeof(struct ipt_entry_match)) + matchp->match->size;
+		size += XT_ALIGN(sizeof(struct ipt_entry_match)) + matchp->match->size;
 
 	mask = xtables_calloc(1, size
-			 + IPT_ALIGN(sizeof(struct ipt_entry_target))
+			 + XT_ALIGN(sizeof(struct ipt_entry_target))
 			 + target->size);
 
 	memset(mask, 0xFF, sizeof(struct ipt_entry));
@@ -782,13 +782,13 @@ make_delete_mask(const struct xtables_rule_match *matches,
 
 	for (matchp = matches; matchp; matchp = matchp->next) {
 		memset(mptr, 0xFF,
-		       IPT_ALIGN(sizeof(struct ipt_entry_match))
+		       XT_ALIGN(sizeof(struct ipt_entry_match))
 		       + matchp->match->userspacesize);
-		mptr += IPT_ALIGN(sizeof(struct ipt_entry_match)) + matchp->match->size;
+		mptr += XT_ALIGN(sizeof(struct ipt_entry_match)) + matchp->match->size;
 	}
 
 	memset(mptr, 0xFF,
-	       IPT_ALIGN(sizeof(struct ipt_entry_target))
+	       XT_ALIGN(sizeof(struct ipt_entry_target))
 	       + target->userspacesize);
 
 	return mask;
@@ -1296,74 +1296,6 @@ get_kernel_version(void) {
 	kernel_version = LINUX_VERSION(x, y, z);
 }
 
-static void command_default(struct iptables_command_state *cs)
-{
-	struct xtables_rule_match *matchp;
-	struct xtables_match *m;
-
-	if (cs->target != NULL &&
-	    (cs->target->parse != NULL || cs->target->x6_parse != NULL) &&
-	    cs->c >= cs->target->option_offset &&
-	    cs->c < cs->target->option_offset + XT_OPTION_OFFSET_SCALE) {
-		xtables_option_tpcall(cs->c, cs->argv, cs->invert,
-				      cs->target, &cs->fw);
-		return;
-	}
-
-	for (matchp = cs->matches; matchp; matchp = matchp->next) {
-		m = matchp->match;
-
-		if (matchp->completed ||
-		    (m->x6_parse == NULL && m->parse == NULL))
-			continue;
-		if (cs->c < m->option_offset ||
-		    cs->c >= m->option_offset + XT_OPTION_OFFSET_SCALE)
-			continue;
-		xtables_option_mpcall(cs->c, cs->argv, cs->invert, m, &cs->fw);
-		return;
-	}
-
-	/* Try loading protocol */
-	m = load_proto(cs);
-	if (m != NULL) {
-		size_t size;
-
-		cs->proto_used = 1;
-
-		size = IPT_ALIGN(sizeof(struct ipt_entry_match)) + m->size;
-
-		m->m = xtables_calloc(1, size);
-		m->m->u.match_size = size;
-		strcpy(m->m->u.user.name, m->name);
-		m->m->u.user.revision = m->revision;
-		if (m->init != NULL)
-			m->init(m->m);
-
-		if (m->x6_options != NULL)
-			opts = xtables_options_xfrm(iptables_globals.orig_opts,
-						    opts, m->x6_options,
-						    &m->option_offset);
-		else
-			opts = xtables_merge_options(iptables_globals.orig_opts,
-						     opts,
-						     m->extra_opts,
-						     &m->option_offset);
-		if (opts == NULL)
-			xtables_error(OTHER_PROBLEM, "can't alloc memory!");
-
-		optind--;
-		return;
-	}
-
-	if (cs->c == ':')
-		xtables_error(PARAMETER_PROBLEM, "option \"%s\" "
-		              "requires an argument", cs->argv[optind-1]);
-	if (cs->c == '?')
-		xtables_error(PARAMETER_PROBLEM, "unknown option "
-			      "\"%s\"", cs->argv[optind-1]);
-	xtables_error(PARAMETER_PROBLEM, "Unknown arg \"%s\"", optarg);
-}
-
 static void command_jump(struct iptables_command_state *cs)
 {
 	size_t size;
@@ -1376,7 +1308,7 @@ static void command_jump(struct iptables_command_state *cs)
 	if (cs->target == NULL)
 		return;
 
-	size = IPT_ALIGN(sizeof(struct ipt_entry_target))
+	size = XT_ALIGN(sizeof(struct ipt_entry_target))
 		+ cs->target->size;
 
 	cs->target->t = xtables_calloc(1, size);
@@ -1407,7 +1339,7 @@ static void command_match(struct iptables_command_state *cs)
 			   "unexpected ! flag before --match");
 
 	m = xtables_find_match(optarg, XTF_LOAD_MUST_SUCCEED, &cs->matches);
-	size = IPT_ALIGN(sizeof(struct ipt_entry_match)) + m->size;
+	size = XT_ALIGN(sizeof(struct ipt_entry_match)) + m->size;
 	m->m = xtables_calloc(1, size);
 	m->m->u.match_size = size;
 	strcpy(m->m->u.user.name, m->name);
@@ -1811,7 +1743,9 @@ int do_command4(int argc, char *argv[], char **table, struct iptc_handle **handl
 			exit_tryhelp(2);
 
 		default:
-			command_default(&cs);
+			if (command_default(&cs, &iptables_globals) == 1)
+				/* cf. ip6tables.c */
+				continue;
 			break;
 		}
 		cs.invert = FALSE;
