@@ -14,8 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <xtables.h>
-#include "xt_quota2.h"
-#include "compat_user.h"
+#include <linux/netfilter/xt_quota2.h>
 
 enum {
 	FL_QUOTA     = 1 << 0,
@@ -25,13 +24,25 @@ enum {
 	FL_NO_CHANGE = 1 << 4,
 };
 
-static const struct option quota_mt2_opts[] = {
-	{.name = "grow",      .has_arg = false, .val = 'g'},
-	{.name = "no-change", .has_arg = false, .val = 'c'},
-	{.name = "name",      .has_arg = true,  .val = 'n'},
-	{.name = "quota",     .has_arg = true,  .val = 'q'},
-	{.name = "packets",   .has_arg = false, .val = 'p'},
-	{NULL},
+enum {
+	O_QUOTA     = 0,
+	O_NAME,
+	O_GROW,
+	O_PACKET,
+	O_NO_CHANGE,
+};
+
+
+static const struct xt_option_entry quota_mt2_opts[] = {
+	{.name = "grow", .id = O_GROW, .type = XTTYPE_NONE},
+	{.name = "no-change", .id = O_NO_CHANGE, .type = XTTYPE_NONE},
+	{.name = "name", .id = O_NAME, .type = XTTYPE_STRING,
+	 .flags = XTOPT_PUT, XTOPT_POINTER(struct xt_quota_mtinfo2, name)},
+	{.name = "quota", .id = O_QUOTA, .type = XTTYPE_UINT64,
+	 .flags = XTOPT_INVERT | XTOPT_PUT,
+	 XTOPT_POINTER(struct xt_quota_mtinfo2, quota)},
+	{.name = "packets", .id = O_PACKET, .type = XTTYPE_NONE},
+	XTOPT_TABLEEND,
 };
 
 static void quota_mt2_help(void)
@@ -46,51 +57,26 @@ static void quota_mt2_help(void)
 	);
 }
 
-static int
-quota_mt2_parse(int c, char **argv, int invert, unsigned int *flags,
-	        const void *entry, struct xt_entry_match **match)
+static void quota_mt2_parse(struct xt_option_call *cb)
 {
-	struct xt_quota_mtinfo2 *info = (void *)(*match)->data;
-	char *end;
+	struct xt_quota_mtinfo2 *info = cb->data;
 
-	switch (c) {
-	case 'g':
-		xtables_param_act(XTF_ONLY_ONCE, "quota", "--grow", *flags & FL_GROW);
-		xtables_param_act(XTF_NO_INVERT, "quota", "--grow", invert);
+	xtables_option_parse(cb);
+	switch (cb->entry->id) {
+	case O_GROW:
 		info->flags |= XT_QUOTA_GROW;
-		*flags |= FL_GROW;
-		return true;
-	case 'c': /* no-change */
-		xtables_param_act(XTF_ONLY_ONCE, "quota", "--no-change", *flags & FL_NO_CHANGE);
-		xtables_param_act(XTF_NO_INVERT, "quota", "--no-change", invert);
+		break;
+	case O_NO_CHANGE:
 		info->flags |= XT_QUOTA_NO_CHANGE;
-		*flags |= FL_NO_CHANGE;
-		return true;
-	case 'n':
-		/* zero termination done on behalf of the kernel module */
-		xtables_param_act(XTF_ONLY_ONCE, "quota", "--name", *flags & FL_NAME);
-		xtables_param_act(XTF_NO_INVERT, "quota", "--name", invert);
-		strncpy(info->name, optarg, sizeof(info->name));
-		*flags |= FL_NAME;
-		return true;
-	case 'p':
-		xtables_param_act(XTF_ONLY_ONCE, "quota", "--packets", *flags & FL_PACKET);
-		xtables_param_act(XTF_NO_INVERT, "quota", "--packets", invert);
+		break;
+	case O_NAME:
+		break;
+	case O_PACKET:
 		info->flags |= XT_QUOTA_PACKET;
-		*flags |= FL_PACKET;
-		return true;
-	case 'q':
-		xtables_param_act(XTF_ONLY_ONCE, "quota", "--quota", *flags & FL_QUOTA);
-		if (invert)
-			info->flags |= XT_QUOTA_INVERT;
-		info->quota = strtoull(optarg, &end, 0);
-		if (*end != '\0')
-			xtables_error(PARAMETER_PROBLEM, "quota match: "
-			           "invalid value for --quota");
-		*flags |= FL_QUOTA;
-		return true;
+		break;
+	case O_QUOTA:
+		break;
 	}
-	return false;
 }
 
 static void
@@ -141,13 +127,13 @@ static struct xtables_match quota_mt2_reg = {
 	.size          = XT_ALIGN(sizeof (struct xt_quota_mtinfo2)),
 	.userspacesize = offsetof(struct xt_quota_mtinfo2, quota),
 	.help          = quota_mt2_help,
-	.parse         = quota_mt2_parse,
+	.x6_parse      = quota_mt2_parse,
 	.print         = quota_mt2_print,
 	.save          = quota_mt2_save,
-	.extra_opts    = quota_mt2_opts,
+	.x6_options    = quota_mt2_opts,
 };
 
-static __attribute__((constructor)) void quota2_mt_ldr(void)
+void _init(void)
 {
 	xtables_register_match(&quota_mt2_reg);
 }
