@@ -75,6 +75,8 @@ static void quota_mt2_parse(struct xt_option_call *cb)
 		info->flags |= XT_QUOTA_PACKET;
 		break;
 	case O_QUOTA:
+		if (cb->invert)
+			info->flags |= XT_QUOTA_INVERT;
 		break;
 	}
 }
