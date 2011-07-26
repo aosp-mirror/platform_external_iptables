@@ -1,10 +1,8 @@
-/* Shared library add-on to iptables to add ICMP support. */
+#include <stdint.h>
 #include <stdio.h>
-#include <netdb.h>
 #include <string.h>
-#include <stdlib.h>
-#include <getopt.h>
-#include <iptables.h>
+#include <xtables.h>
+#include <limits.h> /* INT_MAX in ip6_tables.h */
 #include <linux/netfilter_ipv4/ip_tables.h>
 
 /* special hack for icmp-type 'any': 
@@ -15,10 +13,14 @@
  * See: https://bugzilla.netfilter.org/cgi-bin/bugzilla/show_bug.cgi?id=37
  */
 
+enum {
+	O_ICMP_TYPE = 0,
+};
+
 struct icmp_names {
 	const char *name;
-	u_int8_t type;
-	u_int8_t code_min, code_max;
+	uint8_t type;
+	uint8_t code_min, code_max;
 };
 
 static const struct icmp_names icmp_codes[] = {
@@ -77,12 +79,12 @@ static const struct icmp_names icmp_codes[] = {
 };
 
 static void
-print_icmptypes()
+print_icmptypes(void)
 {
 	unsigned int i;
 	printf("Valid ICMP Types:");
 
-	for (i = 0; i < sizeof(icmp_codes)/sizeof(struct icmp_names); i++) {
+	for (i = 0; i < ARRAY_SIZE(icmp_codes); ++i) {
 		if (i && icmp_codes[i].type == icmp_codes[i-1].type) {
 			if (icmp_codes[i].code_min == icmp_codes[i-1].code_min
 			    && (icmp_codes[i].code_max
@@ -97,27 +99,25 @@ print_icmptypes()
 	printf("\n");
 }
 
-/* Function which prints out usage message. */
-static void
-help(void)
+static void icmp_help(void)
 {
 	printf(
-"ICMP v%s options:\n"
-" --icmp-type [!] typename	match icmp type\n"
-"				(or numeric type or type/code)\n"
-"\n", IPTABLES_VERSION);
+"icmp match options:\n"
+"[!] --icmp-type typename	match icmp type\n"
+"[!] --icmp-type type[/code]	(or numeric type or type/code)\n");
 	print_icmptypes();
 }
 
-static struct option opts[] = {
-	{ "icmp-type", 1, 0, '1' },
-	{0}
+static const struct xt_option_entry icmp_opts[] = {
+	{.name = "icmp-type", .id = O_ICMP_TYPE, .type = XTTYPE_STRING,
+	 .flags = XTOPT_MAND | XTOPT_INVERT},
+	XTOPT_TABLEEND,
 };
 
 static void 
-parse_icmp(const char *icmptype, u_int8_t *type, u_int8_t code[])
+parse_icmp(const char *icmptype, uint8_t *type, uint8_t code[])
 {
-	unsigned int limit = sizeof(icmp_codes)/sizeof(struct icmp_names);
+	static const unsigned int limit = ARRAY_SIZE(icmp_codes);
 	unsigned int match = limit;
 	unsigned int i;
 
@@ -125,7 +125,7 @@ parse_icmp(const char *icmptype, u_int8_t *type, u_int8_t code[])
 		if (strncasecmp(icmp_codes[i].name, icmptype, strlen(icmptype))
 		    == 0) {
 			if (match != limit)
-				exit_error(PARAMETER_PROBLEM,
+				xtables_error(PARAMETER_PROBLEM,
 					   "Ambiguous ICMP type `%s':"
 					   " `%s' or `%s'?",
 					   icmptype,
@@ -150,13 +150,13 @@ parse_icmp(const char *icmptype, u_int8_t *type, u_int8_t code[])
 		if (slash)
 			*slash = '\0';
 
-		if (string_to_number(buffer, 0, 255, &number) == -1)
-			exit_error(PARAMETER_PROBLEM,
+		if (!xtables_strtoui(buffer, NULL, &number, 0, UINT8_MAX))
+			xtables_error(PARAMETER_PROBLEM,
 				   "Invalid ICMP type `%s'\n", buffer);
 		*type = number;
 		if (slash) {
-			if (string_to_number(slash+1, 0, 255, &number) == -1)
-				exit_error(PARAMETER_PROBLEM,
+			if (!xtables_strtoui(slash+1, NULL, &number, 0, UINT8_MAX))
+				xtables_error(PARAMETER_PROBLEM,
 					   "Invalid ICMP code `%s'\n",
 					   slash+1);
 			code[0] = code[1] = number;
@@ -167,9 +167,7 @@ parse_icmp(const char *icmptype, u_int8_t *type, u_int8_t code[])
 	}
 }
 
-/* Initialize the match. */
-static void
-init(struct ipt_entry_match *m, unsigned int *nfcache)
+static void icmp_init(struct xt_entry_match *m)
 {
 	struct ipt_icmp *icmpinfo = (struct ipt_icmp *)m->data;
 
@@ -177,55 +175,32 @@ init(struct ipt_entry_match *m, unsigned int *nfcache)
 	icmpinfo->code[1] = 0xFF;
 }
 
-/* Function which parses command options; returns true if it
-   ate an option */
-static int
-parse(int c, char **argv, int invert, unsigned int *flags,
-      const struct ipt_entry *entry,
-      unsigned int *nfcache,
-      struct ipt_entry_match **match)
+static void icmp_parse(struct xt_option_call *cb)
 {
-	struct ipt_icmp *icmpinfo = (struct ipt_icmp *)(*match)->data;
+	struct ipt_icmp *icmpinfo = cb->data;
 
-	switch (c) {
-	case '1':
-		if (*flags == 1)
-			exit_error(PARAMETER_PROBLEM,
-				   "icmp match: only use --icmp-type once!");
-		check_inverse(optarg, &invert, &optind, 0);
-		parse_icmp(argv[optind-1], &icmpinfo->type, 
-			   icmpinfo->code);
-		if (invert)
-			icmpinfo->invflags |= IPT_ICMP_INV;
-		*flags = 1;
-		break;
-
-	default:
-		return 0;
-	}
-
-	return 1;
+	xtables_option_parse(cb);
+	parse_icmp(cb->arg, &icmpinfo->type, icmpinfo->code);
+	if (cb->invert)
+		icmpinfo->invflags |= IPT_ICMP_INV;
 }
 
-static void print_icmptype(u_int8_t type,
-			   u_int8_t code_min, u_int8_t code_max,
+static void print_icmptype(uint8_t type,
+			   uint8_t code_min, uint8_t code_max,
 			   int invert,
 			   int numeric)
 {
 	if (!numeric) {
 		unsigned int i;
 
-		for (i = 0;
-		     i < sizeof(icmp_codes)/sizeof(struct icmp_names);
-		     i++) {
+		for (i = 0; i < ARRAY_SIZE(icmp_codes); ++i)
 			if (icmp_codes[i].type == type
 			    && icmp_codes[i].code_min == code_min
 			    && icmp_codes[i].code_max == code_max)
 				break;
-		}
 
-		if (i != sizeof(icmp_codes)/sizeof(struct icmp_names)) {
-			printf("%s%s ",
+		if (i != ARRAY_SIZE(icmp_codes)) {
+			printf(" %s%s",
 			       invert ? "!" : "",
 			       icmp_codes[i].name);
 			return;
@@ -233,75 +208,62 @@ static void print_icmptype(u_int8_t type,
 	}
 
 	if (invert)
-		printf("!");
+		printf(" !");
 
 	printf("type %u", type);
-	if (code_min == 0 && code_max == 0xFF)
-		printf(" ");
-	else if (code_min == code_max)
-		printf(" code %u ", code_min);
-	else
-		printf(" codes %u-%u ", code_min, code_max);
+	if (code_min == code_max)
+		printf(" code %u", code_min);
+	else if (code_min != 0 || code_max != 0xFF)
+		printf(" codes %u-%u", code_min, code_max);
 }
 
-/* Prints out the union ipt_matchinfo. */
-static void
-print(const struct ipt_ip *ip,
-      const struct ipt_entry_match *match,
-      int numeric)
+static void icmp_print(const void *ip, const struct xt_entry_match *match,
+                       int numeric)
 {
 	const struct ipt_icmp *icmp = (struct ipt_icmp *)match->data;
 
-	printf("icmp ");
+	printf(" icmp");
 	print_icmptype(icmp->type, icmp->code[0], icmp->code[1],
 		       icmp->invflags & IPT_ICMP_INV,
 		       numeric);
 
 	if (icmp->invflags & ~IPT_ICMP_INV)
-		printf("Unknown invflags: 0x%X ",
+		printf(" Unknown invflags: 0x%X",
 		       icmp->invflags & ~IPT_ICMP_INV);
 }
 
-/* Saves the match in parsable form to stdout. */
-static void save(const struct ipt_ip *ip, const struct ipt_entry_match *match)
+static void icmp_save(const void *ip, const struct xt_entry_match *match)
 {
 	const struct ipt_icmp *icmp = (struct ipt_icmp *)match->data;
 
 	if (icmp->invflags & IPT_ICMP_INV)
-		printf("! ");
+		printf(" !");
 
 	/* special hack for 'any' case */
 	if (icmp->type == 0xFF) {
-		printf("--icmp-type any ");
+		printf(" --icmp-type any");
 	} else {
-		printf("--icmp-type %u", icmp->type);
+		printf(" --icmp-type %u", icmp->type);
 		if (icmp->code[0] != 0 || icmp->code[1] != 0xFF)
 			printf("/%u", icmp->code[0]);
-		printf(" ");
 	}
 }
 
-/* Final check; we don't care. */
-static void final_check(unsigned int flags)
-{
-}
-
-static struct iptables_match icmp = { 
-	.next		= NULL,
+static struct xtables_match icmp_mt_reg = {
 	.name		= "icmp",
-	.version	= IPTABLES_VERSION,
-	.size		= IPT_ALIGN(sizeof(struct ipt_icmp)),
-	.userspacesize	= IPT_ALIGN(sizeof(struct ipt_icmp)),
-	.help		= &help,
-	.init		= &init,
-	.parse		= &parse,
-	.final_check	= &final_check,
-	.print		= &print,
-	.save		= &save,
-	.extra_opts	= opts
+	.version	= XTABLES_VERSION,
+	.family		= NFPROTO_IPV4,
+	.size		= XT_ALIGN(sizeof(struct ipt_icmp)),
+	.userspacesize	= XT_ALIGN(sizeof(struct ipt_icmp)),
+	.help		= icmp_help,
+	.init		= icmp_init,
+	.print		= icmp_print,
+	.save		= icmp_save,
+	.x6_parse	= icmp_parse,
+	.x6_options	= icmp_opts,
 };
 
-void ipt_icmp_init(void)
+void _init(void)
 {
-	register_match(&icmp);
+	xtables_register_match(&icmp_mt_reg);
 }

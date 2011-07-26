@@ -32,6 +32,8 @@
 #include <sys/types.h>
 
 #include <libipq/libipq.h>
+#include <netinet/in.h>
+#include <linux/netfilter.h>
 
 /****************************************************************************
  *
@@ -204,7 +206,7 @@ static char *ipq_strerror(int errcode)
 /*
  * Create and initialise an ipq handle.
  */
-struct ipq_handle *ipq_create_handle(u_int32_t flags, u_int32_t protocol)
+struct ipq_handle *ipq_create_handle(uint32_t flags, uint32_t protocol)
 {
 	int status;
 	struct ipq_handle *h;
@@ -217,9 +219,9 @@ struct ipq_handle *ipq_create_handle(u_int32_t flags, u_int32_t protocol)
 	
 	memset(h, 0, sizeof(struct ipq_handle));
 	
-        if (protocol == PF_INET)
+        if (protocol == NFPROTO_IPV4)
                 h->fd = socket(PF_NETLINK, SOCK_RAW, NETLINK_FIREWALL);
-        else if (protocol == PF_INET6)
+        else if (protocol == NFPROTO_IPV6)
                 h->fd = socket(PF_NETLINK, SOCK_RAW, NETLINK_IP6_FW);
         else {
 		ipq_errno = IPQ_ERR_PROTOCOL;
@@ -265,7 +267,7 @@ int ipq_destroy_handle(struct ipq_handle *h)
 }
 
 int ipq_set_mode(const struct ipq_handle *h,
-                 u_int8_t mode, size_t range)
+                 uint8_t mode, size_t range)
 {
 	struct {
 		struct nlmsghdr nlh;

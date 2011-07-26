@@ -1,166 +1,126 @@
 /* Shared library add-on to iptables for the TTL target
  * (C) 2000 by Harald Welte <laforge@gnumonks.org>
  *
- * $Id: libipt_TTL.c 3507 2004-12-28 13:11:59Z /C=DE/ST=Berlin/L=Berlin/O=Netfilter Project/OU=Development/CN=rusty/emailAddress=rusty@netfilter.org $
- *
  * This program is distributed under the terms of GNU GPL
  */
 #include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <getopt.h>
-#include <iptables.h>
-
-#include <linux/netfilter_ipv4/ip_tables.h>
+#include <xtables.h>
 #include <linux/netfilter_ipv4/ipt_TTL.h>
 
-#define IPT_TTL_USED	1
+enum {
+	O_TTL_SET = 0,
+	O_TTL_INC,
+	O_TTL_DEC,
+	F_TTL_SET = 1 << O_TTL_SET,
+	F_TTL_INC = 1 << O_TTL_INC,
+	F_TTL_DEC = 1 << O_TTL_DEC,
+	F_ANY     = F_TTL_SET | F_TTL_INC | F_TTL_DEC,
+};
 
-static void init(struct ipt_entry_target *t, unsigned int *nfcache) 
-{
-}
+#define s struct ipt_TTL_info
+static const struct xt_option_entry TTL_opts[] = {
+	{.name = "ttl-set", .type = XTTYPE_UINT8, .id = O_TTL_SET,
+	 .excl = F_ANY, .flags = XTOPT_PUT, XTOPT_POINTER(s, ttl)},
+	{.name = "ttl-dec", .type = XTTYPE_UINT8, .id = O_TTL_DEC,
+	 .excl = F_ANY, .flags = XTOPT_PUT, XTOPT_POINTER(s, ttl),
+	 .min = 1},
+	{.name = "ttl-inc", .type = XTTYPE_UINT8, .id = O_TTL_INC,
+	 .excl = F_ANY, .flags = XTOPT_PUT, XTOPT_POINTER(s, ttl),
+	 .min = 1},
+	XTOPT_TABLEEND,
+};
+#undef s
 
-static void help(void) 
+static void TTL_help(void)
 {
 	printf(
-"TTL target v%s options\n"
+"TTL target options\n"
 "  --ttl-set value		Set TTL to <value 0-255>\n"
 "  --ttl-dec value		Decrement TTL by <value 1-255>\n"
-"  --ttl-inc value		Increment TTL by <value 1-255>\n"
-, IPTABLES_VERSION);
+"  --ttl-inc value		Increment TTL by <value 1-255>\n");
 }
 
-static int parse(int c, char **argv, int invert, unsigned int *flags,
-		const struct ipt_entry *entry,
-		struct ipt_entry_target **target)
+static void TTL_parse(struct xt_option_call *cb)
 {
-	struct ipt_TTL_info *info = (struct ipt_TTL_info *) (*target)->data;
-	unsigned int value;
+	struct ipt_TTL_info *info = cb->data;
 
-	if (*flags & IPT_TTL_USED) {
-		exit_error(PARAMETER_PROBLEM, 
-				"Can't specify TTL option twice");
+	xtables_option_parse(cb);
+	switch (cb->entry->id) {
+	case O_TTL_SET:
+		info->mode = IPT_TTL_SET;
+		break;
+	case O_TTL_DEC:
+		info->mode = IPT_TTL_DEC;
+		break;
+	case O_TTL_INC:
+		info->mode = IPT_TTL_INC;
+		break;
 	}
-
-	if (!optarg) 
-		exit_error(PARAMETER_PROBLEM, 
-				"TTL: You must specify a value");
-
-	if (check_inverse(optarg, &invert, NULL, 0))
-		exit_error(PARAMETER_PROBLEM,
-				"TTL: unexpected `!'");
-	
-	if (string_to_number(optarg, 0, 255, &value) == -1)
-		exit_error(PARAMETER_PROBLEM,
-		           "TTL: Expected value between 0 and 255");
-
-	switch (c) {
-
-		case '1':
-			info->mode = IPT_TTL_SET;
-			break;
-
-		case '2':
-			if (value == 0) {
-				exit_error(PARAMETER_PROBLEM,
-					"TTL: decreasing by 0?");
-			}
-
-			info->mode = IPT_TTL_DEC;
-			break;
-
-		case '3':
-			if (value == 0) {
-				exit_error(PARAMETER_PROBLEM,
-					"TTL: increasing by 0?");
-			}
-
-			info->mode = IPT_TTL_INC;
-			break;
-
-		default:
-			return 0;
-
-	}
-	
-	info->ttl = value;
-	*flags |= IPT_TTL_USED;
-
-	return 1;
 }
 
-static void final_check(unsigned int flags)
+static void TTL_check(struct xt_fcheck_call *cb)
 {
-	if (!(flags & IPT_TTL_USED))
-		exit_error(PARAMETER_PROBLEM,
+	if (!(cb->xflags & F_ANY))
+		xtables_error(PARAMETER_PROBLEM,
 				"TTL: You must specify an action");
 }
 
-static void save(const struct ipt_ip *ip,
-		const struct ipt_entry_target *target)
+static void TTL_save(const void *ip, const struct xt_entry_target *target)
 {
 	const struct ipt_TTL_info *info = 
 		(struct ipt_TTL_info *) target->data;
 
 	switch (info->mode) {
 		case IPT_TTL_SET:
-			printf("--ttl-set ");
+			printf(" --ttl-set");
 			break;
 		case IPT_TTL_DEC:
-			printf("--ttl-dec ");
+			printf(" --ttl-dec");
 			break;
 
 		case IPT_TTL_INC:
-			printf("--ttl-inc ");
+			printf(" --ttl-inc");
 			break;
 	}
-	printf("%u ", info->ttl);
+	printf(" %u", info->ttl);
 }
 
-static void print(const struct ipt_ip *ip,
-		const struct ipt_entry_target *target, int numeric)
+static void TTL_print(const void *ip, const struct xt_entry_target *target,
+                      int numeric)
 {
 	const struct ipt_TTL_info *info =
 		(struct ipt_TTL_info *) target->data;
 
-	printf("TTL ");
+	printf(" TTL ");
 	switch (info->mode) {
 		case IPT_TTL_SET:
-			printf("set to ");
+			printf("set to");
 			break;
 		case IPT_TTL_DEC:
-			printf("decrement by ");
+			printf("decrement by");
 			break;
 		case IPT_TTL_INC:
-			printf("increment by ");
+			printf("increment by");
 			break;
 	}
-	printf("%u ", info->ttl);
+	printf(" %u", info->ttl);
 }
 
-static struct option opts[] = {
-	{ "ttl-set", 1, 0, '1' },
-	{ "ttl-dec", 1, 0, '2' },
-	{ "ttl-inc", 1, 0, '3' },
-	{ 0 }
-};
-
-static struct iptables_target TTL = {
-	.next		= NULL, 
+static struct xtables_target ttl_tg_reg = {
 	.name		= "TTL",
-	.version	= IPTABLES_VERSION,
-	.size		= IPT_ALIGN(sizeof(struct ipt_TTL_info)),
-	.userspacesize	= IPT_ALIGN(sizeof(struct ipt_TTL_info)),
-	.help		= &help,
-	.init		= &init,
-	.parse		= &parse,
-	.final_check	= &final_check,
-	.print		= &print,
-	.save		= &save,
-	.extra_opts	= opts 
+	.version	= XTABLES_VERSION,
+	.family		= NFPROTO_IPV4,
+	.size		= XT_ALIGN(sizeof(struct ipt_TTL_info)),
+	.userspacesize	= XT_ALIGN(sizeof(struct ipt_TTL_info)),
+	.help		= TTL_help,
+	.print		= TTL_print,
+	.save		= TTL_save,
+	.x6_parse	= TTL_parse,
+	.x6_fcheck	= TTL_check,
+	.x6_options	= TTL_opts,
 };
 
-void ipt_TTL_init(void)
+void _init(void)
 {
-	register_target(&TTL);
+	xtables_register_target(&ttl_tg_reg);
 }

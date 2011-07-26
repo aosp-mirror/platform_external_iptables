@@ -4,10 +4,7 @@
  */
 #include <stdio.h>
 #include <string.h>
-#include <stdlib.h>
-#include <getopt.h>
-#include <iptables.h>
-#include <linux/netfilter_ipv4/ip_tables.h>
+#include <xtables.h>
 #include <linux/netfilter_ipv4/ipt_REJECT.h>
 #include <linux/version.h>
 
@@ -25,6 +22,10 @@ struct reject_names {
 	const char *alias;
 	enum ipt_reject_with with;
 	const char *desc;
+};
+
+enum {
+	O_REJECT_WITH = 0,
 };
 
 static const struct reject_names reject_table[] = {
@@ -51,27 +52,23 @@ static const struct reject_names reject_table[] = {
 };
 
 static void
-print_reject_types()
+print_reject_types(void)
 {
 	unsigned int i;
 
 	printf("Valid reject types:\n");
 
-	for (i = 0; i < sizeof(reject_table)/sizeof(struct reject_names); i++) {
+	for (i = 0; i < ARRAY_SIZE(reject_table); ++i) {
 		printf("    %-25s\t%s\n", reject_table[i].name, reject_table[i].desc);
 		printf("    %-25s\talias\n", reject_table[i].alias);
 	}
 	printf("\n");
 }
 
-/* Saves the union ipt_targinfo in parsable form to stdout. */
-
-/* Function which prints out usage message. */
-static void
-help(void)
+static void REJECT_help(void)
 {
 	printf(
-"REJECT options:\n"
+"REJECT target options:\n"
 "--reject-with type              drop input packet and send back\n"
 "                                a reply packet according to type:\n");
 
@@ -80,14 +77,12 @@ help(void)
 	printf("(*) See man page or read the INCOMPATIBILITES file for compatibility issues.\n");
 }
 
-static struct option opts[] = {
-	{ "reject-with", 1, 0, '1' },
-	{ 0 }
+static const struct xt_option_entry REJECT_opts[] = {
+	{.name = "reject-with", .id = O_REJECT_WITH, .type = XTTYPE_STRING},
+	XTOPT_TABLEEND,
 };
 
-/* Allocate and initialize the target. */
-static void
-init(struct ipt_entry_target *t, unsigned int *nfcache)
+static void REJECT_init(struct xt_entry_target *t)
 {
 	struct ipt_reject_info *reject = (struct ipt_reject_info *)t->data;
 
@@ -96,94 +91,70 @@ init(struct ipt_entry_target *t, unsigned int *nfcache)
 
 }
 
-/* Function which parses command options; returns true if it
-   ate an option */
-static int
-parse(int c, char **argv, int invert, unsigned int *flags,
-      const struct ipt_entry *entry,
-      struct ipt_entry_target **target)
+static void REJECT_parse(struct xt_option_call *cb)
 {
-	struct ipt_reject_info *reject = (struct ipt_reject_info *)(*target)->data;
-	unsigned int limit = sizeof(reject_table)/sizeof(struct reject_names);
+	struct ipt_reject_info *reject = cb->data;
 	unsigned int i;
 
-	switch(c) {
-	case '1':
-		if (check_inverse(optarg, &invert, NULL, 0))
-			exit_error(PARAMETER_PROBLEM,
-				   "Unexpected `!' after --reject-with");
-		for (i = 0; i < limit; i++) {
-			if ((strncasecmp(reject_table[i].name, optarg, strlen(optarg)) == 0)
-			    || (strncasecmp(reject_table[i].alias, optarg, strlen(optarg)) == 0)) {
-				reject->with = reject_table[i].with;
-				return 1;
-			}
+	xtables_option_parse(cb);
+	for (i = 0; i < ARRAY_SIZE(reject_table); ++i)
+		if (strncasecmp(reject_table[i].name,
+		      cb->arg, strlen(cb->arg)) == 0 ||
+		    strncasecmp(reject_table[i].alias,
+		      cb->arg, strlen(cb->arg)) == 0) {
+			reject->with = reject_table[i].with;
+			return;
 		}
-		/* This due to be dropped late in 2.4 pre-release cycle --RR */
-		if (strncasecmp("echo-reply", optarg, strlen(optarg)) == 0
-		    || strncasecmp("echoreply", optarg, strlen(optarg)) == 0)
-			fprintf(stderr, "--reject-with echo-reply no longer"
-				" supported\n");
-		exit_error(PARAMETER_PROBLEM, "unknown reject type `%s'",optarg);
-	default:
-		/* Fall through */
-		break;
-	}
-	return 0;
+	/* This due to be dropped late in 2.4 pre-release cycle --RR */
+	if (strncasecmp("echo-reply", cb->arg, strlen(cb->arg)) == 0 ||
+	    strncasecmp("echoreply", cb->arg, strlen(cb->arg)) == 0)
+		fprintf(stderr, "--reject-with echo-reply no longer"
+			" supported\n");
+	xtables_error(PARAMETER_PROBLEM,
+		"unknown reject type \"%s\"", cb->arg);
 }
 
-/* Final check; nothing. */
-static void final_check(unsigned int flags)
-{
-}
-
-/* Prints out ipt_reject_info. */
-static void
-print(const struct ipt_ip *ip,
-      const struct ipt_entry_target *target,
-      int numeric)
+static void REJECT_print(const void *ip, const struct xt_entry_target *target,
+                         int numeric)
 {
 	const struct ipt_reject_info *reject
 		= (const struct ipt_reject_info *)target->data;
 	unsigned int i;
 
-	for (i = 0; i < sizeof(reject_table)/sizeof(struct reject_names); i++) {
+	for (i = 0; i < ARRAY_SIZE(reject_table); ++i)
 		if (reject_table[i].with == reject->with)
 			break;
-	}
-	printf("reject-with %s ", reject_table[i].name);
+	printf(" reject-with %s", reject_table[i].name);
 }
 
-/* Saves ipt_reject in parsable form to stdout. */
-static void save(const struct ipt_ip *ip, const struct ipt_entry_target *target)
+static void REJECT_save(const void *ip, const struct xt_entry_target *target)
 {
 	const struct ipt_reject_info *reject
 		= (const struct ipt_reject_info *)target->data;
 	unsigned int i;
 
-	for (i = 0; i < sizeof(reject_table)/sizeof(struct reject_names); i++)
+	for (i = 0; i < ARRAY_SIZE(reject_table); ++i)
 		if (reject_table[i].with == reject->with)
 			break;
 
-	printf("--reject-with %s ", reject_table[i].name);
+	printf(" --reject-with %s", reject_table[i].name);
 }
 
-static struct iptables_target reject = { 
-	.next		= NULL,
+static struct xtables_target reject_tg_reg = {
 	.name		= "REJECT",
-	.version	= IPTABLES_VERSION,
-	.size		= IPT_ALIGN(sizeof(struct ipt_reject_info)),
-	.userspacesize	= IPT_ALIGN(sizeof(struct ipt_reject_info)),
-	.help		= &help,
-	.init		= &init,
-	.parse		= &parse,
-	.final_check	= &final_check,
-	.print		= &print,
-	.save		= &save,
-	.extra_opts	= opts
+	.version	= XTABLES_VERSION,
+	.family		= NFPROTO_IPV4,
+	.size		= XT_ALIGN(sizeof(struct ipt_reject_info)),
+	.userspacesize	= XT_ALIGN(sizeof(struct ipt_reject_info)),
+	.help		= REJECT_help,
+	.init		= REJECT_init,
+	.print		= REJECT_print,
+	.save		= REJECT_save,
+	.x6_parse	= REJECT_parse,
+	.x6_options	= REJECT_opts,
 };
 
-void ipt_REJECT_init(void)
+void _init(void)
 {
-	register_target(&reject);
+	xtables_register_target(&reject_tg_reg);
 }

@@ -1,62 +1,15 @@
 /* Shared library add-on to iptables to add MIRROR target support. */
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <getopt.h>
+#include <xtables.h>
 
-#include <iptables.h>
-#include <linux/netfilter_ipv4/ip_tables.h>
-
-/* Function which prints out usage message. */
-static void
-help(void)
-{
-	printf(
-"MIRROR target v%s takes no options\n",
-IPTABLES_VERSION);
-}
-
-static struct option opts[] = {
-	{ 0 }
-};
-
-/* Initialize the target. */
-static void
-init(struct ipt_entry_target *t, unsigned int *nfcache)
-{
-}
-
-/* Function which parses command options; returns true if it
-   ate an option */
-static int
-parse(int c, char **argv, int invert, unsigned int *flags,
-      const struct ipt_entry *entry,
-      struct ipt_entry_target **target)
-{
-	return 0;
-}
-
-static void
-final_check(unsigned int flags)
-{
-}
-
-static struct iptables_target mirror = {
-	.next		= NULL,
+static struct xtables_target mirror_tg_reg = {
 	.name		= "MIRROR",
-	.version	= IPTABLES_VERSION,
-	.size		= IPT_ALIGN(0),
-	.userspacesize	= IPT_ALIGN(0),
- 	.help		= &help,
-	.init		= &init,
- 	.parse		= &parse,
-	.final_check 	= &final_check,
-	.print		= NULL,
-	.save		= NULL,
-	.extra_opts	= opts
+	.version	= XTABLES_VERSION,
+	.family		= NFPROTO_IPV4,
+	.size		= XT_ALIGN(0),
+	.userspacesize	= XT_ALIGN(0),
 };
 
-void ipt_MIRROR_init(void)
+void _init(void)
 {
-	register_target(&mirror);
+	xtables_register_target(&mirror_tg_reg);
 }

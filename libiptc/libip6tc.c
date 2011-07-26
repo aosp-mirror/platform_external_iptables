@@ -23,7 +23,7 @@
 #define inline
 #endif
 
-#if !defined(__GLIBC__) || (__GLIBC__ < 2)
+#if !defined(__ANDROID__) && (!defined(__GLIBC__) || (__GLIBC__ < 2))
 typedef unsigned int socklen_t;
 #endif
 
@@ -46,7 +46,7 @@ typedef unsigned int socklen_t;
 #define STRUCT_REPLACE		struct ip6t_replace
 
 #define STRUCT_TC_HANDLE	struct ip6tc_handle
-#define TC_HANDLE_T		ip6tc_handle_t
+#define xtc_handle		ip6tc_handle
 
 #define ENTRY_ITERATE		IP6T_ENTRY_ITERATE
 #define TABLE_MAXNAMELEN	IP6T_TABLE_MAXNAMELEN
@@ -71,9 +71,9 @@ typedef unsigned int socklen_t;
 #define TC_INSERT_ENTRY		ip6tc_insert_entry
 #define TC_REPLACE_ENTRY	ip6tc_replace_entry
 #define TC_APPEND_ENTRY		ip6tc_append_entry
+#define TC_CHECK_ENTRY		ip6tc_check_entry
 #define TC_DELETE_ENTRY		ip6tc_delete_entry
 #define TC_DELETE_NUM_ENTRY	ip6tc_delete_num_entry
-#define TC_CHECK_PACKET		ip6tc_check_packet
 #define TC_FLUSH_ENTRIES	ip6tc_flush_entries
 #define TC_ZERO_ENTRIES		ip6tc_zero_entries
 #define TC_ZERO_COUNTER		ip6tc_zero_counter
@@ -107,13 +107,13 @@ typedef unsigned int socklen_t;
 #define LABEL_DROP		IP6TC_LABEL_DROP
 #define LABEL_QUEUE		IP6TC_LABEL_QUEUE
 
-#define ALIGN			IP6T_ALIGN
+#define ALIGN			XT_ALIGN
 #define RETURN			IP6T_RETURN
 
 #include "libiptc.c"
 
 #define BIT6(a, l) \
- ((ntohl(a->in6_u.u6_addr32[(l) / 32]) >> (31 - ((l) & 31))) & 1)
+ ((ntohl(a->s6_addr32[(l) / 32]) >> (31 - ((l) & 31))) & 1)
 
 int
 ipv6_prefix_length(const struct in6_addr *a)
@@ -131,7 +131,7 @@ ipv6_prefix_length(const struct in6_addr *a)
 }
 
 static int
-dump_entry(struct ip6t_entry *e, const ip6tc_handle_t handle)
+dump_entry(struct ip6t_entry *e, struct ip6tc_handle *const handle)
 {
 	size_t i;
 	char buf[40];
@@ -179,17 +179,15 @@ dump_entry(struct ip6t_entry *e, const ip6tc_handle_t handle)
 	printf("Invflags: %02X\n", e->ipv6.invflags);
 	printf("Counters: %llu packets, %llu bytes\n",
 	       (unsigned long long)e->counters.pcnt, (unsigned long long)e->counters.bcnt);
-	printf("Cache: %08X ", e->nfcache);
-	if (e->nfcache & NFC_ALTERED) printf("ALTERED ");
-	if (e->nfcache & NFC_UNKNOWN) printf("UNKNOWN ");
-	printf("\n");
+	printf("Cache: %08X\n", e->nfcache);
 	
 	IP6T_MATCH_ITERATE(e, print_match);
 
 	t = ip6t_get_target(e);
 	printf("Target name: `%s' [%u]\n", t->u.user.name, t->u.target_size);
 	if (strcmp(t->u.user.name, IP6T_STANDARD_TARGET) == 0) {
-		int pos = *(int *)t->data;
+		const unsigned char *data = t->data;
+		int pos = *(const int *)data;
 		if (pos < 0)
 			printf("verdict=%s\n",
 			       pos == -NF_ACCEPT-1 ? "NF_ACCEPT"
@@ -236,15 +234,14 @@ is_same(const STRUCT_ENTRY *a, const STRUCT_ENTRY *b,
 			return NULL;
 	}
 
-	if (a->nfcache != b->nfcache
-	    || a->target_offset != b->target_offset
+	if (a->target_offset != b->target_offset
 	    || a->next_offset != b->next_offset)
 		return NULL;
 
 	mptr = matchmask + sizeof(STRUCT_ENTRY);
 	if (IP6T_MATCH_ITERATE(a, match_different, a->elems, b->elems, &mptr))
 		return NULL;
-	mptr += IP6T_ALIGN(sizeof(struct ip6t_entry_target));
+	mptr += XT_ALIGN(sizeof(struct ip6t_entry_target));
 
 	return mptr;
 }
@@ -265,7 +262,7 @@ unconditional(const struct ip6t_ip6 *ipv6)
 #ifdef IPTC_DEBUG
 /* Do every conceivable sanity check on the handle */
 static void
-do_check(TC_HANDLE_T h, unsigned int line)
+do_check(struct xtc_handle *h, unsigned int line)
 {
 	unsigned int i, n;
 	unsigned int user_offset; /* Offset of first user chain */

@@ -1,24 +1,19 @@
-A quick list of rules for committing stuff into netfilter svn:
+A quick list of rules for committing stuff into netfilter git:
 
-- Always include the Name of the Author/Contributor in the SVN comment
-  like 'fix for foo (Au Thor)'
+- Always add an appropriate description, in git format
+  (i.e. first line is a summary)
 
-- make sure that you have set the executable bits on an 'extensions/.*-test'
-  script before adding/committing it to SVN
+- Please try to include references to bugs when the description does not
+  include total discussion coverage or when the bug report is external to
+  netfilter-devel, e.g.
+  "Closes: netfilter bugzilla #123", or
+  "Reference: http://bugs.{debian,gentoo}.org/..."
 
-- If the commit fixes a bugzilla bug, please include '(Closes: #bugnr)' in
-  the commit message
+- If you touch any parts of libxtables (xtables.c, include/xtables.h.in),
+  make sure the so-version is updated _appropriately_ (i.e. read the
+  libtool manual about Versioning:: first, if need be) in configure.ac.
+  Adding fields to a struct always entails a vcurrent bump.
 
-- Make sure you don't commit to svn while a feature freeze is announced
-
-- For new extensions, there are two possible cases:
-	1) header files are just in patch-o-matic patch, you need an
-	   'extensions/.*-test' script to have a conditional build
-	2) header files are in patch-o-matic patch, and copied to
-	   'netfilter/include/linux/netfilter_xxx'.  This way the extension
-	   can be built _unconditionally_, and thus be included in
-	   'extensions/Makefile'.  Make sure to keep the headers in sync!
-
-  Usually '1)' is used, but in case something is expected to show up in the
-  kernel soon, we should already make userspace support unconditionally.
-
+  - Check, whether a bump (vcurrent,vage) has already been made since the
+    last release (no more than one per release), e.g.:
+            git log v1.4.4.. configure.ac
