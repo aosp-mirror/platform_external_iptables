@@ -19,8 +19,6 @@ LOCAL_LDFLAGS:=-version-info 6:0:0
 LOCAL_SRC_FILES:= \
 	xtables.c xtoptions.c
 
-
-LOCAL_MODULE_TAGS:=
 LOCAL_MODULE:=libxtables
 
 include $(BUILD_STATIC_LIBRARY)
@@ -43,8 +41,7 @@ LOCAL_CFLAGS+=-D__ANDROID__
 LOCAL_SRC_FILES:= \
 	iptables-standalone.c iptables.c xshared.c
 
-
-LOCAL_MODULE_TAGS:=debug
+LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE:=iptables
 
 LOCAL_STATIC_LIBRARIES := \
@@ -71,8 +68,7 @@ LOCAL_CFLAGS+=-D__ANDROID__
 LOCAL_SRC_FILES:= \
 	ip6tables-standalone.c ip6tables.c xshared.c
 
-
-LOCAL_MODULE_TAGS:=debug
+LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE:=ip6tables
 
 LOCAL_STATIC_LIBRARIES := \
