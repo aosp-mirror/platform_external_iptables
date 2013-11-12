@@ -1,6 +1,9 @@
 #ifndef _LINUX_TYPES_H
 #define _LINUX_TYPES_H
 
+/* TODO: remove this file and use our uapi headers instead. */
+#define __aligned_u64 __u64 __attribute__((aligned(8)))
+
 #include <asm/types.h>
 
 #ifndef __ASSEMBLY__

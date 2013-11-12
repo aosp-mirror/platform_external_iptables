@@ -67,6 +67,7 @@ static const char *hooknames[] = {
 };
 
 /* Convenience structures */
+#undef ipt_error_target /* uapi includes this already. */
 struct ipt_error_target
 {
 	STRUCT_ENTRY_TARGET t;
