@@ -25,3 +25,5 @@
 -m conntrack --ctstatus EXPECTED;=;OK
 -m conntrack --ctstatus SEEN_REPLY;=;OK
 -m conntrack;;FAIL
+-m conntrack --ctproto 0;;FAIL
+-m conntrack ! --ctproto 0;;FAIL
