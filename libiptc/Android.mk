@@ -11,6 +11,7 @@ LOCAL_C_INCLUDES:= \
 
 # Accommodate arm-eabi-4.4.3 tools that don't set __ANDROID__
 LOCAL_CFLAGS:=-D__ANDROID__
+LOCAL_CFLAGS += -Wno-pointer-arith -Wno-unused-parameter -Wno-sign-compare -Wno-pointer-sign
 
 LOCAL_SRC_FILES:= \
 	libip4tc.c \
@@ -33,6 +34,7 @@ LOCAL_C_INCLUDES:= \
 
 # Accommodate arm-eabi-4.4.3 tools that don't set __ANDROID__
 LOCAL_CFLAGS:=-D__ANDROID__
+LOCAL_CFLAGS += -Wno-pointer-arith -Wno-unused-parameter -Wno-sign-compare -Wno-pointer-sign
 
 LOCAL_SRC_FILES:= \
 	libip6tc.c \

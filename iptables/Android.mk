@@ -14,6 +14,7 @@ LOCAL_CFLAGS+=-DXTABLES_INTERNAL
 LOCAL_CFLAGS+=-DXTABLES_LIBDIR=\"xtables_libdir_not_used\"
 # Accommodate arm-eabi-4.4.3 tools that don't set __ANDROID__
 LOCAL_CFLAGS+=-D__ANDROID__
+LOCAL_CFLAGS += -Wno-sign-compare -Wno-pointer-arith -Wno-type-limits -Wno-missing-field-initializers -Wno-unused-parameter -Wno-clobbered
 
 LOCAL_LDFLAGS:=-version-info 6:0:0
 LOCAL_SRC_FILES:= \
@@ -37,6 +38,7 @@ LOCAL_CFLAGS+=-DALL_INCLUSIVE
 LOCAL_CFLAGS+=-DXTABLES_INTERNAL
 # Accommodate arm-eabi-4.4.3 tools that don't set __ANDROID__
 LOCAL_CFLAGS+=-D__ANDROID__
+LOCAL_CFLAGS += -Wno-sign-compare -Wno-pointer-arith
 
 LOCAL_SRC_FILES:= \
 	iptables-standalone.c iptables.c xshared.c
@@ -64,6 +66,7 @@ LOCAL_CFLAGS+=-DALL_INCLUSIVE
 LOCAL_CFLAGS+=-DXTABLES_INTERNAL
 # Accommodate arm-eabi-4.4.3 tools that don't set __ANDROID__
 LOCAL_CFLAGS+=-D__ANDROID__
+LOCAL_CFLAGS += -Wno-pointer-arith -Wno-sign-compare
 
 LOCAL_SRC_FILES:= \
 	ip6tables-standalone.c ip6tables.c xshared.c
