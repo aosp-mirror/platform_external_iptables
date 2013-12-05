@@ -15,6 +15,7 @@ MY_pf6_build_mod := $(filter-out ${MY_excluded_modules} dccp ipvs,${MY_pf6_build
 MY_pfx_objs      := $(patsubst %,libxt_%.o,${MY_pfx_build_mod})
 MY_pf4_objs      := $(patsubst %,libipt_%.o,${MY_pf4_build_mod})
 MY_pf6_objs      := $(patsubst %,libip6t_%.o,${MY_pf6_build_mod})
+MY_warnings      := -Wno-unused-parameter -Wno-missing-field-initializers -Wno-sign-compare -Wno-pointer-arith
 
 #----------------------------------------------------------------
 # libext
@@ -43,6 +44,7 @@ LOCAL_CFLAGS:=-DNO_SHARED_LIBS=1
 LOCAL_CFLAGS+=-DXTABLES_INTERNAL
 # Accommodate arm-eabi-4.4.3 tools that don't set __ANDROID__
 LOCAL_CFLAGS+=-D__ANDROID__
+LOCAL_CFLAGS += $(MY_warnings)
 
 MY_initext_func := $(addprefix xt_,${MY_pfx_build_mod})
 MY_GEN_INITEXT:= $(MY_intermediates)/initext.c
@@ -106,6 +108,7 @@ LOCAL_CFLAGS:=-DNO_SHARED_LIBS=1
 LOCAL_CFLAGS+=-DXTABLES_INTERNAL
 # Accommodate arm-eabi-4.4.3 tools that don't set __ANDROID__
 LOCAL_CFLAGS+=-D__ANDROID__
+LOCAL_CFLAGS += $(MY_warnings)
 
 MY_initext4_func  := $(addprefix ipt_,${MY_pf4_build_mod})
 MY_GEN_INITEXT4:= $(MY_intermediates)/initext4.c
@@ -169,6 +172,7 @@ LOCAL_CFLAGS:=-DNO_SHARED_LIBS=1
 LOCAL_CFLAGS+=-DXTABLES_INTERNAL
 # Accommodate arm-eabi-4.4.3 tools that don't set __ANDROID__
 LOCAL_CFLAGS+=-D__ANDROID__
+LOCAL_CFLAGS += $(MY_warnings)
 
 MY_initext6_func := $(addprefix ip6t_,${MY_pf6_build_mod})
 MY_GEN_INITEXT6:= $(MY_intermediates)/initext6.c
