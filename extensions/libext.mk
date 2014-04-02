@@ -11,6 +11,7 @@ MY_gen := $(call local-generated-sources-dir)
 # LOCAL_PATH needed because of dirty #include "blabla.c"
 LOCAL_C_INCLUDES:= \
 	$(LOCAL_PATH)/../include/ \
+	$(LOCAL_PATH)/.. \
 	$(MY_gen) \
 	$(LOCAL_PATH)
 
@@ -18,6 +19,7 @@ LOCAL_CFLAGS:=-DNO_SHARED_LIBS=1
 # The $* does not work as expected. It ends up empty. Even with SECONDEXPANSION.
 # LOCAL_CFLAGS+=-D_INIT=lib$*_init
 LOCAL_CFLAGS+=-DXTABLES_INTERNAL
+LOCAL_CFLAGS+=-D_LARGEFILE_SOURCE=1 -D_LARGE_FILES -D_FILE_OFFSET_BITS=64 -D_REENTRANT -DENABLE_IPV4 -DENABLE_IPV6
 # Accommodate arm-eabi-4.4.3 tools that don't set __ANDROID__
 LOCAL_CFLAGS+=-D__ANDROID__
 LOCAL_CFLAGS += $(MY_warnings)

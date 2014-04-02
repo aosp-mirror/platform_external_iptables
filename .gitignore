@@ -15,9 +15,6 @@ Makefile.in
 /extensions/matches?.man
 /extensions/targets?.man
 
-/include/xtables-version.h
-/include/iptables/internal.h
-
 /aclocal.m4
 /autom4te.cache/
 /build-aux/

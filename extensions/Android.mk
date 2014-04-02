@@ -4,7 +4,7 @@ LOCAL_PATH:= $(call my-dir)
 
 MY_srcdir:=$(LOCAL_PATH)
 # Exclude some modules that are problematic to compile (types/header).
-MY_excluded_modules:=TCPOPTSTRIP
+MY_excluded_modules:=TCPOPTSTRIP connlabel
 
 MY_pfx_build_mod := $(patsubst ${MY_srcdir}/libxt_%.c,%,$(wildcard ${MY_srcdir}/libxt_*.c))
 MY_pf4_build_mod := $(patsubst ${MY_srcdir}/libipt_%.c,%,$(wildcard ${MY_srcdir}/libipt_*.c))

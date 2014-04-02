@@ -1,29 +1,6 @@
 LOCAL_PATH:= $(call my-dir)
 My_intermediaries := $(call local-intermediates-dir)
 #----------------------------------------------------------------
-# libxtables
-
-include $(CLEAR_VARS)
-
-LOCAL_C_INCLUDES:= \
-	$(LOCAL_PATH)/../include/ \
-
-LOCAL_CFLAGS:=-DNO_SHARED_LIBS=1
-LOCAL_CFLAGS+=-DXTABLES_INTERNAL
-LOCAL_CFLAGS+=-DXTABLES_LIBDIR=\"xtables_libdir_not_used\"
-# Accommodate arm-eabi-4.4.3 tools that don't set __ANDROID__
-LOCAL_CFLAGS+=-D__ANDROID__
-LOCAL_CFLAGS += -Wno-sign-compare -Wno-pointer-arith -Wno-type-limits -Wno-missing-field-initializers -Wno-unused-parameter -Wno-clobbered
-
-LOCAL_LDFLAGS:=-version-info 6:0:0
-LOCAL_SRC_FILES:= \
-	xtables.c xtoptions.c
-
-LOCAL_MODULE:=libxtables
-
-include $(BUILD_STATIC_LIBRARY)
-
-#----------------------------------------------------------------
 # iptables
 
 
@@ -35,12 +12,15 @@ LOCAL_C_INCLUDES:= \
 LOCAL_CFLAGS:=-DNO_SHARED_LIBS=1
 LOCAL_CFLAGS+=-DALL_INCLUSIVE
 LOCAL_CFLAGS+=-DXTABLES_INTERNAL
+LOCAL_CFLAGS+=-D_LARGEFILE_SOURCE=1 -D_LARGE_FILES -D_FILE_OFFSET_BITS=64 -D_REENTRANT -DENABLE_IPV4
 # Accommodate arm-eabi-4.4.3 tools that don't set __ANDROID__
 LOCAL_CFLAGS+=-D__ANDROID__
 LOCAL_CFLAGS += -Wno-sign-compare -Wno-pointer-arith
 
 LOCAL_SRC_FILES:= \
-	iptables-standalone.c iptables.c xshared.c
+	xtables-multi.c iptables-xml.c xshared.c \
+	iptables-save.c iptables-restore.c \
+	iptables-standalone.c iptables.c
 
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE:=iptables
@@ -63,12 +43,15 @@ LOCAL_C_INCLUDES:= \
 LOCAL_CFLAGS:=-DNO_SHARED_LIBS=1
 LOCAL_CFLAGS+=-DALL_INCLUSIVE
 LOCAL_CFLAGS+=-DXTABLES_INTERNAL
+LOCAL_CFLAGS+=-D_LARGEFILE_SOURCE=1 -D_LARGE_FILES -D_FILE_OFFSET_BITS=64 -D_REENTRANT -DENABLE_IPV6
 # Accommodate arm-eabi-4.4.3 tools that don't set __ANDROID__
 LOCAL_CFLAGS+=-D__ANDROID__
-LOCAL_CFLAGS += -Wno-pointer-arith -Wno-sign-compare
+LOCAL_CFLAGS += -Wno-sign-compare -Wno-pointer-arith
 
 LOCAL_SRC_FILES:= \
-	ip6tables-standalone.c ip6tables.c xshared.c
+	xtables-multi.c iptables-xml.c xshared.c \
+	ip6tables-save.c ip6tables-restore.c \
+	ip6tables-standalone.c ip6tables.c
 
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE:=ip6tables
