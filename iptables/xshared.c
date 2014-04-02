@@ -6,8 +6,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <unistd.h>
 #include <xtables.h>
 #include "xshared.h"
+
+#define XT_SOCKET_NAME "xtables"
+#define XT_SOCKET_LEN 8
 
 /*
  * Print out any special helps. A user might like to be able to add a --help
@@ -139,14 +145,13 @@ int command_default(struct iptables_command_state *cs,
 
 		cs->proto_used = 1;
 
-		size = XT_ALIGN(sizeof(struct ip6t_entry_match)) + m->size;
+		size = XT_ALIGN(sizeof(struct xt_entry_match)) + m->size;
 
 		m->m = xtables_calloc(1, size);
 		m->m->u.match_size = size;
 		strcpy(m->m->u.user.name, m->name);
 		m->m->u.user.revision = m->revision;
-		if (m->init != NULL)
-			m->init(m->m);
+		xs_init_match(m);
 
 		if (m->x6_options != NULL)
 			gl->opts = xtables_options_xfrm(gl->orig_opts,
@@ -206,4 +211,61 @@ int subcmd_main(int argc, char **argv, const struct subcommand *cb)
 	for (; cb->name != NULL; ++cb)
 		fprintf(stderr, " * %s\n", cb->name);
 	exit(EXIT_FAILURE);
+}
+
+void xs_init_target(struct xtables_target *target)
+{
+	if (target->udata_size != 0) {
+		free(target->udata);
+		target->udata = calloc(1, target->udata_size);
+		if (target->udata == NULL)
+			xtables_error(RESOURCE_PROBLEM, "malloc");
+	}
+	if (target->init != NULL)
+		target->init(target->t);
+}
+
+void xs_init_match(struct xtables_match *match)
+{
+	if (match->udata_size != 0) {
+		/*
+		 * As soon as a subsequent instance of the same match
+		 * is used, e.g. "-m time -m time", the first instance
+		 * is no longer reachable anyway, so we can free udata.
+		 * Same goes for target.
+		 */
+		free(match->udata);
+		match->udata = calloc(1, match->udata_size);
+		if (match->udata == NULL)
+			xtables_error(RESOURCE_PROBLEM, "malloc");
+	}
+	if (match->init != NULL)
+		match->init(match->m);
+}
+
+bool xtables_lock(bool wait)
+{
+	int i = 0, ret, xt_socket;
+	struct sockaddr_un xt_addr;
+
+	memset(&xt_addr, 0, sizeof(xt_addr));
+	xt_addr.sun_family = AF_UNIX;
+	strcpy(xt_addr.sun_path+1, XT_SOCKET_NAME);
+	xt_socket = socket(AF_UNIX, SOCK_STREAM, 0);
+	/* If we can't even create a socket, fall back to prior (lockless) behavior */
+	if (xt_socket < 0)
+		return true;
+
+	while (1) {
+		ret = bind(xt_socket, (struct sockaddr*)&xt_addr,
+			   offsetof(struct sockaddr_un, sun_path)+XT_SOCKET_LEN);
+		if (ret == 0)
+			return true;
+		else if (wait == false)
+			return false;
+		if (++i % 2 == 0)
+			fprintf(stderr, "Another app is currently holding the xtables lock; "
+				"waiting for it to exit...\n");
+		sleep(1);
+	}
 }

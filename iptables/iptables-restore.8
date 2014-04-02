@@ -21,7 +21,8 @@
 .SH NAME
 iptables-restore \(em Restore IP Tables
 .SH SYNOPSIS
-\fBiptables\-restore\fP [\fB\-c\fP] [\fB\-n\fP]
+\fBiptables\-restore\fP [\fB\-chntv\fP] [\fB\-M\fP \fImodprobe\fP]
+[\fB\-T\fP \fIname\fP]
 .SH DESCRIPTION
 .PP
 .B iptables-restore
@@ -31,10 +32,26 @@ I/O redirection provided by your shell to read from a file
 \fB\-c\fR, \fB\-\-counters\fR
 restore the values of all packet and byte counters
 .TP
+\fB\-h\fP, \fB\-\-help\fP
+Print a short option summary.
+.TP
 \fB\-n\fR, \fB\-\-noflush\fR 
 don't flush the previous contents of the table. If not specified, 
 .B iptables-restore
-flushes (deletes) all previous contents of the respective IP Table.
+flushes (deletes) all previous contents of the respective table.
+.TP
+\fB\-t\fP, \fB\-\-test\fP
+Only parse and construct the ruleset, but do not commit it.
+.TP
+\fB\-v\fP, \fB\-\-verbose\fP
+Print additional debug info during ruleset processing.
+.TP
+\fB\-M\fP, \fB\-\-modprobe\fP \fImodprobe_program\fP
+Specify the path to the modprobe program. By default, iptables-restore will
+inspect /proc/sys/kernel/modprobe to determine the executable's path.
+.TP
+\fB\-T\fP, \fB\-\-table\fP \fIname\fP
+Restore only the named table even if the input stream contains other ones.
 .SH BUGS
 None known as of iptables-1.2.1 release
 .SH AUTHOR

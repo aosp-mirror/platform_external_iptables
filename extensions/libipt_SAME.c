@@ -2,14 +2,15 @@
 #include <string.h>
 #include <stdlib.h>
 #include <xtables.h>
-#include <net/netfilter/nf_nat.h>
+#include <linux/netfilter/nf_nat.h>
 #include <linux/netfilter_ipv4/ipt_SAME.h>
 
 enum {
 	O_TO_ADDR = 0,
 	O_NODST,
 	O_RANDOM,
-	F_RANDOM = 1 << O_RANDOM,
+	F_TO_ADDR = 1 << O_TO_ADDR,
+	F_RANDOM  = 1 << O_RANDOM,
 };
 
 static void SAME_help(void)
@@ -36,7 +37,7 @@ static const struct xt_option_entry SAME_opts[] = {
 };
 
 /* Parses range of IPs */
-static void parse_to(const char *orig_arg, struct nf_nat_range *range)
+static void parse_to(const char *orig_arg, struct nf_nat_ipv4_range *range)
 {
 	char *dash, *arg;
 	const struct in_addr *ip;
@@ -44,7 +45,7 @@ static void parse_to(const char *orig_arg, struct nf_nat_range *range)
 	arg = strdup(orig_arg);
 	if (arg == NULL)
 		xtables_error(RESOURCE_PROBLEM, "strdup");
-	range->flags |= IP_NAT_RANGE_MAP_IPS;
+	range->flags |= NF_NAT_RANGE_MAP_IPS;
 	dash = strchr(arg, '-');
 
 	if (dash)
@@ -84,10 +85,6 @@ static void SAME_parse(struct xt_option_call *cb)
 				   "is %i ranges.\n",
 				   IPT_SAME_MAX_RANGE);
 		parse_to(cb->arg, &mr->range[mr->rangesize]);
-		/* WTF do we need this for? */
-		if (cb->xflags & F_RANDOM)
-			mr->range[mr->rangesize].flags 
-				|= IP_NAT_RANGE_PROTO_RANDOM;
 		mr->rangesize++;
 		break;
 	case O_NODST:
@@ -95,9 +92,20 @@ static void SAME_parse(struct xt_option_call *cb)
 		break;
 	case O_RANDOM:
 		for (count=0; count < mr->rangesize; count++)
-			mr->range[count].flags |= IP_NAT_RANGE_PROTO_RANDOM;
+			mr->range[count].flags |= NF_NAT_RANGE_PROTO_RANDOM;
 		break;
 	}
+}
+
+static void SAME_fcheck(struct xt_fcheck_call *cb)
+{
+	static const unsigned int f = F_TO_ADDR | F_RANDOM;
+	struct ipt_same_info *mr = cb->data;
+	unsigned int count;
+
+	if ((cb->xflags & f) == f)
+		for (count = 0; count < mr->rangesize; ++count)
+			mr->range[count].flags |= NF_NAT_RANGE_PROTO_RANDOM;
 }
 
 static void SAME_print(const void *ip, const struct xt_entry_target *target,
@@ -110,7 +118,7 @@ static void SAME_print(const void *ip, const struct xt_entry_target *target,
 	printf(" same:");
 
 	for (count = 0; count < mr->rangesize; count++) {
-		const struct nf_nat_range *r = &mr->range[count];
+		const struct nf_nat_ipv4_range *r = &mr->range[count];
 		struct in_addr a;
 
 		a.s_addr = r->min_ip;
@@ -120,7 +128,7 @@ static void SAME_print(const void *ip, const struct xt_entry_target *target,
 		
 		if (r->min_ip != r->max_ip)
 			printf("-%s", xtables_ipaddr_to_numeric(&a));
-		if (r->flags & IP_NAT_RANGE_PROTO_RANDOM) 
+		if (r->flags & NF_NAT_RANGE_PROTO_RANDOM)
 			random_selection = 1;
 	}
 	
@@ -138,7 +146,7 @@ static void SAME_save(const void *ip, const struct xt_entry_target *target)
 	int random_selection = 0;
 
 	for (count = 0; count < mr->rangesize; count++) {
-		const struct nf_nat_range *r = &mr->range[count];
+		const struct nf_nat_ipv4_range *r = &mr->range[count];
 		struct in_addr a;
 
 		a.s_addr = r->min_ip;
@@ -147,7 +155,7 @@ static void SAME_save(const void *ip, const struct xt_entry_target *target)
 
 		if (r->min_ip != r->max_ip)
 			printf("-%s", xtables_ipaddr_to_numeric(&a));
-		if (r->flags & IP_NAT_RANGE_PROTO_RANDOM) 
+		if (r->flags & NF_NAT_RANGE_PROTO_RANDOM)
 			random_selection = 1;
 	}
 	
@@ -166,6 +174,7 @@ static struct xtables_target same_tg_reg = {
 	.userspacesize	= XT_ALIGN(sizeof(struct ipt_same_info)),
 	.help		= SAME_help,
 	.x6_parse	= SAME_parse,
+	.x6_fcheck	= SAME_fcheck,
 	.print		= SAME_print,
 	.save		= SAME_save,
 	.x6_options	= SAME_opts,
