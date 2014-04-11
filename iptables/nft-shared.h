@@ -217,4 +217,19 @@ struct xtables_args {
 #define CMD_ZERO_NUM		0x2000U
 #define CMD_CHECK		0x4000U
 
+struct nft_xt_cmd_parse {
+	unsigned int			command;
+	unsigned int			rulenum;
+	char				*table;
+	char				*chain;
+	char				*newname;
+	char				*policy;
+	bool				restore;
+	int				verbose;
+};
+
+void do_parse(struct nft_handle *h, int argc, char *argv[],
+	      struct nft_xt_cmd_parse *p, struct iptables_command_state *cs,
+	      struct xtables_args *args);
+
 #endif
