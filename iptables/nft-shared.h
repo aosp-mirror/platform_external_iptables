@@ -37,6 +37,7 @@
 #define FMT(tab,notab) ((format) & FMT_NOTABLE ? (notab) : (tab))
 
 struct xtables_args;
+struct xt_buf;
 
 enum {
 	NFT_XT_CTX_PAYLOAD	= (1 << 0),
@@ -101,6 +102,7 @@ struct nft_family_ops {
 	void (*parse_target)(struct xtables_target *t, void *data);
 	bool (*rule_find)(struct nft_family_ops *ops, struct nftnl_rule *r,
 			  void *data);
+	int (*xlate)(const void *data, struct xt_buf *buf);
 };
 
 void add_meta(struct nftnl_rule *r, uint32_t key);

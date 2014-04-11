@@ -156,6 +156,16 @@ enum {
 int nft_xtables_config_load(struct nft_handle *h, const char *filename, uint32_t flags);
 
 /*
+ * Translation from iptables to nft
+ */
+struct xt_buf;
+
+bool xlate_find_match(const struct iptables_command_state *cs, const char *p_name);
+int xlate_matches(const struct iptables_command_state *cs, struct xt_buf *buf);
+int xlate_action(const struct iptables_command_state *cs, bool goto_set,
+		 struct xt_buf *buf);
+
+/*
  * ARP
  */
 

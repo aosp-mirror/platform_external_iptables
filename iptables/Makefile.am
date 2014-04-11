@@ -43,7 +43,8 @@ xtables_compat_multi_SOURCES += xtables-save.c xtables-restore.c \
 				nft-shared.c nft-ipv4.c nft-ipv6.c nft-arp.c \
 				xtables-arp-standalone.c xtables-arp.c \
 				getethertype.c nft-bridge.c \
-				xtables-eb-standalone.c xtables-eb.c
+				xtables-eb-standalone.c xtables-eb.c \
+				xtables-translate.c
 xtables_compat_multi_LDADD   += ${libmnl_LIBS} ${libnftnl_LIBS} ${libnetfilter_conntrack_LIBS} ../extensions/libext4.a ../extensions/libext6.a ../extensions/libext_ebt.a ../extensions/libext_arpt.a
 # yacc and lex generate dirty code
 xtables_compat_multi-xtables-config-parser.o xtables_compat_multi-xtables-config-syntax.o: AM_CFLAGS += -Wno-missing-prototypes -Wno-missing-declarations -Wno-implicit-function-declaration -Wno-nested-externs -Wno-undef -Wno-redundant-decls
@@ -71,6 +72,8 @@ endif
 if ENABLE_NFTABLES
 x_sbin_links  = iptables-compat iptables-compat-restore iptables-compat-save \
 		ip6tables-compat ip6tables-compat-restore ip6tables-compat-save \
+		iptables-translate ip6tables-translate \
+		iptables-restore-translate ip6tables-restore-translate \
 		arptables-compat ebtables-compat
 endif
 

@@ -1986,3 +1986,54 @@ void get_kernel_version(void)
 	sscanf(uts.release, "%d.%d.%d", &x, &y, &z);
 	kernel_version = LINUX_VERSION(x, y, z);
 }
+
+struct xt_buf {
+	char	*data;
+	int	size;
+	int	rem;
+	int	off;
+};
+
+struct xt_buf *xt_buf_alloc(int size)
+{
+	struct xt_buf *buf;
+
+	buf = malloc(sizeof(struct xt_buf));
+	if (buf == NULL)
+		xtables_error(RESOURCE_PROBLEM, "OOM");
+
+	buf->data = malloc(size);
+	if (buf->data == NULL)
+		xtables_error(RESOURCE_PROBLEM, "OOM");
+
+	buf->size = size;
+	buf->rem = size;
+	buf->off = 0;
+
+	return buf;
+}
+
+void xt_buf_free(struct xt_buf *buf)
+{
+	free(buf);
+}
+
+void xt_buf_add(struct xt_buf *buf, const char *fmt, ...)
+{
+	va_list ap;
+	int len;
+
+	va_start(ap, fmt);
+	len = vsnprintf(buf->data + buf->off, buf->rem, fmt, ap);
+	if (len < 0 || len >= buf->rem)
+		xtables_error(RESOURCE_PROBLEM, "OOM");
+
+	va_end(ap);
+	buf->rem -= len;
+	buf->off += len;
+}
+
+const char *xt_buf_get(struct xt_buf *buf)
+{
+	return buf->data;
+}

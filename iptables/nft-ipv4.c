@@ -1,5 +1,5 @@
 /*
- * (C) 2012-2013 by Pablo Neira Ayuso <pablo@netfilter.org>
+ * (C) 2012-2014 by Pablo Neira Ayuso <pablo@netfilter.org>
  * (C) 2013 by Tomasz Bursztyka <tomasz.bursztyka@linux.intel.com>
  *
  * This program is free software; you can redistribute it and/or modify
@@ -17,6 +17,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netinet/ip.h>
+#include <netdb.h>
 
 #include <xtables.h>
 
@@ -428,6 +429,66 @@ static void nft_ipv4_save_counters(const void *data)
 	save_counters(cs->counters.pcnt, cs->counters.bcnt);
 }
 
+static int nft_ipv4_xlate(const void *data, struct xt_buf *buf)
+{
+	const struct iptables_command_state *cs = data;
+	int ret;
+
+	if (cs->fw.ip.iniface[0] != '\0') {
+		xt_buf_add(buf, "iifname %s%s ",
+			   cs->fw.ip.invflags & IPT_INV_VIA_IN ? "!= " : "",
+			   cs->fw.ip.iniface);
+	}
+	if (cs->fw.ip.outiface[0] != '\0') {
+		xt_buf_add(buf, "oifname %s%s ",
+			   cs->fw.ip.invflags & IPT_INV_VIA_OUT? "!= " : "",
+			   cs->fw.ip.outiface);
+	}
+
+	if (cs->fw.ip.flags & IPT_F_FRAG) {
+		xt_buf_add(buf, "ip frag-off %s%x ",
+			   cs->fw.ip.invflags & IPT_INV_FRAG? "" : "!= ", 0);
+	}
+
+	if (cs->fw.ip.proto != 0) {
+		const struct protoent *pent =
+			getprotobynumber(cs->fw.ip.proto);
+		char protonum[strlen("255") + 1];
+
+		if (!xlate_find_match(cs, pent->p_name)) {
+			snprintf(protonum, sizeof(protonum), "%u",
+				 cs->fw.ip.proto);
+			protonum[sizeof(protonum) - 1] = '\0';
+			xt_buf_add(buf, "ip protocol %s%s ",
+				   cs->fw.ip.invflags & IPT_INV_PROTO ?
+					"!= " : "",
+				   pent ? pent->p_name : protonum);
+		}
+	}
+
+	if (cs->fw.ip.src.s_addr != 0) {
+		xt_buf_add(buf, "ip saddr %s%s ",
+			   cs->fw.ip.invflags & IPT_INV_SRCIP ? "!= " : "",
+			   inet_ntoa(cs->fw.ip.src));
+	}
+	if (cs->fw.ip.dst.s_addr != 0) {
+		xt_buf_add(buf, "ip daddr %s%s ",
+			   cs->fw.ip.invflags & IPT_INV_DSTIP ? "!= " : "",
+			   inet_ntoa(cs->fw.ip.dst));
+	}
+
+	ret = xlate_matches(cs, buf);
+	if (!ret)
+		return ret;
+
+	/* Always add counters per rule, as in iptables */
+	xt_buf_add(buf, "counter ");
+
+	ret = xlate_action(cs, !!(cs->fw.ip.flags & IPT_F_GOTO), buf);
+
+	return ret;
+}
+
 struct nft_family_ops nft_family_ops_ipv4 = {
 	.add			= nft_ipv4_add,
 	.is_same		= nft_ipv4_is_same,
@@ -442,4 +503,5 @@ struct nft_family_ops nft_family_ops_ipv4 = {
 	.post_parse		= nft_ipv4_post_parse,
 	.parse_target		= nft_ipv4_parse_target,
 	.rule_find		= nft_ipv4_rule_find,
+	.xlate			= nft_ipv4_xlate,
 };

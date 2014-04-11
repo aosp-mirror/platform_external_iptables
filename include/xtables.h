@@ -205,6 +205,8 @@ enum xtables_ext_flags {
 	XTABLES_EXT_ALIAS = 1 << 0,
 };
 
+struct xt_buf;
+
 /* Include file for additions: new matches and targets. */
 struct xtables_match
 {
@@ -268,6 +270,10 @@ struct xtables_match
 	void (*x6_parse)(struct xt_option_call *);
 	void (*x6_fcheck)(struct xt_fcheck_call *);
 	const struct xt_option_entry *x6_options;
+
+	/* Translate iptables to nft */
+	int (*xlate)(const struct xt_entry_match *match, struct xt_buf *buf,
+		     int numeric);
 
 	/* Size of per-extension instance extra "global" scratch space */
 	size_t udata_size;
@@ -345,6 +351,10 @@ struct xtables_target
 	void (*x6_parse)(struct xt_option_call *);
 	void (*x6_fcheck)(struct xt_fcheck_call *);
 	const struct xt_option_entry *x6_options;
+
+	/* Translate iptables to nft */
+	int (*xlate)(const struct xt_entry_target *target, struct xt_buf *buf,
+		     int numeric);
 
 	size_t udata_size;
 
@@ -547,6 +557,12 @@ extern struct xtables_lmap *xtables_lmap_init(const char *);
 extern void xtables_lmap_free(struct xtables_lmap *);
 extern int xtables_lmap_name2id(const struct xtables_lmap *, const char *);
 extern const char *xtables_lmap_id2name(const struct xtables_lmap *, int);
+
+/* generic buffer */
+struct xt_buf *xt_buf_alloc(int size);
+void xt_buf_free(struct xt_buf *buf);
+void xt_buf_add(struct xt_buf *buf, const char *fmt, ...);
+const char *xt_buf_get(struct xt_buf *buf);
 
 #ifdef XTABLES_INTERNAL
 
