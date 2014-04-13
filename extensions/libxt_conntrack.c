@@ -1156,6 +1156,44 @@ static void state_save(const void *ip, const struct xt_entry_match *match)
 	state_print_state(sinfo->statemask);
 }
 
+static void state_xlate_print(struct xt_buf *buf, unsigned int statemask)
+{
+	const char *sep = "";
+
+	if (statemask & XT_CONNTRACK_STATE_INVALID) {
+		xt_buf_add(buf, "%s%s", sep, "invalid");
+		sep = ",";
+	}
+	if (statemask & XT_CONNTRACK_STATE_BIT(IP_CT_NEW)) {
+		xt_buf_add(buf, "%s%s", sep, "new");
+		sep = ",";
+	}
+	if (statemask & XT_CONNTRACK_STATE_BIT(IP_CT_RELATED)) {
+		xt_buf_add(buf, "%s%s", sep, "related");
+		sep = ",";
+	}
+	if (statemask & XT_CONNTRACK_STATE_BIT(IP_CT_ESTABLISHED)) {
+		xt_buf_add(buf, "%s%s", sep, "established");
+		sep = ",";
+	}
+	if (statemask & XT_CONNTRACK_STATE_UNTRACKED) {
+		xt_buf_add(buf, "%s%s", sep, "untracked");
+		sep = ",";
+	}
+}
+
+static int state_xlate(const struct xt_entry_match *match, struct xt_buf *buf,
+		       int numeric)
+{
+	const struct xt_conntrack_mtinfo3 *sinfo = (const void *)match->data;
+
+	xt_buf_add(buf, "ct state %s", sinfo->invert_flags & XT_CONNTRACK_STATE ?
+					"!= " : "");
+	state_xlate_print(buf, sinfo->state_mask);
+	xt_buf_add(buf, " ");
+	return 1;
+}
+
 static struct xtables_match conntrack_mt_reg[] = {
 	{
 		.version       = XTABLES_VERSION,
@@ -1306,6 +1344,7 @@ static struct xtables_match conntrack_mt_reg[] = {
 		.save          = state_save,
 		.x6_parse      = state_ct23_parse,
 		.x6_options    = state_opts,
+		.xlate         = state_xlate,
 	},
 	{
 		.family        = NFPROTO_UNSPEC,
