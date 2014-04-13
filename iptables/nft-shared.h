@@ -232,4 +232,39 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 	      struct nft_xt_cmd_parse *p, struct iptables_command_state *cs,
 	      struct xtables_args *args);
 
+struct nft_xt_restore_parse {
+	FILE		*in;
+	int		testing;
+	const char	*tablename;
+};
+
+struct nftnl_chain_list;
+
+struct nft_xt_restore_cb {
+	void (*table_new)(struct nft_handle *h, const char *table);
+	struct nftnl_chain_list *(*chain_list)(struct nft_handle *h);
+	int (*chains_purge)(struct nft_handle *h, const char *table,
+			    struct nftnl_chain_list *clist);
+	void (*chain_del)(struct nftnl_chain_list *clist, const char *curtable,
+			  const char *chain);
+	int (*chain_set)(struct nft_handle *h, const char *table,
+			 const char *chain, const char *policy,
+			 const struct xt_counters *counters);
+	int (*chain_user_add)(struct nft_handle *h, const char *chain,
+			      const char *table);
+
+	int (*rule_flush)(struct nft_handle *h, const char *chain, const char *table);
+
+	int (*do_command)(struct nft_handle *h, int argc, char *argv[],
+			  char **table, bool restore);
+
+	int (*commit)(struct nft_handle *h);
+	int (*abort)(struct nft_handle *h);
+};
+
+void xtables_restore_parse(struct nft_handle *h,
+			   struct nft_xt_restore_parse *p,
+			   struct nft_xt_restore_cb *cb,
+			   int argc, char *argv[]);
+
 #endif
