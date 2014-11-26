@@ -1,5 +1,4 @@
 LOCAL_PATH:= $(call my-dir)
-My_intermediaries := $(call local-intermediates-dir)
 #----------------------------------------------------------------
 # libxtables
 
