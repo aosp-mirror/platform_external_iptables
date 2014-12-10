@@ -15,7 +15,11 @@ MY_pf6_build_mod := $(filter-out ${MY_excluded_modules} dccp ipvs,${MY_pf6_build
 MY_pfx_objs      := $(patsubst %,libxt_%.o,${MY_pfx_build_mod})
 MY_pf4_objs      := $(patsubst %,libipt_%.o,${MY_pf4_build_mod})
 MY_pf6_objs      := $(patsubst %,libip6t_%.o,${MY_pf6_build_mod})
-MY_warnings      := -Wno-unused-parameter -Wno-missing-field-initializers -Wno-sign-compare -Wno-pointer-arith
+# libxt_recent.c:202:11: error: address of array 'info->name' will always evaluate to 'true' [-Werror,-Wpointer-bool-conversion]
+MY_warnings      := \
+    -Wno-unused-parameter -Wno-missing-field-initializers \
+    -Wno-sign-compare -Wno-pointer-arith \
+    -Wno-pointer-bool-conversion
 
 libext_suffix :=
 libext_prefix := xt
