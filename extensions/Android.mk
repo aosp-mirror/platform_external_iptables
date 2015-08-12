@@ -6,9 +6,9 @@ MY_srcdir:=$(LOCAL_PATH)
 # Exclude some modules that are problematic to compile (types/header).
 MY_excluded_modules:=TCPOPTSTRIP connlabel
 
-MY_pfx_build_mod := $(patsubst ${MY_srcdir}/libxt_%.c,%,$(wildcard ${MY_srcdir}/libxt_*.c))
-MY_pf4_build_mod := $(patsubst ${MY_srcdir}/libipt_%.c,%,$(wildcard ${MY_srcdir}/libipt_*.c))
-MY_pf6_build_mod := $(patsubst ${MY_srcdir}/libip6t_%.c,%,$(wildcard ${MY_srcdir}/libip6t_*.c))
+MY_pfx_build_mod := $(patsubst ${MY_srcdir}/libxt_%.c,%,$(sort $(wildcard ${MY_srcdir}/libxt_*.c)))
+MY_pf4_build_mod := $(patsubst ${MY_srcdir}/libipt_%.c,%,$(sort $(wildcard ${MY_srcdir}/libipt_*.c)))
+MY_pf6_build_mod := $(patsubst ${MY_srcdir}/libip6t_%.c,%,$(sort $(wildcard ${MY_srcdir}/libip6t_*.c)))
 MY_pfx_build_mod := $(filter-out ${MY_excluded_modules} dccp ipvs,${MY_pfx_build_mod})
 MY_pf4_build_mod := $(filter-out ${MY_excluded_modules} dccp ipvs,${MY_pf4_build_mod})
 MY_pf6_build_mod := $(filter-out ${MY_excluded_modules} dccp ipvs,${MY_pf6_build_mod})
