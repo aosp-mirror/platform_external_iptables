@@ -75,7 +75,7 @@ mark_print(const void *ip, const struct xt_entry_match *match, int numeric)
 
 	if (info->invert)
 		printf(" !");
-	
+
 	print_mark(info->mark, info->mask);
 }
 
@@ -97,9 +97,43 @@ mark_save(const void *ip, const struct xt_entry_match *match)
 
 	if (info->invert)
 		printf(" !");
-	
+
 	printf(" --mark");
 	print_mark(info->mark, info->mask);
+}
+
+static void
+print_mark_xlate(struct xt_buf *buf,
+		 unsigned int mark, unsigned int mask)
+{
+	if (mask != 0xffffffffU)
+		xt_buf_add(buf, " and 0x%x == 0x%x ", mark, mask);
+	else
+		xt_buf_add(buf, " 0x%x ", mark);
+}
+
+static int
+mark_mt_xlate(const struct xt_entry_match *match,
+	      struct xt_buf *buf, int numeric)
+{
+	const struct xt_mark_mtinfo1 *info = (const void *)match->data;
+
+	xt_buf_add(buf, "mark%s", info->invert ? " !=" : "");
+	print_mark_xlate(buf, info->mark, info->mask);
+
+	return 1;
+}
+
+static int
+mark_xlate(const struct xt_entry_match *match,
+	   struct xt_buf *buf, int numeric)
+{
+	const struct xt_mark_info *info = (const void *)match->data;
+
+	xt_buf_add(buf, "mark%s", info->invert ? " !=" : "");
+	print_mark_xlate(buf, info->mark, info->mask);
+
+	return 1;
 }
 
 static struct xtables_match mark_mt_reg[] = {
@@ -115,6 +149,7 @@ static struct xtables_match mark_mt_reg[] = {
 		.save          = mark_save,
 		.x6_parse      = mark_parse,
 		.x6_options    = mark_mt_opts,
+		.xlate	       = mark_xlate,
 	},
 	{
 		.version       = XTABLES_VERSION,
@@ -128,6 +163,7 @@ static struct xtables_match mark_mt_reg[] = {
 		.save          = mark_mt_save,
 		.x6_parse      = mark_mt_parse,
 		.x6_options    = mark_mt_opts,
+		.xlate	       = mark_mt_xlate,
 	},
 };
 
