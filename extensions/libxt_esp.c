@@ -86,10 +86,28 @@ static void esp_save(const void *ip, const struct xt_entry_match *match)
 
 }
 
+static int esp_xlate(const struct xt_entry_match *match,
+		     struct xt_buf *buf, int numeric)
+{
+	const struct xt_esp *espinfo = (struct xt_esp *)match->data;
+
+	if (!(espinfo->spis[0] == 0 && espinfo->spis[1] == 0xFFFFFFFF)) {
+		xt_buf_add(buf, "esp spi%s",
+			   (espinfo->invflags & XT_ESP_INV_SPI) ? " !=" : "");
+		if (espinfo->spis[0] != espinfo->spis[1])
+			xt_buf_add(buf, " %u-%u ", espinfo->spis[0],
+				   espinfo->spis[1]);
+		else
+			xt_buf_add(buf, " %u ", espinfo->spis[0]);
+	}
+
+	return 1;
+}
+
 static struct xtables_match esp_match = {
 	.family		= NFPROTO_UNSPEC,
-	.name 		= "esp",
-	.version 	= XTABLES_VERSION,
+	.name		= "esp",
+	.version	= XTABLES_VERSION,
 	.size		= XT_ALIGN(sizeof(struct xt_esp)),
 	.userspacesize	= XT_ALIGN(sizeof(struct xt_esp)),
 	.help		= esp_help,
@@ -98,6 +116,7 @@ static struct xtables_match esp_match = {
 	.save		= esp_save,
 	.x6_parse	= esp_parse,
 	.x6_options	= esp_opts,
+	.xlate		= esp_xlate,
 };
 
 void
