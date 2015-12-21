@@ -72,7 +72,7 @@ static void nflog_print(const struct xt_nflog_info *info, char *prefix)
 }
 
 static void NFLOG_print(const void *ip, const struct xt_entry_target *target,
-                        int numeric)
+			int numeric)
 {
 	const struct xt_nflog_info *info = (struct xt_nflog_info *)target->data;
 
@@ -84,6 +84,29 @@ static void NFLOG_save(const void *ip, const struct xt_entry_target *target)
 	const struct xt_nflog_info *info = (struct xt_nflog_info *)target->data;
 
 	nflog_print(info, "--");
+}
+
+static void nflog_print_xlate(const struct xt_nflog_info *info,
+			      struct xt_buf *buf)
+{
+	if (info->prefix[0] != '\0')
+		xt_buf_add(buf, "log prefix \\\"%s\\\" ", info->prefix);
+	if (info->group)
+		xt_buf_add(buf, "log group %u ", info->group);
+	if (info->len)
+		xt_buf_add(buf, "log snaplen %u ", info->len);
+	if (info->threshold != XT_NFLOG_DEFAULT_THRESHOLD)
+		xt_buf_add(buf, "log queue-threshold %u ", info->threshold);
+}
+
+static int NFLOG_xlate(const struct xt_entry_target *target,
+		       struct xt_buf *buf, int numeric)
+{
+	const struct xt_nflog_info *info = (struct xt_nflog_info *)target->data;
+
+	nflog_print_xlate(info, buf);
+
+	return 1;
 }
 
 static struct xtables_target nflog_target = {
@@ -98,6 +121,7 @@ static struct xtables_target nflog_target = {
 	.print		= NFLOG_print,
 	.save		= NFLOG_save,
 	.x6_options	= NFLOG_opts,
+	.xlate		= NFLOG_xlate,
 };
 
 void _init(void)
