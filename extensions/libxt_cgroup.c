@@ -4,6 +4,7 @@
 
 enum {
 	O_CLASSID = 0,
+	O_PATH = 1,
 };
 
 static void cgroup_help_v0(void)
@@ -11,6 +12,14 @@ static void cgroup_help_v0(void)
 	printf(
 "cgroup match options:\n"
 "[!] --cgroup classid            Match cgroup classid\n");
+}
+
+static void cgroup_help_v1(void)
+{
+	printf(
+"cgroup match options:\n"
+"[!] --path path                 Recursively match path relative to cgroup2 root\n"
+"[!] --cgroup claasid            Match cgroup classid, can't be used with --path\n");
 }
 
 static const struct xt_option_entry cgroup_opts_v0[] = {
@@ -24,6 +33,24 @@ static const struct xt_option_entry cgroup_opts_v0[] = {
 	XTOPT_TABLEEND,
 };
 
+static const struct xt_option_entry cgroup_opts_v1[] = {
+	{
+		.name = "path",
+		.id = O_PATH,
+		.type = XTTYPE_STRING,
+		.flags = XTOPT_INVERT | XTOPT_PUT,
+		XTOPT_POINTER(struct xt_cgroup_info_v1, path)
+	},
+	{
+		.name = "cgroup",
+		.id = O_CLASSID,
+		.type = XTTYPE_UINT32,
+		.flags = XTOPT_INVERT | XTOPT_PUT,
+		XTOPT_POINTER(struct xt_cgroup_info_v1, classid)
+	},
+	XTOPT_TABLEEND,
+};
+
 static void cgroup_parse_v0(struct xt_option_call *cb)
 {
 	struct xt_cgroup_info_v0 *cgroupinfo = cb->data;
@@ -31,6 +58,26 @@ static void cgroup_parse_v0(struct xt_option_call *cb)
 	xtables_option_parse(cb);
 	if (cb->invert)
 		cgroupinfo->invert = true;
+}
+
+static void cgroup_parse_v1(struct xt_option_call *cb)
+{
+	struct xt_cgroup_info_v1 *info = cb->data;
+
+	xtables_option_parse(cb);
+
+	switch (cb->entry->id) {
+	case O_PATH:
+		info->has_path = true;
+		if (cb->invert)
+			info->invert_path = true;
+		break;
+	case O_CLASSID:
+		info->has_classid = true;
+		if (cb->invert)
+			info->invert_classid = true;
+		break;
+	}
 }
 
 static void
@@ -48,6 +95,32 @@ static void cgroup_save_v0(const void *ip, const struct xt_entry_match *match)
 	printf("%s --cgroup %u", info->invert ? " !" : "", info->id);
 }
 
+static void
+cgroup_print_v1(const void *ip, const struct xt_entry_match *match, int numeric)
+{
+	const struct xt_cgroup_info_v1 *info = (void *)match->data;
+
+	printf(" cgroup");
+	if (info->has_path)
+		printf(" %s%s", info->invert_path ? "! ":"", info->path);
+	if (info->has_classid)
+		printf(" %s%u", info->invert_classid ? "! ":"", info->classid);
+}
+
+static void cgroup_save_v1(const void *ip, const struct xt_entry_match *match)
+{
+	const struct xt_cgroup_info_v1 *info = (void *)match->data;
+
+	if (info->has_path) {
+		printf("%s --path", info->invert_path ? " !" : "");
+		xtables_save_string(info->path);
+	}
+
+	if (info->has_classid)
+		printf("%s --cgroup %u", info->invert_classid ? " !" : "",
+		       info->classid);
+}
+
 static struct xtables_match cgroup_match[] = {
 	{
 		.family		= NFPROTO_UNSPEC,
@@ -61,6 +134,19 @@ static struct xtables_match cgroup_match[] = {
 		.save		= cgroup_save_v0,
 		.x6_parse	= cgroup_parse_v0,
 		.x6_options	= cgroup_opts_v0,
+	},
+	{
+		.family		= NFPROTO_UNSPEC,
+		.revision	= 1,
+		.name		= "cgroup",
+		.version	= XTABLES_VERSION,
+		.size		= XT_ALIGN(sizeof(struct xt_cgroup_info_v1)),
+		.userspacesize	= offsetof(struct xt_cgroup_info_v1, priv),
+		.help		= cgroup_help_v1,
+		.print		= cgroup_print_v1,
+		.save		= cgroup_save_v1,
+		.x6_parse	= cgroup_parse_v1,
+		.x6_options	= cgroup_opts_v1,
 	},
 };
 
