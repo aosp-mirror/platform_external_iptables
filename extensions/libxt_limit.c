@@ -152,6 +152,44 @@ static void limit_save(const void *ip, const struct xt_entry_match *match)
 		printf(" --limit-burst %u", r->burst);
 }
 
+static const struct rates rates_xlate[] = {
+	{ "day",	XT_LIMIT_SCALE * 24 * 60 * 60 },
+	{ "hour",	XT_LIMIT_SCALE * 60 * 60 },
+	{ "minute",	XT_LIMIT_SCALE * 60 },
+	{ "second",	XT_LIMIT_SCALE }
+};
+
+static void print_rate_xlate(uint32_t period, struct xt_buf *buf)
+{
+	unsigned int i;
+
+	if (period == 0) {
+		xt_buf_add(buf, " %f ", INFINITY);
+		return;
+	}
+
+	for (i = 1; i < ARRAY_SIZE(rates); ++i)
+		if (period > rates_xlate[i].mult ||
+		    rates_xlate[i].mult / period < rates_xlate[i].mult % period)
+			break;
+
+	xt_buf_add(buf, " %u/%s ", rates_xlate[i - 1].mult / period,
+		   rates_xlate[i - 1].name);
+}
+
+static int limit_xlate(const struct xt_entry_match *match,
+		       struct xt_buf *buf, int numeric)
+{
+	const struct xt_rateinfo *r = (const void *)match->data;
+
+	xt_buf_add(buf, "limit rate");
+	print_rate_xlate(r->avg, buf);
+	if (r->burst != XT_LIMIT_BURST)
+		xt_buf_add(buf, "burst %u packets ", r->burst);
+
+	return 1;
+}
+
 static struct xtables_match limit_match = {
 	.family		= NFPROTO_UNSPEC,
 	.name		= "limit",
@@ -164,6 +202,7 @@ static struct xtables_match limit_match = {
 	.print		= limit_print,
 	.save		= limit_save,
 	.x6_options	= limit_opts,
+	.xlate		= limit_xlate,
 };
 
 void _init(void)
