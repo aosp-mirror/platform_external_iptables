@@ -89,14 +89,14 @@ static void NFLOG_save(const void *ip, const struct xt_entry_target *target)
 static void nflog_print_xlate(const struct xt_nflog_info *info,
 			      struct xt_buf *buf)
 {
+	xt_buf_add(buf, "log ");
 	if (info->prefix[0] != '\0')
-		xt_buf_add(buf, "log prefix \\\"%s\\\" ", info->prefix);
-	if (info->group)
-		xt_buf_add(buf, "log group %u ", info->group);
+		xt_buf_add(buf, "prefix \\\"%s\\\" ", info->prefix);
 	if (info->len)
-		xt_buf_add(buf, "log snaplen %u ", info->len);
+		xt_buf_add(buf, "snaplen %u ", info->len);
 	if (info->threshold != XT_NFLOG_DEFAULT_THRESHOLD)
-		xt_buf_add(buf, "log queue-threshold %u ", info->threshold);
+		xt_buf_add(buf, "queue-threshold %u ", info->threshold);
+	xt_buf_add(buf, "group %u ", info->group);
 }
 
 static int NFLOG_xlate(const struct xt_entry_target *target,
