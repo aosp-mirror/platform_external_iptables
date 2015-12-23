@@ -416,6 +416,17 @@ struct xtables_globals
 
 #define XT_GETOPT_TABLEEND {.name = NULL, .has_arg = false}
 
+/*
+ * enum op-
+ *
+ * For writing clean nftables translations code
+ */
+enum xt_op {
+	XT_OP_EQ,
+	XT_OP_NEQ,
+	XT_OP_MAX,
+};
+
 #ifdef __cplusplus
 extern "C" {
 #endif
