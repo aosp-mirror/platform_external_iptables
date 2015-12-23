@@ -89,7 +89,8 @@ connmark_print(const void *ip, const struct xt_entry_match *match, int numeric)
 }
 
 static void
-connmark_mt_print(const void *ip, const struct xt_entry_match *match, int numeric)
+connmark_mt_print(const void *ip, const struct xt_entry_match *match,
+		  int numeric)
 {
 	const struct xt_connmark_mtinfo1 *info = (const void *)match->data;
 
@@ -122,6 +123,48 @@ connmark_mt_save(const void *ip, const struct xt_entry_match *match)
 	print_mark(info->mark, info->mask);
 }
 
+static void print_mark_xlate(unsigned int mark, unsigned int mask,
+			     struct xt_buf *buf, uint32_t op)
+{
+	if (mask != 0xffffffffU)
+		xt_buf_add(buf, " and 0x%x %s 0x%x ", mark,
+			   op == XT_OP_EQ ? "==" : "!=", mask);
+	else
+		xt_buf_add(buf, " %s0x%x ",
+			   op == XT_OP_EQ ? "" : "!= ", mark);
+}
+
+static int connmark_xlate(const struct xt_entry_match *match,
+			  struct xt_buf *buf, int numeric)
+{
+	const struct xt_connmark_info *info = (const void *)match->data;
+	enum xt_op op = XT_OP_EQ;
+
+	if (info->invert)
+		op = XT_OP_NEQ;
+
+	xt_buf_add(buf, "ct mark");
+	print_mark_xlate(info->mark, info->mask, buf, op);
+
+	return 1;
+}
+
+static int
+connmark_mt_xlate(const struct xt_entry_match *match,
+		 struct xt_buf *buf, int numeric)
+{
+	const struct xt_connmark_mtinfo1 *info = (const void *)match->data;
+	enum xt_op op = XT_OP_EQ;
+
+	if (info->invert)
+		op = XT_OP_NEQ;
+
+	xt_buf_add(buf, "ct mark");
+	print_mark_xlate(info->mark, info->mask, buf, op);
+
+	return 1;
+}
+
 static struct xtables_match connmark_mt_reg[] = {
 	{
 		.family        = NFPROTO_UNSPEC,
@@ -135,6 +178,7 @@ static struct xtables_match connmark_mt_reg[] = {
 		.save          = connmark_save,
 		.x6_parse      = connmark_parse,
 		.x6_options    = connmark_mt_opts,
+		.xlate	       = connmark_xlate,
 	},
 	{
 		.version       = XTABLES_VERSION,
@@ -148,6 +192,7 @@ static struct xtables_match connmark_mt_reg[] = {
 		.save          = connmark_mt_save,
 		.x6_parse      = connmark_mt_parse,
 		.x6_options    = connmark_mt_opts,
+		.xlate	       = connmark_mt_xlate,
 	},
 };
 
