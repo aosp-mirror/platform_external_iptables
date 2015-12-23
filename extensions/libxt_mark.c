@@ -103,13 +103,15 @@ mark_save(const void *ip, const struct xt_entry_match *match)
 }
 
 static void
-print_mark_xlate(struct xt_buf *buf,
-		 unsigned int mark, unsigned int mask)
+print_mark_xlate(struct xt_buf *buf, unsigned int mark,
+		 unsigned int mask, uint32_t op)
 {
 	if (mask != 0xffffffffU)
-		xt_buf_add(buf, " and 0x%x == 0x%x ", mark, mask);
+		xt_buf_add(buf, " and 0x%x %s 0x%x ", mark,
+			   op == XT_OP_EQ ? "==" : "!=", mask);
 	else
-		xt_buf_add(buf, " 0x%x ", mark);
+		xt_buf_add(buf, " %s0x%x ",
+			   op == XT_OP_EQ ? "" : "!= ", mark);
 }
 
 static int
@@ -117,9 +119,13 @@ mark_mt_xlate(const struct xt_entry_match *match,
 	      struct xt_buf *buf, int numeric)
 {
 	const struct xt_mark_mtinfo1 *info = (const void *)match->data;
+	enum xt_op op = XT_OP_EQ;
 
-	xt_buf_add(buf, "mark%s", info->invert ? " !=" : "");
-	print_mark_xlate(buf, info->mark, info->mask);
+	if (info->invert)
+		op = XT_OP_NEQ;
+
+	xt_buf_add(buf, "mark");
+	print_mark_xlate(buf, info->mark, info->mask, op);
 
 	return 1;
 }
@@ -129,9 +135,13 @@ mark_xlate(const struct xt_entry_match *match,
 	   struct xt_buf *buf, int numeric)
 {
 	const struct xt_mark_info *info = (const void *)match->data;
+	enum xt_op op = XT_OP_EQ;
 
-	xt_buf_add(buf, "mark%s", info->invert ? " !=" : "");
-	print_mark_xlate(buf, info->mark, info->mask);
+	if (info->invert)
+		op = XT_OP_NEQ;
+
+	xt_buf_add(buf, "mark");
+	print_mark_xlate(buf, info->mark, info->mask, op);
 
 	return 1;
 }
