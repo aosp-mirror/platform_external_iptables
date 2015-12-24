@@ -92,18 +92,37 @@ static void ah_save(const void *ip, const struct xt_entry_match *match)
 
 }
 
+static int ah_xlate(const struct xt_entry_match *match,
+		    struct xt_buf *buf, int numeric)
+{
+	const struct ipt_ah *ahinfo = (struct ipt_ah *)match->data;
+
+	if (!(ahinfo->spis[0] == 0 && ahinfo->spis[1] == 0xFFFFFFFF)) {
+		xt_buf_add(buf, "ah spi%s ",
+			   (ahinfo->invflags & IPT_AH_INV_SPI) ? " !=" : "");
+		if (ahinfo->spis[0] != ahinfo->spis[1])
+			xt_buf_add(buf, "%u-%u ", ahinfo->spis[0],
+				   ahinfo->spis[1]);
+		else
+			xt_buf_add(buf, "%u ", ahinfo->spis[0]);
+	}
+
+	return 1;
+}
+
 static struct xtables_match ah_mt_reg = {
-	.name 		= "ah",
-	.version 	= XTABLES_VERSION,
+	.name		= "ah",
+	.version	= XTABLES_VERSION,
 	.family		= NFPROTO_IPV4,
 	.size		= XT_ALIGN(sizeof(struct ipt_ah)),
-	.userspacesize 	= XT_ALIGN(sizeof(struct ipt_ah)),
-	.help 		= ah_help,
+	.userspacesize	= XT_ALIGN(sizeof(struct ipt_ah)),
+	.help		= ah_help,
 	.init		= ah_init,
-	.print 		= ah_print,
-	.save 		= ah_save,
+	.print		= ah_print,
+	.save		= ah_save,
 	.x6_parse	= ah_parse,
 	.x6_options	= ah_opts,
+	.xlate		= ah_xlate,
 };
 
 void
