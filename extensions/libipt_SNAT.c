@@ -252,6 +252,58 @@ static void SNAT_save(const void *ip, const struct xt_entry_target *target)
 	}
 }
 
+static void print_range_xlate(const struct nf_nat_ipv4_range *r,
+			      struct xt_buf *buf)
+{
+	if (r->flags & NF_NAT_RANGE_MAP_IPS) {
+		struct in_addr a;
+
+		a.s_addr = r->min_ip;
+		xt_buf_add(buf, "%s", xtables_ipaddr_to_numeric(&a));
+		if (r->max_ip != r->min_ip) {
+			a.s_addr = r->max_ip;
+			xt_buf_add(buf, "-%s", xtables_ipaddr_to_numeric(&a));
+		}
+	}
+	if (r->flags & NF_NAT_RANGE_PROTO_SPECIFIED) {
+		xt_buf_add(buf, ":");
+		xt_buf_add(buf, "%hu", ntohs(r->min.tcp.port));
+		if (r->max.tcp.port != r->min.tcp.port)
+			xt_buf_add(buf, "-%hu", ntohs(r->max.tcp.port));
+	}
+}
+
+static int SNAT_xlate(const struct xt_entry_target *target,
+		      struct xt_buf *buf, int numeric)
+{
+	const struct ipt_natinfo *info = (const void *)target;
+	unsigned int i = 0;
+	bool sep_need = false;
+	const char *sep = " ";
+
+	for (i = 0; i < info->mr.rangesize; i++) {
+		xt_buf_add(buf, "snat ");
+		print_range_xlate(&info->mr.range[i], buf);
+		if (info->mr.range[i].flags & NF_NAT_RANGE_PROTO_RANDOM) {
+			xt_buf_add(buf, " random");
+			sep_need = true;
+		}
+		if (info->mr.range[i].flags & NF_NAT_RANGE_PROTO_RANDOM_FULLY) {
+			if (sep_need)
+				sep = ",";
+			xt_buf_add(buf, "%sfully-random", sep);
+			sep_need = true;
+		}
+		if (info->mr.range[i].flags & NF_NAT_RANGE_PERSISTENT) {
+			if (sep_need)
+				sep = ",";
+			xt_buf_add(buf, "%spersistent", sep);
+		}
+	}
+
+	return 1;
+}
+
 static struct xtables_target snat_tg_reg = {
 	.name		= "SNAT",
 	.version	= XTABLES_VERSION,
@@ -264,6 +316,7 @@ static struct xtables_target snat_tg_reg = {
 	.print		= SNAT_print,
 	.save		= SNAT_save,
 	.x6_options	= SNAT_opts,
+	.xlate		= SNAT_xlate,
 };
 
 void _init(void)
