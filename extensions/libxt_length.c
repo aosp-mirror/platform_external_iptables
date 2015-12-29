@@ -56,6 +56,21 @@ static void length_save(const void *ip, const struct xt_entry_match *match)
 		printf("%u:%u", info->min, info->max);
 }
 
+static int length_xlate(const struct xt_entry_match *match,
+			struct xt_buf *buf, int numeric)
+{
+	const struct xt_length_info *info = (void *)match->data;
+
+	xt_buf_add(buf, "meta length %s", info->invert ? "!= " : "");
+	if (info->min == info->max)
+		xt_buf_add(buf, "%u ", info->min);
+	else
+		xt_buf_add(buf, "%u-%u ", info->min, info->max);
+
+	return 1;
+}
+
+
 static struct xtables_match length_match = {
 	.family		= NFPROTO_UNSPEC,
 	.name		= "length",
@@ -67,6 +82,7 @@ static struct xtables_match length_match = {
 	.save		= length_save,
 	.x6_parse	= length_parse,
 	.x6_options	= length_opts,
+	.xlate		= length_xlate,
 };
 
 void _init(void)
