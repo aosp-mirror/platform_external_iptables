@@ -416,16 +416,16 @@ static int nft_ipv6_xlate(const void *data, struct xt_buf *buf)
 			snprintf(protonum, sizeof(protonum), "%u",
 				 cs->fw6.ipv6.proto);
 			protonum[sizeof(protonum) - 1] = '\0';
-			xt_buf_add(buf, "ip protocol %s%s ",
+			xt_buf_add(buf, "ip6 nexthdr %s%s ",
 				   cs->fw6.ipv6.invflags & IP6T_INV_PROTO ?
 					"!= " : "",
 				   pent ? pent->p_name : protonum);
 		}
 	}
 
-	xlate_ipv6_addr("ip saddr", &cs->fw6.ipv6.src,
+	xlate_ipv6_addr("ip6 saddr", &cs->fw6.ipv6.src,
 			cs->fw6.ipv6.invflags & IP6T_INV_SRCIP, buf);
-	xlate_ipv6_addr("ip daddr", &cs->fw6.ipv6.dst,
+	xlate_ipv6_addr("ip6 daddr", &cs->fw6.ipv6.dst,
 			cs->fw6.ipv6.invflags & IP6T_INV_DSTIP, buf);
 
 	ret = xlate_matches(cs, buf);
