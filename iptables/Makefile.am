@@ -4,6 +4,8 @@ AM_CFLAGS        = ${regular_CFLAGS}
 AM_CPPFLAGS      = ${regular_CPPFLAGS} -I${top_builddir}/include -I${top_srcdir}/include ${kinclude_CPPFLAGS} ${libmnl_CFLAGS} ${libnftnl_CFLAGS} ${libnetfilter_conntrack_CFLAGS}
 AM_YFLAGS = -d
 
+BUILT_SOURCES =
+
 xtables_multi_SOURCES  = xtables-multi.c iptables-xml.c
 xtables_multi_CFLAGS   = ${AM_CFLAGS}
 xtables_multi_LDADD    = ../extensions/libext.a
@@ -27,6 +29,7 @@ xtables_multi_LDADD   += ../libxtables/libxtables.la -lm
 
 # nftables compatibility layer
 if ENABLE_NFTABLES
+BUILT_SOURCES += xtables-config-parser.h
 xtables_compat_multi_SOURCES  = xtables-compat-multi.c iptables-xml.c
 xtables_compat_multi_CFLAGS   = ${AM_CFLAGS}
 xtables_compat_multi_LDADD    = ../extensions/libext.a ../extensions/libext_ebt.a
