@@ -128,6 +128,32 @@ static void ah_save(const void *ip, const struct xt_entry_match *match)
 		printf(" --ahres");
 }
 
+static int ah_xlate(const struct xt_entry_match *match,
+		    struct xt_buf *buf, int numeric)
+{
+	const struct ip6t_ah *ahinfo = (struct ip6t_ah *)match->data;
+
+	if (!(ahinfo->spis[0] == 0 && ahinfo->spis[1] == 0xFFFFFFFF)) {
+		xt_buf_add(buf, "ah spi%s ",
+			   (ahinfo->invflags & IP6T_AH_INV_SPI) ? " !=" : "");
+	if (ahinfo->spis[0] != ahinfo->spis[1])
+		xt_buf_add(buf, "%u-%u ", ahinfo->spis[0], ahinfo->spis[1]);
+	else
+		xt_buf_add(buf, "%u ", ahinfo->spis[0]);
+	}
+
+	if (ahinfo->hdrlen != 0 || (ahinfo->invflags & IP6T_AH_INV_LEN)) {
+		xt_buf_add(buf, "ah hdrlength%s %u ",
+			   (ahinfo->invflags & IP6T_AH_INV_LEN) ? " !=" : "",
+			   ahinfo->hdrlen);
+	}
+
+	if (ahinfo->hdrres != 0)
+		xt_buf_add(buf, "ah reserved %u ", ahinfo->hdrres);
+
+	return 1;
+}
+
 static struct xtables_match ah_mt6_reg = {
 	.name          = "ah",
 	.version       = XTABLES_VERSION,
@@ -140,6 +166,7 @@ static struct xtables_match ah_mt6_reg = {
 	.save          = ah_save,
 	.x6_parse      = ah_parse,
 	.x6_options    = ah_opts,
+	.xlate	       = ah_xlate,
 };
 
 void
