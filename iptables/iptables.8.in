@@ -194,6 +194,8 @@ arguments given. The exact rules are suppressed until you use
 .nf
  iptables \-L \-v
 .fi
+or
+\fBiptables\-save\fP(8).
 .TP
 \fB\-S\fP, \fB\-\-list\-rules\fP [\fIchain\fP]
 Print all rules in the selected chain.  If no chain is selected, all
