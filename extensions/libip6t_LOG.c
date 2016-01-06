@@ -63,6 +63,11 @@ struct ip6t_log_names {
 	unsigned int level;
 };
 
+struct ip6t_log_xlate {
+	const char *name;
+	unsigned int level;
+};
+
 static const struct ip6t_log_names ip6t_log_names[]
 = { { .name = "alert",   .level = LOG_ALERT },
     { .name = "crit",    .level = LOG_CRIT },
@@ -166,6 +171,37 @@ static void LOG_save(const void *ip, const struct xt_entry_target *target)
 		printf(" --log-macdecode");
 }
 
+static const struct ip6t_log_xlate ip6t_log_xlate_names[] = {
+	{"alert",       LOG_ALERT },
+	{"crit",        LOG_CRIT },
+	{"debug",       LOG_DEBUG },
+	{"emerg",       LOG_EMERG },
+	{"err",         LOG_ERR },
+	{"info",        LOG_INFO },
+	{"notice",      LOG_NOTICE },
+	{"warn",        LOG_WARNING }
+};
+
+static int LOG_xlate(const struct xt_entry_target *target,
+		     struct xt_buf *buf, int numeric)
+{
+	unsigned int i = 0;
+	const struct ip6t_log_info *loginfo =
+			(const struct ip6t_log_info *)target->data;
+
+	xt_buf_add(buf, "log ");
+	if (strcmp(loginfo->prefix, "") != 0)
+		xt_buf_add(buf, "prefix \\\"%s\\\" ", loginfo->prefix);
+
+	for (i = 0; i < ARRAY_SIZE(ip6t_log_xlate_names); ++i)
+		if (loginfo->level == ip6t_log_xlate_names[i].level) {
+			xt_buf_add(buf, "level %s",
+				   ip6t_log_xlate_names[i].name);
+			break;
+		}
+
+	return 1;
+}
 static struct xtables_target log_tg6_reg = {
 	.name          = "LOG",
 	.version       = XTABLES_VERSION,
@@ -178,6 +214,7 @@ static struct xtables_target log_tg6_reg = {
 	.save          = LOG_save,
 	.x6_parse      = LOG_parse,
 	.x6_options    = LOG_opts,
+	.xlate	       = LOG_xlate,
 };
 
 void _init(void)
