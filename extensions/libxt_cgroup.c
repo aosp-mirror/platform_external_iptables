@@ -19,7 +19,7 @@ static void cgroup_help_v1(void)
 	printf(
 "cgroup match options:\n"
 "[!] --path path                 Recursively match path relative to cgroup2 root\n"
-"[!] --cgroup claasid            Match cgroup classid, can't be used with --path\n");
+"[!] --cgroup classid            Match cgroup classid, can't be used with --path\n");
 }
 
 static const struct xt_option_entry cgroup_opts_v0[] = {
