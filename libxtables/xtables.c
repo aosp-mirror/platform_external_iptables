@@ -2015,6 +2015,7 @@ struct xt_buf *xt_buf_alloc(int size)
 
 void xt_buf_free(struct xt_buf *buf)
 {
+	free(buf->data);
 	free(buf);
 }
 
