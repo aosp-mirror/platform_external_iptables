@@ -1987,11 +1987,16 @@ void get_kernel_version(void)
 	kernel_version = LINUX_VERSION(x, y, z);
 }
 
+#include <linux/netfilter/nf_tables.h>
+
 struct xt_xlate {
-	char	*data;
-	int	size;
-	int	rem;
-	int	off;
+	struct {
+		char	*data;
+		int	size;
+		int	rem;
+		int	off;
+	} buf;
+	char comment[NFT_USERDATA_MAXLEN];
 };
 
 struct xt_xlate *xt_xlate_alloc(int size)
@@ -2002,20 +2007,20 @@ struct xt_xlate *xt_xlate_alloc(int size)
 	if (xl == NULL)
 		xtables_error(RESOURCE_PROBLEM, "OOM");
 
-	xl->data = malloc(size);
-	if (xl->data == NULL)
+	xl->buf.data = malloc(size);
+	if (xl->buf.data == NULL)
 		xtables_error(RESOURCE_PROBLEM, "OOM");
 
-	xl->size = size;
-	xl->rem = size;
-	xl->off = 0;
+	xl->buf.size = size;
+	xl->buf.rem = size;
+	xl->buf.off = 0;
 
 	return xl;
 }
 
 void xt_xlate_free(struct xt_xlate *xl)
 {
-	free(xl->data);
+	free(xl->buf.data);
 	free(xl);
 }
 
@@ -2025,16 +2030,22 @@ void xt_xlate_add(struct xt_xlate *xl, const char *fmt, ...)
 	int len;
 
 	va_start(ap, fmt);
-	len = vsnprintf(xl->data + xl->off, xl->rem, fmt, ap);
-	if (len < 0 || len >= xl->rem)
+	len = vsnprintf(xl->buf.data + xl->buf.off, xl->buf.rem, fmt, ap);
+	if (len < 0 || len >= xl->buf.rem)
 		xtables_error(RESOURCE_PROBLEM, "OOM");
 
 	va_end(ap);
-	xl->rem -= len;
-	xl->off += len;
+	xl->buf.rem -= len;
+	xl->buf.off += len;
+}
+
+void xt_xlate_add_comment(struct xt_xlate *xl, const char *comment)
+{
+	strncpy(xl->comment, comment, NFT_USERDATA_MAXLEN - 1);
+	xl->comment[NFT_USERDATA_MAXLEN - 1] = '\0';
 }
 
 const char *xt_xlate_get(struct xt_xlate *xl)
 {
-	return xl->data;
+	return xl->buf.data;
 }
