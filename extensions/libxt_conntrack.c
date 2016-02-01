@@ -1156,41 +1156,41 @@ static void state_save(const void *ip, const struct xt_entry_match *match)
 	state_print_state(sinfo->statemask);
 }
 
-static void state_xlate_print(struct xt_buf *buf, unsigned int statemask)
+static void state_xlate_print(struct xt_xlate *xl, unsigned int statemask)
 {
 	const char *sep = "";
 
 	if (statemask & XT_CONNTRACK_STATE_INVALID) {
-		xt_buf_add(buf, "%s%s", sep, "invalid");
+		xt_xlate_add(xl, "%s%s", sep, "invalid");
 		sep = ",";
 	}
 	if (statemask & XT_CONNTRACK_STATE_BIT(IP_CT_NEW)) {
-		xt_buf_add(buf, "%s%s", sep, "new");
+		xt_xlate_add(xl, "%s%s", sep, "new");
 		sep = ",";
 	}
 	if (statemask & XT_CONNTRACK_STATE_BIT(IP_CT_RELATED)) {
-		xt_buf_add(buf, "%s%s", sep, "related");
+		xt_xlate_add(xl, "%s%s", sep, "related");
 		sep = ",";
 	}
 	if (statemask & XT_CONNTRACK_STATE_BIT(IP_CT_ESTABLISHED)) {
-		xt_buf_add(buf, "%s%s", sep, "established");
+		xt_xlate_add(xl, "%s%s", sep, "established");
 		sep = ",";
 	}
 	if (statemask & XT_CONNTRACK_STATE_UNTRACKED) {
-		xt_buf_add(buf, "%s%s", sep, "untracked");
+		xt_xlate_add(xl, "%s%s", sep, "untracked");
 		sep = ",";
 	}
 }
 
-static int state_xlate(const struct xt_entry_match *match, struct xt_buf *buf,
+static int state_xlate(const struct xt_entry_match *match, struct xt_xlate *xl,
 		       int numeric)
 {
 	const struct xt_conntrack_mtinfo3 *sinfo = (const void *)match->data;
 
-	xt_buf_add(buf, "ct state %s", sinfo->invert_flags & XT_CONNTRACK_STATE ?
+	xt_xlate_add(xl, "ct state %s", sinfo->invert_flags & XT_CONNTRACK_STATE ?
 					"!= " : "");
-	state_xlate_print(buf, sinfo->state_mask);
-	xt_buf_add(buf, " ");
+	state_xlate_print(xl, sinfo->state_mask);
+	xt_xlate_add(xl, " ");
 	return 1;
 }
 

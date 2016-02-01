@@ -153,52 +153,52 @@ static void devgroup_check(struct xt_fcheck_call *cb)
 
 static void
 print_devgroup_xlate(unsigned int id, uint32_t op,  unsigned int mask,
-		     struct xt_buf *buf, int numeric)
+		     struct xt_xlate *xl, int numeric)
 {
 	const char *name = NULL;
 
 	if (mask != 0xffffffff)
-		xt_buf_add(buf, "and 0x%x %s 0x%x ", id,
+		xt_xlate_add(xl, "and 0x%x %s 0x%x ", id,
 			   op == XT_OP_EQ ? "==" : "!=", mask);
 	else {
 		if (numeric == 0)
 			name = xtables_lmap_id2name(devgroups, id);
 		if (name)
-			xt_buf_add(buf, "%s ", name);
+			xt_xlate_add(xl, "%s ", name);
 		else
-			xt_buf_add(buf, "%s0x%x ",
+			xt_xlate_add(xl, "%s0x%x ",
 				   op == XT_OP_EQ ? "" : "!= ", id);
 	}
 }
 
 static void devgroup_show_xlate(const struct xt_devgroup_info *info,
-				struct xt_buf *buf, int numeric)
+				struct xt_xlate *xl, int numeric)
 {
 	enum xt_op op = XT_OP_EQ;
 
 	if (info->flags & XT_DEVGROUP_MATCH_SRC) {
 		if (info->flags & XT_DEVGROUP_INVERT_SRC)
 			op = XT_OP_NEQ;
-		xt_buf_add(buf, "iifgroup ");
+		xt_xlate_add(xl, "iifgroup ");
 		print_devgroup_xlate(info->src_group, op,
-				     info->src_mask, buf, numeric);
+				     info->src_mask, xl, numeric);
 	}
 
 	if (info->flags & XT_DEVGROUP_MATCH_DST) {
 		if (info->flags & XT_DEVGROUP_INVERT_DST)
 			op = XT_OP_NEQ;
-		xt_buf_add(buf, "oifgroup ");
+		xt_xlate_add(xl, "oifgroup ");
 		print_devgroup_xlate(info->dst_group, op,
-				     info->dst_mask, buf, numeric);
+				     info->dst_mask, xl, numeric);
 	}
 }
 
 static int devgroup_xlate(const struct xt_entry_match *match,
-			  struct xt_buf *buf, int numeric)
+			  struct xt_xlate *xl, int numeric)
 {
 	const struct xt_devgroup_info *info = (const void *)match->data;
 
-	devgroup_show_xlate(info, buf, 0);
+	devgroup_show_xlate(info, xl, 0);
 
 	return 1;
 }

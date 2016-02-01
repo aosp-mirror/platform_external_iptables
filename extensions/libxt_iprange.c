@@ -304,57 +304,57 @@ static void iprange_mt6_save(const void *ip, const struct xt_entry_match *match)
 
 static void
 print_iprange_xlate(const struct ipt_iprange *range,
-		    struct xt_buf *buf)
+		    struct xt_xlate *xl)
 {
 	const unsigned char *byte_min, *byte_max;
 
 	byte_min = (const unsigned char *)&range->min_ip;
 	byte_max = (const unsigned char *)&range->max_ip;
-	xt_buf_add(buf, " %u.%u.%u.%u-%u.%u.%u.%u ",
+	xt_xlate_add(xl, " %u.%u.%u.%u-%u.%u.%u.%u ",
 		   byte_min[0], byte_min[1], byte_min[2], byte_min[3],
 		   byte_max[0], byte_max[1], byte_max[2], byte_max[3]);
 }
 
 static int iprange_xlate(const struct xt_entry_match *match,
-			 struct xt_buf *buf, int numeric)
+			 struct xt_xlate *xl, int numeric)
 {
 	const struct ipt_iprange_info *info = (const void *)match->data;
 
 	if (info->flags & IPRANGE_SRC) {
 		if (info->flags & IPRANGE_SRC_INV)
-			xt_buf_add(buf, " !=");
-		xt_buf_add(buf, " ip saddr");
-		print_iprange_xlate(&info->src, buf);
+			xt_xlate_add(xl, " !=");
+		xt_xlate_add(xl, " ip saddr");
+		print_iprange_xlate(&info->src, xl);
 	}
 	if (info->flags & IPRANGE_DST) {
 		if (info->flags & IPRANGE_DST_INV)
-			xt_buf_add(buf, " !=");
-		xt_buf_add(buf, " ip daddr");
-		print_iprange_xlate(&info->dst, buf);
+			xt_xlate_add(xl, " !=");
+		xt_xlate_add(xl, " ip daddr");
+		print_iprange_xlate(&info->dst, xl);
 	}
 
 	return 1;
 }
 
 static int iprange_mt4_xlate(const struct xt_entry_match *match,
-			     struct xt_buf *buf, int numeric)
+			     struct xt_xlate *xl, int numeric)
 {
 	const struct xt_iprange_mtinfo *info = (const void *)match->data;
 
 	if (info->flags & IPRANGE_SRC) {
 		if (info->flags & IPRANGE_SRC_INV)
-			xt_buf_add(buf, " !=");
-		xt_buf_add(buf, " ip saddr %s",
+			xt_xlate_add(xl, " !=");
+		xt_xlate_add(xl, " ip saddr %s",
 			   xtables_ipaddr_to_numeric(&info->src_min.in));
-		xt_buf_add(buf, "-%s ",
+		xt_xlate_add(xl, "-%s ",
 			   xtables_ipaddr_to_numeric(&info->src_max.in));
 	}
 	if (info->flags & IPRANGE_DST) {
 		if (info->flags & IPRANGE_DST_INV)
-			xt_buf_add(buf, " !=");
-		xt_buf_add(buf, " ip daddr %s",
+			xt_xlate_add(xl, " !=");
+		xt_xlate_add(xl, " ip daddr %s",
 			   xtables_ipaddr_to_numeric(&info->dst_min.in));
-		xt_buf_add(buf, "-%s ",
+		xt_xlate_add(xl, "-%s ",
 			   xtables_ipaddr_to_numeric(&info->dst_max.in));
 	}
 
@@ -362,24 +362,24 @@ static int iprange_mt4_xlate(const struct xt_entry_match *match,
 }
 
 static int iprange_mt6_xlate(const struct xt_entry_match *match,
-			     struct xt_buf *buf, int numeric)
+			     struct xt_xlate *xl, int numeric)
 {
 	const struct xt_iprange_mtinfo *info = (const void *)match->data;
 
 	if (info->flags & IPRANGE_SRC) {
 		if (info->flags & IPRANGE_SRC_INV)
-			xt_buf_add(buf, " !=");
-		xt_buf_add(buf, " ip saddr %s",
+			xt_xlate_add(xl, " !=");
+		xt_xlate_add(xl, " ip saddr %s",
 			   xtables_ip6addr_to_numeric(&info->src_min.in6));
-		xt_buf_add(buf, "-%s ",
+		xt_xlate_add(xl, "-%s ",
 			   xtables_ip6addr_to_numeric(&info->src_max.in6));
 	}
 	if (info->flags & IPRANGE_DST) {
 		if (info->flags & IPRANGE_DST_INV)
-			xt_buf_add(buf, " !=");
-		xt_buf_add(buf, " ip daddr %s",
+			xt_xlate_add(xl, " !=");
+		xt_xlate_add(xl, " ip daddr %s",
 			   xtables_ip6addr_to_numeric(&info->dst_min.in6));
-		xt_buf_add(buf, "-%s ",
+		xt_xlate_add(xl, "-%s ",
 			   xtables_ip6addr_to_numeric(&info->dst_max.in6));
 	}
 

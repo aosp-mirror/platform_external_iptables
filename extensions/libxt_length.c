@@ -57,15 +57,15 @@ static void length_save(const void *ip, const struct xt_entry_match *match)
 }
 
 static int length_xlate(const struct xt_entry_match *match,
-			struct xt_buf *buf, int numeric)
+			struct xt_xlate *xl, int numeric)
 {
 	const struct xt_length_info *info = (void *)match->data;
 
-	xt_buf_add(buf, "meta length %s", info->invert ? "!= " : "");
+	xt_xlate_add(xl, "meta length %s", info->invert ? "!= " : "");
 	if (info->min == info->max)
-		xt_buf_add(buf, "%u ", info->min);
+		xt_xlate_add(xl, "%u ", info->min);
 	else
-		xt_buf_add(buf, "%u-%u ", info->min, info->max);
+		xt_xlate_add(xl, "%u-%u ", info->min, info->max);
 
 	return 1;
 }

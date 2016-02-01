@@ -71,23 +71,23 @@ static void mac_save(const void *ip, const struct xt_entry_match *match)
 }
 
 static void print_mac_xlate(const unsigned char *macaddress,
-			    struct xt_buf *buf)
+			    struct xt_xlate *xl)
 {
 	unsigned int i;
 
-	xt_buf_add(buf, "%02x", macaddress[0]);
+	xt_xlate_add(xl, "%02x", macaddress[0]);
 	for (i = 1; i < ETH_ALEN; ++i)
-		xt_buf_add(buf, ":%02x", macaddress[i]);
-	xt_buf_add(buf, " ");
+		xt_xlate_add(xl, ":%02x", macaddress[i]);
+	xt_xlate_add(xl, " ");
 }
 
 static int mac_xlate(const struct xt_entry_match *match,
-		     struct xt_buf *buf, int numeric)
+		     struct xt_xlate *xl, int numeric)
 {
 	const struct xt_mac_info *info = (void *)match->data;
 
-	xt_buf_add(buf, "ether saddr%s ", info->invert ? " !=" : "");
-	print_mac_xlate(info->srcaddr, buf);
+	xt_xlate_add(xl, "ether saddr%s ", info->invert ? " !=" : "");
+	print_mac_xlate(info->srcaddr, xl);
 
 	return 1;
 }

@@ -378,7 +378,7 @@ static void nft_ipv6_save_counters(const void *data)
 }
 
 static void xlate_ipv6_addr(const char *selector, const struct in6_addr *addr,
-			    int invert, struct xt_buf *buf)
+			    int invert, struct xt_xlate *xl)
 {
 	char addr_str[INET6_ADDRSTRLEN];
 
@@ -386,22 +386,22 @@ static void xlate_ipv6_addr(const char *selector, const struct in6_addr *addr,
 		return;
 
 	inet_ntop(AF_INET6, addr, addr_str, INET6_ADDRSTRLEN);
-	xt_buf_add(buf, "%s %s%s ", selector, invert ? "!= " : "", addr_str);
+	xt_xlate_add(xl, "%s %s%s ", selector, invert ? "!= " : "", addr_str);
 }
 
-static int nft_ipv6_xlate(const void *data, struct xt_buf *buf)
+static int nft_ipv6_xlate(const void *data, struct xt_xlate *xl)
 {
 	const struct iptables_command_state *cs = data;
 	int ret;
 
 	if (cs->fw6.ipv6.iniface[0] != '\0') {
-		xt_buf_add(buf, "iifname %s%s ",
+		xt_xlate_add(xl, "iifname %s%s ",
 			   cs->fw6.ipv6.invflags & IP6T_INV_VIA_IN ?
 				"!= " : "",
 			   cs->fw6.ipv6.iniface);
 	}
 	if (cs->fw6.ipv6.outiface[0] != '\0') {
-		xt_buf_add(buf, "oifname %s%s ",
+		xt_xlate_add(xl, "oifname %s%s ",
 			   cs->fw6.ipv6.invflags & IP6T_INV_VIA_OUT ?
 				"!= " : "",
 			   cs->fw6.ipv6.outiface);
@@ -416,7 +416,7 @@ static int nft_ipv6_xlate(const void *data, struct xt_buf *buf)
 			snprintf(protonum, sizeof(protonum), "%u",
 				 cs->fw6.ipv6.proto);
 			protonum[sizeof(protonum) - 1] = '\0';
-			xt_buf_add(buf, "ip6 nexthdr %s%s ",
+			xt_xlate_add(xl, "ip6 nexthdr %s%s ",
 				   cs->fw6.ipv6.invflags & IP6T_INV_PROTO ?
 					"!= " : "",
 				   pent ? pent->p_name : protonum);
@@ -424,18 +424,18 @@ static int nft_ipv6_xlate(const void *data, struct xt_buf *buf)
 	}
 
 	xlate_ipv6_addr("ip6 saddr", &cs->fw6.ipv6.src,
-			cs->fw6.ipv6.invflags & IP6T_INV_SRCIP, buf);
+			cs->fw6.ipv6.invflags & IP6T_INV_SRCIP, xl);
 	xlate_ipv6_addr("ip6 daddr", &cs->fw6.ipv6.dst,
-			cs->fw6.ipv6.invflags & IP6T_INV_DSTIP, buf);
+			cs->fw6.ipv6.invflags & IP6T_INV_DSTIP, xl);
 
-	ret = xlate_matches(cs, buf);
+	ret = xlate_matches(cs, xl);
 	if (!ret)
 		return ret;
 
 	/* Always add counters per rule, as in iptables */
-	xt_buf_add(buf, "counter ");
+	xt_xlate_add(xl, "counter ");
 
-	ret = xlate_action(cs, !!(cs->fw6.ipv6.flags & IP6T_F_GOTO), buf);
+	ret = xlate_action(cs, !!(cs->fw6.ipv6.flags & IP6T_F_GOTO), xl);
 
 	return ret;
 }

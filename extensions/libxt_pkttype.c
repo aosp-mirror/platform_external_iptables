@@ -127,26 +127,26 @@ static const struct pkttypes_xlate supported_types_xlate[] = {
 };
 
 static void print_pkttype_xlate(const struct xt_pkttype_info *info,
-				struct xt_buf *buf)
+				struct xt_xlate *xl)
 {
 	unsigned int i;
 
 	for (i = 0; i < ARRAY_SIZE(supported_types_xlate); ++i) {
 		if (supported_types_xlate[i].pkttype == info->pkttype) {
-			xt_buf_add(buf, "%s ", supported_types_xlate[i].name);
+			xt_xlate_add(xl, "%s ", supported_types_xlate[i].name);
 			return;
 		}
 	}
-	xt_buf_add(buf, "%d", info->pkttype);
+	xt_xlate_add(xl, "%d", info->pkttype);
 }
 
 static int pkttype_xlate(const struct xt_entry_match *match,
-			  struct xt_buf *buf, int numeric)
+			  struct xt_xlate *xl, int numeric)
 {
 	const struct xt_pkttype_info *info = (const void *)match->data;
 
-	xt_buf_add(buf, "pkttype%s ", info->invert ? " !=" : "");
-	print_pkttype_xlate(info, buf);
+	xt_xlate_add(xl, "pkttype%s ", info->invert ? " !=" : "");
+	print_pkttype_xlate(info, xl);
 
 	return 1;
 }

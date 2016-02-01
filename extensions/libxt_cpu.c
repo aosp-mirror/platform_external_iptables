@@ -45,11 +45,11 @@ static void cpu_save(const void *ip, const struct xt_entry_match *match)
 }
 
 static int cpu_xlate(const struct xt_entry_match *match,
-		     struct xt_buf *buf, int numeric)
+		     struct xt_xlate *xl, int numeric)
 {
 	const struct xt_cpu_info *info = (void *)match->data;
 
-	xt_buf_add(buf, "cpu%s %u ", info->invert ? " !=" : "", info->cpu);
+	xt_xlate_add(xl, "cpu%s %u ", info->invert ? " !=" : "", info->cpu);
 
 	return 1;
 }

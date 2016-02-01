@@ -129,27 +129,27 @@ static void ah_save(const void *ip, const struct xt_entry_match *match)
 }
 
 static int ah_xlate(const struct xt_entry_match *match,
-		    struct xt_buf *buf, int numeric)
+		    struct xt_xlate *xl, int numeric)
 {
 	const struct ip6t_ah *ahinfo = (struct ip6t_ah *)match->data;
 
 	if (!(ahinfo->spis[0] == 0 && ahinfo->spis[1] == 0xFFFFFFFF)) {
-		xt_buf_add(buf, "ah spi%s ",
+		xt_xlate_add(xl, "ah spi%s ",
 			   (ahinfo->invflags & IP6T_AH_INV_SPI) ? " !=" : "");
 	if (ahinfo->spis[0] != ahinfo->spis[1])
-		xt_buf_add(buf, "%u-%u ", ahinfo->spis[0], ahinfo->spis[1]);
+		xt_xlate_add(xl, "%u-%u ", ahinfo->spis[0], ahinfo->spis[1]);
 	else
-		xt_buf_add(buf, "%u ", ahinfo->spis[0]);
+		xt_xlate_add(xl, "%u ", ahinfo->spis[0]);
 	}
 
 	if (ahinfo->hdrlen != 0 || (ahinfo->invflags & IP6T_AH_INV_LEN)) {
-		xt_buf_add(buf, "ah hdrlength%s %u ",
+		xt_xlate_add(xl, "ah hdrlength%s %u ",
 			   (ahinfo->invflags & IP6T_AH_INV_LEN) ? " !=" : "",
 			   ahinfo->hdrlen);
 	}
 
 	if (ahinfo->hdrres != 0)
-		xt_buf_add(buf, "ah reserved %u ", ahinfo->hdrres);
+		xt_xlate_add(xl, "ah reserved %u ", ahinfo->hdrres);
 
 	return 1;
 }

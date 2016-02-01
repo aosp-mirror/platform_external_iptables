@@ -1987,54 +1987,54 @@ void get_kernel_version(void)
 	kernel_version = LINUX_VERSION(x, y, z);
 }
 
-struct xt_buf {
+struct xt_xlate {
 	char	*data;
 	int	size;
 	int	rem;
 	int	off;
 };
 
-struct xt_buf *xt_buf_alloc(int size)
+struct xt_xlate *xt_xlate_alloc(int size)
 {
-	struct xt_buf *buf;
+	struct xt_xlate *xl;
 
-	buf = malloc(sizeof(struct xt_buf));
-	if (buf == NULL)
+	xl = malloc(sizeof(struct xt_xlate));
+	if (xl == NULL)
 		xtables_error(RESOURCE_PROBLEM, "OOM");
 
-	buf->data = malloc(size);
-	if (buf->data == NULL)
+	xl->data = malloc(size);
+	if (xl->data == NULL)
 		xtables_error(RESOURCE_PROBLEM, "OOM");
 
-	buf->size = size;
-	buf->rem = size;
-	buf->off = 0;
+	xl->size = size;
+	xl->rem = size;
+	xl->off = 0;
 
-	return buf;
+	return xl;
 }
 
-void xt_buf_free(struct xt_buf *buf)
+void xt_xlate_free(struct xt_xlate *xl)
 {
-	free(buf->data);
-	free(buf);
+	free(xl->data);
+	free(xl);
 }
 
-void xt_buf_add(struct xt_buf *buf, const char *fmt, ...)
+void xt_xlate_add(struct xt_xlate *xl, const char *fmt, ...)
 {
 	va_list ap;
 	int len;
 
 	va_start(ap, fmt);
-	len = vsnprintf(buf->data + buf->off, buf->rem, fmt, ap);
-	if (len < 0 || len >= buf->rem)
+	len = vsnprintf(xl->data + xl->off, xl->rem, fmt, ap);
+	if (len < 0 || len >= xl->rem)
 		xtables_error(RESOURCE_PROBLEM, "OOM");
 
 	va_end(ap);
-	buf->rem -= len;
-	buf->off += len;
+	xl->rem -= len;
+	xl->off += len;
 }
 
-const char *xt_buf_get(struct xt_buf *buf)
+const char *xt_xlate_get(struct xt_xlate *xl)
 {
-	return buf->data;
+	return xl->data;
 }

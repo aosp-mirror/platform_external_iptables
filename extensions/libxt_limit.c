@@ -159,12 +159,12 @@ static const struct rates rates_xlate[] = {
 	{ "second",	XT_LIMIT_SCALE }
 };
 
-static void print_rate_xlate(uint32_t period, struct xt_buf *buf)
+static void print_rate_xlate(uint32_t period, struct xt_xlate *xl)
 {
 	unsigned int i;
 
 	if (period == 0) {
-		xt_buf_add(buf, " %f ", INFINITY);
+		xt_xlate_add(xl, " %f ", INFINITY);
 		return;
 	}
 
@@ -173,19 +173,19 @@ static void print_rate_xlate(uint32_t period, struct xt_buf *buf)
 		    rates_xlate[i].mult / period < rates_xlate[i].mult % period)
 			break;
 
-	xt_buf_add(buf, " %u/%s ", rates_xlate[i - 1].mult / period,
+	xt_xlate_add(xl, " %u/%s ", rates_xlate[i - 1].mult / period,
 		   rates_xlate[i - 1].name);
 }
 
 static int limit_xlate(const struct xt_entry_match *match,
-		       struct xt_buf *buf, int numeric)
+		       struct xt_xlate *xl, int numeric)
 {
 	const struct xt_rateinfo *r = (const void *)match->data;
 
-	xt_buf_add(buf, "limit rate");
-	print_rate_xlate(r->avg, buf);
+	xt_xlate_add(xl, "limit rate");
+	print_rate_xlate(r->avg, xl);
 	if (r->burst != XT_LIMIT_BURST)
-		xt_buf_add(buf, "burst %u packets ", r->burst);
+		xt_xlate_add(xl, "burst %u packets ", r->burst);
 
 	return 1;
 }

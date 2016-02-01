@@ -232,43 +232,43 @@ static void DNAT_save(const void *ip, const struct xt_entry_target *target)
 }
 
 static void print_range_xlate(const struct nf_nat_range *range,
-			      struct xt_buf *buf)
+			      struct xt_xlate *xl)
 {
 	if (range->flags & NF_NAT_RANGE_MAP_IPS) {
-		xt_buf_add(buf, "%s",
+		xt_xlate_add(xl, "%s",
 			   xtables_ip6addr_to_numeric(&range->min_addr.in6));
 
 		if (memcmp(&range->min_addr, &range->max_addr,
 			   sizeof(range->min_addr)))
-			xt_buf_add(buf, "-%s",
+			xt_xlate_add(xl, "-%s",
 			     xtables_ip6addr_to_numeric(&range->max_addr.in6));
 	}
 	if (range->flags & NF_NAT_RANGE_PROTO_SPECIFIED) {
-		xt_buf_add(buf, " :%hu", ntohs(range->min_proto.tcp.port));
+		xt_xlate_add(xl, " :%hu", ntohs(range->min_proto.tcp.port));
 
 		if (range->max_proto.tcp.port != range->min_proto.tcp.port)
-			xt_buf_add(buf, "-%hu",
+			xt_xlate_add(xl, "-%hu",
 				   ntohs(range->max_proto.tcp.port));
 	}
 }
 
 static int DNAT_xlate(const struct xt_entry_target *target,
-		       struct xt_buf *buf, int numeric)
+		      struct xt_xlate *xl, int numeric)
 {
 	const struct nf_nat_range *range = (const void *)target->data;
 	bool sep_need = false;
 	const char *sep = " ";
 
-	xt_buf_add(buf, "dnat ");
-	print_range_xlate(range, buf);
+	xt_xlate_add(xl, "dnat ");
+	print_range_xlate(range, xl);
 	if (range->flags & NF_NAT_RANGE_PROTO_RANDOM) {
-		xt_buf_add(buf, " random");
+		xt_xlate_add(xl, " random");
 		sep_need = true;
 	}
 	if (range->flags & NF_NAT_RANGE_PERSISTENT) {
 		if (sep_need)
 			sep = ",";
-		xt_buf_add(buf, "%spersistent", sep);
+		xt_xlate_add(xl, "%spersistent", sep);
 	}
 
 	return 1;

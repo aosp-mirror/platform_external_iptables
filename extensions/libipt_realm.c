@@ -110,27 +110,27 @@ static void realm_save(const void *ip, const struct xt_entry_match *match)
 
 static void
 print_realm_xlate(unsigned long id, unsigned long mask,
-		  int numeric, struct xt_buf *buf, uint32_t op)
+		  int numeric, struct xt_xlate *xl, uint32_t op)
 {
 	const char *name = NULL;
 
 	if (mask != 0xffffffff)
-		xt_buf_add(buf, " and 0x%lx %s 0x%lx ", id,
+		xt_xlate_add(xl, " and 0x%lx %s 0x%lx ", id,
 			   op == XT_OP_EQ ? "==" : "!=", mask);
 	else {
 		if (numeric == 0)
 			name = xtables_lmap_id2name(realms, id);
 		if (name)
-			xt_buf_add(buf, "%s%s ",
+			xt_xlate_add(xl, "%s%s ",
 				   op == XT_OP_EQ ? "" : "!= ", name);
 		else
-			xt_buf_add(buf, " %s0x%lx ",
+			xt_xlate_add(xl, " %s0x%lx ",
 				   op == XT_OP_EQ ? "" : "!= ", id);
 	}
 }
 
 static int realm_xlate(const struct xt_entry_match *match,
-		       struct xt_buf *buf, int numeric)
+		       struct xt_xlate *xl, int numeric)
 {
 	const struct xt_realm_info *ri = (const void *)match->data;
 	enum xt_op op = XT_OP_EQ;
@@ -138,8 +138,8 @@ static int realm_xlate(const struct xt_entry_match *match,
 	if (ri->invert)
 		op = XT_OP_NEQ;
 
-	xt_buf_add(buf, "rtclassid");
-	print_realm_xlate(ri->id, ri->mask, 0, buf, op);
+	xt_xlate_add(xl, "rtclassid");
+	print_realm_xlate(ri->id, ri->mask, 0, xl, op);
 
 	return 1;
 }

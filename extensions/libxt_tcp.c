@@ -371,7 +371,7 @@ static const struct tcp_flag_names tcp_flag_names_xlate[] = {
 	{ "urg", 0x20 },
 };
 
-static void print_tcp_xlate(struct xt_buf *buf, uint8_t flags)
+static void print_tcp_xlate(struct xt_xlate *xl, uint8_t flags)
 {
 	int have_flag = 0;
 
@@ -381,31 +381,31 @@ static void print_tcp_xlate(struct xt_buf *buf, uint8_t flags)
 		for (i = 0; (flags & tcp_flag_names_xlate[i].flag) == 0; i++);
 
 		if (have_flag)
-			xt_buf_add(buf, "|");
+			xt_xlate_add(xl, "|");
 
-		xt_buf_add(buf, "%s", tcp_flag_names_xlate[i].name);
+		xt_xlate_add(xl, "%s", tcp_flag_names_xlate[i].name);
 		have_flag = 1;
 
 		flags &= ~tcp_flag_names_xlate[i].flag;
 	}
 
 	if (!have_flag)
-		xt_buf_add(buf, "none");
+		xt_xlate_add(xl, "none");
 }
 
-static int tcp_xlate(const struct xt_entry_match *match, struct xt_buf *buf,
+static int tcp_xlate(const struct xt_entry_match *match, struct xt_xlate *xl,
 		     int numeric)
 {
 	const struct xt_tcp *tcpinfo = (const struct xt_tcp *)match->data;
 
 	if (tcpinfo->spts[0] != 0 || tcpinfo->spts[1] != 0xffff) {
 		if (tcpinfo->spts[0] != tcpinfo->spts[1]) {
-			xt_buf_add(buf, "tcp sport %s%u-%u ",
+			xt_xlate_add(xl, "tcp sport %s%u-%u ",
 				   tcpinfo->invflags & XT_TCP_INV_SRCPT ?
 					"!= " : "",
 				   tcpinfo->spts[0], tcpinfo->spts[1]);
 		} else {
-			xt_buf_add(buf, "tcp sport %s%u ",
+			xt_xlate_add(xl, "tcp sport %s%u ",
 				   tcpinfo->invflags & XT_TCP_INV_SRCPT ?
 					"!= " : "",
 				   tcpinfo->spts[0]);
@@ -414,12 +414,12 @@ static int tcp_xlate(const struct xt_entry_match *match, struct xt_buf *buf,
 
 	if (tcpinfo->dpts[0] != 0 || tcpinfo->dpts[1] != 0xffff) {
 		if (tcpinfo->dpts[0] != tcpinfo->dpts[1]) {
-			xt_buf_add(buf, "tcp dport %s%u-%u ",
+			xt_xlate_add(xl, "tcp dport %s%u-%u ",
 				   tcpinfo->invflags & XT_TCP_INV_DSTPT ?
 					"!= " : "",
 				   tcpinfo->dpts[0], tcpinfo->dpts[1]);
 		} else {
-			xt_buf_add(buf, "tcp dport %s%u ",
+			xt_xlate_add(xl, "tcp dport %s%u ",
 				   tcpinfo->invflags & XT_TCP_INV_DSTPT ?
 					"!= " : "",
 				   tcpinfo->dpts[0]);
@@ -431,12 +431,12 @@ static int tcp_xlate(const struct xt_entry_match *match, struct xt_buf *buf,
 		return 0;
 
 	if (tcpinfo->flg_mask || (tcpinfo->invflags & XT_TCP_INV_FLAGS)) {
-		xt_buf_add(buf, "tcp flags & ");
-		print_tcp_xlate(buf, tcpinfo->flg_mask);
-		xt_buf_add(buf, " %s ",
+		xt_xlate_add(xl, "tcp flags & ");
+		print_tcp_xlate(xl, tcpinfo->flg_mask);
+		xt_xlate_add(xl, " %s ",
 			   tcpinfo->invflags & XT_TCP_INV_FLAGS ? "!=": "==");
-		print_tcp_xlate(buf, tcpinfo->flg_cmp);
-		xt_buf_add(buf, " ");
+		print_tcp_xlate(xl, tcpinfo->flg_cmp);
+		xt_xlate_add(xl, " ");
 	}
 
 	return 1;

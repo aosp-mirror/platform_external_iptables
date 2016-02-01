@@ -35,7 +35,7 @@
 #include "nft-shared.h"
 
 int xlate_action(const struct iptables_command_state *cs, bool goto_set,
-		 struct xt_buf *buf)
+		 struct xt_xlate *xl)
 {
 	int ret = 1, numeric = cs->options & OPT_NUMERIC;
 
@@ -43,27 +43,27 @@ int xlate_action(const struct iptables_command_state *cs, bool goto_set,
 	if (cs->target != NULL) {
 		/* Standard target? */
 		if (strcmp(cs->jumpto, XTC_LABEL_ACCEPT) == 0)
-			xt_buf_add(buf, "accept");
+			xt_xlate_add(xl, "accept");
 		else if (strcmp(cs->jumpto, XTC_LABEL_DROP) == 0)
-			xt_buf_add(buf, "drop");
+			xt_xlate_add(xl, "drop");
 		else if (strcmp(cs->jumpto, XTC_LABEL_RETURN) == 0)
-			xt_buf_add(buf, "return");
+			xt_xlate_add(xl, "return");
 		else if (cs->target->xlate)
-			ret = cs->target->xlate(cs->target->t, buf, numeric);
+			ret = cs->target->xlate(cs->target->t, xl, numeric);
 		else
 			return 0;
 	} else if (strlen(cs->jumpto) > 0) {
 		/* Not standard, then it's a go / jump to chain */
 		if (goto_set)
-			xt_buf_add(buf, "goto %s", cs->jumpto);
+			xt_xlate_add(xl, "goto %s", cs->jumpto);
 		else
-			xt_buf_add(buf, "jump %s", cs->jumpto);
+			xt_xlate_add(xl, "jump %s", cs->jumpto);
 	}
 
 	return ret;
 }
 
-int xlate_matches(const struct iptables_command_state *cs, struct xt_buf *buf)
+int xlate_matches(const struct iptables_command_state *cs, struct xt_xlate *xl)
 {
 	struct xtables_rule_match *matchp;
 	int ret = 1, numeric = cs->options & OPT_NUMERIC;
@@ -72,7 +72,7 @@ int xlate_matches(const struct iptables_command_state *cs, struct xt_buf *buf)
 		if (!matchp->match->xlate)
 			return 0;
 
-		ret = matchp->match->xlate(matchp->match->m, buf, numeric);
+		ret = matchp->match->xlate(matchp->match->m, xl, numeric);
 		if (!ret)
 			break;
 	}
@@ -101,22 +101,22 @@ static int nft_rule_xlate_add(struct nft_handle *h,
 			      const struct iptables_command_state *cs,
 			      bool append)
 {
-	struct xt_buf *buf = xt_buf_alloc(10240);
+	struct xt_xlate *xl = xt_xlate_alloc(10240);
 	int ret;
 
 	if (append) {
-		xt_buf_add(buf, "add rule %s %s %s ",
+		xt_xlate_add(xl, "add rule %s %s %s ",
 			   family2str[h->family], p->table, p->chain);
 	} else {
-		xt_buf_add(buf, "insert rule %s %s %s ",
+		xt_xlate_add(xl, "insert rule %s %s %s ",
 			   family2str[h->family], p->table, p->chain);
 	}
 
-	ret = h->ops->xlate(cs, buf);
+	ret = h->ops->xlate(cs, xl);
 	if (ret)
-		printf("%s\n", xt_buf_get(buf));
+		printf("%s\n", xt_xlate_get(xl));
 
-	xt_buf_free(buf);
+	xt_xlate_free(xl);
 	return ret;
 }
 

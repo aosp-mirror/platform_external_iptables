@@ -101,30 +101,30 @@ static void ttl_save(const void *ip, const struct xt_entry_match *match)
 }
 
 static int ttl_xlate(const struct xt_entry_match *match,
-		     struct xt_buf *buf, int numeric)
+		     struct xt_xlate *xl, int numeric)
 {
 	const struct ipt_ttl_info *info =
 			(struct ipt_ttl_info *) match->data;
 
 		switch (info->mode) {
 		case IPT_TTL_EQ:
-			xt_buf_add(buf, "ip ttl");
+			xt_xlate_add(xl, "ip ttl");
 			break;
 		case IPT_TTL_NE:
-			xt_buf_add(buf, "ip ttl !=");
+			xt_xlate_add(xl, "ip ttl !=");
 			break;
 		case IPT_TTL_LT:
-			xt_buf_add(buf, "ip ttl lt");
+			xt_xlate_add(xl, "ip ttl lt");
 			break;
 		case IPT_TTL_GT:
-			xt_buf_add(buf, "ip ttl gt");
+			xt_xlate_add(xl, "ip ttl gt");
 			break;
 		default:
 			/* Should not happen. */
 			break;
 	}
 
-	xt_buf_add(buf, " %u ", info->ttl);
+	xt_xlate_add(xl, " %u ", info->ttl);
 
 	return 1;
 }

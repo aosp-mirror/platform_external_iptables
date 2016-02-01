@@ -140,7 +140,7 @@ static const struct reject_names_xlate reject_table_xlate[] = {
 };
 
 static int REJECT_xlate(const struct xt_entry_target *target,
-			struct xt_buf *buf, int numeric)
+			struct xt_xlate *xl, int numeric)
 {
 	const struct ip6t_reject_info *reject =
 				(const struct ip6t_reject_info *)target->data;
@@ -150,9 +150,9 @@ static int REJECT_xlate(const struct xt_entry_target *target,
 		if (reject_table_xlate[i].with == reject->with)
 			break;
 	if (reject->with == IP6T_TCP_RESET)
-		xt_buf_add(buf, "reject with %s", reject_table_xlate[i].name);
+		xt_xlate_add(xl, "reject with %s", reject_table_xlate[i].name);
 	else
-		xt_buf_add(buf, "reject with icmpv6 type %s",
+		xt_xlate_add(xl, "reject with icmpv6 type %s",
 			   reject_table_xlate[i].name);
 
 	return 1;

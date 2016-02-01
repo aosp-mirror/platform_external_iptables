@@ -46,11 +46,11 @@ static void helper_save(const void *ip, const struct xt_entry_match *match)
 }
 
 static int helper_xlate(const struct xt_entry_match *match,
-			struct xt_buf *buf, int numeric)
+			struct xt_xlate *xl, int numeric)
 {
 	const struct xt_helper_info *info = (const void *)match->data;
 
-	xt_buf_add(buf, "ct helper%s \\\"%s\\\" ",
+	xt_xlate_add(xl, "ct helper%s \\\"%s\\\" ",
 		   info->invert ? " !=" : "", info->name);
 
 	return 1;

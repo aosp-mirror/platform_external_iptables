@@ -152,19 +152,19 @@ static void udp_save(const void *ip, const struct xt_entry_match *match)
 	}
 }
 
-static int udp_xlate(const struct xt_entry_match *match, struct xt_buf *buf,
+static int udp_xlate(const struct xt_entry_match *match, struct xt_xlate *xl,
 		     int numeric)
 {
 	const struct xt_udp *udpinfo = (struct xt_udp *)match->data;
 
 	if (udpinfo->spts[0] != 0 || udpinfo->spts[1] != 0xFFFF) {
 		if (udpinfo->spts[0] != udpinfo->spts[1]) {
-			xt_buf_add(buf,"udp sport %s%u-%u ",
+			xt_xlate_add(xl,"udp sport %s%u-%u ",
 				   udpinfo->invflags & XT_UDP_INV_SRCPT ?
 					 "!= ": "",
 				   udpinfo->spts[0], udpinfo->spts[1]);
 		} else {
-			xt_buf_add(buf, "udp sport %s%u ",
+			xt_xlate_add(xl, "udp sport %s%u ",
 				   udpinfo->invflags & XT_UDP_INV_SRCPT ?
 					 "!= ": "",
 				   udpinfo->spts[0]);
@@ -173,12 +173,12 @@ static int udp_xlate(const struct xt_entry_match *match, struct xt_buf *buf,
 
 	if (udpinfo->dpts[0] != 0 || udpinfo->dpts[1] != 0xFFFF) {
 		if (udpinfo->dpts[0]  != udpinfo->dpts[1]) {
-			xt_buf_add(buf,"udp dport %s%u-%u ",
+			xt_xlate_add(xl,"udp dport %s%u-%u ",
 				   udpinfo->invflags & XT_UDP_INV_SRCPT ?
 					 "!= ": "",
 				   udpinfo->dpts[0], udpinfo->dpts[1]);
 		} else {
-			xt_buf_add(buf,"udp dport %s%u ",
+			xt_xlate_add(xl,"udp dport %s%u ",
 				   udpinfo->invflags & XT_UDP_INV_SRCPT ?
 					 "!= ": "",
 				   udpinfo->dpts[0]);

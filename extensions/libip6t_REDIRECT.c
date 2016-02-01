@@ -133,18 +133,18 @@ static void REDIRECT_save(const void *ip, const struct xt_entry_target *target)
 }
 
 static int REDIRECT_xlate(const struct xt_entry_target *target,
-			  struct xt_buf *buf, int numeric)
+			  struct xt_xlate *xl, int numeric)
 {
 	const struct nf_nat_range *range = (const void *)target->data;
 
 	if (range->flags & NF_NAT_RANGE_PROTO_SPECIFIED) {
-		xt_buf_add(buf, "redirect to %hu",
+		xt_xlate_add(xl, "redirect to %hu",
 			   ntohs(range->min_proto.tcp.port));
 		if (range->max_proto.tcp.port != range->min_proto.tcp.port)
-			xt_buf_add(buf, "-%hu ",
+			xt_xlate_add(xl, "-%hu ",
 				   ntohs(range->max_proto.tcp.port));
 		if (range->flags & NF_NAT_RANGE_PROTO_RANDOM)
-			xt_buf_add(buf, " random ");
+			xt_xlate_add(xl, " random ");
 	}
 
 	return 1;

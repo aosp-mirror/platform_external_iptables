@@ -429,24 +429,24 @@ static void nft_ipv4_save_counters(const void *data)
 	save_counters(cs->counters.pcnt, cs->counters.bcnt);
 }
 
-static int nft_ipv4_xlate(const void *data, struct xt_buf *buf)
+static int nft_ipv4_xlate(const void *data, struct xt_xlate *xl)
 {
 	const struct iptables_command_state *cs = data;
 	int ret;
 
 	if (cs->fw.ip.iniface[0] != '\0') {
-		xt_buf_add(buf, "iifname %s%s ",
+		xt_xlate_add(xl, "iifname %s%s ",
 			   cs->fw.ip.invflags & IPT_INV_VIA_IN ? "!= " : "",
 			   cs->fw.ip.iniface);
 	}
 	if (cs->fw.ip.outiface[0] != '\0') {
-		xt_buf_add(buf, "oifname %s%s ",
+		xt_xlate_add(xl, "oifname %s%s ",
 			   cs->fw.ip.invflags & IPT_INV_VIA_OUT? "!= " : "",
 			   cs->fw.ip.outiface);
 	}
 
 	if (cs->fw.ip.flags & IPT_F_FRAG) {
-		xt_buf_add(buf, "ip frag-off %s%x ",
+		xt_xlate_add(xl, "ip frag-off %s%x ",
 			   cs->fw.ip.invflags & IPT_INV_FRAG? "" : "!= ", 0);
 	}
 
@@ -459,7 +459,7 @@ static int nft_ipv4_xlate(const void *data, struct xt_buf *buf)
 			snprintf(protonum, sizeof(protonum), "%u",
 				 cs->fw.ip.proto);
 			protonum[sizeof(protonum) - 1] = '\0';
-			xt_buf_add(buf, "ip protocol %s%s ",
+			xt_xlate_add(xl, "ip protocol %s%s ",
 				   cs->fw.ip.invflags & IPT_INV_PROTO ?
 					"!= " : "",
 				   pent ? pent->p_name : protonum);
@@ -467,24 +467,24 @@ static int nft_ipv4_xlate(const void *data, struct xt_buf *buf)
 	}
 
 	if (cs->fw.ip.src.s_addr != 0) {
-		xt_buf_add(buf, "ip saddr %s%s ",
+		xt_xlate_add(xl, "ip saddr %s%s ",
 			   cs->fw.ip.invflags & IPT_INV_SRCIP ? "!= " : "",
 			   inet_ntoa(cs->fw.ip.src));
 	}
 	if (cs->fw.ip.dst.s_addr != 0) {
-		xt_buf_add(buf, "ip daddr %s%s ",
+		xt_xlate_add(xl, "ip daddr %s%s ",
 			   cs->fw.ip.invflags & IPT_INV_DSTIP ? "!= " : "",
 			   inet_ntoa(cs->fw.ip.dst));
 	}
 
-	ret = xlate_matches(cs, buf);
+	ret = xlate_matches(cs, xl);
 	if (!ret)
 		return ret;
 
 	/* Always add counters per rule, as in iptables */
-	xt_buf_add(buf, "counter ");
+	xt_xlate_add(xl, "counter ");
 
-	ret = xlate_action(cs, !!(cs->fw.ip.flags & IPT_F_GOTO), buf);
+	ret = xlate_action(cs, !!(cs->fw.ip.flags & IPT_F_GOTO), xl);
 
 	return ret;
 }

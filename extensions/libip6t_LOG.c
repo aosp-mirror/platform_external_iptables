@@ -183,19 +183,19 @@ static const struct ip6t_log_xlate ip6t_log_xlate_names[] = {
 };
 
 static int LOG_xlate(const struct xt_entry_target *target,
-		     struct xt_buf *buf, int numeric)
+		     struct xt_xlate *xl, int numeric)
 {
 	unsigned int i = 0;
 	const struct ip6t_log_info *loginfo =
 			(const struct ip6t_log_info *)target->data;
 
-	xt_buf_add(buf, "log ");
+	xt_xlate_add(xl, "log ");
 	if (strcmp(loginfo->prefix, "") != 0)
-		xt_buf_add(buf, "prefix \\\"%s\\\" ", loginfo->prefix);
+		xt_xlate_add(xl, "prefix \\\"%s\\\" ", loginfo->prefix);
 
 	for (i = 0; i < ARRAY_SIZE(ip6t_log_xlate_names); ++i)
 		if (loginfo->level == ip6t_log_xlate_names[i].level) {
-			xt_buf_add(buf, "level %s",
+			xt_xlate_add(xl, "level %s",
 				   ip6t_log_xlate_names[i].name);
 			break;
 		}
