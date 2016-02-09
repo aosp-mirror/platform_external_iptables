@@ -205,6 +205,58 @@ static void NFQUEUE_init_v1(struct xt_entry_target *t)
 	tinfo->queues_total = 1;
 }
 
+static int NFQUEUE_xlate(const struct xt_entry_target *target,
+			 struct xt_xlate *xl, int numeric)
+{
+	const struct xt_NFQ_info *tinfo =
+		(const struct xt_NFQ_info *)target->data;
+
+	xt_xlate_add(xl, "queue num %u ", tinfo->queuenum);
+
+	return 1;
+}
+
+static int NFQUEUE_xlate_v1(const struct xt_entry_target *target,
+			    struct xt_xlate *xl, int numeric)
+{
+	const struct xt_NFQ_info_v1 *tinfo = (const void *)target->data;
+	unsigned int last = tinfo->queues_total;
+
+	if (last > 1) {
+		last += tinfo->queuenum - 1;
+		xt_xlate_add(xl, "queue num %u-%u ", tinfo->queuenum, last);
+	} else {
+		xt_xlate_add(xl, "queue num %u ", tinfo->queuenum);
+	}
+
+	return 1;
+}
+
+static int NFQUEUE_xlate_v2(const struct xt_entry_target *target,
+			    struct xt_xlate *xl, int numeric)
+{
+	const struct xt_NFQ_info_v2 *info = (void *) target->data;
+
+	NFQUEUE_xlate_v1(target, xl, numeric);
+
+	if (info->bypass & NFQ_FLAG_BYPASS)
+		xt_xlate_add(xl, "bypass");
+
+	return 1;
+}
+
+static int NFQUEUE_xlate_v3(const struct xt_entry_target *target,
+			    struct xt_xlate *xl, int numeric)
+{
+	const struct xt_NFQ_info_v3 *info = (void *)target->data;
+
+	NFQUEUE_xlate_v2(target, xl, numeric);
+	if (info->flags & NFQ_FLAG_CPU_FANOUT)
+		xt_xlate_add(xl, "%sfanout ", info->flags & NFQ_FLAG_BYPASS ? "," : "");
+
+	return 1;
+}
+
 static struct xtables_target nfqueue_targets[] = {
 {
 	.family		= NFPROTO_UNSPEC,
@@ -216,7 +268,8 @@ static struct xtables_target nfqueue_targets[] = {
 	.print		= NFQUEUE_print,
 	.save		= NFQUEUE_save,
 	.x6_parse	= NFQUEUE_parse,
-	.x6_options	= NFQUEUE_opts
+	.x6_options	= NFQUEUE_opts,
+	.xlate		= NFQUEUE_xlate,
 },{
 	.family		= NFPROTO_UNSPEC,
 	.revision	= 1,
@@ -230,6 +283,7 @@ static struct xtables_target nfqueue_targets[] = {
 	.save		= NFQUEUE_save_v1,
 	.x6_parse	= NFQUEUE_parse_v1,
 	.x6_options	= NFQUEUE_opts,
+	.xlate		= NFQUEUE_xlate_v1,
 },{
 	.family		= NFPROTO_UNSPEC,
 	.revision	= 2,
@@ -243,6 +297,7 @@ static struct xtables_target nfqueue_targets[] = {
 	.save		= NFQUEUE_save_v2,
 	.x6_parse	= NFQUEUE_parse_v2,
 	.x6_options	= NFQUEUE_opts,
+	.xlate		= NFQUEUE_xlate_v2,
 },{
 	.family		= NFPROTO_UNSPEC,
 	.revision	= 3,
@@ -256,6 +311,7 @@ static struct xtables_target nfqueue_targets[] = {
 	.save		= NFQUEUE_save_v3,
 	.x6_parse	= NFQUEUE_parse_v3,
 	.x6_options	= NFQUEUE_opts,
+	.xlate		= NFQUEUE_xlate_v3,
 }
 };
 
