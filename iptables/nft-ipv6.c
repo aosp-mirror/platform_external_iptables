@@ -135,7 +135,7 @@ static void nft_ipv6_parse_payload(struct nft_xt_ctx *ctx,
 		}
 
 		if (inv)
-			cs->fw6.ipv6.invflags |= IPT_INV_SRCIP;
+			cs->fw6.ipv6.invflags |= IP6T_INV_SRCIP;
 		break;
 	case offsetof(struct ip6_hdr, ip6_dst):
 		get_cmp_data(e, &addr, sizeof(addr), &inv);
@@ -148,14 +148,14 @@ static void nft_ipv6_parse_payload(struct nft_xt_ctx *ctx,
 		}
 
 		if (inv)
-			cs->fw6.ipv6.invflags |= IPT_INV_DSTIP;
+			cs->fw6.ipv6.invflags |= IP6T_INV_DSTIP;
 		break;
 	case offsetof(struct ip6_hdr, ip6_nxt):
 		get_cmp_data(e, &proto, sizeof(proto), &inv);
 		cs->fw6.ipv6.flags |= IP6T_F_PROTO;
 		cs->fw6.ipv6.proto = proto;
 		if (inv)
-			cs->fw6.ipv6.invflags |= IPT_INV_PROTO;
+			cs->fw6.ipv6.invflags |= IP6T_INV_PROTO;
 	default:
 		DEBUGP("unknown payload offset %d\n", ctx->payload.offset);
 		break;
@@ -186,7 +186,7 @@ static void print_ipv6_addr(const struct iptables_command_state *cs,
 {
 	char buf[BUFSIZ];
 
-	fputc(cs->fw6.ipv6.invflags & IPT_INV_SRCIP ? '!' : ' ', stdout);
+	fputc(cs->fw6.ipv6.invflags & IP6T_INV_SRCIP ? '!' : ' ', stdout);
 	if (IN6_IS_ADDR_UNSPECIFIED(&cs->fw6.ipv6.src)
 	    && !(format & FMT_NUMERIC))
 		printf(FMT("%-19s ","%s "), "anywhere");
@@ -202,7 +202,7 @@ static void print_ipv6_addr(const struct iptables_command_state *cs,
 	}
 
 
-	fputc(cs->fw6.ipv6.invflags & IPT_INV_DSTIP ? '!' : ' ', stdout);
+	fputc(cs->fw6.ipv6.invflags & IP6T_INV_DSTIP ? '!' : ' ', stdout);
 	if (IN6_IS_ADDR_UNSPECIFIED(&cs->fw6.ipv6.dst)
 	    && !(format & FMT_NUMERIC))
 		printf(FMT("%-19s ","-> %s"), "anywhere");
@@ -266,9 +266,9 @@ static void nft_ipv6_save_firewall(const void *data, unsigned int format)
 			      cs->fw6.ipv6.outiface_mask);
 
 	save_ipv6_addr('s', &cs->fw6.ipv6.src,
-		       cs->fw6.ipv6.invflags & IPT_INV_SRCIP);
+		       cs->fw6.ipv6.invflags & IP6T_INV_SRCIP);
 	save_ipv6_addr('d', &cs->fw6.ipv6.dst,
-		       cs->fw6.ipv6.invflags & IPT_INV_DSTIP);
+		       cs->fw6.ipv6.invflags & IP6T_INV_DSTIP);
 
 	save_matches_and_target(cs->matches, cs->target,
 				cs->jumpto, cs->fw6.ipv6.flags, &cs->fw6);
