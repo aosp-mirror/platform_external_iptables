@@ -417,7 +417,7 @@ static int nft_ipv6_xlate(const void *data, struct xt_xlate *xl)
 			snprintf(protonum, sizeof(protonum), "%u",
 				 cs->fw6.ipv6.proto);
 			protonum[sizeof(protonum) - 1] = '\0';
-			xt_xlate_add(xl, "ip6 nexthdr %s%s ",
+			xt_xlate_add(xl, "meta l4proto %s%s ",
 				   cs->fw6.ipv6.invflags & IP6T_INV_PROTO ?
 					"!= " : "",
 				   pent ? pent->p_name : protonum);
