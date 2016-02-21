@@ -202,6 +202,26 @@ static void mh_save(const void *ip, const struct xt_entry_match *match)
 		printf(" --mh-type %u", mhinfo->types[0]);
 }
 
+static int mh_xlate(const struct xt_entry_match *match,
+		    struct xt_xlate *xl, int numeric)
+{
+	const struct ip6t_mh *mhinfo = (struct ip6t_mh *)match->data;
+
+	if (mhinfo->types[0] == 0 && mhinfo->types[1] == 0xff)
+		return 1;
+
+	if (mhinfo->types[0] != mhinfo->types[1])
+		xt_xlate_add(xl, "mh type %s%u-%u ",
+			     mhinfo->invflags & IP6T_MH_INV_TYPE ? "!= " : "",
+			     mhinfo->types[0], mhinfo->types[1]);
+	else
+		xt_xlate_add(xl, "mh type %s%u ",
+			     mhinfo->invflags & IP6T_MH_INV_TYPE ? "!= " : "",
+			     mhinfo->types[0]);
+
+	return 1;
+}
+
 static const struct xt_option_entry mh_opts[] = {
 	{.name = "mh-type", .id = O_MH_TYPE, .type = XTTYPE_STRING,
 	 .flags = XTOPT_INVERT},
@@ -220,6 +240,7 @@ static struct xtables_match mh_mt6_reg = {
 	.print		= mh_print,
 	.save		= mh_save,
 	.x6_options	= mh_opts,
+	.xlate		= mh_xlate,
 };
 
 void _init(void)
