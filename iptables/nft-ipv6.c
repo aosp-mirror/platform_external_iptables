@@ -392,6 +392,7 @@ static void xlate_ipv6_addr(const char *selector, const struct in6_addr *addr,
 static int nft_ipv6_xlate(const void *data, struct xt_xlate *xl)
 {
 	const struct iptables_command_state *cs = data;
+	const char *comment;
 	int ret;
 
 	if (cs->fw6.ipv6.iniface[0] != '\0') {
@@ -434,6 +435,10 @@ static int nft_ipv6_xlate(const void *data, struct xt_xlate *xl)
 
 	/* Always add counters per rule, as in iptables */
 	xt_xlate_add(xl, "counter ");
+
+	comment = xt_xlate_get_comment(xl);
+	if (comment)
+		xt_xlate_add(xl, "comment \\\"%s\\\" ", comment);
 
 	ret = xlate_action(cs, !!(cs->fw6.ipv6.flags & IP6T_F_GOTO), xl);
 

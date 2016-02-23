@@ -432,6 +432,7 @@ static void nft_ipv4_save_counters(const void *data)
 static int nft_ipv4_xlate(const void *data, struct xt_xlate *xl)
 {
 	const struct iptables_command_state *cs = data;
+	const char *comment;
 	int ret;
 
 	if (cs->fw.ip.iniface[0] != '\0') {
@@ -483,6 +484,10 @@ static int nft_ipv4_xlate(const void *data, struct xt_xlate *xl)
 
 	/* Always add counters per rule, as in iptables */
 	xt_xlate_add(xl, "counter ");
+
+	comment = xt_xlate_get_comment(xl);
+	if (comment)
+		xt_xlate_add(xl, "comment \\\"%s\\\" ", comment);
 
 	ret = xlate_action(cs, !!(cs->fw.ip.flags & IPT_F_GOTO), xl);
 

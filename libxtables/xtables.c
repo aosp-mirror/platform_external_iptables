@@ -2045,6 +2045,11 @@ void xt_xlate_add_comment(struct xt_xlate *xl, const char *comment)
 	xl->comment[NFT_USERDATA_MAXLEN - 1] = '\0';
 }
 
+const char *xt_xlate_get_comment(struct xt_xlate *xl)
+{
+	return xl->comment[0] ? xl->comment : NULL;
+}
+
 const char *xt_xlate_get(struct xt_xlate *xl)
 {
 	return xl->buf.data;

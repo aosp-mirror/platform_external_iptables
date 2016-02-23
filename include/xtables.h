@@ -574,6 +574,7 @@ struct xt_xlate *xt_xlate_alloc(int size);
 void xt_xlate_free(struct xt_xlate *xl);
 void xt_xlate_add(struct xt_xlate *xl, const char *fmt, ...);
 void xt_xlate_add_comment(struct xt_xlate *xl, const char *comment);
+const char *xt_xlate_get_comment(struct xt_xlate *xl);
 const char *xt_xlate_get(struct xt_xlate *xl);
 
 #ifdef XTABLES_INTERNAL
