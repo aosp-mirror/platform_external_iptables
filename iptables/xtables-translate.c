@@ -191,6 +191,7 @@ static int do_command_xlate(struct nft_handle *h, int argc, char *argv[],
 
 	do_parse(h, argc, argv, &p, &cs, &args);
 
+	printf("nft ");
 	switch (p.command) {
 	case CMD_APPEND:
 		ret = 1;
@@ -359,7 +360,6 @@ static int xtables_xlate_main(int family, const char *progname, int argc,
 		exit(EXIT_FAILURE);
 	}
 
-	printf("nft ");
 	ret = do_command_xlate(&h, argc, argv, &table, false);
 	if (!ret)
 		fprintf(stderr, "Translation not implemented\n");
