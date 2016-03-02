@@ -134,6 +134,29 @@ MASQUERADE_save(const void *ip, const struct xt_entry_target *target)
 		printf(" --random");
 }
 
+static int
+MASQUERADE_xlate(const struct xt_entry_target *target,
+		 struct xt_xlate *xl, int numeric)
+{
+	const struct nf_nat_ipv4_multi_range_compat *mr =
+					(const void *)target->data;
+	const struct nf_nat_ipv4_range *r = &mr->range[0];
+
+	xt_xlate_add(xl, "masquerade");
+
+	if (r->flags & NF_NAT_RANGE_PROTO_SPECIFIED) {
+		xt_xlate_add(xl, " to :%hu", ntohs(r->min.tcp.port));
+		if (r->max.tcp.port != r->min.tcp.port)
+			xt_xlate_add(xl, "-%hu", ntohs(r->max.tcp.port));
+        }
+
+	xt_xlate_add(xl, " ");
+	if (r->flags & NF_NAT_RANGE_PROTO_RANDOM)
+		xt_xlate_add(xl, "random ");
+
+	return 1;
+}
+
 static struct xtables_target masquerade_tg_reg = {
 	.name		= "MASQUERADE",
 	.version	= XTABLES_VERSION,
@@ -146,6 +169,7 @@ static struct xtables_target masquerade_tg_reg = {
 	.print		= MASQUERADE_print,
 	.save		= MASQUERADE_save,
 	.x6_options	= MASQUERADE_opts,
+	.xlate		= MASQUERADE_xlate,
 };
 
 void _init(void)
