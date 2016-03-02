@@ -492,6 +492,56 @@ static void owner_mt_save(const void *ip, const struct xt_entry_match *match)
 	owner_mt_print_item(info, "--gid-owner",      XT_OWNER_GID,    true);
 }
 
+static int
+owner_mt_print_uid_xlate(const struct xt_owner_match_info *info,
+			 struct xt_xlate *xl)
+{
+	xt_xlate_add(xl, "skuid%s ", info->invert ? " !=" : "");
+
+	if (info->uid_min != info->uid_max)
+		xt_xlate_add(xl, "%u-%u ", (unsigned int)info->uid_min,
+			     (unsigned int)info->uid_max);
+	else
+		xt_xlate_add(xl, "%u ", (unsigned int)info->uid_min);
+
+	return 1;
+}
+
+static int
+owner_mt_print_gid_xlate(const struct xt_owner_match_info *info,
+			 struct xt_xlate *xl)
+{
+	xt_xlate_add(xl, "skgid%s ", info->invert ? " !=" : "");
+
+	if (info->gid_min != info->gid_max)
+		xt_xlate_add(xl, "%u-%u ", (unsigned int)info->gid_min,
+			     (unsigned int)info->gid_max);
+	else
+		xt_xlate_add(xl, "%u ", (unsigned int)info->gid_min);
+
+	return 1;
+}
+
+static int owner_mt_xlate(const struct xt_entry_match *match,
+			  struct xt_xlate *xl, int numeric)
+{
+	const struct xt_owner_match_info *info = (void *)match->data;
+	int ret;
+
+	switch (info->match) {
+	case XT_OWNER_UID:
+		ret = owner_mt_print_uid_xlate(info, xl);
+		break;
+	case XT_OWNER_GID:
+		ret = owner_mt_print_gid_xlate(info, xl);
+		break;
+	default:
+		ret = 0;
+	}
+
+	return ret;
+}
+
 static struct xtables_match owner_mt_reg[] = {
 	{
 		.version       = XTABLES_VERSION,
@@ -534,6 +584,7 @@ static struct xtables_match owner_mt_reg[] = {
 		.print         = owner_mt_print,
 		.save          = owner_mt_save,
 		.x6_options    = owner_mt_opts,
+		.xlate	       = owner_mt_xlate,
 	},
 };
 
