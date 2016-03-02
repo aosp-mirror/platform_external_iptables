@@ -485,6 +485,42 @@ static void sctp_save(const void *ip, const struct xt_entry_match *match)
 	}
 }
 
+static int sctp_xlate(const struct xt_entry_match *match,
+		      struct xt_xlate *xl, int numeric)
+{
+	const struct xt_sctp_info *einfo =
+		(const struct xt_sctp_info *)match->data;
+
+	if (!einfo->flags)
+		return 0;
+
+	xt_xlate_add(xl, "sctp ");
+
+	if (einfo->flags & XT_SCTP_SRC_PORTS) {
+		if (einfo->spts[0] != einfo->spts[1])
+			xt_xlate_add(xl, "sport%s %u-%u ",
+				     einfo->invflags & XT_SCTP_SRC_PORTS ? " !=" : "",
+				     einfo->spts[0], einfo->spts[1]);
+		else
+			xt_xlate_add(xl, "sport%s %u ",
+				     einfo->invflags & XT_SCTP_SRC_PORTS ? " !=" : "",
+				     einfo->spts[0]);
+	}
+
+	if (einfo->flags & XT_SCTP_DEST_PORTS) {
+		if (einfo->dpts[0] != einfo->dpts[1])
+			xt_xlate_add(xl, "dport%s %u-%u ",
+				     einfo->invflags & XT_SCTP_DEST_PORTS ? " !=" : "",
+				     einfo->dpts[0], einfo->dpts[1]);
+		else
+			xt_xlate_add(xl, "dport%s %u ",
+				     einfo->invflags & XT_SCTP_DEST_PORTS ? " !=" : "",
+				     einfo->dpts[0]);
+	}
+
+	return 1;
+}
+
 static struct xtables_match sctp_match = {
 	.name		= "sctp",
 	.family		= NFPROTO_UNSPEC,
@@ -497,6 +533,7 @@ static struct xtables_match sctp_match = {
 	.print		= sctp_print,
 	.save		= sctp_save,
 	.extra_opts	= sctp_opts,
+	.xlate		= sctp_xlate,
 };
 
 void _init(void)
