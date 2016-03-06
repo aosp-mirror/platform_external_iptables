@@ -245,6 +245,40 @@ static void rt_save(const void *ip, const struct xt_entry_match *match)
 
 }
 
+static int rt_xlate(const struct xt_entry_match *match, struct xt_xlate *xl,
+		    int numeric)
+{
+	const struct ip6t_rt *rtinfo = (struct ip6t_rt *)match->data;
+
+	if (rtinfo->flags & IP6T_RT_TYP) {
+		xt_xlate_add(xl, "rt type%s %u ",
+			     (rtinfo->invflags & IP6T_RT_INV_TYP) ? " !=" : "",
+			      rtinfo->rt_type);
+	}
+
+	if (!(rtinfo->segsleft[0] == 0 && rtinfo->segsleft[1] == 0xFFFFFFFF)) {
+		xt_xlate_add(xl, "rt seg-left%s ",
+			     (rtinfo->invflags & IP6T_RT_INV_SGS) ? " !=" : "");
+
+		if (rtinfo->segsleft[0] != rtinfo->segsleft[1])
+			xt_xlate_add(xl, "%u-%u ", rtinfo->segsleft[0],
+					rtinfo->segsleft[1]);
+		else
+			xt_xlate_add(xl, "%u ", rtinfo->segsleft[0]);
+	}
+
+	if (rtinfo->flags & IP6T_RT_LEN) {
+		xt_xlate_add(xl, "rt hdrlength%s %u ",
+			     (rtinfo->invflags & IP6T_RT_INV_LEN) ? " !=" : "",
+			      rtinfo->hdrlen);
+	}
+
+	if (rtinfo->flags & (IP6T_RT_RES | IP6T_RT_FST | IP6T_RT_FST_NSTRICT))
+		return 0;
+
+	return 1;
+}
+
 static struct xtables_match rt_mt6_reg = {
 	.name		= "rt",
 	.version	= XTABLES_VERSION,
@@ -257,6 +291,7 @@ static struct xtables_match rt_mt6_reg = {
 	.print		= rt_print,
 	.save		= rt_save,
 	.x6_options	= rt_opts,
+	.xlate		= rt_xlate,
 };
 
 void
