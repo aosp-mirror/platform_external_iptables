@@ -4,6 +4,7 @@
 #include <xtables.h>
 #include <limits.h> /* INT_MAX in ip6_tables.h */
 #include <linux/netfilter_ipv6/ip6_tables.h>
+#include <netinet/icmp6.h>
 
 enum {
 	O_ICMPV6_TYPE = 0,
@@ -222,6 +223,70 @@ static void icmp6_save(const void *ip, const struct xt_entry_match *match)
 		printf("/%u", icmpv6->code[0]);
 }
 
+#define XT_ICMPV6_TYPE(type)	(type - ND_ROUTER_SOLICIT)
+
+static const char *icmp6_type_xlate_array[] = {
+	[XT_ICMPV6_TYPE(ND_ROUTER_SOLICIT)]	= "nd-router-solicit",
+	[XT_ICMPV6_TYPE(ND_ROUTER_ADVERT)]	= "nd-router-advert",
+	[XT_ICMPV6_TYPE(ND_NEIGHBOR_SOLICIT)]	= "nd-neighbor-solicit",
+	[XT_ICMPV6_TYPE(ND_NEIGHBOR_ADVERT)]	= "nd-neighbor-advert",
+	[XT_ICMPV6_TYPE(ND_REDIRECT)]		= "nd-redirect",
+};
+
+static const char *icmp6_type_xlate(unsigned int type)
+{
+	if (type < ND_ROUTER_SOLICIT || type > ND_REDIRECT)
+		return NULL;
+
+	return icmp6_type_xlate_array[XT_ICMPV6_TYPE(type)];
+}
+
+static unsigned int type_xlate_print(struct xt_xlate *xl, unsigned int icmptype,
+				     unsigned int code_min,
+				     unsigned int code_max)
+{
+	unsigned int i;
+	const char *type_name;
+
+	if (code_min == code_max)
+		return 0;
+
+	type_name = icmp6_type_xlate(icmptype);
+
+	if (type_name) {
+		xt_xlate_add(xl, type_name);
+	} else {
+		for (i = 0; i < ARRAY_SIZE(icmpv6_codes); ++i)
+			if (icmpv6_codes[i].type == icmptype &&
+			    icmpv6_codes[i].code_min == code_min &&
+			    icmpv6_codes[i].code_max == code_max)
+				break;
+
+		if (i != ARRAY_SIZE(icmpv6_codes))
+			xt_xlate_add(xl, icmpv6_codes[i].name);
+		else
+			return 0;
+	}
+
+	return 1;
+}
+
+static int icmp6_xlate(const struct xt_entry_match *match, struct xt_xlate *xl,
+		       int numeric)
+{
+	const struct ip6t_icmp *info = (struct ip6t_icmp *)match->data;
+
+	xt_xlate_add(xl, "icmpv6 type%s ",
+		     (info->invflags & IP6T_ICMP_INV) ? " !=" : "");
+
+	if (!type_xlate_print(xl, info->type, info->code[0], info->code[1]))
+		return 0;
+
+	xt_xlate_add(xl, " ");
+
+	return 1;
+}
+
 static struct xtables_match icmp6_mt6_reg = {
 	.name 		= "icmp6",
 	.version 	= XTABLES_VERSION,
@@ -234,6 +299,7 @@ static struct xtables_match icmp6_mt6_reg = {
 	.save		= icmp6_save,
 	.x6_parse	= icmp6_parse,
 	.x6_options	= icmp6_opts,
+	.xlate		= icmp6_xlate,
 };
 
 void _init(void)
