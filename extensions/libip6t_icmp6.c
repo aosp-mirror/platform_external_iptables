@@ -271,8 +271,8 @@ static unsigned int type_xlate_print(struct xt_xlate *xl, unsigned int icmptype,
 	return 1;
 }
 
-static int icmp6_xlate(const struct xt_entry_match *match, struct xt_xlate *xl,
-		       int numeric)
+static int icmp6_xlate(const void *ip, const struct xt_entry_match *match,
+		       struct xt_xlate *xl, int numeric)
 {
 	const struct ip6t_icmp *info = (struct ip6t_icmp *)match->data;
 

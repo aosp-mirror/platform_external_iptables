@@ -1182,8 +1182,8 @@ static void state_xlate_print(struct xt_xlate *xl, unsigned int statemask)
 	}
 }
 
-static int state_xlate(const struct xt_entry_match *match, struct xt_xlate *xl,
-		       int numeric)
+static int state_xlate(const void *ip, const struct xt_entry_match *match,
+		       struct xt_xlate *xl, int numeric)
 {
 	const struct xt_conntrack_mtinfo3 *sinfo = (const void *)match->data;
 

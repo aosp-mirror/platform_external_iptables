@@ -128,7 +128,7 @@ static void ah_save(const void *ip, const struct xt_entry_match *match)
 		printf(" --ahres");
 }
 
-static int ah_xlate(const struct xt_entry_match *match,
+static int ah_xlate(const void *ip, const struct xt_entry_match *match,
 		    struct xt_xlate *xl, int numeric)
 {
 	const struct ip6t_ah *ahinfo = (struct ip6t_ah *)match->data;

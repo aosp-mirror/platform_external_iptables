@@ -81,7 +81,7 @@ static void print_mac_xlate(const unsigned char *macaddress,
 	xt_xlate_add(xl, " ");
 }
 
-static int mac_xlate(const struct xt_entry_match *match,
+static int mac_xlate(const void *ip, const struct xt_entry_match *match,
 		     struct xt_xlate *xl, int numeric)
 {
 	const struct xt_mac_info *info = (void *)match->data;

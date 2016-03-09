@@ -140,8 +140,8 @@ static void print_pkttype_xlate(const struct xt_pkttype_info *info,
 	xt_xlate_add(xl, "%d", info->pkttype);
 }
 
-static int pkttype_xlate(const struct xt_entry_match *match,
-			  struct xt_xlate *xl, int numeric)
+static int pkttype_xlate(const void *ip, const struct xt_entry_match *match,
+			 struct xt_xlate *xl, int numeric)
 {
 	const struct xt_pkttype_info *info = (const void *)match->data;
 

@@ -252,7 +252,7 @@ static void print_range_xlate(const struct nf_nat_range *range,
 	}
 }
 
-static int DNAT_xlate(const struct xt_entry_target *target,
+static int DNAT_xlate(const void *ip, const struct xt_entry_target *target,
 		      struct xt_xlate *xl, int numeric)
 {
 	const struct nf_nat_range *range = (const void *)target->data;

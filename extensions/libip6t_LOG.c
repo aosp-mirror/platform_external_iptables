@@ -182,7 +182,7 @@ static const struct ip6t_log_xlate ip6t_log_xlate_names[] = {
 	{"warn",        LOG_WARNING }
 };
 
-static int LOG_xlate(const struct xt_entry_target *target,
+static int LOG_xlate(const void *ip, const struct xt_entry_target *target,
 		     struct xt_xlate *xl, int numeric)
 {
 	unsigned int i = 0;

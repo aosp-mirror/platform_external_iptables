@@ -83,7 +83,7 @@ static void hl_save(const void *ip, const struct xt_entry_match *match)
 	printf(" %s %u", op[info->mode], info->hop_limit);
 }
 
-static int hl_xlate(const struct xt_entry_match *match,
+static int hl_xlate(const void *ip, const struct xt_entry_match *match,
 		    struct xt_xlate *xl, int numeric)
 {
 	static const char *const op[] = {

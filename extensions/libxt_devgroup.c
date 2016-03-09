@@ -193,7 +193,7 @@ static void devgroup_show_xlate(const struct xt_devgroup_info *info,
 	}
 }
 
-static int devgroup_xlate(const struct xt_entry_match *match,
+static int devgroup_xlate(const void *ip, const struct xt_entry_match *match,
 			  struct xt_xlate *xl, int numeric)
 {
 	const struct xt_devgroup_info *info = (const void *)match->data;

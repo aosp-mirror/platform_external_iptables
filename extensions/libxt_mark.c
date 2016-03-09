@@ -115,7 +115,7 @@ print_mark_xlate(struct xt_xlate *xl, unsigned int mark,
 }
 
 static int
-mark_mt_xlate(const struct xt_entry_match *match,
+mark_mt_xlate(const void *ip, const struct xt_entry_match *match,
 	      struct xt_xlate *xl, int numeric)
 {
 	const struct xt_mark_mtinfo1 *info = (const void *)match->data;
@@ -131,7 +131,7 @@ mark_mt_xlate(const struct xt_entry_match *match,
 }
 
 static int
-mark_xlate(const struct xt_entry_match *match,
+mark_xlate(const void *ip, const struct xt_entry_match *match,
 	   struct xt_xlate *xl, int numeric)
 {
 	const struct xt_mark_info *info = (const void *)match->data;

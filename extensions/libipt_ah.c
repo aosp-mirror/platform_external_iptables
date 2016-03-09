@@ -92,7 +92,7 @@ static void ah_save(const void *ip, const struct xt_entry_match *match)
 
 }
 
-static int ah_xlate(const struct xt_entry_match *match,
+static int ah_xlate(const void *ip, const struct xt_entry_match *match,
 		    struct xt_xlate *xl, int numeric)
 {
 	const struct ipt_ah *ahinfo = (struct ipt_ah *)match->data;

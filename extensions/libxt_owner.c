@@ -522,7 +522,7 @@ owner_mt_print_gid_xlate(const struct xt_owner_match_info *info,
 	return 1;
 }
 
-static int owner_mt_xlate(const struct xt_entry_match *match,
+static int owner_mt_xlate(const void *ip, const struct xt_entry_match *match,
 			  struct xt_xlate *xl, int numeric)
 {
 	const struct xt_owner_match_info *info = (void *)match->data;

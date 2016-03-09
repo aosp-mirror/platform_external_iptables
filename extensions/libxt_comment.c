@@ -49,7 +49,7 @@ comment_save(const void *ip, const struct xt_entry_match *match)
 }
 
 static int
-comment_xlate(const struct xt_entry_match *match,
+comment_xlate(const void *ip, const struct xt_entry_match *match,
 	      struct xt_xlate *xl, int numeric)
 {
 	struct xt_comment_info *commentinfo = (void *)match->data;

@@ -245,8 +245,8 @@ static void rt_save(const void *ip, const struct xt_entry_match *match)
 
 }
 
-static int rt_xlate(const struct xt_entry_match *match, struct xt_xlate *xl,
-		    int numeric)
+static int rt_xlate(const void *ip, const struct xt_entry_match *match,
+		    struct xt_xlate *xl, int numeric)
 {
 	const struct ip6t_rt *rtinfo = (struct ip6t_rt *)match->data;
 

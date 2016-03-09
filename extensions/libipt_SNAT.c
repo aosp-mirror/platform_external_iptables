@@ -273,7 +273,7 @@ static void print_range_xlate(const struct nf_nat_ipv4_range *r,
 	}
 }
 
-static int SNAT_xlate(const struct xt_entry_target *target,
+static int SNAT_xlate(const void *ip, const struct xt_entry_target *target,
 		      struct xt_xlate *xl, int numeric)
 {
 	const struct ipt_natinfo *info = (const void *)target;

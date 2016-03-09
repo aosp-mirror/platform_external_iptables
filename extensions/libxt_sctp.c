@@ -485,7 +485,7 @@ static void sctp_save(const void *ip, const struct xt_entry_match *match)
 	}
 }
 
-static int sctp_xlate(const struct xt_entry_match *match,
+static int sctp_xlate(const void *ip, const struct xt_entry_match *match,
 		      struct xt_xlate *xl, int numeric)
 {
 	const struct xt_sctp_info *einfo =

@@ -86,7 +86,7 @@ static void esp_save(const void *ip, const struct xt_entry_match *match)
 
 }
 
-static int esp_xlate(const struct xt_entry_match *match,
+static int esp_xlate(const void *ip, const struct xt_entry_match *match,
 		     struct xt_xlate *xl, int numeric)
 {
 	const struct xt_esp *espinfo = (struct xt_esp *)match->data;

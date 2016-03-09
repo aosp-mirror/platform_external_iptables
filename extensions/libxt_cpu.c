@@ -44,7 +44,7 @@ static void cpu_save(const void *ip, const struct xt_entry_match *match)
 	printf("%s --cpu %u", info->invert ? " !" : "", info->cpu);
 }
 
-static int cpu_xlate(const struct xt_entry_match *match,
+static int cpu_xlate(const void *ip, const struct xt_entry_match *match,
 		     struct xt_xlate *xl, int numeric)
 {
 	const struct xt_cpu_info *info = (void *)match->data;

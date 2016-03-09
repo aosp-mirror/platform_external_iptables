@@ -272,8 +272,8 @@ struct xtables_match
 	const struct xt_option_entry *x6_options;
 
 	/* Translate iptables to nft */
-	int (*xlate)(const struct xt_entry_match *match, struct xt_xlate *xl,
-		     int numeric);
+	int (*xlate)(const void *ip, const struct xt_entry_match *match,
+		     struct xt_xlate *xl, int numeric);
 
 	/* Size of per-extension instance extra "global" scratch space */
 	size_t udata_size;
@@ -353,8 +353,8 @@ struct xtables_target
 	const struct xt_option_entry *x6_options;
 
 	/* Translate iptables to nft */
-	int (*xlate)(const struct xt_entry_target *target, struct xt_xlate *xl,
-		     int numeric);
+	int (*xlate)(const void *ip, const struct xt_entry_target *target,
+		     struct xt_xlate *xl, int numeric);
 
 	size_t udata_size;
 

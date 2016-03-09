@@ -49,7 +49,8 @@ int xlate_action(const struct iptables_command_state *cs, bool goto_set,
 		else if (strcmp(cs->jumpto, XTC_LABEL_RETURN) == 0)
 			xt_xlate_add(xl, "return");
 		else if (cs->target->xlate)
-			ret = cs->target->xlate(cs->target->t, xl, numeric);
+			ret = cs->target->xlate((const void *)&cs->fw,
+						cs->target->t, xl, numeric);
 		else
 			return 0;
 	} else if (strlen(cs->jumpto) > 0) {
@@ -72,7 +73,8 @@ int xlate_matches(const struct iptables_command_state *cs, struct xt_xlate *xl)
 		if (!matchp->match->xlate)
 			return 0;
 
-		ret = matchp->match->xlate(matchp->match->m, xl, numeric);
+		ret = matchp->match->xlate((const void *)&cs->fw,
+					   matchp->match->m, xl, numeric);
 		if (!ret)
 			break;
 	}

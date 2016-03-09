@@ -100,7 +100,7 @@ static void ttl_save(const void *ip, const struct xt_entry_match *match)
 	printf(" %u", info->ttl);
 }
 
-static int ttl_xlate(const struct xt_entry_match *match,
+static int ttl_xlate(const void *ip, const struct xt_entry_match *match,
 		     struct xt_xlate *xl, int numeric)
 {
 	const struct ipt_ttl_info *info =

@@ -132,7 +132,7 @@ static void REDIRECT_save(const void *ip, const struct xt_entry_target *target)
 	}
 }
 
-static int REDIRECT_xlate(const struct xt_entry_target *target,
+static int REDIRECT_xlate(const void *ip, const struct xt_entry_target *target,
 			  struct xt_xlate *xl, int numeric)
 {
 	const struct nf_nat_range *range = (const void *)target->data;

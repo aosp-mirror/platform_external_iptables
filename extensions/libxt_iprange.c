@@ -315,7 +315,7 @@ print_iprange_xlate(const struct ipt_iprange *range,
 		   byte_max[0], byte_max[1], byte_max[2], byte_max[3]);
 }
 
-static int iprange_xlate(const struct xt_entry_match *match,
+static int iprange_xlate(const void *ip, const struct xt_entry_match *match,
 			 struct xt_xlate *xl, int numeric)
 {
 	const struct ipt_iprange_info *info = (const void *)match->data;
@@ -336,7 +336,7 @@ static int iprange_xlate(const struct xt_entry_match *match,
 	return 1;
 }
 
-static int iprange_mt4_xlate(const struct xt_entry_match *match,
+static int iprange_mt4_xlate(const void *ip, const struct xt_entry_match *match,
 			     struct xt_xlate *xl, int numeric)
 {
 	const struct xt_iprange_mtinfo *info = (const void *)match->data;
@@ -361,7 +361,7 @@ static int iprange_mt4_xlate(const struct xt_entry_match *match,
 	return 1;
 }
 
-static int iprange_mt6_xlate(const struct xt_entry_match *match,
+static int iprange_mt6_xlate(const void *ip, const struct xt_entry_match *match,
 			     struct xt_xlate *xl, int numeric)
 {
 	const struct xt_iprange_mtinfo *info = (const void *)match->data;

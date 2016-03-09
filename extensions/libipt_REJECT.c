@@ -159,7 +159,7 @@ static const struct reject_names_xlate reject_table_xlate[] = {
 	{"admin-prohibited",	IPT_ICMP_ADMIN_PROHIBITED}
 };
 
-static int REJECT_xlate(const struct xt_entry_target *target,
+static int REJECT_xlate(const void *ip, const struct xt_entry_target *target,
 			struct xt_xlate *xl, int numeric)
 {
 	const struct ipt_reject_info *reject =

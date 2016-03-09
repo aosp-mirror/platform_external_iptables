@@ -45,7 +45,7 @@ static void helper_save(const void *ip, const struct xt_entry_match *match)
 	xtables_save_string(info->name);
 }
 
-static int helper_xlate(const struct xt_entry_match *match,
+static int helper_xlate(const void *ip, const struct xt_entry_match *match,
 			struct xt_xlate *xl, int numeric)
 {
 	const struct xt_helper_info *info = (const void *)match->data;

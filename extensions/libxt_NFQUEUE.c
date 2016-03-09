@@ -205,7 +205,7 @@ static void NFQUEUE_init_v1(struct xt_entry_target *t)
 	tinfo->queues_total = 1;
 }
 
-static int NFQUEUE_xlate(const struct xt_entry_target *target,
+static int NFQUEUE_xlate(const void *ip, const struct xt_entry_target *target,
 			 struct xt_xlate *xl, int numeric)
 {
 	const struct xt_NFQ_info *tinfo =
@@ -216,7 +216,8 @@ static int NFQUEUE_xlate(const struct xt_entry_target *target,
 	return 1;
 }
 
-static int NFQUEUE_xlate_v1(const struct xt_entry_target *target,
+static int NFQUEUE_xlate_v1(const void *ip,
+			    const struct xt_entry_target *target,
 			    struct xt_xlate *xl, int numeric)
 {
 	const struct xt_NFQ_info_v1 *tinfo = (const void *)target->data;
@@ -232,12 +233,13 @@ static int NFQUEUE_xlate_v1(const struct xt_entry_target *target,
 	return 1;
 }
 
-static int NFQUEUE_xlate_v2(const struct xt_entry_target *target,
+static int NFQUEUE_xlate_v2(const void *ip,
+			    const struct xt_entry_target *target,
 			    struct xt_xlate *xl, int numeric)
 {
 	const struct xt_NFQ_info_v2 *info = (void *) target->data;
 
-	NFQUEUE_xlate_v1(target, xl, numeric);
+	NFQUEUE_xlate_v1(ip, target, xl, numeric);
 
 	if (info->bypass & NFQ_FLAG_BYPASS)
 		xt_xlate_add(xl, "bypass");
@@ -245,12 +247,13 @@ static int NFQUEUE_xlate_v2(const struct xt_entry_target *target,
 	return 1;
 }
 
-static int NFQUEUE_xlate_v3(const struct xt_entry_target *target,
+static int NFQUEUE_xlate_v3(const void *ip,
+			    const struct xt_entry_target *target,
 			    struct xt_xlate *xl, int numeric)
 {
 	const struct xt_NFQ_info_v3 *info = (void *)target->data;
 
-	NFQUEUE_xlate_v2(target, xl, numeric);
+	NFQUEUE_xlate_v2(ip, target, xl, numeric);
 	if (info->flags & NFQ_FLAG_CPU_FANOUT)
 		xt_xlate_add(xl, "%sfanout ", info->flags & NFQ_FLAG_BYPASS ? "," : "");
 

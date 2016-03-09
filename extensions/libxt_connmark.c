@@ -134,7 +134,7 @@ static void print_mark_xlate(unsigned int mark, unsigned int mask,
 			   op == XT_OP_EQ ? "" : "!= ", mark);
 }
 
-static int connmark_xlate(const struct xt_entry_match *match,
+static int connmark_xlate(const void *ip, const struct xt_entry_match *match,
 			  struct xt_xlate *xl, int numeric)
 {
 	const struct xt_connmark_info *info = (const void *)match->data;
@@ -150,8 +150,8 @@ static int connmark_xlate(const struct xt_entry_match *match,
 }
 
 static int
-connmark_mt_xlate(const struct xt_entry_match *match,
-		 struct xt_xlate *xl, int numeric)
+connmark_mt_xlate(const void *ip, const struct xt_entry_match *match,
+		  struct xt_xlate *xl, int numeric)
 {
 	const struct xt_connmark_mtinfo1 *info = (const void *)match->data;
 	enum xt_op op = XT_OP_EQ;

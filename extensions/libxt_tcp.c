@@ -393,8 +393,8 @@ static void print_tcp_xlate(struct xt_xlate *xl, uint8_t flags)
 		xt_xlate_add(xl, "none");
 }
 
-static int tcp_xlate(const struct xt_entry_match *match, struct xt_xlate *xl,
-		     int numeric)
+static int tcp_xlate(const void *ip, const struct xt_entry_match *match,
+		     struct xt_xlate *xl, int numeric)
 {
 	const struct xt_tcp *tcpinfo = (const struct xt_tcp *)match->data;
 

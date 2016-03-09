@@ -177,7 +177,7 @@ static void print_rate_xlate(uint32_t period, struct xt_xlate *xl)
 		   rates_xlate[i - 1].name);
 }
 
-static int limit_xlate(const struct xt_entry_match *match,
+static int limit_xlate(const void *ip, const struct xt_entry_match *match,
 		       struct xt_xlate *xl, int numeric)
 {
 	const struct xt_rateinfo *r = (const void *)match->data;

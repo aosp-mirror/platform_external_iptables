@@ -132,7 +132,7 @@ MASQUERADE_save(const void *ip, const struct xt_entry_target *target)
 }
 
 static int
-MASQUERADE_xlate(const struct xt_entry_target *target,
+MASQUERADE_xlate(const void *ip, const struct xt_entry_target *target,
 		 struct xt_xlate *xl, int numeric)
 {
 	const struct nf_nat_range *r = (const void *)target->data;

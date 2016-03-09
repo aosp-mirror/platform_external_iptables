@@ -139,7 +139,7 @@ static const struct reject_names_xlate reject_table_xlate[] = {
 	{"reject-route",	IP6T_ICMP6_REJECT_ROUTE}
 };
 
-static int REJECT_xlate(const struct xt_entry_target *target,
+static int REJECT_xlate(const void *ip, const struct xt_entry_target *target,
 			struct xt_xlate *xl, int numeric)
 {
 	const struct ip6t_reject_info *reject =

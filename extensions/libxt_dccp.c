@@ -329,7 +329,7 @@ static int dccp_type_xlate(const struct xt_dccp_info *einfo,
 	return 1;
 }
 
-static int dccp_xlate(const struct xt_entry_match *match,
+static int dccp_xlate(const void *ip, const struct xt_entry_match *match,
 		      struct xt_xlate *xl, int numeric)
 {
 	const struct xt_dccp_info *einfo =
