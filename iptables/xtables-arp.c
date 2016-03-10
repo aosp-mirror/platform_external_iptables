@@ -727,7 +727,7 @@ parse_interface(const char *arg, char *vianame, unsigned char *mask)
 			if (!isalnum(vianame[i])
 			    && vianame[i] != '_'
 			    && vianame[i] != '.') {
-				printf("Warning: wierd character in interface"
+				printf("Warning: weird character in interface"
 				       " `%s' (No aliases, :, ! or *).\n",
 				       vianame);
 				break;
