@@ -194,7 +194,8 @@ static int LOG_xlate(const void *ip, const struct xt_entry_target *target,
 		xt_xlate_add(xl, "prefix \\\"%s\\\" ", loginfo->prefix);
 
 	for (i = 0; i < ARRAY_SIZE(ipt_log_xlate_names); ++i)
-		if (loginfo->level == ipt_log_xlate_names[i].level) {
+		if (loginfo->level != LOG_DEFAULT_LEVEL &&
+		    loginfo->level == ipt_log_xlate_names[i].level) {
 			xt_xlate_add(xl, "level %s ",
 				   ipt_log_xlate_names[i].name);
 			break;
