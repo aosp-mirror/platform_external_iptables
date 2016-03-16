@@ -149,7 +149,10 @@ static int REJECT_xlate(const void *ip, const struct xt_entry_target *target,
 	for (i = 0; i < ARRAY_SIZE(reject_table_xlate); ++i)
 		if (reject_table_xlate[i].with == reject->with)
 			break;
-	if (reject->with == IP6T_TCP_RESET)
+
+	if (reject->with == IP6T_ICMP6_PORT_UNREACH)
+		xt_xlate_add(xl, "reject");
+	else if (reject->with == IP6T_TCP_RESET)
 		xt_xlate_add(xl, "reject with %s", reject_table_xlate[i].name);
 	else
 		xt_xlate_add(xl, "reject with icmpv6 type %s",
