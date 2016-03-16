@@ -171,7 +171,9 @@ static int REJECT_xlate(const void *ip, const struct xt_entry_target *target,
 			break;
 	}
 
-	if (reject->with == IPT_TCP_RESET)
+	if (reject->with == IPT_ICMP_PORT_UNREACHABLE)
+		xt_xlate_add(xl, "reject");
+	else if (reject->with == IPT_TCP_RESET)
 		xt_xlate_add(xl, "reject with %s",
 			   reject_table_xlate[i].name);
 	else
