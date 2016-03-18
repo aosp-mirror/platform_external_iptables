@@ -216,6 +216,14 @@ static int do_command_xlate(struct nft_handle *h, int argc, char *argv[],
 		}
 		break;
 	case CMD_FLUSH:
+		if (p.chain) {
+			printf("flush chain %s %s %s\n",
+				family2str[h->family], p.table, p.chain);
+		} else {
+			printf("flush table %s %s\n",
+				family2str[h->family], p.table);
+		}
+		ret = 1;
 		break;
 	case CMD_ZERO:
 		break;
