@@ -63,6 +63,10 @@ AC_ARG_WITH([pkgconfigdir], AS_HELP_STRING([--with-pkgconfigdir=PATH],
 AC_ARG_ENABLE([nftables],
 	AS_HELP_STRING([--disable-nftables], [Do not build nftables compat]),
 	[enable_nftables="$enableval"], [enable_nftables="yes"])
+AC_ARG_ENABLE([connlabel],
+	AS_HELP_STRING([--disable-connlabel],
+	[Do not build libnetfilter_conntrack]),
+	[enable_connlabel="$enableval"], [enable_connlabel="yes"])
 
 libiptc_LDFLAGS2="";
 AX_CHECK_LINKER_FLAGS([-Wl,--no-as-needed],
@@ -93,15 +97,6 @@ if test "$ac_cv_header_linux_ip_vs_h" != "yes"; then
 	blacklist_modules="$blacklist_modules ipvs";
 fi;
 
-PKG_CHECK_MODULES([libnetfilter_conntrack], [libnetfilter_conntrack >= 1.0.4],
-	[nfconntrack=1], [nfconntrack=0])
-AM_CONDITIONAL([HAVE_LIBNETFILTER_CONNTRACK], [test "$nfconntrack" = 1])
-
-if test "$nfconntrack" -ne 1; then
-	blacklist_modules="$blacklist_modules connlabel";
-	echo "WARNING: libnetfilter_conntrack not found, connlabel match will not be built";
-fi;
-
 AC_CHECK_SIZEOF([struct ip6_hdr], [], [#include <netinet/ip6.h>])
 
 AM_CONDITIONAL([ENABLE_STATIC], [test "$enable_static" = "yes"])
@@ -114,6 +109,7 @@ AM_CONDITIONAL([ENABLE_LIBIPQ], [test "$enable_libipq" = "yes"])
 AM_CONDITIONAL([ENABLE_BPFC], [test "$enable_bpfc" = "yes"])
 AM_CONDITIONAL([ENABLE_SYNCONF], [test "$enable_nfsynproxy" = "yes"])
 AM_CONDITIONAL([ENABLE_NFTABLES], [test "$enable_nftables" = "yes"])
+AM_CONDITIONAL([ENABLE_CONNLABEL], [test "$enable_connlabel" = "yes"])
 
 if test "x$enable_bpfc" = "xyes" || test "x$enable_nfsynproxy" = "xyes"; then
 	AC_CHECK_LIB(pcap, pcap_compile,, AC_MSG_ERROR(missing libpcap library required by bpf compiler or nfsynproxy tool))
@@ -167,6 +163,22 @@ if test "$nftables" != 1; then
 	blacklist_b_modules="$blacklist_b_modules limit mark nflog mangle"
 	blacklist_a_modules="$blacklist_a_modules mangle"
 fi
+
+if test "x$enable_connlabel" = "xyes"; then
+	PKG_CHECK_MODULES([libnetfilter_conntrack],
+		[libnetfilter_conntrack >= 1.0.4],
+		[nfconntrack=1], [nfconntrack=0])
+
+	if test "$nfconntrack" -ne 1; then
+		blacklist_modules="$blacklist_modules connlabel";
+		echo "WARNING: libnetfilter_conntrack not found, connlabel match will not be built";
+		enable_connlabel = "no";
+	fi;
+else
+	blacklist_modules="$blacklist_modules connlabel";
+fi;
+
+AM_CONDITIONAL([HAVE_LIBNETFILTER_CONNTRACK], [test "$nfconntrack" = 1])
 
 AC_SUBST([blacklist_modules])
 AC_SUBST([blacklist_x_modules])
@@ -243,6 +255,7 @@ Iptables Configuration:
   BPF utils support:			${enable_bpfc}
   nfsynproxy util support:		${enable_nfsynproxy}
   nftables support:			${enable_nftables}
+  connlabel support:			${enable_connlabel}
 
 Build parameters:
   Put plugins into executable (static):	${enable_static}
