@@ -92,6 +92,41 @@ static void tee_tg6_save(const void *ip, const struct xt_entry_target *target)
 		printf(" --oif %s", info->oif);
 }
 
+static int tee_tg_xlate(const void *ip, const struct xt_entry_target *target,
+			struct xt_xlate *xl, int numeric)
+{
+	const struct xt_tee_tginfo *info =
+		(const void *)target->data;
+
+	if (numeric)
+		xt_xlate_add(xl, "dup to %s",
+			     xtables_ipaddr_to_numeric(&info->gw.in));
+	else
+		xt_xlate_add(xl, "dup to %s",
+			     xtables_ipaddr_to_anyname(&info->gw.in));
+	if (*info->oif != '\0')
+		xt_xlate_add(xl, " device %s", info->oif);
+
+	return 1;
+}
+
+static int tee_tg6_xlate(const void *ip, const struct xt_entry_target *target,
+			 struct xt_xlate *xl, int numeric)
+{
+	const struct xt_tee_tginfo *info = (const void *)target->data;
+
+	if (numeric)
+		xt_xlate_add(xl, "dup to %s",
+			     xtables_ip6addr_to_numeric(&info->gw.in6));
+	else
+		xt_xlate_add(xl, "dup to %s",
+			     xtables_ip6addr_to_anyname(&info->gw.in6));
+	if (*info->oif != '\0')
+		xt_xlate_add(xl, " device %s", info->oif);
+
+	return 1;
+}
+
 static struct xtables_target tee_tg_reg[] = {
 	{
 		.name          = "TEE",
@@ -105,6 +140,7 @@ static struct xtables_target tee_tg_reg[] = {
 		.save          = tee_tg_save,
 		.x6_parse      = xtables_option_parse,
 		.x6_options    = tee_tg_opts,
+		.xlate         = tee_tg_xlate,
 	},
 	{
 		.name          = "TEE",
@@ -118,6 +154,7 @@ static struct xtables_target tee_tg_reg[] = {
 		.save          = tee_tg6_save,
 		.x6_parse      = xtables_option_parse,
 		.x6_options    = tee_tg_opts,
+		.xlate         = tee_tg6_xlate,
 	},
 };
 
