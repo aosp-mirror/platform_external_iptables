@@ -2014,6 +2014,7 @@ struct xt_xlate *xt_xlate_alloc(int size)
 	xl->buf.size = size;
 	xl->buf.rem = size;
 	xl->buf.off = 0;
+	xl->comment[0] = '\0';
 
 	return xl;
 }
