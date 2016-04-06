@@ -390,7 +390,7 @@ static void print_tcp_xlate(struct xt_xlate *xl, uint8_t flags)
 	}
 
 	if (!have_flag)
-		xt_xlate_add(xl, "none");
+		xt_xlate_add(xl, "0x0");
 }
 
 static int tcp_xlate(const void *ip, const struct xt_entry_match *match,
