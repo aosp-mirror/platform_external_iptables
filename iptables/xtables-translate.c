@@ -297,7 +297,7 @@ static const struct option options[] = {
 static int xlate_chain_user_add(struct nft_handle *h, const char *chain,
 				const char *table)
 {
-	printf("add chain %s %s %s\n", family2str[h->family], chain, table);
+	printf("add chain %s %s %s\n", family2str[h->family], table, chain);
 	return 0;
 }
 
