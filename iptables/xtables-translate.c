@@ -193,7 +193,9 @@ static int do_command_xlate(struct nft_handle *h, int argc, char *argv[],
 
 	do_parse(h, argc, argv, &p, &cs, &args);
 
-	printf("nft ");
+	if (!restore)
+		printf("nft ");
+
 	switch (p.command) {
 	case CMD_APPEND:
 		ret = 1;
