@@ -99,7 +99,7 @@ static void NFQUEUE_parse_v2(struct xt_option_call *cb)
 	NFQUEUE_parse_v1(cb);
 	switch (cb->entry->id) {
 	case O_QUEUE_BYPASS:
-		info->bypass = 1;
+		info->bypass |= NFQ_FLAG_BYPASS;
 		break;
 	}
 }
