@@ -52,7 +52,7 @@ ${MY_gen_lib_sources}: PRIVATE_PATH := $(LOCAL_PATH)
 ${MY_gen_lib_sources}: PRIVATE_CUSTOM_TOOL = $(PRIVATE_PATH)/filter_init $(PRIVATE_PATH)/$(notdir $@) > $@
 ${MY_gen_lib_sources}: PRIVATE_MODULE := $(LOCAL_MODULE)
 ${MY_gen_lib_sources}: PRIVATE_C_INCLUDES := $(LOCAL_C_INCLUDES)
-${MY_gen_lib_sources}: ${MY_gen}/% : $(LOCAL_PATH)/%
+${MY_gen_lib_sources}: ${MY_gen}/% : $(LOCAL_PATH)/% $(LOCAL_PATH)/filter_init
 	$(transform-generated-source)
 
 $(MY_GEN_INITEXT): $(MY_gen_lib_sources)
