@@ -122,7 +122,25 @@ AM_CONDITIONAL([HAVE_LIBNFNETLINK], [test "$nfnetlink" = 1])
 if test "x$enable_nftables" = "xyes"; then
 	PKG_CHECK_MODULES([libmnl], [libmnl >= 1.0], [mnl=1], [mnl=0])
 
+	if test "$mnl" = 0;
+	then
+		echo "*** Error: No suitable libmnl found. ***"
+		echo "    Please install the 'libmnl' package"
+		echo "    Or consider --disable-nftables to skip"
+		echo "    iptables-compat over nftables support."
+		exit 1
+	fi
+
 	PKG_CHECK_MODULES([libnftnl], [libnftnl >= 1.0.5], [nftables=1], [nftables=0])
+
+	if test "$nftables" = 0;
+	then
+		echo "*** Error: no suitable libnftnl found. ***"
+		echo "    Please install the 'libnftnl' package"
+		echo "    Or consider --disable-nftables to skip"
+		echo "    iptables-compat over nftables support."
+		exit 1
+	fi
 
 	AM_PROG_LEX
 	AC_PROG_YACC
