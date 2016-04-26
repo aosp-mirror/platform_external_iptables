@@ -103,8 +103,9 @@ the built-in chains \fBINPUT\fP (for packets destined to local sockets),
 .TP
 \fBnat\fP:
 This table is consulted when a packet that creates a new
-connection is encountered.  It consists of three built-ins: \fBPREROUTING\fP
-(for altering packets as soon as they come in), \fBOUTPUT\fP
+connection is encountered.  It consists of four built-ins: \fBPREROUTING\fP
+(for altering packets as soon as they come in), \fBINPUT\fP (for altering
+packets destined for local sockets), \fBOUTPUT\fP
 (for altering locally-generated packets before routing), and \fBPOSTROUTING\fP
 (for altering packets as they are about to go out).
 IPv6 NAT support is available since kernel 3.7.
