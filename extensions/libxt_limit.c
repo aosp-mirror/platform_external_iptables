@@ -184,7 +184,7 @@ static int limit_xlate(const void *ip, const struct xt_entry_match *match,
 
 	xt_xlate_add(xl, "limit rate");
 	print_rate_xlate(r->avg, xl);
-	if (r->burst != XT_LIMIT_BURST)
+	if (r->burst != 0)
 		xt_xlate_add(xl, "burst %u packets ", r->burst);
 
 	return 1;
