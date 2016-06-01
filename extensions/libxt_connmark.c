@@ -127,8 +127,8 @@ static void print_mark_xlate(unsigned int mark, unsigned int mask,
 			     struct xt_xlate *xl, uint32_t op)
 {
 	if (mask != 0xffffffffU)
-		xt_xlate_add(xl, " and 0x%x %s 0x%x ", mark,
-			   op == XT_OP_EQ ? "==" : "!=", mask);
+		xt_xlate_add(xl, " and 0x%x %s 0x%x ", mask,
+			   op == XT_OP_EQ ? "==" : "!=", mark);
 	else
 		xt_xlate_add(xl, " %s0x%x ",
 			   op == XT_OP_EQ ? "" : "!= ", mark);
