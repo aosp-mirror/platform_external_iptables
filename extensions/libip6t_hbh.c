@@ -164,6 +164,22 @@ static void hbh_save(const void *ip, const struct xt_entry_match *match)
 	print_options(optinfo->optsnr, (uint16_t *)optinfo->opts);
 }
 
+static int hbh_xlate(const void *ip, const struct xt_entry_match *match,
+		     struct xt_xlate *xl, int numeric)
+{
+	const struct ip6t_opts *optinfo = (struct ip6t_opts *)match->data;
+
+	if (!(optinfo->flags & IP6T_OPTS_LEN) ||
+	    (optinfo->flags & IP6T_OPTS_OPTS))
+		return 0;
+
+	xt_xlate_add(xl, "hbh hdrlength %s%u ",
+		     (optinfo->invflags & IP6T_OPTS_INV_LEN) ? "!= " : "",
+		     optinfo->hdrlen);
+
+	return 1;
+}
+
 static struct xtables_match hbh_mt6_reg = {
 	.name 		= "hbh",
 	.version	= XTABLES_VERSION,
@@ -175,6 +191,7 @@ static struct xtables_match hbh_mt6_reg = {
 	.save		= hbh_save,
 	.x6_parse	= hbh_parse,
 	.x6_options	= hbh_opts,
+	.xlate		= hbh_xlate,
 };
 
 void
