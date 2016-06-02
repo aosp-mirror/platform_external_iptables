@@ -158,8 +158,8 @@ print_devgroup_xlate(unsigned int id, uint32_t op,  unsigned int mask,
 	const char *name = NULL;
 
 	if (mask != 0xffffffff)
-		xt_xlate_add(xl, "and 0x%x %s 0x%x ", id,
-			   op == XT_OP_EQ ? "==" : "!=", mask);
+		xt_xlate_add(xl, "and 0x%x %s 0x%x ", mask,
+			   op == XT_OP_EQ ? "==" : "!=", id);
 	else {
 		if (numeric == 0)
 			name = xtables_lmap_id2name(devgroups, id);
