@@ -468,6 +468,117 @@ static void multiport_save6_v1(const void *ip_void,
 	__multiport_save_v1(match, ip->proto);
 }
 
+static int __multiport_xlate(const void *ip, const struct xt_entry_match *match,
+			     struct xt_xlate *xl, int numeric)
+{
+	const struct xt_multiport *multiinfo
+		= (const struct xt_multiport *)match->data;
+	unsigned int i;
+
+	switch (multiinfo->flags) {
+	case XT_MULTIPORT_SOURCE:
+		xt_xlate_add(xl, "sport ");
+		break;
+	case XT_MULTIPORT_DESTINATION:
+		xt_xlate_add(xl, "dport ");
+		break;
+	case XT_MULTIPORT_EITHER:
+		return 0;
+	}
+
+	if (multiinfo->count > 1)
+		xt_xlate_add(xl, "{ ");
+
+	for (i = 0; i < multiinfo->count; i++)
+		xt_xlate_add(xl, "%s%u", i ? "," : "", multiinfo->ports[i]);
+
+	if (multiinfo->count > 1)
+		xt_xlate_add(xl, "}");
+
+	xt_xlate_add(xl, " ");
+
+	return 1;
+}
+
+static int multiport_xlate(const void *ip, const struct xt_entry_match *match,
+			   struct xt_xlate *xl, int numeric)
+{
+	uint8_t proto = ((const struct ipt_ip *)ip)->proto;
+
+	xt_xlate_add(xl, "%s ", proto_to_name(proto));
+	return __multiport_xlate(ip, match, xl, numeric);
+}
+
+static int multiport_xlate6(const void *ip, const struct xt_entry_match *match,
+			    struct xt_xlate *xl, int numeric)
+{
+	uint8_t proto = ((const struct ip6t_ip6 *)ip)->proto;
+
+	xt_xlate_add(xl, "%s ", proto_to_name(proto));
+	return __multiport_xlate(ip, match, xl, numeric);
+}
+
+static int __multiport_xlate_v1(const void *ip,
+				const struct xt_entry_match *match,
+				struct xt_xlate *xl, int numeric)
+{
+	const struct xt_multiport_v1 *multiinfo
+		= (const struct xt_multiport_v1 *)match->data;
+	unsigned int i;
+
+	switch (multiinfo->flags) {
+	case XT_MULTIPORT_SOURCE:
+		xt_xlate_add(xl, "sport ");
+		break;
+	case XT_MULTIPORT_DESTINATION:
+		xt_xlate_add(xl, "dport ");
+		break;
+	case XT_MULTIPORT_EITHER:
+		return 0;
+	}
+
+	if (multiinfo->invert)
+		xt_xlate_add(xl, "!= ");
+
+	if (multiinfo->count > 2 ||
+	    (multiinfo->count > 1 && !multiinfo->pflags[0]))
+		xt_xlate_add(xl, "{ ");
+
+	for (i = 0; i < multiinfo->count; i++) {
+		xt_xlate_add(xl, "%s%u", i ? "," : "", multiinfo->ports[i]);
+		if (multiinfo->pflags[i])
+			xt_xlate_add(xl, "-%u", multiinfo->ports[++i]);
+	}
+
+	if (multiinfo->count > 2 ||
+	    (multiinfo->count > 1 && !multiinfo->pflags[0]))
+		xt_xlate_add(xl, "}");
+
+	xt_xlate_add(xl, " ");
+
+	return 1;
+}
+
+static int multiport_xlate_v1(const void *ip,
+			      const struct xt_entry_match *match,
+			      struct xt_xlate *xl, int numeric)
+{
+	uint8_t proto = ((const struct ipt_ip *)ip)->proto;
+
+	xt_xlate_add(xl, "%s ", proto_to_name(proto));
+	return __multiport_xlate_v1(ip, match, xl, numeric);
+}
+
+static int multiport_xlate6_v1(const void *ip,
+			       const struct xt_entry_match *match,
+			       struct xt_xlate *xl, int numeric)
+{
+	uint8_t proto = ((const struct ip6t_ip6 *)ip)->proto;
+
+	xt_xlate_add(xl, "%s ", proto_to_name(proto));
+	return __multiport_xlate_v1(ip, match, xl, numeric);
+}
+
 static struct xtables_match multiport_mt_reg[] = {
 	{
 		.family        = NFPROTO_IPV4,
@@ -482,6 +593,7 @@ static struct xtables_match multiport_mt_reg[] = {
 		.print         = multiport_print,
 		.save          = multiport_save,
 		.x6_options    = multiport_opts,
+		.xlate         = multiport_xlate,
 	},
 	{
 		.family        = NFPROTO_IPV6,
@@ -496,6 +608,7 @@ static struct xtables_match multiport_mt_reg[] = {
 		.print         = multiport_print6,
 		.save          = multiport_save6,
 		.x6_options    = multiport_opts,
+		.xlate         = multiport_xlate6,
 	},
 	{
 		.family        = NFPROTO_IPV4,
@@ -510,6 +623,7 @@ static struct xtables_match multiport_mt_reg[] = {
 		.print         = multiport_print_v1,
 		.save          = multiport_save_v1,
 		.x6_options    = multiport_opts,
+		.xlate         = multiport_xlate_v1,
 	},
 	{
 		.family        = NFPROTO_IPV6,
@@ -524,6 +638,7 @@ static struct xtables_match multiport_mt_reg[] = {
 		.print         = multiport_print6_v1,
 		.save          = multiport_save6_v1,
 		.x6_options    = multiport_opts,
+		.xlate         = multiport_xlate6_v1,
 	},
 };
 
