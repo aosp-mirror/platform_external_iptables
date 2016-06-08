@@ -173,6 +173,37 @@ static void frag_save(const void *ip, const struct xt_entry_match *match)
 		printf(" --fraglast");
 }
 
+static int frag_xlate(const void *ip, const struct xt_entry_match *match,
+		      struct xt_xlate *xl, int numeric)
+{
+	const struct ip6t_frag *fraginfo = (struct ip6t_frag *)match->data;
+
+	if (!(fraginfo->ids[0] == 0 && fraginfo->ids[1] == 0xFFFFFFFF)) {
+		xt_xlate_add(xl, "frag id %s",
+			     (fraginfo->invflags & IP6T_FRAG_INV_IDS) ?
+			     "!= " : "");
+		if (fraginfo->ids[0] != fraginfo->ids[1])
+			xt_xlate_add(xl, "%u-%u ", fraginfo->ids[0],
+				     fraginfo->ids[1]);
+		else
+			xt_xlate_add(xl, "%u ", fraginfo->ids[0]);
+	}
+
+	if (fraginfo->flags & IP6T_FRAG_RES)
+		xt_xlate_add(xl, "frag reserved 1 ");
+
+	if (fraginfo->flags & IP6T_FRAG_FST)
+		xt_xlate_add(xl, "frag frag-off 0 ");
+
+	if (fraginfo->flags & IP6T_FRAG_MF)
+		xt_xlate_add(xl, "frag more-fragments 1 ");
+
+	if (fraginfo->flags & IP6T_FRAG_NMF)
+		xt_xlate_add(xl, "frag more-fragments 0 ");
+
+	return 1;
+}
+
 static struct xtables_match frag_mt6_reg = {
 	.name          = "frag",
 	.version       = XTABLES_VERSION,
@@ -185,6 +216,7 @@ static struct xtables_match frag_mt6_reg = {
 	.save          = frag_save,
 	.x6_parse      = frag_parse,
 	.x6_options    = frag_opts,
+	.xlate	       = frag_xlate,
 };
 
 void
