@@ -121,6 +121,32 @@ static void cgroup_save_v1(const void *ip, const struct xt_entry_match *match)
 		       info->classid);
 }
 
+static int cgroup_xlate_v0(const void *ip, const struct xt_entry_match *match,
+			   struct xt_xlate *xl, int numeric)
+{
+	const struct xt_cgroup_info_v0 *info = (void *)match->data;
+
+	xt_xlate_add(xl, "meta cgroup %s%u ", info->invert ? "!= " : "",
+		     info->id);
+	return 1;
+}
+
+static int cgroup_xlate_v1(const void *ip, const struct xt_entry_match *match,
+			   struct xt_xlate *xl, int numeric)
+{
+	const struct xt_cgroup_info_v1 *info = (void *)match->data;
+
+	if (info->has_path)
+		return 0;
+
+	if (info->has_classid)
+		xt_xlate_add(xl, "meta cgroup %s%u ",
+			     info->invert_classid ? "!= " : "",
+			     info->classid);
+
+	return 1;
+}
+
 static struct xtables_match cgroup_match[] = {
 	{
 		.family		= NFPROTO_UNSPEC,
@@ -134,6 +160,7 @@ static struct xtables_match cgroup_match[] = {
 		.save		= cgroup_save_v0,
 		.x6_parse	= cgroup_parse_v0,
 		.x6_options	= cgroup_opts_v0,
+		.xlate		= cgroup_xlate_v0,
 	},
 	{
 		.family		= NFPROTO_UNSPEC,
@@ -147,6 +174,7 @@ static struct xtables_match cgroup_match[] = {
 		.save		= cgroup_save_v1,
 		.x6_parse	= cgroup_parse_v1,
 		.x6_options	= cgroup_opts_v1,
+		.xlate		= cgroup_xlate_v1,
 	},
 };
 
