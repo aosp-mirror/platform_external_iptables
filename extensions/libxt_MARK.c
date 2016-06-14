@@ -245,6 +245,28 @@ static void mark_tg_save(const void *ip, const struct xt_entry_target *target)
 	printf(" --set-xmark 0x%x/0x%x", info->mark, info->mask);
 }
 
+static int mark_tg_xlate(const void *ip, const struct xt_entry_target *target,
+			 struct xt_xlate *xl, int numeric)
+{
+	const struct xt_mark_tginfo2 *info = (const void *)target->data;
+
+	xt_xlate_add(xl, "meta mark set ");
+
+	if (info->mark == 0)
+		xt_xlate_add(xl, "mark and 0x%x ", ~info->mask);
+	else if (info->mark == info->mask)
+		xt_xlate_add(xl, "mark or 0x%x ", info->mark);
+	else if (info->mask == 0)
+		xt_xlate_add(xl, "mark xor 0x%x ", info->mark);
+	else if (info->mask == 0xffffffffU)
+		xt_xlate_add(xl, "0x%x ", info->mark);
+	else
+		xt_xlate_add(xl, "mark xor 0x%x and 0x%x ", info->mark,
+			     info->mask);
+
+	return 1;
+}
+
 static struct xtables_target mark_tg_reg[] = {
 	{
 		.family        = NFPROTO_UNSPEC,
@@ -287,6 +309,7 @@ static struct xtables_target mark_tg_reg[] = {
 		.x6_parse      = mark_tg_parse,
 		.x6_fcheck     = mark_tg_check,
 		.x6_options    = mark_tg_opts,
+		.xlate	       = mark_tg_xlate,
 	},
 };
 
