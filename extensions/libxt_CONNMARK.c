@@ -347,6 +347,50 @@ connmark_tg_save(const void *ip, const struct xt_entry_target *target)
 	}
 }
 
+static int
+connmark_tg_xlate(const void *ip, const struct xt_entry_target *target,
+		  struct xt_xlate *xl, int numeric)
+{
+	const struct xt_connmark_tginfo1 *info = (const void *)target->data;
+
+	switch (info->mode) {
+	case XT_CONNMARK_SET:
+		xt_xlate_add(xl, "ct mark set ");
+		if (info->ctmark == 0)
+			xt_xlate_add(xl, "ct mark and 0x%x", ~info->ctmask);
+		else if (info->ctmark == info->ctmask)
+			xt_xlate_add(xl, "ct mark or 0x%x",
+				     info->ctmark);
+		else if (info->ctmask == 0)
+			xt_xlate_add(xl, "ct mark xor 0x%x",
+				     info->ctmark);
+		else if (info->ctmask == 0xFFFFFFFFU)
+			xt_xlate_add(xl, "0x%x ", info->ctmark);
+		else
+			xt_xlate_add(xl, "ct mark xor 0x%x and 0x%x",
+				     info->ctmark, ~info->ctmask);
+		break;
+	case XT_CONNMARK_SAVE:
+		xt_xlate_add(xl, "ct mark set mark");
+		if (!(info->nfmask == UINT32_MAX &&
+		    info->ctmask == UINT32_MAX)) {
+			if (info->nfmask == info->ctmask)
+				xt_xlate_add(xl, " and 0x%x", info->nfmask);
+		}
+		break;
+	case XT_CONNMARK_RESTORE:
+		xt_xlate_add(xl, "meta mark set ct mark");
+		if (!(info->nfmask == UINT32_MAX &&
+		    info->ctmask == UINT32_MAX)) {
+			if (info->nfmask == info->ctmask)
+				xt_xlate_add(xl, " and 0x%x", info->nfmask);
+		}
+		break;
+	}
+
+	return 1;
+}
+
 static struct xtables_target connmark_tg_reg[] = {
 	{
 		.family        = NFPROTO_UNSPEC,
@@ -377,6 +421,7 @@ static struct xtables_target connmark_tg_reg[] = {
 		.x6_parse      = connmark_tg_parse,
 		.x6_fcheck     = connmark_tg_check,
 		.x6_options    = connmark_tg_opts,
+		.xlate	       = connmark_tg_xlate,
 	},
 };
 
