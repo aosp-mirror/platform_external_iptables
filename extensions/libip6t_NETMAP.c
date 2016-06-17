@@ -49,8 +49,8 @@ static void NETMAP_parse(struct xt_option_call *cb)
 	}
 }
 
-static void NETMAP_print(const void *ip, const struct xt_entry_target *target,
-                         int numeric)
+static void __NETMAP_print(const void *ip, const struct xt_entry_target *target,
+                           int numeric)
 {
 	const struct nf_nat_range *r = (const void *)target->data;
 	struct in6_addr a;
@@ -58,7 +58,7 @@ static void NETMAP_print(const void *ip, const struct xt_entry_target *target,
 	int bits;
 
 	a = r->min_addr.in6;
-	printf(" to:%s", xtables_ip6addr_to_numeric(&a));
+	printf("%s", xtables_ip6addr_to_numeric(&a));
 	for (i = 0; i < 4; i++)
 		a.s6_addr32[i] = ~(r->min_addr.ip6[i] ^ r->max_addr.ip6[i]);
 	bits = xtables_ip6mask_to_cidr(&a);
@@ -68,10 +68,17 @@ static void NETMAP_print(const void *ip, const struct xt_entry_target *target,
 		printf("/%d", bits);
 }
 
+static void NETMAP_print(const void *ip, const struct xt_entry_target *target,
+                           int numeric)
+{
+	printf(" to:");
+	__NETMAP_print(ip, target, numeric);
+}
+
 static void NETMAP_save(const void *ip, const struct xt_entry_target *target)
 {
 	printf(" --%s ", NETMAP_opts[0].name);
-	NETMAP_print(ip, target, 0);
+	__NETMAP_print(ip, target, 0);
 }
 
 static struct xtables_target netmap_tg_reg = {
