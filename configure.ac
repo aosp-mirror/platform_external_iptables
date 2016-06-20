@@ -157,21 +157,6 @@ if test "x$enable_nftables" = "xyes"; then
 	        echo "    Please install the 'flex' package."
 	        exit 1
 	fi
-
-	AC_MSG_CHECKING(flex version)
-	flex_version=`$ac_cv_prog_LEX --version | sed 's/version//g' | awk '/flex/ {print $2}'`
-	flex_major=`echo $flex_version| cut -d . -f 1`
-	flex_minor=`echo $flex_version| cut -d . -f 2`
-	flex_rev=`echo $flex_version| cut -d . -f 3`
-
-	if test "$flex_major" -eq "2" && test "$flex_minor" -eq "5" && test "$flex_rev" -ge "33"; then
-		AC_MSG_RESULT([$flex_version. OK])
-	else
-		AC_MSG_WARN([flex version $flex_version found.
-		Version 2.5.33 or greater is required. You may experience problems
-		while compilating the nftables compatibility layer for iptables.
-		Please, consider to upgrade flex.])
-	fi
 fi
 
 AM_CONDITIONAL([HAVE_LIBMNL], [test "$mnl" = 1])
