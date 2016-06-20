@@ -1194,6 +1194,201 @@ static int state_xlate(const void *ip, const struct xt_entry_match *match,
 	return 1;
 }
 
+static void status_xlate_print(struct xt_xlate *xl, unsigned int statusmask)
+{
+	const char *sep = "";
+
+	if (statusmask & IPS_EXPECTED) {
+		xt_xlate_add(xl, "%s%s", sep, "expected");
+		sep = ",";
+	}
+	if (statusmask & IPS_SEEN_REPLY) {
+		xt_xlate_add(xl, "%s%s", sep, "seen-reply");
+		sep = ",";
+	}
+	if (statusmask & IPS_ASSURED) {
+		xt_xlate_add(xl, "%s%s", sep, "assured");
+		sep = ",";
+	}
+	if (statusmask & IPS_CONFIRMED) {
+		xt_xlate_add(xl, "%s%s", sep, "confirmed");
+		sep = ",";
+	}
+}
+
+static void addr_xlate_print(struct xt_xlate *xl,
+			     const union nf_inet_addr *addr,
+			     const union nf_inet_addr *mask,
+			     unsigned int family)
+{
+	if (family == NFPROTO_IPV4) {
+		xt_xlate_add(xl, "%s%s", xtables_ipaddr_to_numeric(&addr->in),
+		     xtables_ipmask_to_numeric(&mask->in));
+	} else if (family == NFPROTO_IPV6) {
+		xt_xlate_add(xl, "%s%s", xtables_ip6addr_to_numeric(&addr->in6),
+		     xtables_ip6mask_to_numeric(&mask->in6));
+	}
+}
+
+static int _conntrack3_mt_xlate(const void *ip,
+				const struct xt_entry_match *match,
+				struct xt_xlate *xl, int numeric,
+				int family)
+{
+	const struct xt_conntrack_mtinfo3 *sinfo = (const void *)match->data;
+
+	if (sinfo->match_flags & XT_CONNTRACK_DIRECTION)
+		xt_xlate_add(xl, "ct direction %s ",
+			     sinfo->invert_flags & XT_CONNTRACK_DIRECTION ?
+			     "reply" : "original");
+
+	if (sinfo->match_flags & XT_CONNTRACK_PROTO)
+		xt_xlate_add(xl, "ct %s protocol %s%u ",
+			     sinfo->invert_flags & XT_CONNTRACK_DIRECTION ?
+			     "reply" : "original",
+			     sinfo->invert_flags & XT_CONNTRACK_PROTO ?
+			     "!= " : "",
+			     sinfo->l4proto);
+
+	if (sinfo->match_flags & XT_CONNTRACK_STATE) {
+		xt_xlate_add(xl, "ct state %s",
+			     sinfo->invert_flags & XT_CONNTRACK_STATE ?
+			     "!= " : "");
+		state_xlate_print(xl, sinfo->state_mask);
+		xt_xlate_add(xl, " ");
+	}
+
+	if (sinfo->match_flags & XT_CONNTRACK_STATUS) {
+		if (sinfo->status_mask == 1)
+			return 0;
+		xt_xlate_add(xl, "ct status %s",
+			     sinfo->invert_flags & XT_CONNTRACK_STATUS ?
+			     "!= " : "");
+		status_xlate_print(xl, sinfo->status_mask);
+		xt_xlate_add(xl, " ");
+	}
+
+	if (sinfo->match_flags & XT_CONNTRACK_EXPIRES) {
+		xt_xlate_add(xl, "ct expiration %s",
+			     sinfo->invert_flags & XT_CONNTRACK_EXPIRES ?
+			     "!= " : "");
+		if (sinfo->expires_max == sinfo->expires_min)
+			xt_xlate_add(xl, "%lu", sinfo->expires_min);
+		else
+			xt_xlate_add(xl, "%lu-%lu", sinfo->expires_min,
+				     sinfo->expires_max);
+		xt_xlate_add(xl, " ");
+	}
+
+	if (sinfo->match_flags & XT_CONNTRACK_ORIGSRC) {
+		if (&sinfo->origsrc_addr == 0L)
+			return 0;
+
+		xt_xlate_add(xl, "ct original saddr %s",
+			     sinfo->invert_flags & XT_CONNTRACK_ORIGSRC ?
+			     "!= " : "");
+		addr_xlate_print(xl, &sinfo->origsrc_addr,
+				 &sinfo->origsrc_mask, family);
+		xt_xlate_add(xl, " ");
+	}
+
+	if (sinfo->match_flags & XT_CONNTRACK_ORIGDST) {
+		if (&sinfo->origdst_addr == 0L)
+			return 0;
+
+		xt_xlate_add(xl, "ct original daddr %s",
+			     sinfo->invert_flags & XT_CONNTRACK_ORIGDST ?
+			     "!= " : "");
+		addr_xlate_print(xl, &sinfo->origdst_addr,
+				 &sinfo->origdst_mask, family);
+		xt_xlate_add(xl, " ");
+	}
+
+	if (sinfo->match_flags & XT_CONNTRACK_REPLSRC) {
+		if (&sinfo->replsrc_addr == 0L)
+			return 0;
+
+		xt_xlate_add(xl, "ct reply saddr %s",
+			     sinfo->invert_flags & XT_CONNTRACK_REPLSRC ?
+			     "!= " : "");
+		addr_xlate_print(xl, &sinfo->replsrc_addr,
+				 &sinfo->replsrc_mask, family);
+		xt_xlate_add(xl, " ");
+	}
+
+	if (sinfo->match_flags & XT_CONNTRACK_REPLDST) {
+		if (&sinfo->repldst_addr == 0L)
+			return 0;
+
+		xt_xlate_add(xl, "ct reply daddr %s",
+			     sinfo->invert_flags & XT_CONNTRACK_REPLDST ?
+			     "!= " : "");
+		addr_xlate_print(xl, &sinfo->repldst_addr,
+				 &sinfo->repldst_mask, family);
+		xt_xlate_add(xl, " ");
+	}
+
+	if (sinfo->match_flags & XT_CONNTRACK_ORIGSRC_PORT) {
+		xt_xlate_add(xl, "ct original proto-src %s",
+			     sinfo->invert_flags & XT_CONNTRACK_ORIGSRC_PORT ?
+			     "!= " : "");
+		if (sinfo->origsrc_port == sinfo->origsrc_port_high)
+			xt_xlate_add(xl, "%u ", sinfo->origsrc_port);
+		else
+			xt_xlate_add(xl, "%u-%u ", sinfo->origsrc_port,
+				     sinfo->origsrc_port_high);
+	}
+
+	if (sinfo->match_flags & XT_CONNTRACK_ORIGDST_PORT) {
+		xt_xlate_add(xl, "ct original proto-dst %s",
+			     sinfo->invert_flags & XT_CONNTRACK_ORIGDST_PORT ?
+			     "!= " : "");
+		if (sinfo->origdst_port == sinfo->origdst_port_high)
+			xt_xlate_add(xl, "%u ", sinfo->origdst_port);
+		else
+			xt_xlate_add(xl, "%u-%u ", sinfo->origdst_port,
+				     sinfo->origdst_port_high);
+	}
+
+	if (sinfo->match_flags & XT_CONNTRACK_REPLSRC_PORT) {
+		xt_xlate_add(xl, "ct reply proto-src %s",
+			     sinfo->invert_flags & XT_CONNTRACK_REPLSRC_PORT ?
+			     "!= " : "");
+		if (sinfo->replsrc_port == sinfo->replsrc_port_high)
+			xt_xlate_add(xl, "%u ", sinfo->replsrc_port);
+		else
+			xt_xlate_add(xl, "%u-%u ", sinfo->replsrc_port,
+				     sinfo->replsrc_port_high);
+	}
+
+	if (sinfo->match_flags & XT_CONNTRACK_REPLDST_PORT) {
+		xt_xlate_add(xl, "ct reply proto-dst %s",
+			     sinfo->invert_flags & XT_CONNTRACK_REPLDST_PORT ?
+			     "!= " : "", sinfo->repldst_port);
+		if (sinfo->repldst_port == sinfo->repldst_port_high)
+			xt_xlate_add(xl, "%u ", sinfo->repldst_port);
+		else
+			xt_xlate_add(xl, "%u-%u ", sinfo->repldst_port,
+				     sinfo->repldst_port_high);
+	}
+
+	return 1;
+}
+
+static int conntrack3_mt4_xlate(const void *ip,
+				const struct xt_entry_match *match,
+				struct xt_xlate *xl, int numeric)
+{
+	return _conntrack3_mt_xlate(ip, match, xl, numeric, NFPROTO_IPV4);
+}
+
+static int conntrack3_mt6_xlate(const void *ip,
+				const struct xt_entry_match *match,
+				struct xt_xlate *xl, int numeric)
+{
+	return _conntrack3_mt_xlate(ip, match, xl, numeric, NFPROTO_IPV6);
+}
+
 static struct xtables_match conntrack_mt_reg[] = {
 	{
 		.version       = XTABLES_VERSION,
@@ -1284,6 +1479,7 @@ static struct xtables_match conntrack_mt_reg[] = {
 		.save          = conntrack3_mt_save,
 		.alias	       = conntrack_print_name_alias,
 		.x6_options    = conntrack3_mt_opts,
+		.xlate	       = conntrack3_mt4_xlate,
 	},
 	{
 		.version       = XTABLES_VERSION,
@@ -1299,6 +1495,7 @@ static struct xtables_match conntrack_mt_reg[] = {
 		.save          = conntrack3_mt6_save,
 		.alias	       = conntrack_print_name_alias,
 		.x6_options    = conntrack3_mt_opts,
+		.xlate	       = conntrack3_mt6_xlate,
 	},
 	{
 		.family        = NFPROTO_UNSPEC,
