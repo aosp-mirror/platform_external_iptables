@@ -322,14 +322,14 @@ static int iprange_xlate(const void *ip, const struct xt_entry_match *match,
 
 	if (info->flags & IPRANGE_SRC) {
 		if (info->flags & IPRANGE_SRC_INV)
-			xt_xlate_add(xl, " !=");
-		xt_xlate_add(xl, " ip saddr");
+			xt_xlate_add(xl, "!= ");
+		xt_xlate_add(xl, "ip saddr");
 		print_iprange_xlate(&info->src, xl);
 	}
 	if (info->flags & IPRANGE_DST) {
 		if (info->flags & IPRANGE_DST_INV)
-			xt_xlate_add(xl, " !=");
-		xt_xlate_add(xl, " ip daddr");
+			xt_xlate_add(xl, "!= ");
+		xt_xlate_add(xl, "ip daddr");
 		print_iprange_xlate(&info->dst, xl);
 	}
 
@@ -343,16 +343,16 @@ static int iprange_mt4_xlate(const void *ip, const struct xt_entry_match *match,
 
 	if (info->flags & IPRANGE_SRC) {
 		if (info->flags & IPRANGE_SRC_INV)
-			xt_xlate_add(xl, " !=");
-		xt_xlate_add(xl, " ip saddr %s",
+			xt_xlate_add(xl, "!= ");
+		xt_xlate_add(xl, "ip saddr %s",
 			   xtables_ipaddr_to_numeric(&info->src_min.in));
 		xt_xlate_add(xl, "-%s ",
 			   xtables_ipaddr_to_numeric(&info->src_max.in));
 	}
 	if (info->flags & IPRANGE_DST) {
 		if (info->flags & IPRANGE_DST_INV)
-			xt_xlate_add(xl, " !=");
-		xt_xlate_add(xl, " ip daddr %s",
+			xt_xlate_add(xl, "!= ");
+		xt_xlate_add(xl, "ip daddr %s",
 			   xtables_ipaddr_to_numeric(&info->dst_min.in));
 		xt_xlate_add(xl, "-%s ",
 			   xtables_ipaddr_to_numeric(&info->dst_max.in));
@@ -368,16 +368,16 @@ static int iprange_mt6_xlate(const void *ip, const struct xt_entry_match *match,
 
 	if (info->flags & IPRANGE_SRC) {
 		if (info->flags & IPRANGE_SRC_INV)
-			xt_xlate_add(xl, " !=");
-		xt_xlate_add(xl, " ip saddr %s",
+			xt_xlate_add(xl, "!= ");
+		xt_xlate_add(xl, "ip saddr %s",
 			   xtables_ip6addr_to_numeric(&info->src_min.in6));
 		xt_xlate_add(xl, "-%s ",
 			   xtables_ip6addr_to_numeric(&info->src_max.in6));
 	}
 	if (info->flags & IPRANGE_DST) {
 		if (info->flags & IPRANGE_DST_INV)
-			xt_xlate_add(xl, " !=");
-		xt_xlate_add(xl, " ip daddr %s",
+			xt_xlate_add(xl, "!= ");
+		xt_xlate_add(xl, "ip daddr %s",
 			   xtables_ip6addr_to_numeric(&info->dst_min.in6));
 		xt_xlate_add(xl, "-%s ",
 			   xtables_ip6addr_to_numeric(&info->dst_max.in6));
