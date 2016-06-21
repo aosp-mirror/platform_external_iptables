@@ -195,7 +195,7 @@ static void MARK_print_v1(const void *ip, const struct xt_entry_target *target,
 	case XT_MARK_AND:
 		printf(" MARK and");
 		break;
-	case XT_MARK_OR: 
+	case XT_MARK_OR:
 		printf(" MARK or");
 		break;
 	}
@@ -231,7 +231,7 @@ static void MARK_save_v1(const void *ip, const struct xt_entry_target *target)
 	case XT_MARK_AND:
 		printf(" --and-mark");
 		break;
-	case XT_MARK_OR: 
+	case XT_MARK_OR:
 		printf(" --or-mark");
 		break;
 	}
@@ -267,6 +267,29 @@ static int mark_tg_xlate(const void *ip, const struct xt_entry_target *target,
 	return 1;
 }
 
+static int MARK_xlate(const void *ip, const struct xt_entry_target *target,
+			 struct xt_xlate *xl, int numeric)
+{
+	const struct xt_mark_target_info_v1 *markinfo =
+		(const struct xt_mark_target_info_v1 *)target->data;
+
+	xt_xlate_add(xl, "meta mark set ");
+
+	switch(markinfo->mode) {
+	case XT_MARK_SET:
+		xt_xlate_add(xl, "0x%x ", markinfo->mark);
+		break;
+	case XT_MARK_AND:
+		xt_xlate_add(xl, "mark and 0x%x ", markinfo->mark);
+		break;
+	case XT_MARK_OR:
+		xt_xlate_add(xl, "mark or 0x%x ", markinfo->mark);
+		break;
+	}
+
+	return 1;
+}
+
 static struct xtables_target mark_tg_reg[] = {
 	{
 		.family        = NFPROTO_UNSPEC,
@@ -295,6 +318,7 @@ static struct xtables_target mark_tg_reg[] = {
 		.x6_parse      = MARK_parse_v1,
 		.x6_fcheck     = MARK_check,
 		.x6_options    = MARK_opts,
+		.xlate	       = MARK_xlate,
 	},
 	{
 		.version       = XTABLES_VERSION,
