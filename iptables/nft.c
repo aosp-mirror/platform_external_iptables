@@ -43,6 +43,7 @@
 #include <libnftnl/rule.h>
 #include <libnftnl/expr.h>
 #include <libnftnl/set.h>
+#include <libnftnl/udata.h>
 
 #include <netinet/in.h>	/* inet_ntoa */
 #include <arpa/inet.h>
@@ -1003,6 +1004,31 @@ int add_counters(struct nftnl_rule *r, uint64_t packets, uint64_t bytes)
 	nftnl_expr_set_u64(expr, NFTNL_EXPR_CTR_BYTES, bytes);
 
 	nftnl_rule_add_expr(r, expr);
+
+	return 0;
+}
+
+enum udata_type {
+	UDATA_TYPE_COMMENT,
+	__UDATA_TYPE_MAX,
+};
+#define UDATA_TYPE_MAX (__UDATA_TYPE_MAX - 1)
+
+int add_comment(struct nftnl_rule *r, const char *comment)
+{
+	struct nftnl_udata_buf *udata;
+
+	udata = nftnl_udata_buf_alloc(NFT_USERDATA_MAXLEN);
+	if (!udata)
+		return -ENOMEM;
+
+	if (!nftnl_udata_put_strz(udata, UDATA_TYPE_COMMENT, comment))
+		return -ENOMEM;
+	nftnl_rule_set_data(r, NFTNL_RULE_USERDATA,
+			    nftnl_udata_buf_data(udata),
+			    nftnl_udata_buf_len(udata));
+
+	nftnl_udata_buf_free(udata);
 
 	return 0;
 }
