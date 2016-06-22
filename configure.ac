@@ -175,7 +175,7 @@ if test "x$enable_connlabel" = "xyes"; then
 	if test "$nfconntrack" -ne 1; then
 		blacklist_modules="$blacklist_modules connlabel";
 		echo "WARNING: libnetfilter_conntrack not found, connlabel match will not be built";
-		enable_connlabel = "no";
+		enable_connlabel="no";
 	fi;
 else
 	blacklist_modules="$blacklist_modules connlabel";
