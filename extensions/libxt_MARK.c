@@ -261,8 +261,8 @@ static int mark_tg_xlate(const void *ip, const struct xt_entry_target *target,
 	else if (info->mask == 0xffffffffU)
 		xt_xlate_add(xl, "0x%x ", info->mark);
 	else
-		xt_xlate_add(xl, "mark xor 0x%x and 0x%x ", info->mark,
-			     info->mask);
+		xt_xlate_add(xl, "mark and 0x%x xor 0x%x ", ~info->mask,
+			     info->mark);
 
 	return 1;
 }
