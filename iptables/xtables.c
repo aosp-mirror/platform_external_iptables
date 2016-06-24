@@ -86,6 +86,7 @@ static struct option original_opts[] = {
 	{.name = "out-interface", .has_arg = 1, .val = 'o'},
 	{.name = "verbose",	  .has_arg = 0, .val = 'v'},
 	{.name = "wait",	  .has_arg = 2, .val = 'w'},
+	{.name = "wait-interval", .has_arg = 2, .val = 'W'},
 	{.name = "exact",	  .has_arg = 0, .val = 'x'},
 	{.name = "fragments",	  .has_arg = 0, .val = 'f'},
 	{.name = "version",	  .has_arg = 0, .val = 'V'},
@@ -239,6 +240,9 @@ exit_printhelp(const struct xtables_rule_match *matches)
 "				network interface name ([+] for wildcard)\n"
 "  --table	-t table	table to manipulate (default: `filter')\n"
 "  --verbose	-v		verbose mode\n"
+"  --wait	-w [seconds]	maximum wait to acquire xtables lock before give up\n"
+"  --wait-interval -W [usecs]	wait time to try to acquire xtables lock\n"
+"				default is 1 second\n"
 "  --line-numbers		print line numbers when listing\n"
 "  --exact	-x		expand numbers (display exact values)\n"
 "[!] --fragment	-f		match second or further fragments only\n"
@@ -685,6 +689,8 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 {
 	struct xtables_match *m;
 	struct xtables_rule_match *matchp;
+	bool wait_interval_set = false;
+	struct timeval wait_interval;
 	struct xtables_target *t;
 	int wait = 0;
 
@@ -716,7 +722,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 
 	opts = xt_params->orig_opts;
 	while ((cs->c = getopt_long(argc, argv,
-	   "-:A:C:D:R:I:L::S::M:F::Z::N:X::E:P:Vh::o:p:s:d:j:i:fbvw::nt:m:xc:g:46",
+	   "-:A:C:D:R:I:L::S::M:F::Z::N:X::E:P:Vh::o:p:s:d:j:i:fbvw::W::nt:m:xc:g:46",
 					   opts, NULL)) != -1) {
 		switch (cs->c) {
 			/*
@@ -1019,6 +1025,23 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 						      "wait seconds not numeric");
 			break;
 
+		case 'W':
+			if (p->restore) {
+				xtables_error(PARAMETER_PROBLEM,
+					      "You cannot use `-W' from "
+					      "iptables-restore");
+			}
+			if (optarg)
+				parse_wait_interval(optarg, &wait_interval);
+			else if (optind < argc &&
+				   argv[optind][0] != '-' &&
+				   argv[optind][0] != '!')
+				parse_wait_interval(argv[optind++],
+						    &wait_interval);
+
+			wait_interval_set = true;
+			break;
+
 		case '0':
 			set_option(&cs->options, OPT_LINENUMBERS,
 				   &args->invflags, cs->invert);
@@ -1100,6 +1123,10 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 		xtables_error(PARAMETER_PROBLEM,
 			"\nThe \"nat\" table is not intended for filtering, "
 			"the use of DROP is therefore inhibited.\n\n");
+
+	if (!wait && wait_interval_set)
+		xtables_error(PARAMETER_PROBLEM,
+			      "--wait-interval only makes sense with --wait\n");
 
 	for (matchp = cs->matches; matchp; matchp = matchp->next)
 		xtables_option_mfcall(matchp->match);
