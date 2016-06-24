@@ -7,6 +7,10 @@
 -j NFLOG --nflog-range 4294967295;=;OK
 -j NFLOG --nflog-range 4294967296;;FAIL
 -j NFLOG --nflog-range -1;;FAIL
+-j NFLOG --nflog-size 1;=;OK
+-j NFLOG --nflog-size 4294967295;=;OK
+-j NFLOG --nflog-size 4294967296;;FAIL
+-j NFLOG --nflog-size -1;;FAIL
 # ERROR: cannot find: iptables -I INPUT -j NFLOG --nflog-prefix  xxxxxx [...]
 # -j NFLOG --nflog-prefix xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx;=;OK
 # ERROR: should fail: iptables -A INPUT -j NFLOG --nflog-prefix  xxxxxxx [...]

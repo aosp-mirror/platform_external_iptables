@@ -12,7 +12,10 @@ enum {
 	O_GROUP = 0,
 	O_PREFIX,
 	O_RANGE,
+	O_SIZE,
 	O_THRESHOLD,
+	F_RANGE = 1 << O_RANGE,
+	F_SIZE = 1 << O_SIZE,
 };
 
 #define s struct xt_nflog_info
@@ -22,7 +25,9 @@ static const struct xt_option_entry NFLOG_opts[] = {
 	{.name = "nflog-prefix", .id = O_PREFIX, .type = XTTYPE_STRING,
 	 .min = 1, .flags = XTOPT_PUT, XTOPT_POINTER(s, prefix)},
 	{.name = "nflog-range", .id = O_RANGE, .type = XTTYPE_UINT32,
-	 .flags = XTOPT_PUT, XTOPT_POINTER(s, len)},
+	 .excl = F_SIZE, .flags = XTOPT_PUT, XTOPT_POINTER(s, len)},
+	{.name = "nflog-size", .id = O_SIZE, .type = XTTYPE_UINT32,
+	 .excl = F_RANGE, .flags = XTOPT_PUT, XTOPT_POINTER(s, len)},
 	{.name = "nflog-threshold", .id = O_THRESHOLD, .type = XTTYPE_UINT16,
 	 .flags = XTOPT_PUT, XTOPT_POINTER(s, threshold)},
 	XTOPT_TABLEEND,
@@ -33,7 +38,8 @@ static void NFLOG_help(void)
 {
 	printf("NFLOG target options:\n"
 	       " --nflog-group NUM		NETLINK group used for logging\n"
-	       " --nflog-range NUM		Number of byte to copy\n"
+	       " --nflog-range NUM		This option has no effect, use --nflog-size\n"
+	       " --nflog-size NUM		Number of bytes to copy\n"
 	       " --nflog-threshold NUM		Message threshold of in-kernel queue\n"
 	       " --nflog-prefix STRING		Prefix string for log messages\n");
 }
@@ -57,6 +63,18 @@ static void NFLOG_parse(struct xt_option_call *cb)
 	}
 }
 
+static void NFLOG_check(struct xt_fcheck_call *cb)
+{
+	struct xt_nflog_info *info = cb->data;
+
+	if (cb->xflags & F_RANGE)
+		fprintf(stderr, "warn: --nflog-range has never worked and is no"
+			" longer supported, please use --nflog-size insted\n");
+
+	if (cb->xflags & F_SIZE)
+		info->flags |= XT_NFLOG_F_COPY_LEN;
+}
+
 static void nflog_print(const struct xt_nflog_info *info, char *prefix)
 {
 	if (info->prefix[0] != '\0') {
@@ -65,7 +83,9 @@ static void nflog_print(const struct xt_nflog_info *info, char *prefix)
 	}
 	if (info->group)
 		printf(" %snflog-group %u", prefix, info->group);
-	if (info->len)
+	if (info->len && info->flags & XT_NFLOG_F_COPY_LEN)
+		printf(" %snflog-size %u", prefix, info->len);
+	else if (info->len)
 		printf(" %snflog-range %u", prefix, info->len);
 	if (info->threshold != XT_NFLOG_DEFAULT_THRESHOLD)
 		printf(" %snflog-threshold %u", prefix, info->threshold);
@@ -117,6 +137,7 @@ static struct xtables_target nflog_target = {
 	.userspacesize	= XT_ALIGN(sizeof(struct xt_nflog_info)),
 	.help		= NFLOG_help,
 	.init		= NFLOG_init,
+	.x6_fcheck	= NFLOG_check,
 	.x6_parse	= NFLOG_parse,
 	.print		= NFLOG_print,
 	.save		= NFLOG_save,
