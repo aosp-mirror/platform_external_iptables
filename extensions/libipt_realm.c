@@ -115,8 +115,8 @@ print_realm_xlate(unsigned long id, unsigned long mask,
 	const char *name = NULL;
 
 	if (mask != 0xffffffff)
-		xt_xlate_add(xl, " and 0x%lx %s 0x%lx ", id,
-			   op == XT_OP_EQ ? "==" : "!=", mask);
+		xt_xlate_add(xl, " and 0x%lx %s 0x%lx ", mask,
+			   op == XT_OP_EQ ? "==" : "!=", id);
 	else {
 		if (numeric == 0)
 			name = xtables_lmap_id2name(realms, id);
