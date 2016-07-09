@@ -299,7 +299,7 @@ static int dccp_type_xlate(const struct xt_dccp_info *einfo,
 	if (types & (1 << DCCP_PKT_INVALID))
 		return 0;
 
-	xt_xlate_add(xl, "dccp type%s ", einfo->invflags ? " !=" : "");
+	xt_xlate_add(xl, " dccp type%s ", einfo->invflags ? " !=" : "");
 
 	if ((types != 0) && !(types == (types & -types))) {
 		xt_xlate_add(xl, "{");
@@ -324,8 +324,6 @@ static int dccp_type_xlate(const struct xt_dccp_info *einfo,
 	if (set_need)
 		xt_xlate_add(xl, "}");
 
-	xt_xlate_add(xl, " ");
-
 	return 1;
 }
 
@@ -335,27 +333,29 @@ static int dccp_xlate(const void *ip, const struct xt_entry_match *match,
 	const struct xt_dccp_info *einfo =
 			(const struct xt_dccp_info *)match->data;
 	int ret = 1;
+	char *space = "";
 
 	xt_xlate_add(xl, "dccp ");
 
 	if (einfo->flags & XT_DCCP_SRC_PORTS) {
 		if (einfo->spts[0] != einfo->spts[1])
-			xt_xlate_add(xl, "sport%s %u-%u ",
+			xt_xlate_add(xl, "sport%s %u-%u",
 				     einfo->invflags & XT_DCCP_SRC_PORTS ? " !=" : "",
 				     einfo->spts[0], einfo->spts[1]);
 		else
-			xt_xlate_add(xl, "sport%s %u ",
+			xt_xlate_add(xl, "sport%s %u",
 				     einfo->invflags & XT_DCCP_SRC_PORTS ? " !=" : "",
 				     einfo->spts[0]);
+		space = " ";
 	}
 
 	if (einfo->flags & XT_DCCP_DEST_PORTS) {
 		if (einfo->dpts[0] != einfo->dpts[1])
-			xt_xlate_add(xl, "dport%s %u-%u ",
+			xt_xlate_add(xl, "%sdport%s %u-%u", space,
 				     einfo->invflags & XT_DCCP_DEST_PORTS ? " !=" : "",
 				     einfo->dpts[0], einfo->dpts[1]);
 		else
-			xt_xlate_add(xl, "dport%s %u ",
+			xt_xlate_add(xl, "%sdport%s %u", space,
 				     einfo->invflags & XT_DCCP_DEST_PORTS ? " !=" : "",
 				     einfo->dpts[0]);
 	}

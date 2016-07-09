@@ -133,7 +133,7 @@ static void print_pkttype_xlate(const struct xt_pkttype_info *info,
 
 	for (i = 0; i < ARRAY_SIZE(supported_types_xlate); ++i) {
 		if (supported_types_xlate[i].pkttype == info->pkttype) {
-			xt_xlate_add(xl, "%s ", supported_types_xlate[i].name);
+			xt_xlate_add(xl, "%s", supported_types_xlate[i].name);
 			return;
 		}
 	}

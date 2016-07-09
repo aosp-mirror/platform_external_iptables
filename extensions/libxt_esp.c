@@ -95,10 +95,10 @@ static int esp_xlate(const void *ip, const struct xt_entry_match *match,
 		xt_xlate_add(xl, "esp spi%s",
 			   (espinfo->invflags & XT_ESP_INV_SPI) ? " !=" : "");
 		if (espinfo->spis[0] != espinfo->spis[1])
-			xt_xlate_add(xl, " %u-%u ", espinfo->spis[0],
+			xt_xlate_add(xl, " %u-%u", espinfo->spis[0],
 				   espinfo->spis[1]);
 		else
-			xt_xlate_add(xl, " %u ", espinfo->spis[0]);
+			xt_xlate_add(xl, " %u", espinfo->spis[0]);
 	}
 
 	return 1;

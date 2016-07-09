@@ -490,6 +490,7 @@ static int sctp_xlate(const void *ip, const struct xt_entry_match *match,
 {
 	const struct xt_sctp_info *einfo =
 		(const struct xt_sctp_info *)match->data;
+	char *space = "";
 
 	if (!einfo->flags)
 		return 0;
@@ -498,22 +499,23 @@ static int sctp_xlate(const void *ip, const struct xt_entry_match *match,
 
 	if (einfo->flags & XT_SCTP_SRC_PORTS) {
 		if (einfo->spts[0] != einfo->spts[1])
-			xt_xlate_add(xl, "sport%s %u-%u ",
+			xt_xlate_add(xl, "sport%s %u-%u",
 				     einfo->invflags & XT_SCTP_SRC_PORTS ? " !=" : "",
 				     einfo->spts[0], einfo->spts[1]);
 		else
-			xt_xlate_add(xl, "sport%s %u ",
+			xt_xlate_add(xl, "sport%s %u",
 				     einfo->invflags & XT_SCTP_SRC_PORTS ? " !=" : "",
 				     einfo->spts[0]);
+		space = " ";
 	}
 
 	if (einfo->flags & XT_SCTP_DEST_PORTS) {
 		if (einfo->dpts[0] != einfo->dpts[1])
-			xt_xlate_add(xl, "dport%s %u-%u ",
+			xt_xlate_add(xl, "%sdport%s %u-%u", space,
 				     einfo->invflags & XT_SCTP_DEST_PORTS ? " !=" : "",
 				     einfo->dpts[0], einfo->dpts[1]);
 		else
-			xt_xlate_add(xl, "dport%s %u ",
+			xt_xlate_add(xl, "%sdport%s %u", space,
 				     einfo->invflags & XT_SCTP_DEST_PORTS ? " !=" : "",
 				     einfo->dpts[0]);
 	}

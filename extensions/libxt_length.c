@@ -63,9 +63,9 @@ static int length_xlate(const void *ip, const struct xt_entry_match *match,
 
 	xt_xlate_add(xl, "meta length %s", info->invert ? "!= " : "");
 	if (info->min == info->max)
-		xt_xlate_add(xl, "%u ", info->min);
+		xt_xlate_add(xl, "%u", info->min);
 	else
-		xt_xlate_add(xl, "%u-%u ", info->min, info->max);
+		xt_xlate_add(xl, "%u-%u", info->min, info->max);
 
 	return 1;
 }

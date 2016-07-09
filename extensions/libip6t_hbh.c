@@ -173,7 +173,7 @@ static int hbh_xlate(const void *ip, const struct xt_entry_match *match,
 	    (optinfo->flags & IP6T_OPTS_OPTS))
 		return 0;
 
-	xt_xlate_add(xl, "hbh hdrlength %s%u ",
+	xt_xlate_add(xl, "hbh hdrlength %s%u",
 		     (optinfo->invflags & IP6T_OPTS_INV_LEN) ? "!= " : "",
 		     optinfo->hdrlen);
 

@@ -49,7 +49,7 @@ static int cpu_xlate(const void *ip, const struct xt_entry_match *match,
 {
 	const struct xt_cpu_info *info = (void *)match->data;
 
-	xt_xlate_add(xl, "cpu%s %u ", info->invert ? " !=" : "", info->cpu);
+	xt_xlate_add(xl, "cpu%s %u", info->invert ? " !=" : "", info->cpu);
 
 	return 1;
 }

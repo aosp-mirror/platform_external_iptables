@@ -211,11 +211,11 @@ static int mh_xlate(const void *ip, const struct xt_entry_match *match,
 		return 1;
 
 	if (mhinfo->types[0] != mhinfo->types[1])
-		xt_xlate_add(xl, "mh type %s%u-%u ",
+		xt_xlate_add(xl, "mh type %s%u-%u",
 			     mhinfo->invflags & IP6T_MH_INV_TYPE ? "!= " : "",
 			     mhinfo->types[0], mhinfo->types[1]);
 	else
-		xt_xlate_add(xl, "mh type %s%u ",
+		xt_xlate_add(xl, "mh type %s%u",
 			     mhinfo->invflags & IP6T_MH_INV_TYPE ? "!= " : "",
 			     mhinfo->types[0]);
 

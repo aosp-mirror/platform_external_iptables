@@ -477,10 +477,10 @@ static int __multiport_xlate(const void *ip, const struct xt_entry_match *match,
 
 	switch (multiinfo->flags) {
 	case XT_MULTIPORT_SOURCE:
-		xt_xlate_add(xl, "sport ");
+		xt_xlate_add(xl, " sport ");
 		break;
 	case XT_MULTIPORT_DESTINATION:
-		xt_xlate_add(xl, "dport ");
+		xt_xlate_add(xl, " dport ");
 		break;
 	case XT_MULTIPORT_EITHER:
 		return 0;
@@ -495,8 +495,6 @@ static int __multiport_xlate(const void *ip, const struct xt_entry_match *match,
 	if (multiinfo->count > 1)
 		xt_xlate_add(xl, "}");
 
-	xt_xlate_add(xl, " ");
-
 	return 1;
 }
 
@@ -505,7 +503,7 @@ static int multiport_xlate(const void *ip, const struct xt_entry_match *match,
 {
 	uint8_t proto = ((const struct ipt_ip *)ip)->proto;
 
-	xt_xlate_add(xl, "%s ", proto_to_name(proto));
+	xt_xlate_add(xl, "%s", proto_to_name(proto));
 	return __multiport_xlate(ip, match, xl, numeric);
 }
 
@@ -514,7 +512,7 @@ static int multiport_xlate6(const void *ip, const struct xt_entry_match *match,
 {
 	uint8_t proto = ((const struct ip6t_ip6 *)ip)->proto;
 
-	xt_xlate_add(xl, "%s ", proto_to_name(proto));
+	xt_xlate_add(xl, "%s", proto_to_name(proto));
 	return __multiport_xlate(ip, match, xl, numeric);
 }
 
@@ -528,10 +526,10 @@ static int __multiport_xlate_v1(const void *ip,
 
 	switch (multiinfo->flags) {
 	case XT_MULTIPORT_SOURCE:
-		xt_xlate_add(xl, "sport ");
+		xt_xlate_add(xl, " sport ");
 		break;
 	case XT_MULTIPORT_DESTINATION:
-		xt_xlate_add(xl, "dport ");
+		xt_xlate_add(xl, " dport ");
 		break;
 	case XT_MULTIPORT_EITHER:
 		return 0;
@@ -554,8 +552,6 @@ static int __multiport_xlate_v1(const void *ip,
 	    (multiinfo->count > 1 && !multiinfo->pflags[0]))
 		xt_xlate_add(xl, "}");
 
-	xt_xlate_add(xl, " ");
-
 	return 1;
 }
 
@@ -565,7 +561,7 @@ static int multiport_xlate_v1(const void *ip,
 {
 	uint8_t proto = ((const struct ipt_ip *)ip)->proto;
 
-	xt_xlate_add(xl, "%s ", proto_to_name(proto));
+	xt_xlate_add(xl, "%s", proto_to_name(proto));
 	return __multiport_xlate_v1(ip, match, xl, numeric);
 }
 
@@ -575,7 +571,7 @@ static int multiport_xlate6_v1(const void *ip,
 {
 	uint8_t proto = ((const struct ip6t_ip6 *)ip)->proto;
 
-	xt_xlate_add(xl, "%s ", proto_to_name(proto));
+	xt_xlate_add(xl, "%s", proto_to_name(proto));
 	return __multiport_xlate_v1(ip, match, xl, numeric);
 }
 

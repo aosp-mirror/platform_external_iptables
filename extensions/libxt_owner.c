@@ -499,10 +499,10 @@ owner_mt_print_uid_xlate(const struct xt_owner_match_info *info,
 	xt_xlate_add(xl, "skuid%s ", info->invert ? " !=" : "");
 
 	if (info->uid_min != info->uid_max)
-		xt_xlate_add(xl, "%u-%u ", (unsigned int)info->uid_min,
+		xt_xlate_add(xl, "%u-%u", (unsigned int)info->uid_min,
 			     (unsigned int)info->uid_max);
 	else
-		xt_xlate_add(xl, "%u ", (unsigned int)info->uid_min);
+		xt_xlate_add(xl, "%u", (unsigned int)info->uid_min);
 
 	return 1;
 }
@@ -514,10 +514,10 @@ owner_mt_print_gid_xlate(const struct xt_owner_match_info *info,
 	xt_xlate_add(xl, "skgid%s ", info->invert ? " !=" : "");
 
 	if (info->gid_min != info->gid_max)
-		xt_xlate_add(xl, "%u-%u ", (unsigned int)info->gid_min,
+		xt_xlate_add(xl, "%u-%u", (unsigned int)info->gid_min,
 			     (unsigned int)info->gid_max);
 	else
-		xt_xlate_add(xl, "%u ", (unsigned int)info->gid_min);
+		xt_xlate_add(xl, "%u", (unsigned int)info->gid_min);
 
 	return 1;
 }

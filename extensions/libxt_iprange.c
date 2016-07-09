@@ -319,17 +319,21 @@ static int iprange_xlate(const void *ip, const struct xt_entry_match *match,
 			 struct xt_xlate *xl, int numeric)
 {
 	const struct ipt_iprange_info *info = (const void *)match->data;
+	char *space = "";
 
 	if (info->flags & IPRANGE_SRC) {
 		if (info->flags & IPRANGE_SRC_INV)
 			xt_xlate_add(xl, "!= ");
 		xt_xlate_add(xl, "ip saddr");
 		print_iprange_xlate(&info->src, xl);
+		space = " ";
 	}
 	if (info->flags & IPRANGE_DST) {
-		if (info->flags & IPRANGE_DST_INV)
-			xt_xlate_add(xl, "!= ");
-		xt_xlate_add(xl, "ip daddr");
+		if (info->flags & IPRANGE_DST_INV) {
+			xt_xlate_add(xl, "%s!= ", space);
+			space = "";
+		}
+		xt_xlate_add(xl, "%sip daddr", space);
 		print_iprange_xlate(&info->dst, xl);
 	}
 
@@ -340,21 +344,25 @@ static int iprange_mt4_xlate(const void *ip, const struct xt_entry_match *match,
 			     struct xt_xlate *xl, int numeric)
 {
 	const struct xt_iprange_mtinfo *info = (const void *)match->data;
+	char *space = "";
 
 	if (info->flags & IPRANGE_SRC) {
 		if (info->flags & IPRANGE_SRC_INV)
 			xt_xlate_add(xl, "!= ");
 		xt_xlate_add(xl, "ip saddr %s",
 			   xtables_ipaddr_to_numeric(&info->src_min.in));
-		xt_xlate_add(xl, "-%s ",
+		xt_xlate_add(xl, "-%s",
 			   xtables_ipaddr_to_numeric(&info->src_max.in));
+		space = " ";
 	}
 	if (info->flags & IPRANGE_DST) {
-		if (info->flags & IPRANGE_DST_INV)
-			xt_xlate_add(xl, "!= ");
-		xt_xlate_add(xl, "ip daddr %s",
+		if (info->flags & IPRANGE_DST_INV) {
+			xt_xlate_add(xl, "%s!= ", space);
+			space = "";
+		}
+		xt_xlate_add(xl, "%sip daddr %s", space,
 			   xtables_ipaddr_to_numeric(&info->dst_min.in));
-		xt_xlate_add(xl, "-%s ",
+		xt_xlate_add(xl, "-%s",
 			   xtables_ipaddr_to_numeric(&info->dst_max.in));
 	}
 
@@ -365,21 +373,25 @@ static int iprange_mt6_xlate(const void *ip, const struct xt_entry_match *match,
 			     struct xt_xlate *xl, int numeric)
 {
 	const struct xt_iprange_mtinfo *info = (const void *)match->data;
+	char *space = "";
 
 	if (info->flags & IPRANGE_SRC) {
 		if (info->flags & IPRANGE_SRC_INV)
 			xt_xlate_add(xl, "!= ");
 		xt_xlate_add(xl, "ip saddr %s",
 			   xtables_ip6addr_to_numeric(&info->src_min.in6));
-		xt_xlate_add(xl, "-%s ",
+		xt_xlate_add(xl, "-%s",
 			   xtables_ip6addr_to_numeric(&info->src_max.in6));
+		space = " ";
 	}
 	if (info->flags & IPRANGE_DST) {
-		if (info->flags & IPRANGE_DST_INV)
-			xt_xlate_add(xl, "!= ");
-		xt_xlate_add(xl, "ip daddr %s",
+		if (info->flags & IPRANGE_DST_INV) {
+			xt_xlate_add(xl, "%s!= ", space);
+			space = "";
+		}
+		xt_xlate_add(xl, "%sip daddr %s", space,
 			   xtables_ip6addr_to_numeric(&info->dst_min.in6));
-		xt_xlate_add(xl, "-%s ",
+		xt_xlate_add(xl, "-%s",
 			   xtables_ip6addr_to_numeric(&info->dst_max.in6));
 	}
 

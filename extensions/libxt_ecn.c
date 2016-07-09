@@ -133,16 +133,16 @@ static int ecn_xlate(const void *ip, const struct xt_entry_match *match,
 
 	switch (einfo->ip_ect) {
 	case 0:
-		xt_xlate_add(xl, "not-ect ");
+		xt_xlate_add(xl, "not-ect");
 		break;
 	case 1:
-		xt_xlate_add(xl, "ect1 ");
+		xt_xlate_add(xl, "ect1");
 		break;
 	case 2:
-		xt_xlate_add(xl, "ect0 ");
+		xt_xlate_add(xl, "ect0");
 		break;
 	case 3:
-		xt_xlate_add(xl, "ce ");
+		xt_xlate_add(xl, "ce");
 		break;
 	}
 	return 1;

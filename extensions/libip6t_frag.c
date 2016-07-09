@@ -177,29 +177,36 @@ static int frag_xlate(const void *ip, const struct xt_entry_match *match,
 		      struct xt_xlate *xl, int numeric)
 {
 	const struct ip6t_frag *fraginfo = (struct ip6t_frag *)match->data;
+	char *space= "";
 
 	if (!(fraginfo->ids[0] == 0 && fraginfo->ids[1] == 0xFFFFFFFF)) {
 		xt_xlate_add(xl, "frag id %s",
 			     (fraginfo->invflags & IP6T_FRAG_INV_IDS) ?
 			     "!= " : "");
 		if (fraginfo->ids[0] != fraginfo->ids[1])
-			xt_xlate_add(xl, "%u-%u ", fraginfo->ids[0],
+			xt_xlate_add(xl, "%u-%u", fraginfo->ids[0],
 				     fraginfo->ids[1]);
 		else
-			xt_xlate_add(xl, "%u ", fraginfo->ids[0]);
+			xt_xlate_add(xl, "%u", fraginfo->ids[0]);
+
+		space = " ";
 	}
 
-	if (fraginfo->flags & IP6T_FRAG_RES)
-		xt_xlate_add(xl, "frag reserved 1 ");
-
-	if (fraginfo->flags & IP6T_FRAG_FST)
-		xt_xlate_add(xl, "frag frag-off 0 ");
-
-	if (fraginfo->flags & IP6T_FRAG_MF)
-		xt_xlate_add(xl, "frag more-fragments 1 ");
-
-	if (fraginfo->flags & IP6T_FRAG_NMF)
-		xt_xlate_add(xl, "frag more-fragments 0 ");
+	if (fraginfo->flags & IP6T_FRAG_RES) {
+		xt_xlate_add(xl, "%sfrag reserved 1", space);
+		space = " ";
+	}
+	if (fraginfo->flags & IP6T_FRAG_FST) {
+		xt_xlate_add(xl, "%sfrag frag-off 0", space);
+		space = " ";
+	}
+	if (fraginfo->flags & IP6T_FRAG_MF) {
+		xt_xlate_add(xl, "%sfrag more-fragments 1", space);
+		space = " ";
+	}
+	if (fraginfo->flags & IP6T_FRAG_NMF) {
+		xt_xlate_add(xl, "%sfrag more-fragments 0", space);
+	}
 
 	return 1;
 }

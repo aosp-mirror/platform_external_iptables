@@ -397,33 +397,36 @@ static int tcp_xlate(const void *ip, const struct xt_entry_match *match,
 		     struct xt_xlate *xl, int numeric)
 {
 	const struct xt_tcp *tcpinfo = (const struct xt_tcp *)match->data;
+	char *space= "";
 
 	if (tcpinfo->spts[0] != 0 || tcpinfo->spts[1] != 0xffff) {
 		if (tcpinfo->spts[0] != tcpinfo->spts[1]) {
-			xt_xlate_add(xl, "tcp sport %s%u-%u ",
+			xt_xlate_add(xl, "tcp sport %s%u-%u",
 				   tcpinfo->invflags & XT_TCP_INV_SRCPT ?
 					"!= " : "",
 				   tcpinfo->spts[0], tcpinfo->spts[1]);
 		} else {
-			xt_xlate_add(xl, "tcp sport %s%u ",
+			xt_xlate_add(xl, "tcp sport %s%u",
 				   tcpinfo->invflags & XT_TCP_INV_SRCPT ?
 					"!= " : "",
 				   tcpinfo->spts[0]);
 		}
+		space = " ";
 	}
 
 	if (tcpinfo->dpts[0] != 0 || tcpinfo->dpts[1] != 0xffff) {
 		if (tcpinfo->dpts[0] != tcpinfo->dpts[1]) {
-			xt_xlate_add(xl, "tcp dport %s%u-%u ",
+			xt_xlate_add(xl, "%stcp dport %s%u-%u", space,
 				   tcpinfo->invflags & XT_TCP_INV_DSTPT ?
 					"!= " : "",
 				   tcpinfo->dpts[0], tcpinfo->dpts[1]);
 		} else {
-			xt_xlate_add(xl, "tcp dport %s%u ",
+			xt_xlate_add(xl, "%stcp dport %s%u", space,
 				   tcpinfo->invflags & XT_TCP_INV_DSTPT ?
 					"!= " : "",
 				   tcpinfo->dpts[0]);
 		}
+		space = " ";
 	}
 
 	/* XXX not yet implemented */
@@ -431,12 +434,11 @@ static int tcp_xlate(const void *ip, const struct xt_entry_match *match,
 		return 0;
 
 	if (tcpinfo->flg_mask || (tcpinfo->invflags & XT_TCP_INV_FLAGS)) {
-		xt_xlate_add(xl, "tcp flags & ");
+		xt_xlate_add(xl, "%stcp flags & ", space);
 		print_tcp_xlate(xl, tcpinfo->flg_mask);
 		xt_xlate_add(xl, " %s ",
 			   tcpinfo->invflags & XT_TCP_INV_FLAGS ? "!=": "==");
 		print_tcp_xlate(xl, tcpinfo->flg_cmp);
-		xt_xlate_add(xl, " ");
 	}
 
 	return 1;

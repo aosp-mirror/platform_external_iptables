@@ -75,6 +75,10 @@ int xlate_matches(const struct iptables_command_state *cs, struct xt_xlate *xl)
 
 		ret = matchp->match->xlate((const void *)&cs->fw,
 					   matchp->match->m, xl, numeric);
+
+		if (strcmp(matchp->match->name, "comment") != 0)
+			xt_xlate_add(xl, " ");
+
 		if (!ret)
 			break;
 	}

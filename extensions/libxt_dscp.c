@@ -97,7 +97,7 @@ static int __dscp_xlate(const void *ip, const struct xt_entry_match *match,
 	const struct xt_dscp_info *dinfo =
 		(const struct xt_dscp_info *)match->data;
 
-	xt_xlate_add(xl, "dscp %s0x%02x ", dinfo->invert ? "!= " : "",
+	xt_xlate_add(xl, "dscp %s0x%02x", dinfo->invert ? "!= " : "",
 		     dinfo->dscp);
 
 	return 1;

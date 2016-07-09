@@ -158,15 +158,15 @@ print_devgroup_xlate(unsigned int id, uint32_t op,  unsigned int mask,
 	const char *name = NULL;
 
 	if (mask != 0xffffffff)
-		xt_xlate_add(xl, "and 0x%x %s 0x%x ", mask,
+		xt_xlate_add(xl, "and 0x%x %s 0x%x", mask,
 			   op == XT_OP_EQ ? "==" : "!=", id);
 	else {
 		if (numeric == 0)
 			name = xtables_lmap_id2name(devgroups, id);
 		if (name)
-			xt_xlate_add(xl, "%s ", name);
+			xt_xlate_add(xl, "%s", name);
 		else
-			xt_xlate_add(xl, "%s0x%x ",
+			xt_xlate_add(xl, "%s0x%x",
 				   op == XT_OP_EQ ? "" : "!= ", id);
 	}
 }
@@ -175,6 +175,7 @@ static void devgroup_show_xlate(const struct xt_devgroup_info *info,
 				struct xt_xlate *xl, int numeric)
 {
 	enum xt_op op = XT_OP_EQ;
+	char *space = "";
 
 	if (info->flags & XT_DEVGROUP_MATCH_SRC) {
 		if (info->flags & XT_DEVGROUP_INVERT_SRC)
@@ -182,12 +183,13 @@ static void devgroup_show_xlate(const struct xt_devgroup_info *info,
 		xt_xlate_add(xl, "iifgroup ");
 		print_devgroup_xlate(info->src_group, op,
 				     info->src_mask, xl, numeric);
+		space = " ";
 	}
 
 	if (info->flags & XT_DEVGROUP_MATCH_DST) {
 		if (info->flags & XT_DEVGROUP_INVERT_DST)
 			op = XT_OP_NEQ;
-		xt_xlate_add(xl, "oifgroup ");
+		xt_xlate_add(xl, "%soifgroup ", space);
 		print_devgroup_xlate(info->dst_group, op,
 				     info->dst_mask, xl, numeric);
 	}

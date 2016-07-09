@@ -126,7 +126,7 @@ static int cgroup_xlate_v0(const void *ip, const struct xt_entry_match *match,
 {
 	const struct xt_cgroup_info_v0 *info = (void *)match->data;
 
-	xt_xlate_add(xl, "meta cgroup %s%u ", info->invert ? "!= " : "",
+	xt_xlate_add(xl, "meta cgroup %s%u", info->invert ? "!= " : "",
 		     info->id);
 	return 1;
 }
@@ -140,7 +140,7 @@ static int cgroup_xlate_v1(const void *ip, const struct xt_entry_match *match,
 		return 0;
 
 	if (info->has_classid)
-		xt_xlate_add(xl, "meta cgroup %s%u ",
+		xt_xlate_add(xl, "meta cgroup %s%u",
 			     info->invert_classid ? "!= " : "",
 			     info->classid);
 

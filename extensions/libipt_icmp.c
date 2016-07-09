@@ -280,8 +280,6 @@ static int icmp_xlate(const void *ip, const struct xt_entry_match *match,
 		if (!type_xlate_print(xl, info->type, info->code[0],
 				      info->code[1]))
 			return 0;
-
-		xt_xlate_add(xl, " ");
 	}
 	return 1;
 }

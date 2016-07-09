@@ -132,24 +132,28 @@ static int ah_xlate(const void *ip, const struct xt_entry_match *match,
 		    struct xt_xlate *xl, int numeric)
 {
 	const struct ip6t_ah *ahinfo = (struct ip6t_ah *)match->data;
+	char *space = "";
 
 	if (!(ahinfo->spis[0] == 0 && ahinfo->spis[1] == 0xFFFFFFFF)) {
 		xt_xlate_add(xl, "ah spi%s ",
-			   (ahinfo->invflags & IP6T_AH_INV_SPI) ? " !=" : "");
-	if (ahinfo->spis[0] != ahinfo->spis[1])
-		xt_xlate_add(xl, "%u-%u ", ahinfo->spis[0], ahinfo->spis[1]);
-	else
-		xt_xlate_add(xl, "%u ", ahinfo->spis[0]);
+			(ahinfo->invflags & IP6T_AH_INV_SPI) ? " !=" : "");
+		if (ahinfo->spis[0] != ahinfo->spis[1])
+			xt_xlate_add(xl, "%u-%u", ahinfo->spis[0],
+				     ahinfo->spis[1]);
+		else
+			xt_xlate_add(xl, "%u", ahinfo->spis[0]);
+		space = " ";
 	}
 
 	if (ahinfo->hdrlen != 0 || (ahinfo->invflags & IP6T_AH_INV_LEN)) {
-		xt_xlate_add(xl, "ah hdrlength%s %u ",
-			   (ahinfo->invflags & IP6T_AH_INV_LEN) ? " !=" : "",
-			   ahinfo->hdrlen);
+		xt_xlate_add(xl, "%sah hdrlength%s %u", space,
+			     (ahinfo->invflags & IP6T_AH_INV_LEN) ? " !=" : "",
+			     ahinfo->hdrlen);
+		space = " ";
 	}
 
 	if (ahinfo->hdrres != 0)
-		xt_xlate_add(xl, "ah reserved %u ", ahinfo->hdrres);
+		xt_xlate_add(xl, "%sah reserved %u", space, ahinfo->hdrres);
 
 	return 1;
 }

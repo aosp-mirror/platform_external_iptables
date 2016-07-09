@@ -124,7 +124,7 @@ static int ttl_xlate(const void *ip, const struct xt_entry_match *match,
 			break;
 	}
 
-	xt_xlate_add(xl, " %u ", info->ttl);
+	xt_xlate_add(xl, " %u", info->ttl);
 
 	return 1;
 }

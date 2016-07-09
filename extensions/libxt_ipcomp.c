@@ -100,7 +100,7 @@ static int comp_xlate(const void *ip, const struct xt_entry_match *match,
 {
 	const struct xt_ipcomp *compinfo = (struct xt_ipcomp *)match->data;
 
-	xt_xlate_add(xl, "comp cpi %s%u ",
+	xt_xlate_add(xl, "comp cpi %s%u",
 		     (compinfo->invflags & XT_IPCOMP_INV_SPI) ? "!= " : "",
 		     compinfo->spis[0]);
 

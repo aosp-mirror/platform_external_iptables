@@ -78,7 +78,6 @@ static void print_mac_xlate(const unsigned char *macaddress,
 	xt_xlate_add(xl, "%02x", macaddress[0]);
 	for (i = 1; i < ETH_ALEN; ++i)
 		xt_xlate_add(xl, ":%02x", macaddress[i]);
-	xt_xlate_add(xl, " ");
 }
 
 static int mac_xlate(const void *ip, const struct xt_entry_match *match,

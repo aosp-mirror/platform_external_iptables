@@ -164,7 +164,7 @@ static void print_rate_xlate(uint32_t period, struct xt_xlate *xl)
 	unsigned int i;
 
 	if (period == 0) {
-		xt_xlate_add(xl, " %f ", INFINITY);
+		xt_xlate_add(xl, " %f", INFINITY);
 		return;
 	}
 
@@ -173,7 +173,7 @@ static void print_rate_xlate(uint32_t period, struct xt_xlate *xl)
 		    rates_xlate[i].mult / period < rates_xlate[i].mult % period)
 			break;
 
-	xt_xlate_add(xl, " %u/%s ", rates_xlate[i - 1].mult / period,
+	xt_xlate_add(xl, " %u/%s", rates_xlate[i - 1].mult / period,
 		   rates_xlate[i - 1].name);
 }
 
@@ -185,7 +185,7 @@ static int limit_xlate(const void *ip, const struct xt_entry_match *match,
 	xt_xlate_add(xl, "limit rate");
 	print_rate_xlate(r->avg, xl);
 	if (r->burst != 0)
-		xt_xlate_add(xl, "burst %u packets ", r->burst);
+		xt_xlate_add(xl, " burst %u packets", r->burst);
 
 	return 1;
 }

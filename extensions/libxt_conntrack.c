@@ -1236,40 +1236,45 @@ static int _conntrack3_mt_xlate(const void *ip,
 				int family)
 {
 	const struct xt_conntrack_mtinfo3 *sinfo = (const void *)match->data;
+	char *space = "";
 
-	if (sinfo->match_flags & XT_CONNTRACK_DIRECTION)
-		xt_xlate_add(xl, "ct direction %s ",
+	if (sinfo->match_flags & XT_CONNTRACK_DIRECTION) {
+		xt_xlate_add(xl, "ct direction %s",
 			     sinfo->invert_flags & XT_CONNTRACK_DIRECTION ?
 			     "reply" : "original");
+		space = " ";
+	}
 
-	if (sinfo->match_flags & XT_CONNTRACK_PROTO)
-		xt_xlate_add(xl, "ct %s protocol %s%u ",
+	if (sinfo->match_flags & XT_CONNTRACK_PROTO) {
+		xt_xlate_add(xl, "%sct %s protocol %s%u", space,
 			     sinfo->invert_flags & XT_CONNTRACK_DIRECTION ?
 			     "reply" : "original",
 			     sinfo->invert_flags & XT_CONNTRACK_PROTO ?
 			     "!= " : "",
 			     sinfo->l4proto);
+		space = " ";
+	}
 
 	if (sinfo->match_flags & XT_CONNTRACK_STATE) {
-		xt_xlate_add(xl, "ct state %s",
+		xt_xlate_add(xl, "%sct state %s", space,
 			     sinfo->invert_flags & XT_CONNTRACK_STATE ?
 			     "!= " : "");
 		state_xlate_print(xl, sinfo->state_mask);
-		xt_xlate_add(xl, " ");
+		space = " ";
 	}
 
 	if (sinfo->match_flags & XT_CONNTRACK_STATUS) {
 		if (sinfo->status_mask == 1)
 			return 0;
-		xt_xlate_add(xl, "ct status %s",
+		xt_xlate_add(xl, "%sct status %s", space,
 			     sinfo->invert_flags & XT_CONNTRACK_STATUS ?
 			     "!= " : "");
 		status_xlate_print(xl, sinfo->status_mask);
-		xt_xlate_add(xl, " ");
+		space = " ";
 	}
 
 	if (sinfo->match_flags & XT_CONNTRACK_EXPIRES) {
-		xt_xlate_add(xl, "ct expiration %s",
+		xt_xlate_add(xl, "%sct expiration %s", space,
 			     sinfo->invert_flags & XT_CONNTRACK_EXPIRES ?
 			     "!= " : "");
 		if (sinfo->expires_max == sinfo->expires_min)
@@ -1277,98 +1282,101 @@ static int _conntrack3_mt_xlate(const void *ip,
 		else
 			xt_xlate_add(xl, "%lu-%lu", sinfo->expires_min,
 				     sinfo->expires_max);
-		xt_xlate_add(xl, " ");
+		space = " ";
 	}
 
 	if (sinfo->match_flags & XT_CONNTRACK_ORIGSRC) {
 		if (&sinfo->origsrc_addr == 0L)
 			return 0;
 
-		xt_xlate_add(xl, "ct original saddr %s",
+		xt_xlate_add(xl, "%sct original saddr %s", space,
 			     sinfo->invert_flags & XT_CONNTRACK_ORIGSRC ?
 			     "!= " : "");
 		addr_xlate_print(xl, &sinfo->origsrc_addr,
 				 &sinfo->origsrc_mask, family);
-		xt_xlate_add(xl, " ");
+		space = " ";
 	}
 
 	if (sinfo->match_flags & XT_CONNTRACK_ORIGDST) {
 		if (&sinfo->origdst_addr == 0L)
 			return 0;
 
-		xt_xlate_add(xl, "ct original daddr %s",
+		xt_xlate_add(xl, "%sct original daddr %s", space,
 			     sinfo->invert_flags & XT_CONNTRACK_ORIGDST ?
 			     "!= " : "");
 		addr_xlate_print(xl, &sinfo->origdst_addr,
 				 &sinfo->origdst_mask, family);
-		xt_xlate_add(xl, " ");
+		space = " ";
 	}
 
 	if (sinfo->match_flags & XT_CONNTRACK_REPLSRC) {
 		if (&sinfo->replsrc_addr == 0L)
 			return 0;
 
-		xt_xlate_add(xl, "ct reply saddr %s",
+		xt_xlate_add(xl, "%sct reply saddr %s", space,
 			     sinfo->invert_flags & XT_CONNTRACK_REPLSRC ?
 			     "!= " : "");
 		addr_xlate_print(xl, &sinfo->replsrc_addr,
 				 &sinfo->replsrc_mask, family);
-		xt_xlate_add(xl, " ");
+		space = " ";
 	}
 
 	if (sinfo->match_flags & XT_CONNTRACK_REPLDST) {
 		if (&sinfo->repldst_addr == 0L)
 			return 0;
 
-		xt_xlate_add(xl, "ct reply daddr %s",
+		xt_xlate_add(xl, "%sct reply daddr %s", space,
 			     sinfo->invert_flags & XT_CONNTRACK_REPLDST ?
 			     "!= " : "");
 		addr_xlate_print(xl, &sinfo->repldst_addr,
 				 &sinfo->repldst_mask, family);
-		xt_xlate_add(xl, " ");
+		space = " ";
 	}
 
 	if (sinfo->match_flags & XT_CONNTRACK_ORIGSRC_PORT) {
-		xt_xlate_add(xl, "ct original proto-src %s",
+		xt_xlate_add(xl, "%sct original proto-src %s", space,
 			     sinfo->invert_flags & XT_CONNTRACK_ORIGSRC_PORT ?
 			     "!= " : "");
 		if (sinfo->origsrc_port == sinfo->origsrc_port_high)
-			xt_xlate_add(xl, "%u ", sinfo->origsrc_port);
+			xt_xlate_add(xl, "%u", sinfo->origsrc_port);
 		else
-			xt_xlate_add(xl, "%u-%u ", sinfo->origsrc_port,
+			xt_xlate_add(xl, "%u-%u", sinfo->origsrc_port,
 				     sinfo->origsrc_port_high);
+		space = " ";
 	}
 
 	if (sinfo->match_flags & XT_CONNTRACK_ORIGDST_PORT) {
-		xt_xlate_add(xl, "ct original proto-dst %s",
+		xt_xlate_add(xl, "%sct original proto-dst %s", space,
 			     sinfo->invert_flags & XT_CONNTRACK_ORIGDST_PORT ?
 			     "!= " : "");
 		if (sinfo->origdst_port == sinfo->origdst_port_high)
-			xt_xlate_add(xl, "%u ", sinfo->origdst_port);
+			xt_xlate_add(xl, "%u", sinfo->origdst_port);
 		else
-			xt_xlate_add(xl, "%u-%u ", sinfo->origdst_port,
+			xt_xlate_add(xl, "%u-%u", sinfo->origdst_port,
 				     sinfo->origdst_port_high);
+		space = " ";
 	}
 
 	if (sinfo->match_flags & XT_CONNTRACK_REPLSRC_PORT) {
-		xt_xlate_add(xl, "ct reply proto-src %s",
+		xt_xlate_add(xl, "%sct reply proto-src %s", space,
 			     sinfo->invert_flags & XT_CONNTRACK_REPLSRC_PORT ?
 			     "!= " : "");
 		if (sinfo->replsrc_port == sinfo->replsrc_port_high)
-			xt_xlate_add(xl, "%u ", sinfo->replsrc_port);
+			xt_xlate_add(xl, "%u", sinfo->replsrc_port);
 		else
-			xt_xlate_add(xl, "%u-%u ", sinfo->replsrc_port,
+			xt_xlate_add(xl, "%u-%u", sinfo->replsrc_port,
 				     sinfo->replsrc_port_high);
+		space = " ";
 	}
 
 	if (sinfo->match_flags & XT_CONNTRACK_REPLDST_PORT) {
-		xt_xlate_add(xl, "ct reply proto-dst %s",
+		xt_xlate_add(xl, "%sct reply proto-dst %s", space,
 			     sinfo->invert_flags & XT_CONNTRACK_REPLDST_PORT ?
 			     "!= " : "", sinfo->repldst_port);
 		if (sinfo->repldst_port == sinfo->repldst_port_high)
-			xt_xlate_add(xl, "%u ", sinfo->repldst_port);
+			xt_xlate_add(xl, "%u", sinfo->repldst_port);
 		else
-			xt_xlate_add(xl, "%u-%u ", sinfo->repldst_port,
+			xt_xlate_add(xl, "%u-%u", sinfo->repldst_port,
 				     sinfo->repldst_port_high);
 	}
 

@@ -95,7 +95,7 @@ static int hl_xlate(const void *ip, const struct xt_entry_match *match,
 	const struct ip6t_hl_info *info =
 		(struct ip6t_hl_info *) match->data;
 
-	xt_xlate_add(xl, "ip6 hoplimit %s%u ", op[info->mode], info->hop_limit);
+	xt_xlate_add(xl, "ip6 hoplimit %s%u", op[info->mode], info->hop_limit);
 
 	return 1;
 }

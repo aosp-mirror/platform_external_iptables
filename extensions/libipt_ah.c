@@ -101,10 +101,10 @@ static int ah_xlate(const void *ip, const struct xt_entry_match *match,
 		xt_xlate_add(xl, "ah spi%s ",
 			   (ahinfo->invflags & IPT_AH_INV_SPI) ? " !=" : "");
 		if (ahinfo->spis[0] != ahinfo->spis[1])
-			xt_xlate_add(xl, "%u-%u ", ahinfo->spis[0],
+			xt_xlate_add(xl, "%u-%u", ahinfo->spis[0],
 				   ahinfo->spis[1]);
 		else
-			xt_xlate_add(xl, "%u ", ahinfo->spis[0]);
+			xt_xlate_add(xl, "%u", ahinfo->spis[0]);
 	}
 
 	return 1;
