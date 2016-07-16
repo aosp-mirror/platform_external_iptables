@@ -38,9 +38,16 @@ static void connlabel_open(void)
 		return;
 
 	map = nfct_labelmap_new(NULL);
-	if (!map && errno)
-		xtables_error(RESOURCE_PROBLEM, "cannot open connlabel.conf: %s\n",
-			strerror(errno));
+	if (map != NULL)
+		return;
+
+	if (errno) {
+		xtables_error(RESOURCE_PROBLEM,
+			"cannot open connlabel.conf: %s", strerror(errno));
+	} else {
+		xtables_error(RESOURCE_PROBLEM,
+			"cannot parse label, maybe valid label map is empty");
+	}
 }
 
 static void connlabel_mt_parse(struct xt_option_call *cb)
