@@ -125,6 +125,27 @@ connlabel_mt_save(const void *ip, const struct xt_entry_match *match)
 	connlabel_mt_print_op(info, "--");
 }
 
+static int
+connlabel_mt_xlate(const void *ip, const struct xt_entry_match *match,
+		   struct xt_xlate *xl, int numeric)
+{
+	const struct xt_connlabel_mtinfo *info = (const void *)match->data;
+	const char *name = connlabel_get_name(info->bit);
+
+	if (name == NULL)
+		return 0;
+
+	if (info->options & XT_CONNLABEL_OP_SET)
+		xt_xlate_add(xl, "ct label set %s ", name);
+
+	xt_xlate_add(xl, "ct label ");
+	if (info->options & XT_CONNLABEL_OP_INVERT)
+		xt_xlate_add(xl, "and %s != ", name);
+	xt_xlate_add(xl, "%s", name);
+
+	return 1;
+}
+
 static struct xtables_match connlabel_mt_reg = {
 	.family        = NFPROTO_UNSPEC,
 	.name          = "connlabel",
@@ -136,6 +157,7 @@ static struct xtables_match connlabel_mt_reg = {
 	.save          = connlabel_mt_save,
 	.x6_parse      = connlabel_mt_parse,
 	.x6_options    = connlabel_mt_opts,
+	.xlate	       = connlabel_mt_xlate,
 };
 
 void _init(void)
