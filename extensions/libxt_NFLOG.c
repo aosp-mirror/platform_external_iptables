@@ -112,7 +112,7 @@ static void nflog_print_xlate(const struct xt_nflog_info *info,
 	xt_xlate_add(xl, "log ");
 	if (info->prefix[0] != '\0')
 		xt_xlate_add(xl, "prefix \\\"%s\\\" ", info->prefix);
-	if (info->len)
+	if (info->flags & XT_NFLOG_F_COPY_LEN)
 		xt_xlate_add(xl, "snaplen %u ", info->len);
 	if (info->threshold != XT_NFLOG_DEFAULT_THRESHOLD)
 		xt_xlate_add(xl, "queue-threshold %u ", info->threshold);
