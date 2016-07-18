@@ -83,7 +83,7 @@ static void nflog_print(const struct xt_nflog_info *info, char *prefix)
 	}
 	if (info->group)
 		printf(" %snflog-group %u", prefix, info->group);
-	if (info->len && info->flags & XT_NFLOG_F_COPY_LEN)
+	if (info->flags & XT_NFLOG_F_COPY_LEN)
 		printf(" %snflog-size %u", prefix, info->len);
 	else if (info->len)
 		printf(" %snflog-range %u", prefix, info->len);
