@@ -7,6 +7,7 @@
 -j NFLOG --nflog-range 4294967295;=;OK
 -j NFLOG --nflog-range 4294967296;;FAIL
 -j NFLOG --nflog-range -1;;FAIL
+-j NFLOG --nflog-size 0;=;OK
 -j NFLOG --nflog-size 1;=;OK
 -j NFLOG --nflog-size 4294967295;=;OK
 -j NFLOG --nflog-size 4294967296;;FAIL
