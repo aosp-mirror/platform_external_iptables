@@ -34,6 +34,8 @@ static const struct xt_option_entry connlabel_mt_opts[] = {
  */
 static void connlabel_open(void)
 {
+	const char *fname;
+
 	if (map)
 		return;
 
@@ -41,12 +43,13 @@ static void connlabel_open(void)
 	if (map != NULL)
 		return;
 
+	fname = nfct_labels_get_path();
 	if (errno) {
 		xtables_error(RESOURCE_PROBLEM,
-			"cannot open connlabel.conf: %s", strerror(errno));
+			"cannot open %s: %s", fname, strerror(errno));
 	} else {
 		xtables_error(RESOURCE_PROBLEM,
-			"cannot parse label, maybe valid label map is empty");
+			"cannot parse %s: no labels found", fname);
 	}
 }
 
