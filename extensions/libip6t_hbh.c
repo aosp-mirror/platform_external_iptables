@@ -164,10 +164,11 @@ static void hbh_save(const void *ip, const struct xt_entry_match *match)
 	print_options(optinfo->optsnr, (uint16_t *)optinfo->opts);
 }
 
-static int hbh_xlate(const void *ip, const struct xt_entry_match *match,
-		     struct xt_xlate *xl, int numeric)
+static int hbh_xlate(struct xt_xlate *xl,
+		     const struct xt_xlate_mt_params *params)
 {
-	const struct ip6t_opts *optinfo = (struct ip6t_opts *)match->data;
+	const struct ip6t_opts *optinfo =
+		(struct ip6t_opts *)params->match->data;
 
 	if (!(optinfo->flags & IP6T_OPTS_LEN) ||
 	    (optinfo->flags & IP6T_OPTS_OPTS))

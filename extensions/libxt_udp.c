@@ -152,10 +152,10 @@ static void udp_save(const void *ip, const struct xt_entry_match *match)
 	}
 }
 
-static int udp_xlate(const void *ip, const struct xt_entry_match *match,
-		     struct xt_xlate *xl, int numeric)
+static int udp_xlate(struct xt_xlate *xl,
+		     const struct xt_xlate_mt_params *params)
 {
-	const struct xt_udp *udpinfo = (struct xt_udp *)match->data;
+	const struct xt_udp *udpinfo = (struct xt_udp *)params->match->data;
 	char *space= "";
 
 	if (udpinfo->spts[0] != 0 || udpinfo->spts[1] != 0xFFFF) {

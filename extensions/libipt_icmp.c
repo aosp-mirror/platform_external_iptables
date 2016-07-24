@@ -268,10 +268,10 @@ static unsigned int type_xlate_print(struct xt_xlate *xl, unsigned int icmptype,
 	return 0;
 }
 
-static int icmp_xlate(const void *ip, const struct xt_entry_match *match,
-		      struct xt_xlate *xl, int numeric)
+static int icmp_xlate(struct xt_xlate *xl,
+		      const struct xt_xlate_mt_params *params)
 {
-	const struct ipt_icmp *info = (struct ipt_icmp *)match->data;
+	const struct ipt_icmp *info = (struct ipt_icmp *)params->match->data;
 
 	if (info->type != 0xFF) {
 		xt_xlate_add(xl, "icmp type%s ",

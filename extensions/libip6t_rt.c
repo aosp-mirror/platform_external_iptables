@@ -245,10 +245,10 @@ static void rt_save(const void *ip, const struct xt_entry_match *match)
 
 }
 
-static int rt_xlate(const void *ip, const struct xt_entry_match *match,
-		    struct xt_xlate *xl, int numeric)
+static int rt_xlate(struct xt_xlate *xl,
+		    const struct xt_xlate_mt_params *params)
 {
-	const struct ip6t_rt *rtinfo = (struct ip6t_rt *)match->data;
+	const struct ip6t_rt *rtinfo = (struct ip6t_rt *)params->match->data;
 	char *space = "";
 
 	if (rtinfo->flags & IP6T_RT_TYP) {

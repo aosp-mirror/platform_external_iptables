@@ -100,11 +100,11 @@ static void ttl_save(const void *ip, const struct xt_entry_match *match)
 	printf(" %u", info->ttl);
 }
 
-static int ttl_xlate(const void *ip, const struct xt_entry_match *match,
-		     struct xt_xlate *xl, int numeric)
+static int ttl_xlate(struct xt_xlate *xl,
+		     const struct xt_xlate_mt_params *params)
 {
 	const struct ipt_ttl_info *info =
-			(struct ipt_ttl_info *) match->data;
+		(struct ipt_ttl_info *) params->match->data;
 
 		switch (info->mode) {
 		case IPT_TTL_EQ:

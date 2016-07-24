@@ -7,8 +7,8 @@
 #include <xtables.h>
 #include <linux/netfilter/x_tables.h>
 
-static int trace_xlate(const void *ip, const struct xt_entry_target *target,
-		       struct xt_xlate *xl, int numeric)
+static int trace_xlate(struct xt_xlate *xl,
+		       const struct xt_xlate_tg_params *params)
 {
 	xt_xlate_add(xl, "nftrace set 1");
 	return 1;

@@ -173,10 +173,11 @@ static void frag_save(const void *ip, const struct xt_entry_match *match)
 		printf(" --fraglast");
 }
 
-static int frag_xlate(const void *ip, const struct xt_entry_match *match,
-		      struct xt_xlate *xl, int numeric)
+static int frag_xlate(struct xt_xlate *xl,
+		      const struct xt_xlate_mt_params *params)
 {
-	const struct ip6t_frag *fraginfo = (struct ip6t_frag *)match->data;
+	const struct ip6t_frag *fraginfo =
+		(struct ip6t_frag *)params->match->data;
 	char *space= "";
 
 	if (!(fraginfo->ids[0] == 0 && fraginfo->ids[1] == 0xFFFFFFFF)) {

@@ -270,22 +270,21 @@ static void NFQUEUE_init_v1(struct xt_entry_target *t)
 	tinfo->queues_total = 1;
 }
 
-static int NFQUEUE_xlate(const void *ip, const struct xt_entry_target *target,
-			 struct xt_xlate *xl, int numeric)
+static int NFQUEUE_xlate(struct xt_xlate *xl,
+			 const struct xt_xlate_tg_params *params)
 {
 	const struct xt_NFQ_info *tinfo =
-		(const struct xt_NFQ_info *)target->data;
+		(const struct xt_NFQ_info *)params->target->data;
 
 	xt_xlate_add(xl, "queue num %u ", tinfo->queuenum);
 
 	return 1;
 }
 
-static int NFQUEUE_xlate_v1(const void *ip,
-			    const struct xt_entry_target *target,
-			    struct xt_xlate *xl, int numeric)
+static int NFQUEUE_xlate_v1(struct xt_xlate *xl,
+			    const struct xt_xlate_tg_params *params)
 {
-	const struct xt_NFQ_info_v1 *tinfo = (const void *)target->data;
+	const struct xt_NFQ_info_v1 *tinfo = (const void *)params->target->data;
 	unsigned int last = tinfo->queues_total;
 
 	if (last > 1) {
@@ -298,11 +297,10 @@ static int NFQUEUE_xlate_v1(const void *ip,
 	return 1;
 }
 
-static int NFQUEUE_xlate_v2(const void *ip,
-			    const struct xt_entry_target *target,
-			    struct xt_xlate *xl, int numeric)
+static int NFQUEUE_xlate_v2(struct xt_xlate *xl,
+			    const struct xt_xlate_tg_params *params)
 {
-	const struct xt_NFQ_info_v2 *info = (void *) target->data;
+	const struct xt_NFQ_info_v2 *info = (void *)params->target->data;
 	unsigned int last = info->queues_total;
 
 	if (last > 1) {
@@ -317,11 +315,10 @@ static int NFQUEUE_xlate_v2(const void *ip,
 	return 1;
 }
 
-static int NFQUEUE_xlate_v3(const void *ip,
-			    const struct xt_entry_target *target,
-			    struct xt_xlate *xl, int numeric)
+static int NFQUEUE_xlate_v3(struct xt_xlate *xl,
+			    const struct xt_xlate_tg_params *params)
 {
-	const struct xt_NFQ_info_v3 *info = (void *)target->data;
+	const struct xt_NFQ_info_v3 *info = (void *)params->target->data;
 	unsigned int last = info->queues_total;
 
 	if (last > 1) {

@@ -1182,10 +1182,11 @@ static void state_xlate_print(struct xt_xlate *xl, unsigned int statemask)
 	}
 }
 
-static int state_xlate(const void *ip, const struct xt_entry_match *match,
-		       struct xt_xlate *xl, int numeric)
+static int state_xlate(struct xt_xlate *xl,
+		       const struct xt_xlate_mt_params *params)
 {
-	const struct xt_conntrack_mtinfo3 *sinfo = (const void *)match->data;
+	const struct xt_conntrack_mtinfo3 *sinfo =
+		(const void *)params->match->data;
 
 	xt_xlate_add(xl, "ct state %s", sinfo->invert_flags & XT_CONNTRACK_STATE ?
 					"!= " : "");
@@ -1230,12 +1231,12 @@ static void addr_xlate_print(struct xt_xlate *xl,
 	}
 }
 
-static int _conntrack3_mt_xlate(const void *ip,
-				const struct xt_entry_match *match,
-				struct xt_xlate *xl, int numeric,
+static int _conntrack3_mt_xlate(struct xt_xlate *xl,
+				const struct xt_xlate_mt_params *params,
 				int family)
 {
-	const struct xt_conntrack_mtinfo3 *sinfo = (const void *)match->data;
+	const struct xt_conntrack_mtinfo3 *sinfo =
+		(const void *)params->match->data;
 	char *space = "";
 
 	if (sinfo->match_flags & XT_CONNTRACK_DIRECTION) {
@@ -1383,18 +1384,16 @@ static int _conntrack3_mt_xlate(const void *ip,
 	return 1;
 }
 
-static int conntrack3_mt4_xlate(const void *ip,
-				const struct xt_entry_match *match,
-				struct xt_xlate *xl, int numeric)
+static int conntrack3_mt4_xlate(struct xt_xlate *xl,
+				const struct xt_xlate_mt_params *params)
 {
-	return _conntrack3_mt_xlate(ip, match, xl, numeric, NFPROTO_IPV4);
+	return _conntrack3_mt_xlate(xl, params, NFPROTO_IPV4);
 }
 
-static int conntrack3_mt6_xlate(const void *ip,
-				const struct xt_entry_match *match,
-				struct xt_xlate *xl, int numeric)
+static int conntrack3_mt6_xlate(struct xt_xlate *xl,
+				const struct xt_xlate_mt_params *params)
 {
-	return _conntrack3_mt_xlate(ip, match, xl, numeric, NFPROTO_IPV6);
+	return _conntrack3_mt_xlate(xl, params, NFPROTO_IPV6);
 }
 
 static struct xtables_match conntrack_mt_reg[] = {

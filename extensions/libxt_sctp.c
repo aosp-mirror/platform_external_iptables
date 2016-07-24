@@ -485,11 +485,11 @@ static void sctp_save(const void *ip, const struct xt_entry_match *match)
 	}
 }
 
-static int sctp_xlate(const void *ip, const struct xt_entry_match *match,
-		      struct xt_xlate *xl, int numeric)
+static int sctp_xlate(struct xt_xlate *xl,
+		      const struct xt_xlate_mt_params *params)
 {
 	const struct xt_sctp_info *einfo =
-		(const struct xt_sctp_info *)match->data;
+		(const struct xt_sctp_info *)params->match->data;
 	char *space = "";
 
 	if (!einfo->flags)

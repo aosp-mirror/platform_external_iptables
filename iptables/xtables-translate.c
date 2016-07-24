@@ -48,9 +48,14 @@ int xlate_action(const struct iptables_command_state *cs, bool goto_set,
 			xt_xlate_add(xl, "drop");
 		else if (strcmp(cs->jumpto, XTC_LABEL_RETURN) == 0)
 			xt_xlate_add(xl, "return");
-		else if (cs->target->xlate)
-			ret = cs->target->xlate((const void *)&cs->fw,
-						cs->target->t, xl, numeric);
+		else if (cs->target->xlate) {
+			struct xt_xlate_tg_params params = {
+				.ip		= (const void *)&cs->fw,
+				.target		= cs->target->t,
+				.numeric	= numeric,
+			};
+			ret = cs->target->xlate(xl, &params);
+		}
 		else
 			return 0;
 	} else if (strlen(cs->jumpto) > 0) {
@@ -70,11 +75,16 @@ int xlate_matches(const struct iptables_command_state *cs, struct xt_xlate *xl)
 	int ret = 1, numeric = cs->options & OPT_NUMERIC;
 
 	for (matchp = cs->matches; matchp; matchp = matchp->next) {
+		struct xt_xlate_mt_params params = {
+			.ip		= (const void *)&cs->fw,
+			.match		= matchp->match->m,
+			.numeric	= numeric,
+		};
+
 		if (!matchp->match->xlate)
 			return 0;
 
-		ret = matchp->match->xlate((const void *)&cs->fw,
-					   matchp->match->m, xl, numeric);
+		ret = matchp->match->xlate(xl, &params);
 
 		if (strcmp(matchp->match->name, "comment") != 0)
 			xt_xlate_add(xl, " ");

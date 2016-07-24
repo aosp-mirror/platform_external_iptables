@@ -83,17 +83,18 @@ static void hl_save(const void *ip, const struct xt_entry_match *match)
 	printf(" %s %u", op[info->mode], info->hop_limit);
 }
 
-static int hl_xlate(const void *ip, const struct xt_entry_match *match,
-		    struct xt_xlate *xl, int numeric)
-{
-	static const char *const op[] = {
-		[IP6T_HL_EQ] = "",
-		[IP6T_HL_NE] = "!= ",
-		[IP6T_HL_LT] = "lt ",
-		[IP6T_HL_GT] = "gt " };
+static const char *const op[] = {
+	[IP6T_HL_EQ] = "",
+	[IP6T_HL_NE] = "!= ",
+	[IP6T_HL_LT] = "lt ",
+	[IP6T_HL_GT] = "gt "
+};
 
+static int hl_xlate(struct xt_xlate *xl,
+		    const struct xt_xlate_mt_params *params)
+{
 	const struct ip6t_hl_info *info =
-		(struct ip6t_hl_info *) match->data;
+		(struct ip6t_hl_info *) params->match->data;
 
 	xt_xlate_add(xl, "ip6 hoplimit %s%u", op[info->mode], info->hop_limit);
 

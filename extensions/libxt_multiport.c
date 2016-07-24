@@ -468,11 +468,11 @@ static void multiport_save6_v1(const void *ip_void,
 	__multiport_save_v1(match, ip->proto);
 }
 
-static int __multiport_xlate(const void *ip, const struct xt_entry_match *match,
-			     struct xt_xlate *xl, int numeric)
+static int __multiport_xlate(struct xt_xlate *xl,
+			     const struct xt_xlate_mt_params *params)
 {
 	const struct xt_multiport *multiinfo
-		= (const struct xt_multiport *)match->data;
+		= (const struct xt_multiport *)params->match->data;
 	unsigned int i;
 
 	switch (multiinfo->flags) {
@@ -498,30 +498,29 @@ static int __multiport_xlate(const void *ip, const struct xt_entry_match *match,
 	return 1;
 }
 
-static int multiport_xlate(const void *ip, const struct xt_entry_match *match,
-			   struct xt_xlate *xl, int numeric)
+static int multiport_xlate(struct xt_xlate *xl,
+			   const struct xt_xlate_mt_params *params)
 {
-	uint8_t proto = ((const struct ipt_ip *)ip)->proto;
+	uint8_t proto = ((const struct ipt_ip *)params->ip)->proto;
 
 	xt_xlate_add(xl, "%s", proto_to_name(proto));
-	return __multiport_xlate(ip, match, xl, numeric);
+	return __multiport_xlate(xl, params);
 }
 
-static int multiport_xlate6(const void *ip, const struct xt_entry_match *match,
-			    struct xt_xlate *xl, int numeric)
+static int multiport_xlate6(struct xt_xlate *xl,
+			    const struct xt_xlate_mt_params *params)
 {
-	uint8_t proto = ((const struct ip6t_ip6 *)ip)->proto;
+	uint8_t proto = ((const struct ip6t_ip6 *)params->ip)->proto;
 
 	xt_xlate_add(xl, "%s", proto_to_name(proto));
-	return __multiport_xlate(ip, match, xl, numeric);
+	return __multiport_xlate(xl, params);
 }
 
-static int __multiport_xlate_v1(const void *ip,
-				const struct xt_entry_match *match,
-				struct xt_xlate *xl, int numeric)
+static int __multiport_xlate_v1(struct xt_xlate *xl,
+				const struct xt_xlate_mt_params *params)
 {
-	const struct xt_multiport_v1 *multiinfo
-		= (const struct xt_multiport_v1 *)match->data;
+	const struct xt_multiport_v1 *multiinfo =
+		(const struct xt_multiport_v1 *)params->match->data;
 	unsigned int i;
 
 	switch (multiinfo->flags) {
@@ -555,24 +554,22 @@ static int __multiport_xlate_v1(const void *ip,
 	return 1;
 }
 
-static int multiport_xlate_v1(const void *ip,
-			      const struct xt_entry_match *match,
-			      struct xt_xlate *xl, int numeric)
+static int multiport_xlate_v1(struct xt_xlate *xl,
+			      const struct xt_xlate_mt_params *params)
 {
-	uint8_t proto = ((const struct ipt_ip *)ip)->proto;
+	uint8_t proto = ((const struct ipt_ip *)params->ip)->proto;
 
 	xt_xlate_add(xl, "%s", proto_to_name(proto));
-	return __multiport_xlate_v1(ip, match, xl, numeric);
+	return __multiport_xlate_v1(xl, params);
 }
 
-static int multiport_xlate6_v1(const void *ip,
-			       const struct xt_entry_match *match,
-			       struct xt_xlate *xl, int numeric)
+static int multiport_xlate6_v1(struct xt_xlate *xl,
+			       const struct xt_xlate_mt_params *params)
 {
-	uint8_t proto = ((const struct ip6t_ip6 *)ip)->proto;
+	uint8_t proto = ((const struct ip6t_ip6 *)params->ip)->proto;
 
 	xt_xlate_add(xl, "%s", proto_to_name(proto));
-	return __multiport_xlate_v1(ip, match, xl, numeric);
+	return __multiport_xlate_v1(xl, params);
 }
 
 static struct xtables_match multiport_mt_reg[] = {

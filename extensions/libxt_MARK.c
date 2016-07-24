@@ -245,10 +245,10 @@ static void mark_tg_save(const void *ip, const struct xt_entry_target *target)
 	printf(" --set-xmark 0x%x/0x%x", info->mark, info->mask);
 }
 
-static int mark_tg_xlate(const void *ip, const struct xt_entry_target *target,
-			 struct xt_xlate *xl, int numeric)
+static int mark_tg_xlate(struct xt_xlate *xl,
+			 const struct xt_xlate_tg_params *params)
 {
-	const struct xt_mark_tginfo2 *info = (const void *)target->data;
+	const struct xt_mark_tginfo2 *info = (const void *)params->target->data;
 
 	xt_xlate_add(xl, "meta mark set ");
 
@@ -267,11 +267,11 @@ static int mark_tg_xlate(const void *ip, const struct xt_entry_target *target,
 	return 1;
 }
 
-static int MARK_xlate(const void *ip, const struct xt_entry_target *target,
-			 struct xt_xlate *xl, int numeric)
+static int MARK_xlate(struct xt_xlate *xl,
+		      const struct xt_xlate_tg_params *params)
 {
 	const struct xt_mark_target_info_v1 *markinfo =
-		(const struct xt_mark_target_info_v1 *)target->data;
+		(const struct xt_mark_target_info_v1 *)params->target->data;
 
 	xt_xlate_add(xl, "meta mark set ");
 

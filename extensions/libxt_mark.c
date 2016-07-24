@@ -114,11 +114,10 @@ print_mark_xlate(struct xt_xlate *xl, unsigned int mark,
 			   op == XT_OP_EQ ? "" : "!= ", mark);
 }
 
-static int
-mark_mt_xlate(const void *ip, const struct xt_entry_match *match,
-	      struct xt_xlate *xl, int numeric)
+static int mark_mt_xlate(struct xt_xlate *xl,
+			 const struct xt_xlate_mt_params *params)
 {
-	const struct xt_mark_mtinfo1 *info = (const void *)match->data;
+	const struct xt_mark_mtinfo1 *info = (const void *)params->match->data;
 	enum xt_op op = XT_OP_EQ;
 
 	if (info->invert)
@@ -130,11 +129,10 @@ mark_mt_xlate(const void *ip, const struct xt_entry_match *match,
 	return 1;
 }
 
-static int
-mark_xlate(const void *ip, const struct xt_entry_match *match,
-	   struct xt_xlate *xl, int numeric)
+static int mark_xlate(struct xt_xlate *xl,
+		      const struct xt_xlate_mt_params *params)
 {
-	const struct xt_mark_info *info = (const void *)match->data;
+	const struct xt_mark_info *info = (const void *)params->match->data;
 	enum xt_op op = XT_OP_EQ;
 
 	if (info->invert)

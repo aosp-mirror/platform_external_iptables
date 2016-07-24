@@ -91,11 +91,11 @@ static void dscp_save(const void *ip, const struct xt_entry_match *match)
 	printf("%s --dscp 0x%02x", dinfo->invert ? " !" : "", dinfo->dscp);
 }
 
-static int __dscp_xlate(const void *ip, const struct xt_entry_match *match,
-		      struct xt_xlate *xl, int numeric)
+static int __dscp_xlate(struct xt_xlate *xl,
+			const struct xt_xlate_mt_params *params)
 {
 	const struct xt_dscp_info *dinfo =
-		(const struct xt_dscp_info *)match->data;
+		(const struct xt_dscp_info *)params->match->data;
 
 	xt_xlate_add(xl, "dscp %s0x%02x", dinfo->invert ? "!= " : "",
 		     dinfo->dscp);
@@ -103,20 +103,20 @@ static int __dscp_xlate(const void *ip, const struct xt_entry_match *match,
 	return 1;
 }
 
-static int dscp_xlate(const void *ip, const struct xt_entry_match *match,
-		      struct xt_xlate *xl, int numeric)
+static int dscp_xlate(struct xt_xlate *xl,
+		      const struct xt_xlate_mt_params *params)
 {
 	xt_xlate_add(xl, "ip ");
 
-	return __dscp_xlate(ip, match, xl, numeric);
+	return __dscp_xlate(xl, params);
 }
 
-static int dscp_xlate6(const void *ip, const struct xt_entry_match *match,
-		      struct xt_xlate *xl, int numeric)
+static int dscp_xlate6(struct xt_xlate *xl,
+		       const struct xt_xlate_mt_params *params)
 {
 	xt_xlate_add(xl, "ip6 ");
 
-	return __dscp_xlate(ip, match, xl, numeric);
+	return __dscp_xlate(xl, params);
 }
 
 static struct xtables_match dscp_mt_reg[] = {

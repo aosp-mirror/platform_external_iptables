@@ -48,11 +48,10 @@ comment_save(const void *ip, const struct xt_entry_match *match)
 	xtables_save_string(commentinfo->comment);
 }
 
-static int
-comment_xlate(const void *ip, const struct xt_entry_match *match,
-	      struct xt_xlate *xl, int numeric)
+static int comment_xlate(struct xt_xlate *xl,
+			 const struct xt_xlate_mt_params *params)
 {
-	struct xt_comment_info *commentinfo = (void *)match->data;
+	struct xt_comment_info *commentinfo = (void *)params->match->data;
 
 	commentinfo->comment[XT_MAX_COMMENT_LEN - 1] = '\0';
 	xt_xlate_add_comment(xl, commentinfo->comment);

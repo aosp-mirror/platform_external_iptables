@@ -207,6 +207,18 @@ enum xtables_ext_flags {
 
 struct xt_xlate;
 
+struct xt_xlate_mt_params {
+	const void			*ip;
+	const struct xt_entry_match	*match;
+	int				numeric;
+};
+
+struct xt_xlate_tg_params {
+	const void			*ip;
+	const struct xt_entry_target	*target;
+	int				numeric;
+};
+
 /* Include file for additions: new matches and targets. */
 struct xtables_match
 {
@@ -272,8 +284,8 @@ struct xtables_match
 	const struct xt_option_entry *x6_options;
 
 	/* Translate iptables to nft */
-	int (*xlate)(const void *ip, const struct xt_entry_match *match,
-		     struct xt_xlate *xl, int numeric);
+	int (*xlate)(struct xt_xlate *xl,
+		     const struct xt_xlate_mt_params *params);
 
 	/* Size of per-extension instance extra "global" scratch space */
 	size_t udata_size;
@@ -353,8 +365,8 @@ struct xtables_target
 	const struct xt_option_entry *x6_options;
 
 	/* Translate iptables to nft */
-	int (*xlate)(const void *ip, const struct xt_entry_target *target,
-		     struct xt_xlate *xl, int numeric);
+	int (*xlate)(struct xt_xlate *xl,
+		     const struct xt_xlate_tg_params *params);
 
 	size_t udata_size;
 

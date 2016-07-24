@@ -182,12 +182,12 @@ static const struct ipt_log_xlate ipt_log_xlate_names[] = {
 	{"warn",	LOG_WARNING }
 };
 
-static int LOG_xlate(const void *ip, const struct xt_entry_target *target,
-		     struct xt_xlate *xl, int numeric)
+static int LOG_xlate(struct xt_xlate *xl,
+		     const struct xt_xlate_tg_params *params)
 {
-	unsigned int i = 0;
 	const struct ipt_log_info *loginfo =
-			(const struct ipt_log_info *)target->data;
+		(const struct ipt_log_info *)params->target->data;
+	unsigned int i = 0;
 
 	xt_xlate_add(xl, "log ");
 	if (strcmp(loginfo->prefix, "") != 0)

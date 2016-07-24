@@ -56,10 +56,10 @@ static void length_save(const void *ip, const struct xt_entry_match *match)
 		printf("%u:%u", info->min, info->max);
 }
 
-static int length_xlate(const void *ip, const struct xt_entry_match *match,
-			struct xt_xlate *xl, int numeric)
+static int length_xlate(struct xt_xlate *xl,
+			const struct xt_xlate_mt_params *params)
 {
-	const struct xt_length_info *info = (void *)match->data;
+	const struct xt_length_info *info = (void *)params->match->data;
 
 	xt_xlate_add(xl, "meta length %s", info->invert ? "!= " : "");
 	if (info->min == info->max)

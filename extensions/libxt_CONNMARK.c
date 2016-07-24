@@ -347,11 +347,11 @@ connmark_tg_save(const void *ip, const struct xt_entry_target *target)
 	}
 }
 
-static int
-connmark_tg_xlate(const void *ip, const struct xt_entry_target *target,
-		  struct xt_xlate *xl, int numeric)
+static int connmark_tg_xlate(struct xt_xlate *xl,
+			     const struct xt_xlate_tg_params *params)
 {
-	const struct xt_connmark_tginfo1 *info = (const void *)target->data;
+	const struct xt_connmark_tginfo1 *info =
+		(const void *)params->target->data;
 
 	switch (info->mode) {
 	case XT_CONNMARK_SET:

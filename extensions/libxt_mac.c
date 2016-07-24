@@ -80,10 +80,10 @@ static void print_mac_xlate(const unsigned char *macaddress,
 		xt_xlate_add(xl, ":%02x", macaddress[i]);
 }
 
-static int mac_xlate(const void *ip, const struct xt_entry_match *match,
-		     struct xt_xlate *xl, int numeric)
+static int mac_xlate(struct xt_xlate *xl,
+		     const struct xt_xlate_mt_params *params)
 {
-	const struct xt_mac_info *info = (void *)match->data;
+	const struct xt_mac_info *info = (void *)params->match->data;
 
 	xt_xlate_add(xl, "ether saddr%s ", info->invert ? " !=" : "");
 	print_mac_xlate(info->srcaddr, xl);

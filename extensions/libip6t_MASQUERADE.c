@@ -131,11 +131,10 @@ MASQUERADE_save(const void *ip, const struct xt_entry_target *target)
 		printf(" --random");
 }
 
-static int
-MASQUERADE_xlate(const void *ip, const struct xt_entry_target *target,
-		 struct xt_xlate *xl, int numeric)
+static int MASQUERADE_xlate(struct xt_xlate *xl,
+			    const struct xt_xlate_tg_params *params)
 {
-	const struct nf_nat_range *r = (const void *)target->data;
+	const struct nf_nat_range *r = (const void *)params->target->data;
 
 	xt_xlate_add(xl, "masquerade");
 

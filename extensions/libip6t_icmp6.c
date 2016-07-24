@@ -271,10 +271,10 @@ static unsigned int type_xlate_print(struct xt_xlate *xl, unsigned int icmptype,
 	return 1;
 }
 
-static int icmp6_xlate(const void *ip, const struct xt_entry_match *match,
-		       struct xt_xlate *xl, int numeric)
+static int icmp6_xlate(struct xt_xlate *xl,
+		       const struct xt_xlate_mt_params *params)
 {
-	const struct ip6t_icmp *info = (struct ip6t_icmp *)match->data;
+	const struct ip6t_icmp *info = (struct ip6t_icmp *)params->match->data;
 
 	xt_xlate_add(xl, "icmpv6 type%s ",
 		     (info->invflags & IP6T_ICMP_INV) ? " !=" : "");

@@ -125,11 +125,11 @@ connlabel_mt_save(const void *ip, const struct xt_entry_match *match)
 	connlabel_mt_print_op(info, "--");
 }
 
-static int
-connlabel_mt_xlate(const void *ip, const struct xt_entry_match *match,
-		   struct xt_xlate *xl, int numeric)
+static int connlabel_mt_xlate(struct xt_xlate *xl,
+			      const struct xt_xlate_mt_params *params)
 {
-	const struct xt_connlabel_mtinfo *info = (const void *)match->data;
+	const struct xt_connlabel_mtinfo *info =
+		(const void *)params->match->data;
 	const char *name = connlabel_get_name(info->bit);
 
 	if (name == NULL)

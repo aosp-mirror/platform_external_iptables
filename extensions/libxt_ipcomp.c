@@ -95,10 +95,11 @@ static void comp_save(const void *ip, const struct xt_entry_match *match)
 		printf(" --compres");
 }
 
-static int comp_xlate(const void *ip, const struct xt_entry_match *match,
-			struct xt_xlate *xl, int numeric)
+static int comp_xlate(struct xt_xlate *xl,
+		      const struct xt_xlate_mt_params *params)
 {
-	const struct xt_ipcomp *compinfo = (struct xt_ipcomp *)match->data;
+	const struct xt_ipcomp *compinfo =
+		(struct xt_ipcomp *)params->match->data;
 
 	xt_xlate_add(xl, "comp cpi %s%u",
 		     (compinfo->invflags & XT_IPCOMP_INV_SPI) ? "!= " : "",

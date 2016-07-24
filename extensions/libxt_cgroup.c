@@ -121,20 +121,20 @@ static void cgroup_save_v1(const void *ip, const struct xt_entry_match *match)
 		       info->classid);
 }
 
-static int cgroup_xlate_v0(const void *ip, const struct xt_entry_match *match,
-			   struct xt_xlate *xl, int numeric)
+static int cgroup_xlate_v0(struct xt_xlate *xl,
+			   const struct xt_xlate_mt_params *params)
 {
-	const struct xt_cgroup_info_v0 *info = (void *)match->data;
+	const struct xt_cgroup_info_v0 *info = (void *)params->match->data;
 
 	xt_xlate_add(xl, "meta cgroup %s%u", info->invert ? "!= " : "",
 		     info->id);
 	return 1;
 }
 
-static int cgroup_xlate_v1(const void *ip, const struct xt_entry_match *match,
-			   struct xt_xlate *xl, int numeric)
+static int cgroup_xlate_v1(struct xt_xlate *xl,
+			   const struct xt_xlate_mt_params *params)
 {
-	const struct xt_cgroup_info_v1 *info = (void *)match->data;
+	const struct xt_cgroup_info_v1 *info = (void *)params->match->data;
 
 	if (info->has_path)
 		return 0;

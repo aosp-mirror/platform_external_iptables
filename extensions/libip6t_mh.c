@@ -202,10 +202,10 @@ static void mh_save(const void *ip, const struct xt_entry_match *match)
 		printf(" --mh-type %u", mhinfo->types[0]);
 }
 
-static int mh_xlate(const void *ip, const struct xt_entry_match *match,
-		    struct xt_xlate *xl, int numeric)
+static int mh_xlate(struct xt_xlate *xl,
+		    const struct xt_xlate_mt_params *params)
 {
-	const struct ip6t_mh *mhinfo = (struct ip6t_mh *)match->data;
+	const struct ip6t_mh *mhinfo = (struct ip6t_mh *)params->match->data;
 
 	if (mhinfo->types[0] == 0 && mhinfo->types[1] == 0xff)
 		return 1;

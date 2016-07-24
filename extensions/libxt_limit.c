@@ -177,10 +177,10 @@ static void print_rate_xlate(uint32_t period, struct xt_xlate *xl)
 		   rates_xlate[i - 1].name);
 }
 
-static int limit_xlate(const void *ip, const struct xt_entry_match *match,
-		       struct xt_xlate *xl, int numeric)
+static int limit_xlate(struct xt_xlate *xl,
+		       const struct xt_xlate_mt_params *params)
 {
-	const struct xt_rateinfo *r = (const void *)match->data;
+	const struct xt_rateinfo *r = (const void *)params->match->data;
 
 	xt_xlate_add(xl, "limit rate");
 	print_rate_xlate(r->avg, xl);

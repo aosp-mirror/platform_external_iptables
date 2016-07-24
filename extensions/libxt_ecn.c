@@ -118,11 +118,11 @@ static void ecn_save(const void *ip, const struct xt_entry_match *match)
 	}
 }
 
-static int ecn_xlate(const void *ip, const struct xt_entry_match *match,
-		     struct xt_xlate *xl, int numeric)
+static int ecn_xlate(struct xt_xlate *xl,
+		     const struct xt_xlate_mt_params *params)
 {
 	const struct xt_ecn_info *einfo =
-		(const struct xt_ecn_info *)match->data;
+		(const struct xt_ecn_info *)params->match->data;
 
 	if (!(einfo->operation & XT_ECN_OP_MATCH_IP))
 		return 0;

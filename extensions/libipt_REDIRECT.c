@@ -135,11 +135,11 @@ static void REDIRECT_save(const void *ip, const struct xt_entry_target *target)
 	}
 }
 
-static int REDIRECT_xlate(const void *ip, const struct xt_entry_target *target,
-			  struct xt_xlate *xl, int numeric)
+static int REDIRECT_xlate(struct xt_xlate *xl,
+			  const struct xt_xlate_tg_params *params)
 {
 	const struct nf_nat_ipv4_multi_range_compat *mr =
-					(const void *)target->data;
+		(const void *)params->target->data;
 	const struct nf_nat_ipv4_range *r = &mr->range[0];
 
 	if (r->flags & NF_NAT_RANGE_PROTO_SPECIFIED) {

@@ -86,10 +86,10 @@ static void esp_save(const void *ip, const struct xt_entry_match *match)
 
 }
 
-static int esp_xlate(const void *ip, const struct xt_entry_match *match,
-		     struct xt_xlate *xl, int numeric)
+static int esp_xlate(struct xt_xlate *xl,
+		     const struct xt_xlate_mt_params *params)
 {
-	const struct xt_esp *espinfo = (struct xt_esp *)match->data;
+	const struct xt_esp *espinfo = (struct xt_esp *)params->match->data;
 
 	if (!(espinfo->spis[0] == 0 && espinfo->spis[1] == 0xFFFFFFFF)) {
 		xt_xlate_add(xl, "esp spi%s",

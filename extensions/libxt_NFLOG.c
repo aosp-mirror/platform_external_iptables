@@ -119,10 +119,11 @@ static void nflog_print_xlate(const struct xt_nflog_info *info,
 	xt_xlate_add(xl, "group %u ", info->group);
 }
 
-static int NFLOG_xlate(const void *ip, const struct xt_entry_target *target,
-		       struct xt_xlate *xl, int numeric)
+static int NFLOG_xlate(struct xt_xlate *xl,
+		       const struct xt_xlate_tg_params *params)
 {
-	const struct xt_nflog_info *info = (struct xt_nflog_info *)target->data;
+	const struct xt_nflog_info *info =
+		(struct xt_nflog_info *)params->target->data;
 
 	nflog_print_xlate(info, xl);
 
