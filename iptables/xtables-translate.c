@@ -53,6 +53,7 @@ int xlate_action(const struct iptables_command_state *cs, bool goto_set,
 				.ip		= (const void *)&cs->fw,
 				.target		= cs->target->t,
 				.numeric	= numeric,
+				.escape_quotes	= true,
 			};
 			ret = cs->target->xlate(xl, &params);
 		}
@@ -79,6 +80,7 @@ int xlate_matches(const struct iptables_command_state *cs, struct xt_xlate *xl)
 			.ip		= (const void *)&cs->fw,
 			.match		= matchp->match->m,
 			.numeric	= numeric,
+			.escape_quotes	= true,
 		};
 
 		if (!matchp->match->xlate)

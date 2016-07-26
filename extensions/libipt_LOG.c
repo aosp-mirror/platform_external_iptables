@@ -190,8 +190,12 @@ static int LOG_xlate(struct xt_xlate *xl,
 	unsigned int i = 0;
 
 	xt_xlate_add(xl, "log ");
-	if (strcmp(loginfo->prefix, "") != 0)
-		xt_xlate_add(xl, "prefix \\\"%s\\\" ", loginfo->prefix);
+	if (strcmp(loginfo->prefix, "") != 0) {
+		if (params->escape_quotes)
+			xt_xlate_add(xl, "prefix \\\"%s\\\" ", loginfo->prefix);
+		else
+			xt_xlate_add(xl, "prefix \"%s\" ", loginfo->prefix);
+	}
 
 	for (i = 0; i < ARRAY_SIZE(ipt_log_xlate_names); ++i)
 		if (loginfo->level != LOG_DEFAULT_LEVEL &&
