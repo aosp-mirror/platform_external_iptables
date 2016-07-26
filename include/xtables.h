@@ -220,8 +220,7 @@ struct xt_xlate_tg_params {
 };
 
 /* Include file for additions: new matches and targets. */
-struct xtables_match
-{
+struct xtables_match {
 	/*
 	 * ABI/API version this module requires. Must be first member,
 	 * as the rest of this struct may be subject to ABI changes.
@@ -298,8 +297,7 @@ struct xtables_match
 	unsigned int loaded; /* simulate loading so options are merged properly */
 };
 
-struct xtables_target
-{
+struct xtables_target {
 	/*
 	 * ABI/API version this module requires. Must be first member,
 	 * as the rest of this struct may be subject to ABI changes.
