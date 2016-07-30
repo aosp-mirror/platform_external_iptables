@@ -404,18 +404,10 @@ static int nft_ipv6_xlate(const void *data, struct xt_xlate *xl)
 	const char *comment;
 	int ret;
 
-	if (cs->fw6.ipv6.iniface[0] != '\0') {
-		xt_xlate_add(xl, "iifname %s%s ",
-			   cs->fw6.ipv6.invflags & IP6T_INV_VIA_IN ?
-				"!= " : "",
-			   cs->fw6.ipv6.iniface);
-	}
-	if (cs->fw6.ipv6.outiface[0] != '\0') {
-		xt_xlate_add(xl, "oifname %s%s ",
-			   cs->fw6.ipv6.invflags & IP6T_INV_VIA_OUT ?
-				"!= " : "",
-			   cs->fw6.ipv6.outiface);
-	}
+	xlate_ifname(xl, "iifname", cs->fw6.ipv6.iniface,
+		     cs->fw6.ipv6.invflags & IP6T_INV_VIA_IN);
+	xlate_ifname(xl, "oifname", cs->fw6.ipv6.outiface,
+		     cs->fw6.ipv6.invflags & IP6T_INV_VIA_OUT);
 
 	if (cs->fw6.ipv6.proto != 0) {
 		const struct protoent *pent =

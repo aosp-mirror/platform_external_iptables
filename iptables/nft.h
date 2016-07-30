@@ -165,6 +165,8 @@ bool xlate_find_match(const struct iptables_command_state *cs, const char *p_nam
 int xlate_matches(const struct iptables_command_state *cs, struct xt_xlate *xl);
 int xlate_action(const struct iptables_command_state *cs, bool goto_set,
 		 struct xt_xlate *xl);
+void xlate_ifname(struct xt_xlate *xl, const char *nftmeta, const char *ifname,
+		  bool invert);
 
 /*
  * ARP

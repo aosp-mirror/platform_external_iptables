@@ -444,16 +444,10 @@ static int nft_ipv4_xlate(const void *data, struct xt_xlate *xl)
 	const char *comment;
 	int ret;
 
-	if (cs->fw.ip.iniface[0] != '\0') {
-		xt_xlate_add(xl, "iifname %s%s ",
-			   cs->fw.ip.invflags & IPT_INV_VIA_IN ? "!= " : "",
-			   cs->fw.ip.iniface);
-	}
-	if (cs->fw.ip.outiface[0] != '\0') {
-		xt_xlate_add(xl, "oifname %s%s ",
-			   cs->fw.ip.invflags & IPT_INV_VIA_OUT? "!= " : "",
-			   cs->fw.ip.outiface);
-	}
+	xlate_ifname(xl, "iifname", cs->fw.ip.iniface,
+		     cs->fw.ip.invflags & IPT_INV_VIA_IN);
+	xlate_ifname(xl, "oifname", cs->fw.ip.outiface,
+		     cs->fw.ip.invflags & IPT_INV_VIA_OUT);
 
 	if (cs->fw.ip.flags & IPT_F_FRAG) {
 		xt_xlate_add(xl, "ip frag-off %s%x ",
