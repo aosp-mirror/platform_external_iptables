@@ -1033,6 +1033,38 @@ int add_comment(struct nftnl_rule *r, const char *comment)
 	return 0;
 }
 
+static int parse_udata_cb(const struct nftnl_udata *attr, void *data)
+{
+	unsigned char *value = nftnl_udata_get(attr);
+	uint8_t type = nftnl_udata_type(attr);
+	uint8_t len = nftnl_udata_len(attr);
+	const struct nftnl_udata **tb = data;
+
+	switch (type) {
+	case UDATA_TYPE_COMMENT:
+		if (value[len - 1] != '\0')
+			return -1;
+		break;
+	default:
+		return 0;
+	}
+	tb[type] = attr;
+	return 0;
+}
+
+char *get_comment(const void *data, uint32_t data_len)
+{
+	const struct nftnl_udata *tb[UDATA_TYPE_MAX + 1] = {};
+
+	if (nftnl_udata_parse(data, data_len, parse_udata_cb, tb) < 0)
+		return NULL;
+
+	if (!tb[UDATA_TYPE_COMMENT])
+		return NULL;
+
+	return nftnl_udata_get(tb[UDATA_TYPE_COMMENT]);
+}
+
 void add_compat(struct nftnl_rule *r, uint32_t proto, bool inv)
 {
 	nftnl_rule_set_u32(r, NFTNL_RULE_COMPAT_PROTO, proto);
