@@ -1766,16 +1766,6 @@ static int __nft_rule_del(struct nft_handle *h, struct nftnl_rule_list *list,
 	return 1;
 }
 
-struct nftnl_rule_list *nft_rule_list_create(struct nft_handle *h)
-{
-	return nft_rule_list_get(h);
-}
-
-void nft_rule_list_destroy(struct nftnl_rule_list *list)
-{
-	nftnl_rule_list_free(list);
-}
-
 static struct nftnl_rule *
 nft_rule_find(struct nft_handle *h, struct nftnl_rule_list *list,
 	      const char *chain, const char *table, void *data, int rulenum)
@@ -1831,7 +1821,7 @@ int nft_rule_check(struct nft_handle *h, const char *chain,
 
 	nft_fn = nft_rule_check;
 
-	list = nft_rule_list_create(h);
+	list = nft_rule_list_get(h);
 	if (list == NULL)
 		return 0;
 
@@ -1839,7 +1829,7 @@ int nft_rule_check(struct nft_handle *h, const char *chain,
 	if (ret == 0)
 		errno = ENOENT;
 
-	nft_rule_list_destroy(list);
+	nftnl_rule_list_free(list);
 
 	return ret;
 }
@@ -1853,7 +1843,7 @@ int nft_rule_delete(struct nft_handle *h, const char *chain,
 
 	nft_fn = nft_rule_delete;
 
-	list = nft_rule_list_create(h);
+	list = nft_rule_list_get(h);
 	if (list == NULL)
 		return 0;
 
@@ -1865,7 +1855,7 @@ int nft_rule_delete(struct nft_handle *h, const char *chain,
 	} else
 		errno = ENOENT;
 
-	nft_rule_list_destroy(list);
+	nftnl_rule_list_free(list);
 
 	return ret;
 }
@@ -1906,7 +1896,7 @@ int nft_rule_insert(struct nft_handle *h, const char *chain,
 	nft_fn = nft_rule_insert;
 
 	if (rulenum > 0) {
-		list = nft_rule_list_create(h);
+		list = nft_rule_list_get(h);
 		if (list == NULL)
 			goto err;
 
@@ -1918,7 +1908,7 @@ int nft_rule_insert(struct nft_handle *h, const char *chain,
 			r = nft_rule_find(h, list, chain, table, data,
 					  rulenum - 1);
 			if (r != NULL) {
-				nft_rule_list_destroy(list);
+				nftnl_rule_list_free(list);
 				return nft_rule_append(h, chain, table, data,
 						       0, verbose);
 			}
@@ -1930,12 +1920,12 @@ int nft_rule_insert(struct nft_handle *h, const char *chain,
 		handle = nftnl_rule_get_u64(r, NFTNL_RULE_HANDLE);
 		DEBUGP("adding after rule handle %"PRIu64"\n", handle);
 
-		nft_rule_list_destroy(list);
+		nftnl_rule_list_free(list);
 	}
 
 	return nft_rule_add(h, chain, table, data, handle, verbose);
 err:
-	nft_rule_list_destroy(list);
+	nftnl_rule_list_free(list);
 	return 0;
 }
 
@@ -1948,7 +1938,7 @@ int nft_rule_delete_num(struct nft_handle *h, const char *chain,
 
 	nft_fn = nft_rule_delete_num;
 
-	list = nft_rule_list_create(h);
+	list = nft_rule_list_get(h);
 	if (list == NULL)
 		return 0;
 
@@ -1963,7 +1953,7 @@ int nft_rule_delete_num(struct nft_handle *h, const char *chain,
 	} else
 		errno = ENOENT;
 
-	nft_rule_list_destroy(list);
+	nftnl_rule_list_free(list);
 
 	return ret;
 }
@@ -1977,7 +1967,7 @@ int nft_rule_replace(struct nft_handle *h, const char *chain,
 
 	nft_fn = nft_rule_replace;
 
-	list = nft_rule_list_create(h);
+	list = nft_rule_list_get(h);
 	if (list == NULL)
 		return 0;
 
@@ -1993,7 +1983,7 @@ int nft_rule_replace(struct nft_handle *h, const char *chain,
 	} else
 		errno = ENOENT;
 
-	nft_rule_list_destroy(list);
+	nftnl_rule_list_free(list);
 
 	return ret;
 }
@@ -2256,7 +2246,7 @@ int nft_rule_zero_counters(struct nft_handle *h, const char *chain,
 
 	nft_fn = nft_rule_delete;
 
-	list = nft_rule_list_create(h);
+	list = nft_rule_list_get(h);
 	if (list == NULL)
 		return 0;
 
@@ -2276,7 +2266,7 @@ int nft_rule_zero_counters(struct nft_handle *h, const char *chain,
 			       false);
 
 error:
-	nft_rule_list_destroy(list);
+	nftnl_rule_list_free(list);
 
 	return ret;
 }

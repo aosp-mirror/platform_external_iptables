@@ -92,9 +92,6 @@ int nft_rule_save(struct nft_handle *h, const char *table, bool counters);
 int nft_rule_flush(struct nft_handle *h, const char *chain, const char *table);
 int nft_rule_zero_counters(struct nft_handle *h, const char *chain, const char *table, int rulenum);
 
-struct nftnl_rule_list *nft_rule_list_create(struct nft_handle *h);
-void nft_rule_list_destroy(struct nftnl_rule_list *list);
-
 /*
  * Operations used in userspace tools
  */
