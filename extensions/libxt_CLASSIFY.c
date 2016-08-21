@@ -80,6 +80,31 @@ arpCLASSIFY_print(const void *ip, const struct xt_entry_target *target,
 	CLASSIFY_save(ip, target);
 }
 
+static int CLASSIFY_xlate(struct xt_xlate *xl,
+			  const struct xt_xlate_tg_params *params)
+{
+	const struct xt_classify_target_info *clinfo =
+		(const struct xt_classify_target_info *)params->target->data;
+	__u32 handle = clinfo->priority;
+
+	xt_xlate_add(xl, "meta priority set ");
+
+	switch (handle) {
+	case TC_H_ROOT:
+		xt_xlate_add(xl, "root");
+		break;
+	case TC_H_UNSPEC:
+		xt_xlate_add(xl, "none");
+		break;
+	default:
+		xt_xlate_add(xl, "%0x:%0x", TC_H_MAJ(handle) >> 16,
+			     TC_H_MIN(handle));
+		break;
+	}
+
+	return 1;
+}
+
 static struct xtables_target classify_target[] = {
 	{
 		.family		= NFPROTO_UNSPEC,
@@ -92,6 +117,7 @@ static struct xtables_target classify_target[] = {
 		.save		= CLASSIFY_save,
 		.x6_parse	= CLASSIFY_parse,
 		.x6_options	= CLASSIFY_opts,
+		.xlate		= CLASSIFY_xlate,
 	},
 	{
 		.family		= NFPROTO_ARP,
@@ -103,6 +129,7 @@ static struct xtables_target classify_target[] = {
 		.print		= arpCLASSIFY_print,
 		.x6_parse	= CLASSIFY_parse,
 		.x6_options	= CLASSIFY_opts,
+		.xlate		= CLASSIFY_xlate,
 	},
 };
 
