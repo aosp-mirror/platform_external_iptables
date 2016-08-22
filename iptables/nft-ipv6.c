@@ -439,7 +439,7 @@ static int nft_ipv6_xlate(const void *data, struct xt_xlate *xl)
 
 	comment = xt_xlate_get_comment(xl);
 	if (comment)
-		xt_xlate_add(xl, "comment \\\"%s\\\" ", comment);
+		xt_xlate_add(xl, "comment %s", comment);
 
 	ret = xlate_action(cs, !!(cs->fw6.ipv6.flags & IP6T_F_GOTO), xl);
 

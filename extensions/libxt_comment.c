@@ -52,9 +52,18 @@ static int comment_xlate(struct xt_xlate *xl,
 			 const struct xt_xlate_mt_params *params)
 {
 	struct xt_comment_info *commentinfo = (void *)params->match->data;
+	char comment[XT_MAX_COMMENT_LEN];
 
 	commentinfo->comment[XT_MAX_COMMENT_LEN - 1] = '\0';
-	xt_xlate_add_comment(xl, commentinfo->comment);
+	if (params->escape_quotes)
+		snprintf(comment, XT_MAX_COMMENT_LEN, "\\\"%s\\\"",
+			 commentinfo->comment);
+	else
+		snprintf(comment, XT_MAX_COMMENT_LEN, "\"%s\"",
+			 commentinfo->comment);
+
+	comment[XT_MAX_COMMENT_LEN - 1] = '\0';
+	xt_xlate_add_comment(xl, comment);
 
 	return 1;
 }
