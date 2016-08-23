@@ -43,13 +43,14 @@ static void print_usage(const char *name, const char *version) __attribute__((no
 
 static void print_usage(const char *name, const char *version)
 {
-	fprintf(stderr, "Usage: %s [-c] [-v] [-t] [-h]\n"
+	fprintf(stderr, "Usage: %s [-c] [-v] [-t] [-h] [-n] [-T table] [-M command]\n"
 			"	   [ --counters ]\n"
 			"	   [ --verbose ]\n"
 			"	   [ --test ]\n"
 			"	   [ --help ]\n"
 			"	   [ --noflush ]\n"
-			"          [ --modprobe=<command>]\n", name);
+			"	   [ --table=<TABLE> ]\n"
+			"          [ --modprobe=<command> ]\n", name);
 
 	exit(1);
 }
