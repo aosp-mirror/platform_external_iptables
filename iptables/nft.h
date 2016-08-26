@@ -35,6 +35,7 @@ struct nft_handle {
 	struct mnl_nlmsg_batch	*batch;
 	struct nft_family_ops	*ops;
 	struct builtin_table	*tables;
+	struct nftnl_rule_list	*rule_cache;
 	bool			restore;
 	bool			batch_support;
 };
