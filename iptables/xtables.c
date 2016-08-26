@@ -1253,6 +1253,11 @@ int do_commandx(struct nft_handle *h, int argc, char *argv[], char **table,
 	case CMD_LIST:
 	case CMD_LIST|CMD_ZERO:
 	case CMD_LIST|CMD_ZERO_NUM:
+		if (nft_is_ruleset_compatible(h) == 1) {
+			printf("ERROR: You're using nft features that cannot be mapped to iptables, please keep using nft.\n");
+			exit(EXIT_FAILURE);
+		}
+
 		ret = list_entries(h, p.chain, p.table, p.rulenum,
 				   cs.options & OPT_VERBOSE,
 				   cs.options & OPT_NUMERIC,

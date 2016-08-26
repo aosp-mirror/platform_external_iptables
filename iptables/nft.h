@@ -181,4 +181,6 @@ int nft_arp_rule_insert(struct nft_handle *h, const char *chain,
 
 void nft_rule_to_arpt_entry(struct nftnl_rule *r, struct arpt_entry *fw);
 
+int nft_is_ruleset_compatible(struct nft_handle *h);
+
 #endif

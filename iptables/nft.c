@@ -2698,3 +2698,197 @@ uint32_t nft_invflags2cmp(uint32_t invflags, uint32_t flag)
 
 	return NFT_CMP_EQ;
 }
+
+#define NFT_COMPAT_EXPR_MAX     8
+
+static const char *supported_exprs[NFT_COMPAT_EXPR_MAX] = {
+	"match",
+	"target",
+	"payload",
+	"meta",
+	"cmp",
+	"bitwise",
+	"counter",
+	"immediate"
+};
+
+
+static int nft_is_expr_compatible(const char *name)
+{
+	int i;
+
+	for (i = 0; i < NFT_COMPAT_EXPR_MAX; i++) {
+		if (strcmp(supported_exprs[i], name) == 0)
+			return 0;
+	}
+
+	return 1;
+}
+
+static int nft_is_rule_compatible(struct nftnl_rule *rule)
+{
+	struct nftnl_expr_iter *iter;
+	struct nftnl_expr *expr;
+	int ret = 0;
+
+	iter = nftnl_expr_iter_create(rule);
+	if (iter == NULL)
+		return -1;
+
+	expr = nftnl_expr_iter_next(iter);
+	while (expr != NULL) {
+		const char *name = nftnl_expr_get_str(expr, NFTNL_EXPR_NAME);
+
+		if (nft_is_expr_compatible(name) == 0) {
+			expr = nftnl_expr_iter_next(iter);
+			continue;
+		}
+
+		ret = 1;
+		break;
+	}
+
+	nftnl_expr_iter_destroy(iter);
+	return ret;
+}
+
+static int nft_is_chain_compatible(const char *table, const char *chain)
+{
+	const char *cur_table;
+	struct builtin_chain *chains;
+	int i, j;
+
+	for (i = 0; i < TABLES_MAX; i++) {
+		cur_table = xtables_ipv4[i].name;
+		chains = xtables_ipv4[i].chains;
+
+		if (strcmp(table, cur_table) != 0)
+			continue;
+
+		for (j = 0; j < NF_INET_NUMHOOKS && chains[j].name; j++) {
+			if (strcmp(chain, chains[j].name) == 0)
+				return 0;
+		}
+	}
+
+	return 1;
+}
+
+static int nft_are_chains_compatible(struct nft_handle *h)
+{
+	struct nftnl_chain_list *list;
+	struct nftnl_chain_list_iter *iter;
+	struct nftnl_chain *chain;
+	int ret = 0;
+
+	list = nftnl_chain_list_get(h);
+	if (list == NULL)
+		return -1;
+
+	iter = nftnl_chain_list_iter_create(list);
+	if (iter == NULL)
+		return -1;
+
+	chain = nftnl_chain_list_iter_next(iter);
+	while (chain != NULL) {
+		if (!nft_chain_builtin(chain))
+			goto next;
+
+		const char *table = nftnl_chain_get(chain, NFTNL_CHAIN_TABLE);
+		const char *name = nftnl_chain_get(chain, NFTNL_CHAIN_NAME);
+
+		if (nft_is_chain_compatible(table, name) == 1) {
+			ret = 1;
+			break;
+		}
+
+next:
+		chain = nftnl_chain_list_iter_next(iter);
+	}
+
+	nftnl_chain_list_iter_destroy(iter);
+	nftnl_chain_list_free(list);
+	return ret;
+}
+
+static int nft_is_table_compatible(const char *name)
+{
+	int i;
+
+	for (i = 0; i < TABLES_MAX; i++) {
+		if (strcmp(xtables_ipv4[i].name, name) == 0)
+			return 0;
+	}
+
+	return 1;
+}
+
+static int nft_are_tables_compatible(struct nft_handle *h)
+{
+	struct nftnl_table_list *list;
+	struct nftnl_table_list_iter *iter;
+	struct nftnl_table *table;
+	int ret = 0;
+
+	list = nftnl_table_list_get(h);
+	if (list == NULL)
+		return -1;
+
+	iter = nftnl_table_list_iter_create(list);
+	if (iter == NULL)
+		return -1;
+
+	table = nftnl_table_list_iter_next(iter);
+	while (table != NULL) {
+		const char *name = nftnl_table_get(table, NFTNL_TABLE_NAME);
+
+		if (nft_is_table_compatible(name) == 0) {
+			table = nftnl_table_list_iter_next(iter);
+			continue;
+		}
+
+		ret = 1;
+		break;
+	}
+
+	nftnl_table_list_iter_destroy(iter);
+	nftnl_table_list_free(list);
+	return ret;
+}
+
+int nft_is_ruleset_compatible(struct nft_handle *h)
+{
+
+	struct nftnl_rule_list *list;
+	struct nftnl_rule_list_iter *iter;
+	struct nftnl_rule *rule;
+	int ret = 0;
+
+	ret = nft_are_tables_compatible(h);
+	if (ret != 0)
+		return ret;
+
+	ret = nft_are_chains_compatible(h);
+	if (ret != 0)
+		return ret;
+
+	list = nft_rule_list_get(h);
+	if (list == NULL)
+		return -1;
+
+	iter = nftnl_rule_list_iter_create(list);
+	if (iter == NULL)
+		return -1;
+
+	rule = nftnl_rule_list_iter_next(iter);
+	while (rule != NULL) {
+		ret = nft_is_rule_compatible(rule);
+		if (ret != 0)
+			break;
+
+		rule = nftnl_rule_list_iter_next(iter);
+	}
+
+	nftnl_rule_list_iter_destroy(iter);
+	return ret;
+}
