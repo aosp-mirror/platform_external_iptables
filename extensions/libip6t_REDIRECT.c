@@ -138,7 +138,7 @@ static int REDIRECT_xlate(struct xt_xlate *xl,
 	const struct nf_nat_range *range = (const void *)params->target->data;
 
 	if (range->flags & NF_NAT_RANGE_PROTO_SPECIFIED) {
-		xt_xlate_add(xl, "redirect to %hu",
+		xt_xlate_add(xl, "redirect to :%hu",
 			   ntohs(range->min_proto.tcp.port));
 		if (range->max_proto.tcp.port != range->min_proto.tcp.port)
 			xt_xlate_add(xl, "-%hu ",

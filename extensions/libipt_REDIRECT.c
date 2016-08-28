@@ -143,7 +143,7 @@ static int REDIRECT_xlate(struct xt_xlate *xl,
 	const struct nf_nat_ipv4_range *r = &mr->range[0];
 
 	if (r->flags & NF_NAT_RANGE_PROTO_SPECIFIED) {
-		xt_xlate_add(xl, "redirect to %hu", ntohs(r->min.tcp.port));
+		xt_xlate_add(xl, "redirect to :%hu", ntohs(r->min.tcp.port));
 		if (r->max.tcp.port != r->min.tcp.port)
 			xt_xlate_add(xl, "-%hu ", ntohs(r->max.tcp.port));
 		if (mr->range[0].flags & NF_NAT_RANGE_PROTO_RANDOM)
