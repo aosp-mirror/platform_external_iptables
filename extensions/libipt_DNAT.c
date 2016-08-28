@@ -265,7 +265,7 @@ static void print_range_xlate(const struct nf_nat_ipv4_range *r,
 static int DNAT_xlate(struct xt_xlate *xl,
 		      const struct xt_xlate_tg_params *params)
 {
-	const struct ipt_natinfo *info = (const void *)params->target->data;
+	const struct ipt_natinfo *info = (const void *)params->target;
 	unsigned int i = 0;
 	bool sep_need = false;
 	const char *sep = " ";
