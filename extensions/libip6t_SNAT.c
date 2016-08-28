@@ -269,7 +269,7 @@ static int SNAT_xlate(struct xt_xlate *xl,
 	bool sep_need = false;
 	const char *sep = " ";
 
-	xt_xlate_add(xl, "snat ");
+	xt_xlate_add(xl, "snat to ");
 	print_range_xlate(range, xl);
 	if (range->flags & NF_NAT_RANGE_PROTO_RANDOM) {
 		xt_xlate_add(xl, " random");
