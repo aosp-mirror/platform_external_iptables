@@ -70,7 +70,7 @@ int xlate_action(const struct iptables_command_state *cs, bool goto_set,
 				.ip		= (const void *)&cs->fw,
 				.target		= cs->target->t,
 				.numeric	= numeric,
-				.escape_quotes	= true,
+				.escape_quotes	= !cs->restore,
 			};
 			ret = cs->target->xlate(xl, &params);
 		}
@@ -97,7 +97,7 @@ int xlate_matches(const struct iptables_command_state *cs, struct xt_xlate *xl)
 			.ip		= (const void *)&cs->fw,
 			.match		= matchp->match->m,
 			.numeric	= numeric,
-			.escape_quotes	= true,
+			.escape_quotes	= !cs->restore,
 		};
 
 		if (!matchp->match->xlate)
@@ -225,6 +225,8 @@ static int do_command_xlate(struct nft_handle *h, int argc, char *argv[],
 	};
 
 	do_parse(h, argc, argv, &p, &cs, &args);
+
+	cs.restore = restore;
 
 	if (!restore)
 		printf("nft ");

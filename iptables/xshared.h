@@ -63,6 +63,7 @@ struct iptables_command_state {
 	int proto_used;
 	const char *jumpto;
 	char **argv;
+	bool restore;
 };
 
 typedef int (*mainfunc_t)(int, char **);
