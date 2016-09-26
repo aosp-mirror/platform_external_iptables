@@ -1,10 +1,12 @@
 :INPUT,FORWARD,OUTPUT
 -m hashlimit --hashlimit-above 1/sec --hashlimit-burst 5 --hashlimit-name mini1;=;OK
+-m hashlimit --hashlimit-above 1000000/sec --hashlimit-burst 5 --hashlimit-name mini1;=;OK
 -m hashlimit --hashlimit-above 1/min --hashlimit-burst 5 --hashlimit-name mini1;=;OK
 -m hashlimit --hashlimit-above 1/hour --hashlimit-burst 5 --hashlimit-name mini1;=;OK
 # kernel says "xt_hashlimit: overflow, try lower: 864000000/5"
 -m hashlimit --hashlimit-above 1/day --hashlimit-burst 5 --hashlimit-name mini1;;FAIL
 -m hashlimit --hashlimit-upto 1/sec --hashlimit-burst 5 --hashlimit-name mini1;=;OK
+-m hashlimit --hashlimit-upto 1000000/sec --hashlimit-burst 5 --hashlimit-name mini1;=;OK
 -m hashlimit --hashlimit-upto 1/min --hashlimit-burst 5 --hashlimit-name mini1;=;OK
 -m hashlimit --hashlimit-upto 1/hour --hashlimit-burst 5 --hashlimit-name mini1;=;OK
 # kernel says "xt_hashlimit: overflow, try lower: 864000000/5"
