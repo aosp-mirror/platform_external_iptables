@@ -380,7 +380,7 @@ static int iprange_mt6_xlate(struct xt_xlate *xl,
 	if (info->flags & IPRANGE_SRC) {
 		if (info->flags & IPRANGE_SRC_INV)
 			xt_xlate_add(xl, "!= ");
-		xt_xlate_add(xl, "ip saddr %s",
+		xt_xlate_add(xl, "ip6 saddr %s",
 			   xtables_ip6addr_to_numeric(&info->src_min.in6));
 		xt_xlate_add(xl, "-%s",
 			   xtables_ip6addr_to_numeric(&info->src_max.in6));
@@ -391,7 +391,7 @@ static int iprange_mt6_xlate(struct xt_xlate *xl,
 			xt_xlate_add(xl, "%s!= ", space);
 			space = "";
 		}
-		xt_xlate_add(xl, "%sip daddr %s", space,
+		xt_xlate_add(xl, "%sip6 daddr %s", space,
 			   xtables_ip6addr_to_numeric(&info->dst_min.in6));
 		xt_xlate_add(xl, "-%s",
 			   xtables_ip6addr_to_numeric(&info->dst_max.in6));
