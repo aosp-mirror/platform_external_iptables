@@ -121,7 +121,7 @@ print_realm_xlate(unsigned long id, unsigned long mask,
 		if (numeric == 0)
 			name = xtables_lmap_id2name(realms, id);
 		if (name)
-			xt_xlate_add(xl, "%s%s",
+			xt_xlate_add(xl, " %s%s",
 				   op == XT_OP_EQ ? "" : "!= ", name);
 		else
 			xt_xlate_add(xl, " %s0x%lx",
