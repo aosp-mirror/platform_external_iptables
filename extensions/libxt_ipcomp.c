@@ -101,9 +101,13 @@ static int comp_xlate(struct xt_xlate *xl,
 	const struct xt_ipcomp *compinfo =
 		(struct xt_ipcomp *)params->match->data;
 
-	xt_xlate_add(xl, "comp cpi %s%u",
-		     (compinfo->invflags & XT_IPCOMP_INV_SPI) ? "!= " : "",
-		     compinfo->spis[0]);
+	xt_xlate_add(xl, "comp cpi %s",
+		     compinfo->invflags & XT_IPCOMP_INV_SPI ? "!= " : "");
+	if (compinfo->spis[0] != compinfo->spis[1])
+		xt_xlate_add(xl, "%u-%u", compinfo->spis[0],
+			     compinfo->spis[1]);
+	else
+		xt_xlate_add(xl, "%u", compinfo->spis[0]);
 
 	return 1;
 }
