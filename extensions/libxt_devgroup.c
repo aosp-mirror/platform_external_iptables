@@ -163,11 +163,12 @@ print_devgroup_xlate(unsigned int id, uint32_t op,  unsigned int mask,
 	else {
 		if (numeric == 0)
 			name = xtables_lmap_id2name(devgroups, id);
+
+		xt_xlate_add(xl, "%s", op == XT_OP_EQ ? "" : "!= ");
 		if (name)
 			xt_xlate_add(xl, "%s", name);
 		else
-			xt_xlate_add(xl, "%s0x%x",
-				   op == XT_OP_EQ ? "" : "!= ", id);
+			xt_xlate_add(xl, "0x%x", id);
 	}
 }
 
