@@ -5,7 +5,7 @@
  *
  * May 2003
  *
- * Adapted by Arturo Borrero Gonzalez <arturo.borrero.glez@gmail.com>
+ * Adapted by Arturo Borrero Gonzalez <arturo@debian.org>
  * to use libxtables for ebtables-compat
  */
 

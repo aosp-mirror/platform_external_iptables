@@ -10,7 +10,7 @@
  *  libxt_NFLOG.c
  *
  * Adapted to libxtables for ebtables-compat in 2015 by
- * Arturo Borrero Gonzalez <arturo.borrero.glez@gmail.com>
+ * Arturo Borrero Gonzalez <arturo@debian.org>
  */
 
 #include <stdio.h>

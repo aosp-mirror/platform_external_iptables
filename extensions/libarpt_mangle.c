@@ -1,5 +1,5 @@
 /*
- * Arturo Borrero Gonzalez <arturo.borrero.glez@gmail.com> adapted
+ * Arturo Borrero Gonzalez <arturo@debian.org> adapted
  * this code to libxtables for arptables-compat in 2015
  */
 
