@@ -587,22 +587,30 @@ check_inverse(const char option[], int *invert, int *optidx, int argc)
 static struct in_addr *
 host_to_addr(const char *name, unsigned int *naddr)
 {
-	struct hostent *host;
 	struct in_addr *addr;
+	struct addrinfo hints;
+	struct addrinfo *res, *p;
+	int err;
 	unsigned int i;
 
-	*naddr = 0;
-	if ((host = gethostbyname(name)) != NULL) {
-		if (host->h_addrtype != AF_INET ||
-		    host->h_length != sizeof(struct in_addr))
-			return (struct in_addr *) NULL;
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_flags	  = AI_CANONNAME;
+	hints.ai_family	  = AF_INET;
+	hints.ai_socktype = SOCK_RAW;
 
-		while (host->h_addr_list[*naddr] != (char *) NULL)
+	*naddr = 0;
+	err = getaddrinfo(name, NULL, &hints, &res);
+	if (err != 0)
+		return NULL;
+	else {
+		for (p = res; p != NULL; p = p->ai_next)
 			(*naddr)++;
 		addr = xtables_calloc(*naddr, sizeof(struct in_addr));
-		for (i = 0; i < *naddr; i++)
-			inaddrcpy(&(addr[i]),
-				  (struct in_addr *) host->h_addr_list[i]);
+		for (i = 0, p = res; p != NULL; p = p->ai_next)
+			memcpy(&addr[i++],
+			       &((const struct sockaddr_in *)p->ai_addr)->sin_addr,
+			       sizeof(struct in_addr));
+		freeaddrinfo(res);
 		return addr;
 	}
 
