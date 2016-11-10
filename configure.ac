@@ -169,7 +169,7 @@ fi
 
 if test "x$enable_connlabel" = "xyes"; then
 	PKG_CHECK_MODULES([libnetfilter_conntrack],
-		[libnetfilter_conntrack >= 1.0.4],
+		[libnetfilter_conntrack >= 1.0.6],
 		[nfconntrack=1], [nfconntrack=0])
 
 	if test "$nfconntrack" -ne 1; then
