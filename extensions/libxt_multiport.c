@@ -108,7 +108,6 @@ parse_multi_ports_v1(const char *portstring,
 {
 	char *buffer, *cp, *next, *range;
 	unsigned int i;
-	uint16_t m;
 
 	buffer = strdup(portstring);
 	if (!buffer) xtables_error(OTHER_PROBLEM, "strdup failed");
@@ -133,7 +132,6 @@ parse_multi_ports_v1(const char *portstring,
 			if (multiinfo->ports[i-1] >= multiinfo->ports[i])
 				xtables_error(PARAMETER_PROBLEM,
 					   "invalid portrange specified");
-			m <<= 1;
 		}
  	}
 	multiinfo->count = i;
