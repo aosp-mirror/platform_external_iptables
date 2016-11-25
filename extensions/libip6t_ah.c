@@ -152,8 +152,13 @@ static int ah_xlate(struct xt_xlate *xl,
 		space = " ";
 	}
 
-	if (ahinfo->hdrres != 0)
+	if (ahinfo->hdrres != 0) {
 		xt_xlate_add(xl, "%sah reserved %u", space, ahinfo->hdrres);
+		space = " ";
+	}
+
+	if (!space[0]) /* plain '-m ah' */
+		xt_xlate_add(xl, "meta l4proto ah");
 
 	return 1;
 }
