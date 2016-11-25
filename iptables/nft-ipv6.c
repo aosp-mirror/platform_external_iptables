@@ -387,6 +387,7 @@ static void nft_ipv6_save_counters(const void *data)
 }
 
 static void xlate_ipv6_addr(const char *selector, const struct in6_addr *addr,
+			    const struct in6_addr *mask,
 			    int invert, struct xt_xlate *xl)
 {
 	char addr_str[INET6_ADDRSTRLEN];
@@ -395,7 +396,8 @@ static void xlate_ipv6_addr(const char *selector, const struct in6_addr *addr,
 		return;
 
 	inet_ntop(AF_INET6, addr, addr_str, INET6_ADDRSTRLEN);
-	xt_xlate_add(xl, "%s %s%s ", selector, invert ? "!= " : "", addr_str);
+	xt_xlate_add(xl, "%s %s%s%s ", selector, invert ? "!= " : "", addr_str,
+			xtables_ip6mask_to_numeric(mask));
 }
 
 static int nft_ipv6_xlate(const void *data, struct xt_xlate *xl)
@@ -425,9 +427,9 @@ static int nft_ipv6_xlate(const void *data, struct xt_xlate *xl)
 		}
 	}
 
-	xlate_ipv6_addr("ip6 saddr", &cs->fw6.ipv6.src,
+	xlate_ipv6_addr("ip6 saddr", &cs->fw6.ipv6.src, &cs->fw6.ipv6.smsk,
 			cs->fw6.ipv6.invflags & IP6T_INV_SRCIP, xl);
-	xlate_ipv6_addr("ip6 daddr", &cs->fw6.ipv6.dst,
+	xlate_ipv6_addr("ip6 daddr", &cs->fw6.ipv6.dst, &cs->fw6.ipv6.dmsk,
 			cs->fw6.ipv6.invflags & IP6T_INV_DSTIP, xl);
 
 	ret = xlate_matches(cs, xl);

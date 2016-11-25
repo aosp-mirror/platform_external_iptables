@@ -471,14 +471,16 @@ static int nft_ipv4_xlate(const void *data, struct xt_xlate *xl)
 	}
 
 	if (cs->fw.ip.src.s_addr != 0) {
-		xt_xlate_add(xl, "ip saddr %s%s ",
+		xt_xlate_add(xl, "ip saddr %s%s%s ",
 			   cs->fw.ip.invflags & IPT_INV_SRCIP ? "!= " : "",
-			   inet_ntoa(cs->fw.ip.src));
+			   inet_ntoa(cs->fw.ip.src),
+			   xtables_ipmask_to_numeric(&cs->fw.ip.smsk));
 	}
 	if (cs->fw.ip.dst.s_addr != 0) {
-		xt_xlate_add(xl, "ip daddr %s%s ",
+		xt_xlate_add(xl, "ip daddr %s%s%s ",
 			   cs->fw.ip.invflags & IPT_INV_DSTIP ? "!= " : "",
-			   inet_ntoa(cs->fw.ip.dst));
+			   inet_ntoa(cs->fw.ip.dst),
+			   xtables_ipmask_to_numeric(&cs->fw.ip.dmsk));
 	}
 
 	ret = xlate_matches(cs, xl);
