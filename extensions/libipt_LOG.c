@@ -189,21 +189,43 @@ static int LOG_xlate(struct xt_xlate *xl,
 		(const struct ipt_log_info *)params->target->data;
 	unsigned int i = 0;
 
-	xt_xlate_add(xl, "log ");
+	xt_xlate_add(xl, "log");
 	if (strcmp(loginfo->prefix, "") != 0) {
 		if (params->escape_quotes)
-			xt_xlate_add(xl, "prefix \\\"%s\\\" ", loginfo->prefix);
+			xt_xlate_add(xl, " prefix \\\"%s\\\"", loginfo->prefix);
 		else
-			xt_xlate_add(xl, "prefix \"%s\" ", loginfo->prefix);
+			xt_xlate_add(xl, " prefix \"%s\"", loginfo->prefix);
 	}
 
 	for (i = 0; i < ARRAY_SIZE(ipt_log_xlate_names); ++i)
 		if (loginfo->level != LOG_DEFAULT_LEVEL &&
 		    loginfo->level == ipt_log_xlate_names[i].level) {
-			xt_xlate_add(xl, "level %s ",
+			xt_xlate_add(xl, " level %s",
 				   ipt_log_xlate_names[i].name);
 			break;
 		}
+
+	if ((loginfo->logflags & IPT_LOG_MASK) == IPT_LOG_MASK) {
+		xt_xlate_add(xl, " flags all");
+	} else {
+		if (loginfo->logflags & (IPT_LOG_TCPSEQ | IPT_LOG_TCPOPT)) {
+			const char *delim = " ";
+
+			xt_xlate_add(xl, " flags tcp");
+			if (loginfo->logflags & IPT_LOG_TCPSEQ) {
+				xt_xlate_add(xl, " sequence");
+				delim = ",";
+			}
+			if (loginfo->logflags & IPT_LOG_TCPOPT)
+				xt_xlate_add(xl, "%soptions", delim);
+		}
+		if (loginfo->logflags & IPT_LOG_IPOPT)
+			xt_xlate_add(xl, " flags ip options");
+		if (loginfo->logflags & IPT_LOG_UID)
+			xt_xlate_add(xl, " flags skuid");
+		if (loginfo->logflags & IPT_LOG_MACDECODE)
+			xt_xlate_add(xl, " flags ether");
+	}
 
 	return 1;
 }

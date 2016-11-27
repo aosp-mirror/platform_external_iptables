@@ -189,21 +189,43 @@ static int LOG_xlate(struct xt_xlate *xl,
 		(const struct ip6t_log_info *)params->target->data;
 	unsigned int i = 0;
 
-	xt_xlate_add(xl, "log ");
+	xt_xlate_add(xl, "log");
 	if (strcmp(loginfo->prefix, "") != 0) {
 		if (params->escape_quotes)
-			xt_xlate_add(xl, "prefix \\\"%s\\\" ", loginfo->prefix);
+			xt_xlate_add(xl, " prefix \\\"%s\\\"", loginfo->prefix);
 		else
-			xt_xlate_add(xl, "prefix \"%s\" ", loginfo->prefix);
+			xt_xlate_add(xl, " prefix \"%s\"", loginfo->prefix);
 	}
 
 	for (i = 0; i < ARRAY_SIZE(ip6t_log_xlate_names); ++i)
 		if (loginfo->level == ip6t_log_xlate_names[i].level &&
 		    loginfo->level != LOG_DEFAULT_LEVEL) {
-			xt_xlate_add(xl, "level %s",
+			xt_xlate_add(xl, " level %s",
 				   ip6t_log_xlate_names[i].name);
 			break;
 		}
+
+	if ((loginfo->logflags & IP6T_LOG_MASK) == IP6T_LOG_MASK) {
+		xt_xlate_add(xl, " flags all");
+	} else {
+		if (loginfo->logflags & (IP6T_LOG_TCPSEQ | IP6T_LOG_TCPOPT)) {
+			const char *delim = " ";
+
+			xt_xlate_add(xl, " flags tcp");
+			if (loginfo->logflags & IP6T_LOG_TCPSEQ) {
+				xt_xlate_add(xl, " sequence");
+				delim = ",";
+			}
+			if (loginfo->logflags & IP6T_LOG_TCPOPT)
+				xt_xlate_add(xl, "%soptions", delim);
+		}
+		if (loginfo->logflags & IP6T_LOG_IPOPT)
+			xt_xlate_add(xl, " flags ip options");
+		if (loginfo->logflags & IP6T_LOG_UID)
+			xt_xlate_add(xl, " flags skuid");
+		if (loginfo->logflags & IP6T_LOG_MACDECODE)
+			xt_xlate_add(xl, " flags ether");
+	}
 
 	return 1;
 }
