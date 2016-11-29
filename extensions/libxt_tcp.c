@@ -435,9 +435,9 @@ static int tcp_xlate(struct xt_xlate *xl,
 		return 0;
 
 	if (tcpinfo->flg_mask || (tcpinfo->invflags & XT_TCP_INV_FLAGS)) {
-		xt_xlate_add(xl, "%stcp flags & ", space);
+		xt_xlate_add(xl, "%stcp flags & (", space);
 		print_tcp_xlate(xl, tcpinfo->flg_mask);
-		xt_xlate_add(xl, " %s ",
+		xt_xlate_add(xl, ") %s ",
 			   tcpinfo->invflags & XT_TCP_INV_FLAGS ? "!=": "==");
 		print_tcp_xlate(xl, tcpinfo->flg_cmp);
 	}
