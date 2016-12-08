@@ -73,6 +73,8 @@ static const char cmdflags[] = { 'I', 'D', 'D', 'R', 'A', 'L', 'F', 'Z',
 static const char optflags[]
 = { 'n', 's', 'd', 'p', 'j', 'v', 'x', 'i', 'o', '0', 'c', 'f'};
 
+static const char unsupported_rev[] = " [unsupported revision]";
+
 static struct option original_opts[] = {
 	{.name = "append",        .has_arg = 1, .val = 'A'},
 	{.name = "delete",        .has_arg = 1, .val = 'D'},
@@ -504,8 +506,10 @@ print_match(const struct xt_entry_match *m,
 		xtables_find_match(m->u.user.name, XTF_TRY_LOAD, NULL);
 
 	if (match) {
-		if (match->print)
+		if (match->print && m->u.user.revision == match->revision)
 			match->print(ip, m, numeric);
+		else if (match->print)
+			printf("%s%s ", match->name, unsupported_rev);
 		else
 			printf("%s ", match->name);
 	} else {
@@ -631,9 +635,11 @@ print_firewall(const struct ipt_entry *fw,
 	IPT_MATCH_ITERATE(fw, print_match, &fw->ip, format & FMT_NUMERIC);
 
 	if (target) {
-		if (target->print)
+		if (target->print && t->u.user.revision == target->revision)
 			/* Print the target information. */
 			target->print(&fw->ip, t, format & FMT_NUMERIC);
+		else if (target->print)
+			printf(" %s%s", target->name, unsupported_rev);
 	} else if (t->u.target_size != sizeof(*t))
 		printf("[%u bytes of unknown target data] ",
 		       (unsigned int)(t->u.target_size - sizeof(*t)));
@@ -1027,8 +1033,10 @@ static int print_match_save(const struct xt_entry_match *e,
 			match->alias ? match->alias(e) : e->u.user.name);
 
 		/* some matches don't provide a save function */
-		if (match->save)
+		if (match->save && e->u.user.revision == match->revision)
 			match->save(ip, e);
+		else if (match->save)
+			printf(unsupported_rev);
 	} else {
 		if (e->u.match_size) {
 			fprintf(stderr,
@@ -1128,8 +1136,10 @@ void print_rule4(const struct ipt_entry *e,
 		}
 
 		printf(" -j %s", target->alias ? target->alias(t) : target_name);
-		if (target->save)
+		if (target->save && t->u.user.revision == target->revision)
 			target->save(&e->ip, t);
+		else if (target->save)
+			printf(unsupported_rev);
 		else {
 			/* If the target size is greater than xt_entry_target
 			 * there is something to be saved, we just don't know
