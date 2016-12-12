@@ -1366,17 +1366,10 @@ static struct in_addr *host_to_ipaddr(const char *name, unsigned int *naddr)
 
 	*naddr = 0;
 	if ((err = getaddrinfo(name, NULL, &hints, &res)) != 0) {
-#ifdef DEBUG
-		fprintf(stderr,"Name2IP: %s\n",gai_strerror(err));
-#endif
 		return NULL;
 	} else {
 		for (p = res; p != NULL; p = p->ai_next)
 			++*naddr;
-#ifdef DEBUG
-		fprintf(stderr, "resolved: len=%d  %s ", res->ai_addrlen,
-		        xtables_ipaddr_to_numeric(&((struct sockaddr_in *)res->ai_addr)->sin_addr));
-#endif
 		addr = xtables_calloc(*naddr, sizeof(struct in_addr));
 		for (i = 0, p = res; p != NULL; p = p->ai_next)
 			memcpy(&addr[i++],
@@ -1577,17 +1570,10 @@ static const char *ip6addr_to_host(const struct in6_addr *addr)
 	saddr.sin6_family = AF_INET6;
 
 	err = getnameinfo((const void *)&saddr, sizeof(struct sockaddr_in6),
-	      hostname, sizeof(hostname) - 1, NULL, 0, 0);
-	if (err != 0) {
-#ifdef DEBUG
-		fprintf(stderr,"IP2Name: %s\n",gai_strerror(err));
-#endif
+			hostname, sizeof(hostname) - 1, NULL, 0, 0);
+	if (err != 0)
 		return NULL;
-	}
 
-#ifdef DEBUG
-	fprintf (stderr, "\naddr2host: %s\n", hostname);
-#endif
 	return hostname;
 }
 
@@ -1650,9 +1636,7 @@ struct in6_addr *xtables_numeric_to_ip6addr(const char *num)
 
 	if ((err = inet_pton(AF_INET6, num, &ap)) == 1)
 		return &ap;
-#ifdef DEBUG
-	fprintf(stderr, "\nnumeric2addr: %d\n", err);
-#endif
+
 	return NULL;
 }
 
@@ -1672,18 +1656,11 @@ host_to_ip6addr(const char *name, unsigned int *naddr)
 
 	*naddr = 0;
 	if ((err = getaddrinfo(name, NULL, &hints, &res)) != 0) {
-#ifdef DEBUG
-		fprintf(stderr,"Name2IP: %s\n",gai_strerror(err));
-#endif
 		return NULL;
 	} else {
 		/* Find length of address chain */
 		for (p = res; p != NULL; p = p->ai_next)
 			++*naddr;
-#ifdef DEBUG
-		fprintf(stderr, "resolved: len=%d  %s ", res->ai_addrlen,
-		        xtables_ip6addr_to_numeric(&((struct sockaddr_in6 *)res->ai_addr)->sin6_addr));
-#endif
 		/* Copy each element of the address chain */
 		addr = xtables_calloc(*naddr, sizeof(struct in6_addr));
 		for (i = 0, p = res; p != NULL; p = p->ai_next)
