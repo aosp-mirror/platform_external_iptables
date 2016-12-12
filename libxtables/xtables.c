@@ -1210,13 +1210,20 @@ const char *xtables_ipaddr_to_numeric(const struct in_addr *addrp)
 
 static const char *ipaddr_to_host(const struct in_addr *addr)
 {
-	struct hostent *host;
+	static char hostname[NI_MAXHOST];
+	struct sockaddr_in saddr = {
+		.sin_family = AF_INET,
+		.sin_addr = *addr,
+	};
+	int err;
 
-	host = gethostbyaddr(addr, sizeof(struct in_addr), AF_INET);
-	if (host == NULL)
+
+	err = getnameinfo((const void *)&saddr, sizeof(struct sockaddr_in),
+		       hostname, sizeof(hostname) - 1, NULL, 0, 0);
+	if (err != 0)
 		return NULL;
 
-	return host->h_name;
+	return hostname;
 }
 
 static const char *ipaddr_to_network(const struct in_addr *addr)
