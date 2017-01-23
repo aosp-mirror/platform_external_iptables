@@ -185,7 +185,7 @@ int ip6tables_restore_main(int argc, char *argv[])
 {
 	struct xtc_handle *handle = NULL;
 	char buffer[10240];
-	int c;
+	int c, lock;
 	char curtable[XT_TABLE_MAXNAMELEN + 1];
 	FILE *in;
 	int in_table = 0, testing = 0;
@@ -193,6 +193,7 @@ int ip6tables_restore_main(int argc, char *argv[])
 	const struct xtc_ops *ops = &ip6tc_ops;
 
 	line = 0;
+	lock = XT_LOCK_NOT_ACQUIRED;
 
 	ip6tables_globals.program_name = "ip6tables-restore";
 	c = xtables_init_all(&ip6tables_globals, NFPROTO_IPV6);
@@ -254,12 +255,6 @@ int ip6tables_restore_main(int argc, char *argv[])
 	}
 	else in = stdin;
 
-	if (!xtables_lock(wait)) {
-		fprintf(stderr, "Another app is currently holding the xtables lock. "
-			"Perhaps you want to use the -w option?\n");
-		exit(RESOURCE_PROBLEM);
-	}
-
 	/* Grab standard input. */
 	while (fgets(buffer, sizeof(buffer), in)) {
 		int ret = 0;
@@ -283,8 +278,21 @@ int ip6tables_restore_main(int argc, char *argv[])
 				DEBUGP("Not calling commit, testing\n");
 				ret = 1;
 			}
+
+			/* Release the lock since we're done with the current table. */
+			if (lock >= 0) {
+				xtables_unlock(lock);
+			}
 			in_table = 0;
 		} else if ((buffer[0] == '*') && (!in_table)) {
+			/* Acquire a lock before we create a new table handle */
+			lock = xtables_lock(wait);
+			if (lock == XT_LOCK_BUSY) {
+				fprintf(stderr, "Another app is currently holding the xtables lock. "
+					"Perhaps you want to use the -w option?\n");
+				exit(RESOURCE_PROBLEM);
+			}
+
 			/* New table */
 			char *table;
 
