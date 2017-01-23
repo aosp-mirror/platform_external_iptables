@@ -268,8 +268,10 @@ int ip6tables_restore_main(int argc, char *argv[])
 		if (buffer[0] == '\n')
 			continue;
 		else if (buffer[0] == '#') {
-			if (verbose)
+			if (verbose) {
 				fputs(buffer, stdout);
+				fflush(stdout);
+			}
 			continue;
 		} else if ((strcmp(buffer, "COMMIT\n") == 0) && (in_table)) {
 			if (!testing) {
