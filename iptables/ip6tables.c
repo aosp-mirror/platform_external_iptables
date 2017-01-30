@@ -1738,7 +1738,7 @@ int do_command6(int argc, char *argv[], char **table,
 			   chain, XT_EXTENSION_MAXNAMELEN);
 
 	/* Attempt to acquire the xtables lock */
-	if (!restore && (xtables_lock(wait) == XT_LOCK_BUSY)) {
+	if (!restore && !xtables_lock(wait)) {
 		fprintf(stderr, "Another app is currently holding the xtables lock. "
 			"Perhaps you want to use the -w option?\n");
 		xtables_free_opts(1);
