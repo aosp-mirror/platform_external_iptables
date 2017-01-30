@@ -12,7 +12,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "iptables.h"
-#include "xshared.h"
 #include "xtables.h"
 #include "libiptc/libiptc.h"
 #include "iptables-multi.h"
@@ -23,7 +22,7 @@
 #define DEBUGP(x, args...)
 #endif
 
-static int binary = 0, counters = 0, verbose = 0, noflush = 0, wait = 0;
+static int binary = 0, counters = 0, verbose = 0, noflush = 0;
 
 /* Keeping track of external matches and targets.  */
 static const struct option options[] = {
@@ -33,7 +32,6 @@ static const struct option options[] = {
 	{.name = "test",     .has_arg = false, .val = 't'},
 	{.name = "help",     .has_arg = false, .val = 'h'},
 	{.name = "noflush",  .has_arg = false, .val = 'n'},
-	{.name = "wait",     .has_arg = false, .val = 'w'},
 	{.name = "modprobe", .has_arg = true,  .val = 'M'},
 	{.name = "table",    .has_arg = true,  .val = 'T'},
 	{NULL},
@@ -45,14 +43,13 @@ static void print_usage(const char *name, const char *version) __attribute__((no
 
 static void print_usage(const char *name, const char *version)
 {
-	fprintf(stderr, "Usage: %s [-b] [-c] [-v] [-t] [-h] [-w]\n"
+	fprintf(stderr, "Usage: %s [-b] [-c] [-v] [-t] [-h]\n"
 			"	   [ --binary ]\n"
 			"	   [ --counters ]\n"
 			"	   [ --verbose ]\n"
 			"	   [ --test ]\n"
 			"	   [ --help ]\n"
 			"	   [ --noflush ]\n"
-			"	   [ --wait ]\n"
 			"	   [ --table=<TABLE> ]\n"
 			"          [ --modprobe=<command>]\n", name);
 
@@ -207,7 +204,7 @@ iptables_restore_main(int argc, char *argv[])
 	init_extensions4();
 #endif
 
-	while ((c = getopt_long(argc, argv, "bcvthnwM:T:", options, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "bcvthnM:T:", options, NULL)) != -1) {
 		switch (c) {
 			case 'b':
 				binary = 1;
@@ -227,9 +224,6 @@ iptables_restore_main(int argc, char *argv[])
 				break;
 			case 'n':
 				noflush = 1;
-				break;
-			case 'w':
-				wait = 1;
 				break;
 			case 'M':
 				xtables_modprobe_program = optarg;
@@ -253,12 +247,6 @@ iptables_restore_main(int argc, char *argv[])
 		exit(1);
 	}
 	else in = stdin;
-
-	if (!xtables_lock(wait)) {
-		fprintf(stderr, "Another app is currently holding the xtables lock. "
-			"Perhaps you want to use the -w option?\n");
-		exit(RESOURCE_PROBLEM);
-	}
 
 	/* Grab standard input. */
 	while (fgets(buffer, sizeof(buffer), in)) {
