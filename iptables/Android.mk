@@ -1,4 +1,13 @@
 LOCAL_PATH:= $(call my-dir)
+
+commonFlags:= \
+	-Wno-missing-field-initializers \
+	-Wno-sign-compare \
+	-Wno-pointer-arith \
+	-Wno-unused-parameter \
+	-Wno-parentheses-equality \
+	-Werror
+
 #----------------------------------------------------------------
 # iptables
 
@@ -14,7 +23,7 @@ LOCAL_CFLAGS+=-DXTABLES_INTERNAL
 LOCAL_CFLAGS+=-D_LARGEFILE_SOURCE=1 -D_LARGE_FILES -D_FILE_OFFSET_BITS=64 -D_REENTRANT -DENABLE_IPV4
 # Accommodate arm-eabi-4.4.3 tools that don't set __ANDROID__
 LOCAL_CFLAGS+=-D__ANDROID__
-LOCAL_CFLAGS += -Wno-sign-compare -Wno-pointer-arith
+LOCAL_CFLAGS += $(commonFlags)
 
 LOCAL_SRC_FILES:= \
 	xtables-multi.c iptables-xml.c xshared.c \
@@ -51,7 +60,7 @@ LOCAL_CFLAGS+=-DXTABLES_INTERNAL
 LOCAL_CFLAGS+=-D_LARGEFILE_SOURCE=1 -D_LARGE_FILES -D_FILE_OFFSET_BITS=64 -D_REENTRANT -DENABLE_IPV6
 # Accommodate arm-eabi-4.4.3 tools that don't set __ANDROID__
 LOCAL_CFLAGS+=-D__ANDROID__
-LOCAL_CFLAGS += -Wno-sign-compare -Wno-pointer-arith
+LOCAL_CFLAGS += $(commonFlags)
 
 LOCAL_SRC_FILES:= \
 	xtables-multi.c iptables-xml.c xshared.c \
