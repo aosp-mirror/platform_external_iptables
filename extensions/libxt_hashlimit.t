@@ -26,3 +26,4 @@
 -m hashlimit --hashlimit-name mini1;;FAIL
 -m hashlimit --hashlimit-upto 1/sec;;FAIL
 -m hashlimit;;FAIL
+-m hashlimit --hashlimit-upto 40/sec --hashlimit-burst 20 --hashlimit-mode srcip --hashlimit-name syn-flood;=;OK
