@@ -379,6 +379,14 @@ static int xlate_chain_set(struct nft_handle *h, const char *table,
 	return 1;
 }
 
+static int dummy_compat_rev(const char *name, uint8_t rev, int opt)
+{
+	/* Avoid querying the kernel - it's not needed when just translating
+	 * rules and not even possible when running as unprivileged user.
+	 */
+	return 1;
+}
+
 static struct nft_xt_restore_cb cb_xlate = {
 	.table_new	= xlate_table_new,
 	.chain_set	= xlate_chain_set,
@@ -398,6 +406,7 @@ static int xtables_xlate_main(int family, const char *progname, int argc,
 	};
 
 	xtables_globals.program_name = progname;
+	xtables_globals.compat_rev = dummy_compat_rev;
 	ret = xtables_init_all(&xtables_globals, family);
 	if (ret < 0) {
 		fprintf(stderr, "%s/%s Failed to initialize xtables\n",
@@ -440,6 +449,7 @@ static int xtables_restore_xlate_main(int family, const char *progname,
 	int c;
 
 	xtables_globals.program_name = progname;
+	xtables_globals.compat_rev = dummy_compat_rev;
 	ret = xtables_init_all(&xtables_globals, family);
 	if (ret < 0) {
 		fprintf(stderr, "%s/%s Failed to initialize xtables\n",
