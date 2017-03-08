@@ -195,6 +195,8 @@ static int xlate(struct nft_handle *h, struct nft_xt_cmd_parse *p,
 			}
 			break;
 		}
+		if (!cs->restore)
+			printf("nft ");
 	}
 
 	return ret;
