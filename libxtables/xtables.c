@@ -1367,7 +1367,6 @@ static struct in_addr *host_to_ipaddr(const char *name, unsigned int *naddr)
 	unsigned int i;
 
 	memset(&hints, 0, sizeof(hints));
-	hints.ai_flags    = AI_CANONNAME;
 	hints.ai_family   = AF_INET;
 	hints.ai_socktype = SOCK_RAW;
 
@@ -1654,7 +1653,6 @@ host_to_ip6addr(const char *name, unsigned int *naddr)
 	unsigned int i;
 
 	memset(&hints, 0, sizeof(hints));
-	hints.ai_flags    = AI_CANONNAME;
 	hints.ai_family   = AF_INET6;
 	hints.ai_socktype = SOCK_RAW;
 
