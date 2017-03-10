@@ -20,7 +20,7 @@
 #define HAVE_LINUX_MAGIC_H 1
 
 /* Define to 1 if you have the <linux/proc_fs.h> header file. */
-/* #undef HAVE_LINUX_PROC_FS_H */
+#define HAVE_LINUX_PROC_FS_H 1
 
 /* Define to 1 if you have the <memory.h> header file. */
 #define HAVE_MEMORY_H 1
@@ -63,7 +63,7 @@
 #define PACKAGE_NAME "iptables"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "iptables 1.4.20"
+#define PACKAGE_STRING "iptables 1.6.1"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "iptables"
@@ -72,7 +72,7 @@
 #define PACKAGE_URL ""
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "1.4.20"
+#define PACKAGE_VERSION "1.6.1"
 
 /* The size of `struct ip6_hdr', as computed by sizeof. */
 #define SIZEOF_STRUCT_IP6_HDR 40
@@ -81,4 +81,7 @@
 #define STDC_HEADERS 1
 
 /* Version number of package */
-#define VERSION "1.4.20"
+#define VERSION "1.6.1"
+
+/* Location of the iptables lock file */
+#define XT_LOCK_NAME "/system/etc/xtables.lock"
