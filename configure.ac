@@ -67,6 +67,10 @@ AC_ARG_ENABLE([connlabel],
 	AS_HELP_STRING([--disable-connlabel],
 	[Do not build libnetfilter_conntrack]),
 	[enable_connlabel="$enableval"], [enable_connlabel="yes"])
+AC_ARG_WITH([xt-lock-name], AS_HELP_STRING([--with-xt-lock-name=PATH],
+	[Path to the xtables lock [[/run/xtables.lock]]]),
+	[xt_lock_name="$withval"],
+	[xt_lock_name="/run/xtables.lock"])
 
 libiptc_LDFLAGS2="";
 AX_CHECK_LINKER_FLAGS([-Wl,--no-as-needed],
@@ -193,7 +197,7 @@ AC_SUBST([blacklist_6_modules])
 regular_CFLAGS="-Wall -Waggregate-return -Wmissing-declarations \
 	-Wmissing-prototypes -Wredundant-decls -Wshadow -Wstrict-prototypes \
 	-Winline -pipe";
-regular_CPPFLAGS="${largefile_cppflags} -D_REENTRANT \
+regular_CPPFLAGS="${largefile_cppflags} -DXT_LOCK_NAME=\\\"\${xt_lock_name}\\\" -D_REENTRANT \
 	-DXTABLES_LIBDIR=\\\"\${xtlibdir}\\\" -DXTABLES_INTERNAL";
 kinclude_CPPFLAGS="";
 if [[ -n "$kbuilddir" ]]; then
@@ -231,6 +235,7 @@ AC_SUBST([libxtables_vcurrent])
 AC_SUBST([libxtables_vage])
 libxtables_vmajor=$(($libxtables_vcurrent - $libxtables_vage));
 AC_SUBST([libxtables_vmajor])
+AC_SUBST([xt_lock_name])
 
 AC_CONFIG_FILES([Makefile extensions/GNUmakefile include/Makefile
 	iptables/Makefile iptables/xtables.pc
@@ -265,7 +270,8 @@ Build parameters:
   Support plugins via dlopen (shared):	${enable_shared}
   Installation prefix (--prefix):	${prefix}
   Xtables extension directory:		${e_xtlibdir}
-  Pkg-config directory:			${e_pkgconfigdir}"
+  Pkg-config directory:			${e_pkgconfigdir}
+  Xtables lock file:			${xt_lock_name}"
 
 if [[ -n "$ksourcedir" ]]; then
 	echo "  Kernel source directory:		${ksourcedir}"
