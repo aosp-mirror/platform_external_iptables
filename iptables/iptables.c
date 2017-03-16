@@ -1393,8 +1393,7 @@ int do_command4(int argc, char *argv[], char **table,
 			add_command(&command, CMD_DELETE, CMD_NONE,
 				    cs.invert);
 			chain = optarg;
-			if (optind < argc && argv[optind][0] != '-'
-			    && argv[optind][0] != '!') {
+			if (xs_has_arg(argc, argv)) {
 				rulenum = parse_rulenumber(argv[optind++]);
 				command = CMD_DELETE_NUM;
 			}
@@ -1404,8 +1403,7 @@ int do_command4(int argc, char *argv[], char **table,
 			add_command(&command, CMD_REPLACE, CMD_NONE,
 				    cs.invert);
 			chain = optarg;
-			if (optind < argc && argv[optind][0] != '-'
-			    && argv[optind][0] != '!')
+			if (xs_has_arg(argc, argv))
 				rulenum = parse_rulenumber(argv[optind++]);
 			else
 				xtables_error(PARAMETER_PROBLEM,
@@ -1417,8 +1415,7 @@ int do_command4(int argc, char *argv[], char **table,
 			add_command(&command, CMD_INSERT, CMD_NONE,
 				    cs.invert);
 			chain = optarg;
-			if (optind < argc && argv[optind][0] != '-'
-			    && argv[optind][0] != '!')
+			if (xs_has_arg(argc, argv))
 				rulenum = parse_rulenumber(argv[optind++]);
 			else rulenum = 1;
 			break;
@@ -1427,11 +1424,9 @@ int do_command4(int argc, char *argv[], char **table,
 			add_command(&command, CMD_LIST,
 				    CMD_ZERO | CMD_ZERO_NUM, cs.invert);
 			if (optarg) chain = optarg;
-			else if (optind < argc && argv[optind][0] != '-'
-				 && argv[optind][0] != '!')
+			else if (xs_has_arg(argc, argv))
 				chain = argv[optind++];
-			if (optind < argc && argv[optind][0] != '-'
-			    && argv[optind][0] != '!')
+			if (xs_has_arg(argc, argv))
 				rulenum = parse_rulenumber(argv[optind++]);
 			break;
 
@@ -1439,11 +1434,9 @@ int do_command4(int argc, char *argv[], char **table,
 			add_command(&command, CMD_LIST_RULES,
 				    CMD_ZERO|CMD_ZERO_NUM, cs.invert);
 			if (optarg) chain = optarg;
-			else if (optind < argc && argv[optind][0] != '-'
-				 && argv[optind][0] != '!')
+			else if (xs_has_arg(argc, argv))
 				chain = argv[optind++];
-			if (optind < argc && argv[optind][0] != '-'
-			    && argv[optind][0] != '!')
+			if (xs_has_arg(argc, argv))
 				rulenum = parse_rulenumber(argv[optind++]);
 			break;
 
@@ -1451,8 +1444,7 @@ int do_command4(int argc, char *argv[], char **table,
 			add_command(&command, CMD_FLUSH, CMD_NONE,
 				    cs.invert);
 			if (optarg) chain = optarg;
-			else if (optind < argc && argv[optind][0] != '-'
-				 && argv[optind][0] != '!')
+			else if (xs_has_arg(argc, argv))
 				chain = argv[optind++];
 			break;
 
@@ -1460,11 +1452,9 @@ int do_command4(int argc, char *argv[], char **table,
 			add_command(&command, CMD_ZERO, CMD_LIST|CMD_LIST_RULES,
 				    cs.invert);
 			if (optarg) chain = optarg;
-			else if (optind < argc && argv[optind][0] != '-'
-				&& argv[optind][0] != '!')
+			else if (xs_has_arg(argc, argv))
 				chain = argv[optind++];
-			if (optind < argc && argv[optind][0] != '-'
-				&& argv[optind][0] != '!') {
+			if (xs_has_arg(argc, argv)) {
 				rulenum = parse_rulenumber(argv[optind++]);
 				command = CMD_ZERO_NUM;
 			}
@@ -1481,8 +1471,7 @@ int do_command4(int argc, char *argv[], char **table,
 			add_command(&command, CMD_DELETE_CHAIN, CMD_NONE,
 				    cs.invert);
 			if (optarg) chain = optarg;
-			else if (optind < argc && argv[optind][0] != '-'
-				 && argv[optind][0] != '!')
+			else if (xs_has_arg(argc, argv))
 				chain = argv[optind++];
 			break;
 
@@ -1490,8 +1479,7 @@ int do_command4(int argc, char *argv[], char **table,
 			add_command(&command, CMD_RENAME_CHAIN, CMD_NONE,
 				    cs.invert);
 			chain = optarg;
-			if (optind < argc && argv[optind][0] != '-'
-			    && argv[optind][0] != '!')
+			if (xs_has_arg(argc, argv))
 				newname = argv[optind++];
 			else
 				xtables_error(PARAMETER_PROBLEM,
@@ -1504,8 +1492,7 @@ int do_command4(int argc, char *argv[], char **table,
 			add_command(&command, CMD_SET_POLICY, CMD_NONE,
 				    cs.invert);
 			chain = optarg;
-			if (optind < argc && argv[optind][0] != '-'
-			    && argv[optind][0] != '!')
+			if (xs_has_arg(argc, argv))
 				policy = argv[optind++];
 			else
 				xtables_error(PARAMETER_PROBLEM,
@@ -1613,16 +1600,7 @@ int do_command4(int argc, char *argv[], char **table,
 					      "You cannot use `-w' from "
 					      "iptables-restore");
 			}
-			wait = -1;
-			if (optarg) {
-				if (sscanf(optarg, "%i", &wait) != 1)
-					xtables_error(PARAMETER_PROBLEM,
-						"wait seconds not numeric");
-			} else if (optind < argc && argv[optind][0] != '-'
-						 && argv[optind][0] != '!')
-				if (sscanf(argv[optind++], "%i", &wait) != 1)
-					xtables_error(PARAMETER_PROBLEM,
-						"wait seconds not numeric");
+			wait = parse_wait_time(argc, argv);
 			break;
 
 		case 'W':
@@ -1631,14 +1609,7 @@ int do_command4(int argc, char *argv[], char **table,
 					      "You cannot use `-W' from "
 					      "iptables-restore");
 			}
-			if (optarg)
-				parse_wait_interval(optarg, &wait_interval);
-			else if (optind < argc &&
-				 argv[optind][0] != '-' &&
-				 argv[optind][0] != '!')
-				parse_wait_interval(argv[optind++],
-						    &wait_interval);
-
+			parse_wait_interval(argc, argv, &wait_interval);
 			wait_interval_set = true;
 			break;
 
@@ -1688,8 +1659,7 @@ int do_command4(int argc, char *argv[], char **table,
 			bcnt = strchr(pcnt + 1, ',');
 			if (bcnt)
 			    bcnt++;
-			if (!bcnt && optind < argc && argv[optind][0] != '-'
-			    && argv[optind][0] != '!')
+			if (!bcnt && xs_has_arg(argc, argv))
 				bcnt = argv[optind++];
 			if (!bcnt)
 				xtables_error(PARAMETER_PROBLEM,

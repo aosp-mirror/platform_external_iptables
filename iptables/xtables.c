@@ -744,8 +744,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 			add_command(&p->command, CMD_DELETE, CMD_NONE,
 				    cs->invert);
 			p->chain = optarg;
-			if (optind < argc && argv[optind][0] != '-'
-			    && argv[optind][0] != '!') {
+			if (xs_has_arg(argc, argv)) {
 				p->rulenum = parse_rulenumber(argv[optind++]);
 				p->command = CMD_DELETE_NUM;
 			}
@@ -755,8 +754,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 			add_command(&p->command, CMD_REPLACE, CMD_NONE,
 				    cs->invert);
 			p->chain = optarg;
-			if (optind < argc && argv[optind][0] != '-'
-			    && argv[optind][0] != '!')
+			if (xs_has_arg(argc, argv))
 				p->rulenum = parse_rulenumber(argv[optind++]);
 			else
 				xtables_error(PARAMETER_PROBLEM,
@@ -768,8 +766,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 			add_command(&p->command, CMD_INSERT, CMD_NONE,
 				    cs->invert);
 			p->chain = optarg;
-			if (optind < argc && argv[optind][0] != '-'
-			    && argv[optind][0] != '!')
+			if (xs_has_arg(argc, argv))
 				p->rulenum = parse_rulenumber(argv[optind++]);
 			else
 				p->rulenum = 1;
@@ -780,11 +777,9 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 				    CMD_ZERO | CMD_ZERO_NUM, cs->invert);
 			if (optarg)
 				p->chain = optarg;
-			else if (optind < argc && argv[optind][0] != '-'
-				 && argv[optind][0] != '!')
+			else if (xs_has_arg(argc, argv))
 				p->chain = argv[optind++];
-			if (optind < argc && argv[optind][0] != '-'
-			    && argv[optind][0] != '!')
+			if (xs_has_arg(argc, argv))
 				p->rulenum = parse_rulenumber(argv[optind++]);
 			break;
 
@@ -793,11 +788,9 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 				    CMD_ZERO|CMD_ZERO_NUM, cs->invert);
 			if (optarg)
 				p->chain = optarg;
-			else if (optind < argc && argv[optind][0] != '-'
-				 && argv[optind][0] != '!')
+			else if (xs_has_arg(argc, argv))
 				p->chain = argv[optind++];
-			if (optind < argc && argv[optind][0] != '-'
-			    && argv[optind][0] != '!')
+			if (xs_has_arg(argc, argv))
 				p->rulenum = parse_rulenumber(argv[optind++]);
 			break;
 
@@ -806,8 +799,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 				    cs->invert);
 			if (optarg)
 				p->chain = optarg;
-			else if (optind < argc && argv[optind][0] != '-'
-				 && argv[optind][0] != '!')
+			else if (xs_has_arg(argc, argv))
 				p->chain = argv[optind++];
 			break;
 
@@ -816,11 +808,9 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 				    CMD_LIST|CMD_LIST_RULES, cs->invert);
 			if (optarg)
 				p->chain = optarg;
-			else if (optind < argc && argv[optind][0] != '-'
-				&& argv[optind][0] != '!')
+			else if (xs_has_arg(argc, argv))
 				p->chain = argv[optind++];
-			if (optind < argc && argv[optind][0] != '-'
-				&& argv[optind][0] != '!') {
+			if (xs_has_arg(argc, argv)) {
 				p->rulenum = parse_rulenumber(argv[optind++]);
 				p->command = CMD_ZERO_NUM;
 			}
@@ -845,8 +835,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 				    cs->invert);
 			if (optarg)
 				p->chain = optarg;
-			else if (optind < argc && argv[optind][0] != '-'
-				 && argv[optind][0] != '!')
+			else if (xs_has_arg(argc, argv))
 				p->chain = argv[optind++];
 			break;
 
@@ -854,8 +843,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 			add_command(&p->command, CMD_RENAME_CHAIN, CMD_NONE,
 				    cs->invert);
 			p->chain = optarg;
-			if (optind < argc && argv[optind][0] != '-'
-			    && argv[optind][0] != '!')
+			if (xs_has_arg(argc, argv))
 				p->newname = argv[optind++];
 			else
 				xtables_error(PARAMETER_PROBLEM,
@@ -868,8 +856,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 			add_command(&p->command, CMD_SET_POLICY, CMD_NONE,
 				    cs->invert);
 			p->chain = optarg;
-			if (optind < argc && argv[optind][0] != '-'
-			    && argv[optind][0] != '!')
+			if (xs_has_arg(argc, argv))
 				p->policy = argv[optind++];
 			else
 				xtables_error(PARAMETER_PROBLEM,
@@ -1014,15 +1001,8 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 					      "You cannot use `-w' from "
 					      "iptables-restore");
 			}
-			if (optarg) {
-				if (sscanf(optarg, "%i", &wait) != 1)
-					xtables_error(PARAMETER_PROBLEM,
-						      "wait seconds not numeric");
-			} else if (optind < argc && argv[optind][0] != '-'
-				   && argv[optind][0] != '!')
-				if (sscanf(argv[optind++], "%i", &wait) != 1)
-					xtables_error(PARAMETER_PROBLEM,
-						      "wait seconds not numeric");
+
+			wait = parse_wait_time(argc, argv);
 			break;
 
 		case 'W':
@@ -1031,14 +1011,8 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 					      "You cannot use `-W' from "
 					      "iptables-restore");
 			}
-			if (optarg)
-				parse_wait_interval(optarg, &wait_interval);
-			else if (optind < argc &&
-				   argv[optind][0] != '-' &&
-				   argv[optind][0] != '!')
-				parse_wait_interval(argv[optind++],
-						    &wait_interval);
 
+			parse_wait_interval(argc, argv, &wait_interval);
 			wait_interval_set = true;
 			break;
 
@@ -1058,9 +1032,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 			args->bcnt = strchr(args->pcnt + 1, ',');
 			if (args->bcnt)
 			    args->bcnt++;
-			if (!args->bcnt && optind < argc &&
-			    argv[optind][0] != '-' &&
-			    argv[optind][0] != '!')
+			if (!args->bcnt && xs_has_arg(argc, argv))
 				args->bcnt = argv[optind++];
 			if (!args->bcnt)
 				xtables_error(PARAMETER_PROBLEM,
