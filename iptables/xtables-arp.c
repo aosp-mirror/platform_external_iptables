@@ -984,8 +984,7 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table)
 			add_command(&command, CMD_DELETE, CMD_NONE,
 				    invert);
 			chain = optarg;
-			if (optind < argc && argv[optind][0] != '-'
-			    && argv[optind][0] != '!') {
+			if (xs_has_arg(argc, argv)) {
 				rulenum = parse_rulenumber(argv[optind++]);
 				command = CMD_DELETE_NUM;
 			}
@@ -995,8 +994,7 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table)
 			add_command(&command, CMD_REPLACE, CMD_NONE,
 				    invert);
 			chain = optarg;
-			if (optind < argc && argv[optind][0] != '-'
-			    && argv[optind][0] != '!')
+			if (xs_has_arg(argc, argv))
 				rulenum = parse_rulenumber(argv[optind++]);
 			else
 				xtables_error(PARAMETER_PROBLEM,
@@ -1008,8 +1006,7 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table)
 			add_command(&command, CMD_INSERT, CMD_NONE,
 				    invert);
 			chain = optarg;
-			if (optind < argc && argv[optind][0] != '-'
-			    && argv[optind][0] != '!')
+			if (xs_has_arg(argc, argv))
 				rulenum = parse_rulenumber(argv[optind++]);
 			else rulenum = 1;
 			break;
@@ -1018,8 +1015,7 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table)
 			add_command(&command, CMD_LIST, CMD_ZERO,
 				    invert);
 			if (optarg) chain = optarg;
-			else if (optind < argc && argv[optind][0] != '-'
-				 && argv[optind][0] != '!')
+			else if (xs_has_arg(argc, argv))
 				chain = argv[optind++];
 			break;
 
@@ -1027,8 +1023,7 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table)
 			add_command(&command, CMD_FLUSH, CMD_NONE,
 				    invert);
 			if (optarg) chain = optarg;
-			else if (optind < argc && argv[optind][0] != '-'
-				 && argv[optind][0] != '!')
+			else if (xs_has_arg(argc, argv))
 				chain = argv[optind++];
 			break;
 
@@ -1036,8 +1031,7 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table)
 			add_command(&command, CMD_ZERO, CMD_LIST,
 				    invert);
 			if (optarg) chain = optarg;
-			else if (optind < argc && argv[optind][0] != '-'
-				&& argv[optind][0] != '!')
+			else if (xs_has_arg(argc, argv))
 				chain = argv[optind++];
 			break;
 
@@ -1059,8 +1053,7 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table)
 			add_command(&command, CMD_DELETE_CHAIN, CMD_NONE,
 				    invert);
 			if (optarg) chain = optarg;
-			else if (optind < argc && argv[optind][0] != '-'
-				 && argv[optind][0] != '!')
+			else if (xs_has_arg(argc, argv))
 				chain = argv[optind++];
 			break;
 
@@ -1068,8 +1061,7 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table)
 			add_command(&command, CMD_RENAME_CHAIN, CMD_NONE,
 				    invert);
 			chain = optarg;
-			if (optind < argc && argv[optind][0] != '-'
-			    && argv[optind][0] != '!')
+			if (xs_has_arg(argc, argv))
 				newname = argv[optind++];
 			else
 				xtables_error(PARAMETER_PROBLEM,
@@ -1082,8 +1074,7 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table)
 			add_command(&command, CMD_SET_POLICY, CMD_NONE,
 				    invert);
 			chain = optarg;
-			if (optind < argc && argv[optind][0] != '-'
-			    && argv[optind][0] != '!')
+			if (xs_has_arg(argc, argv))
 				policy = argv[optind++];
 			else
 				xtables_error(PARAMETER_PROBLEM,
@@ -1286,8 +1277,7 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table)
 			set_option(&options, OPT_COUNTERS, &cs.fw.arp.invflags,
 				   invert);
 			pcnt = optarg;
-			if (optind < argc && argv[optind][0] != '-'
-			    && argv[optind][0] != '!')
+			if (xs_has_arg(argc, argv))
 				bcnt = argv[optind++];
 			else
 				xtables_error(PARAMETER_PROBLEM,
