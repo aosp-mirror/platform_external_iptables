@@ -197,7 +197,7 @@ AC_SUBST([blacklist_6_modules])
 regular_CFLAGS="-Wall -Waggregate-return -Wmissing-declarations \
 	-Wmissing-prototypes -Wredundant-decls -Wshadow -Wstrict-prototypes \
 	-Winline -pipe";
-regular_CPPFLAGS="${largefile_cppflags} -DXT_LOCK_NAME=\\\"\${xt_lock_name}\\\" -D_REENTRANT \
+regular_CPPFLAGS="${largefile_cppflags} -D_REENTRANT \
 	-DXTABLES_LIBDIR=\\\"\${xtlibdir}\\\" -DXTABLES_INTERNAL";
 kinclude_CPPFLAGS="";
 if [[ -n "$kbuilddir" ]]; then
@@ -235,7 +235,9 @@ AC_SUBST([libxtables_vcurrent])
 AC_SUBST([libxtables_vage])
 libxtables_vmajor=$(($libxtables_vcurrent - $libxtables_vage));
 AC_SUBST([libxtables_vmajor])
-AC_SUBST([xt_lock_name])
+
+AC_DEFINE_UNQUOTED([XT_LOCK_NAME], "${xt_lock_name}",
+	[Location of the iptables lock file])
 
 AC_CONFIG_FILES([Makefile extensions/GNUmakefile include/Makefile
 	iptables/Makefile iptables/xtables.pc
