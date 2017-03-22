@@ -133,6 +133,26 @@ static void statistic_save(const void *ip, const struct xt_entry_match *match)
 	print_match(info, "--");
 }
 
+static int statistic_xlate(struct xt_xlate *xl,
+			   const struct xt_xlate_mt_params *params)
+{
+	const struct xt_statistic_info *info =
+		(struct xt_statistic_info *)params->match->data;
+
+	switch (info->mode) {
+	case XT_STATISTIC_MODE_RANDOM:
+		return 0;
+	case XT_STATISTIC_MODE_NTH:
+		xt_xlate_add(xl, "numgen inc mod %u %s%u",
+			     info->u.nth.every + 1,
+			     info->flags & XT_STATISTIC_INVERT ? "!= " : "",
+			     info->u.nth.packet);
+		break;
+	}
+
+	return 1;
+}
+
 static struct xtables_match statistic_match = {
 	.family		= NFPROTO_UNSPEC,
 	.name		= "statistic",
@@ -145,6 +165,7 @@ static struct xtables_match statistic_match = {
 	.print		= statistic_print,
 	.save		= statistic_save,
 	.x6_options	= statistic_opts,
+	.xlate		= statistic_xlate,
 };
 
 void _init(void)

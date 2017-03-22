@@ -7,7 +7,7 @@
  */
 
 #include <getopt.h>
-#include <sys/errno.h>
+#include <errno.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -131,8 +131,9 @@ free_argv(void)
 	oldargc = 0;
 }
 
-/* save parsed rule for comparison with next rule 
-   to perform action agregation on duplicate conditions */
+/* Save parsed rule for comparison with next rule to perform action aggregation
+ * on duplicate conditions.
+ */
 static void
 save_argv(void)
 {
@@ -527,12 +528,13 @@ do_rule_part(char *leveltag1, char *leveltag2, int part, int argc,
 static int
 compareRules(void)
 {
-	/* compare arguments up to -j or -g for match.
-	   NOTE: We don't want to combine actions if there were no criteria 
-	   in each rule, or rules didn't have an action 
-	   NOTE: Depends on arguments being in some kind of "normal" order which 
-	   is the case when processing the ACTUAL output of actual iptables-save 
-	   rather than a file merely in a compatable format */
+	/* Compare arguments up to -j or -g for match.
+	 * NOTE: We don't want to combine actions if there were no criteria
+	 * in each rule, or rules didn't have an action.
+	 * NOTE: Depends on arguments being in some kind of "normal" order which
+	 * is the case when processing the ACTUAL output of actual iptables-save
+	 * rather than a file merely in a compatible format.
+	 */
 
 	unsigned int old = 0;
 	unsigned int new = 0;
@@ -845,6 +847,11 @@ iptables_xml_main(int argc, char *argv[])
 			for (a = 0; a < newargc; a++)
 				DEBUGP("argv[%u]: %s\n", a, newargv[a]);
 
+			if (!chain) {
+				fprintf(stderr, "%s: line %u failed - no chain found\n",
+					prog_name, line);
+				exit(1);
+			}
 			needChain(chain);// Should we explicitly look for -A
 			do_rule(pcnt, bcnt, newargc, newargv, newargvattr);
 

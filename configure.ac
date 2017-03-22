@@ -1,8 +1,8 @@
 
-AC_INIT([iptables], [1.4.20])
+AC_INIT([iptables], [1.6.1])
 
 # See libtool.info "Libtool's versioning system"
-libxtables_vcurrent=10
+libxtables_vcurrent=12
 libxtables_vage=0
 
 AC_CONFIG_AUX_DIR([build-aux])
@@ -53,10 +53,20 @@ AC_ARG_ENABLE([libipq],
 	[enable_libipq="$enableval"], [enable_libipq="no"])
 AC_ARG_ENABLE([bpf-compiler],
 	AS_HELP_STRING([--enable-bpf-compiler], [Build bpf compiler]),
-	[enable_bpfc="yes"], [enable_bpfc="no"])
+	[enable_bpfc="$enableval"], [enable_bpfc="no"])
+AC_ARG_ENABLE([nfsynproxy],
+	AS_HELP_STRING([--enable-nfsynproxy], [Build SYNPROXY configuration tool]),
+	[enable_nfsynproxy="$enableval"], [enable_nfsynproxy="no"])
 AC_ARG_WITH([pkgconfigdir], AS_HELP_STRING([--with-pkgconfigdir=PATH],
 	[Path to the pkgconfig directory [[LIBDIR/pkgconfig]]]),
 	[pkgconfigdir="$withval"], [pkgconfigdir='${libdir}/pkgconfig'])
+AC_ARG_ENABLE([nftables],
+	AS_HELP_STRING([--disable-nftables], [Do not build nftables compat]),
+	[enable_nftables="$enableval"], [enable_nftables="yes"])
+AC_ARG_ENABLE([connlabel],
+	AS_HELP_STRING([--disable-connlabel],
+	[Do not build libnetfilter_conntrack]),
+	[enable_connlabel="$enableval"], [enable_connlabel="yes"])
 
 libiptc_LDFLAGS2="";
 AX_CHECK_LINKER_FLAGS([-Wl,--no-as-needed],
@@ -72,9 +82,14 @@ AC_LINK_IFELSE([AC_LANG_SOURCE([int main(void) {}])],
 )
 LDFLAGS="$saved_LDFLAGS";
 
-blacklist_modules="";
+blacklist_modules=""
+blacklist_x_modules=""
+blacklist_b_modules=""
+blacklist_a_modules=""
+blacklist_4_modules=""
+blacklist_6_modules=""
 
-AC_CHECK_HEADERS([linux/dccp.h linux/ip_vs.h linux/magic.h linux/proc_fs.h])
+AC_CHECK_HEADERS([linux/dccp.h linux/ip_vs.h linux/magic.h linux/proc_fs.h linux/bpf.h])
 if test "$ac_cv_header_linux_dccp_h" != "yes"; then
 	blacklist_modules="$blacklist_modules dccp";
 fi;
@@ -82,16 +97,6 @@ if test "$ac_cv_header_linux_ip_vs_h" != "yes"; then
 	blacklist_modules="$blacklist_modules ipvs";
 fi;
 
-PKG_CHECK_MODULES([libnetfilter_conntrack], [libnetfilter_conntrack >= 1.0.4],
-	[nfconntrack=1], [nfconntrack=0])
-AM_CONDITIONAL([HAVE_LIBNETFILTER_CONNTRACK], [test "$nfconntrack" = 1])
-
-if test "$nfconntrack" -ne 1; then
-	blacklist_modules="$blacklist_modules connlabel";
-	echo "WARNING: libnetfilter_conntrack not found, connlabel match will not be built";
-fi;
-
-AC_SUBST([blacklist_modules])
 AC_CHECK_SIZEOF([struct ip6_hdr], [], [#include <netinet/ip6.h>])
 
 AM_CONDITIONAL([ENABLE_STATIC], [test "$enable_static" = "yes"])
@@ -102,14 +107,88 @@ AM_CONDITIONAL([ENABLE_LARGEFILE], [test "$enable_largefile" = "yes"])
 AM_CONDITIONAL([ENABLE_DEVEL], [test "$enable_devel" = "yes"])
 AM_CONDITIONAL([ENABLE_LIBIPQ], [test "$enable_libipq" = "yes"])
 AM_CONDITIONAL([ENABLE_BPFC], [test "$enable_bpfc" = "yes"])
+AM_CONDITIONAL([ENABLE_SYNCONF], [test "$enable_nfsynproxy" = "yes"])
+AM_CONDITIONAL([ENABLE_NFTABLES], [test "$enable_nftables" = "yes"])
+AM_CONDITIONAL([ENABLE_CONNLABEL], [test "$enable_connlabel" = "yes"])
 
-if test "x$enable_bpfc" = "xyes"; then
-	AC_CHECK_LIB(pcap, pcap_compile,, AC_MSG_ERROR(missing libpcap library required by bpf compiler))
+if test "x$enable_bpfc" = "xyes" || test "x$enable_nfsynproxy" = "xyes"; then
+	AC_CHECK_LIB(pcap, pcap_compile,, AC_MSG_ERROR(missing libpcap library required by bpf compiler or nfsynproxy tool))
 fi
 
 PKG_CHECK_MODULES([libnfnetlink], [libnfnetlink >= 1.0],
 	[nfnetlink=1], [nfnetlink=0])
 AM_CONDITIONAL([HAVE_LIBNFNETLINK], [test "$nfnetlink" = 1])
+
+if test "x$enable_nftables" = "xyes"; then
+	PKG_CHECK_MODULES([libmnl], [libmnl >= 1.0], [mnl=1], [mnl=0])
+
+	if test "$mnl" = 0;
+	then
+		echo "*** Error: No suitable libmnl found. ***"
+		echo "    Please install the 'libmnl' package"
+		echo "    Or consider --disable-nftables to skip"
+		echo "    iptables-compat over nftables support."
+		exit 1
+	fi
+
+	PKG_CHECK_MODULES([libnftnl], [libnftnl >= 1.0.5], [nftables=1], [nftables=0])
+
+	if test "$nftables" = 0;
+	then
+		echo "*** Error: no suitable libnftnl found. ***"
+		echo "    Please install the 'libnftnl' package"
+		echo "    Or consider --disable-nftables to skip"
+		echo "    iptables-compat over nftables support."
+		exit 1
+	fi
+
+	AM_PROG_LEX
+	AC_PROG_YACC
+
+	if test -z "$ac_cv_prog_YACC"
+	then
+		echo "*** Error: No suitable bison/yacc found. ***"
+		echo "    Please install the 'bison' package."
+		exit 1
+	fi
+	if test -z "$ac_cv_prog_LEX"
+	then
+	        echo "*** Error: No suitable flex/lex found. ***"
+	        echo "    Please install the 'flex' package."
+	        exit 1
+	fi
+fi
+
+AM_CONDITIONAL([HAVE_LIBMNL], [test "$mnl" = 1])
+AM_CONDITIONAL([HAVE_LIBNFTNL], [test "$nftables" = 1])
+
+if test "$nftables" != 1; then
+	blacklist_b_modules="$blacklist_b_modules limit mark nflog mangle"
+	blacklist_a_modules="$blacklist_a_modules mangle"
+fi
+
+if test "x$enable_connlabel" = "xyes"; then
+	PKG_CHECK_MODULES([libnetfilter_conntrack],
+		[libnetfilter_conntrack >= 1.0.6],
+		[nfconntrack=1], [nfconntrack=0])
+
+	if test "$nfconntrack" -ne 1; then
+		blacklist_modules="$blacklist_modules connlabel";
+		echo "WARNING: libnetfilter_conntrack not found, connlabel match will not be built";
+		enable_connlabel="no";
+	fi;
+else
+	blacklist_modules="$blacklist_modules connlabel";
+fi;
+
+AM_CONDITIONAL([HAVE_LIBNETFILTER_CONNTRACK], [test "$nfconntrack" = 1])
+
+AC_SUBST([blacklist_modules])
+AC_SUBST([blacklist_x_modules])
+AC_SUBST([blacklist_b_modules])
+AC_SUBST([blacklist_a_modules])
+AC_SUBST([blacklist_4_modules])
+AC_SUBST([blacklist_6_modules])
 
 regular_CFLAGS="-Wall -Waggregate-return -Wmissing-declarations \
 	-Wmissing-prototypes -Wredundant-decls -Wshadow -Wstrict-prototypes \
@@ -155,8 +234,9 @@ AC_SUBST([libxtables_vmajor])
 
 AC_CONFIG_FILES([Makefile extensions/GNUmakefile include/Makefile
 	iptables/Makefile iptables/xtables.pc
-	iptables/iptables.8 iptables/ip6tables.8
-	iptables/iptables-extensions.8.tmpl
+	iptables/iptables.8 iptables/iptables-extensions.8.tmpl
+	iptables/iptables-save.8 iptables/iptables-restore.8
+	iptables/iptables-apply.8 iptables/iptables-xml.1
 	libipq/Makefile libipq/libipq.pc
 	libiptc/Makefile libiptc/libiptc.pc
 	libiptc/libip4tc.pc libiptc/libip6tc.pc
@@ -176,6 +256,9 @@ Iptables Configuration:
   IPQ support:				${enable_libipq}
   Large file support:			${enable_largefile}
   BPF utils support:			${enable_bpfc}
+  nfsynproxy util support:		${enable_nfsynproxy}
+  nftables support:			${enable_nftables}
+  connlabel support:			${enable_connlabel}
 
 Build parameters:
   Put plugins into executable (static):	${enable_static}

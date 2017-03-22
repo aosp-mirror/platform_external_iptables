@@ -73,20 +73,67 @@ CLASSIFY_save(const void *ip, const struct xt_entry_target *target)
 	       TC_H_MAJ(clinfo->priority)>>16, TC_H_MIN(clinfo->priority));
 }
 
-static struct xtables_target classify_target = { 
-	.family		= NFPROTO_UNSPEC,
-	.name		= "CLASSIFY",
-	.version	= XTABLES_VERSION,
-	.size		= XT_ALIGN(sizeof(struct xt_classify_target_info)),
-	.userspacesize	= XT_ALIGN(sizeof(struct xt_classify_target_info)),
-	.help		= CLASSIFY_help,
-	.print		= CLASSIFY_print,
-	.save		= CLASSIFY_save,
-	.x6_parse	= CLASSIFY_parse,
-	.x6_options	= CLASSIFY_opts,
+static void
+arpCLASSIFY_print(const void *ip, const struct xt_entry_target *target,
+		  int numeric)
+{
+	CLASSIFY_save(ip, target);
+}
+
+static int CLASSIFY_xlate(struct xt_xlate *xl,
+			  const struct xt_xlate_tg_params *params)
+{
+	const struct xt_classify_target_info *clinfo =
+		(const struct xt_classify_target_info *)params->target->data;
+	__u32 handle = clinfo->priority;
+
+	xt_xlate_add(xl, "meta priority set ");
+
+	switch (handle) {
+	case TC_H_ROOT:
+		xt_xlate_add(xl, "root");
+		break;
+	case TC_H_UNSPEC:
+		xt_xlate_add(xl, "none");
+		break;
+	default:
+		xt_xlate_add(xl, "%0x:%0x", TC_H_MAJ(handle) >> 16,
+			     TC_H_MIN(handle));
+		break;
+	}
+
+	return 1;
+}
+
+static struct xtables_target classify_target[] = {
+	{
+		.family		= NFPROTO_UNSPEC,
+		.name		= "CLASSIFY",
+		.version	= XTABLES_VERSION,
+		.size		= XT_ALIGN(sizeof(struct xt_classify_target_info)),
+		.userspacesize	= XT_ALIGN(sizeof(struct xt_classify_target_info)),
+		.help		= CLASSIFY_help,
+		.print		= CLASSIFY_print,
+		.save		= CLASSIFY_save,
+		.x6_parse	= CLASSIFY_parse,
+		.x6_options	= CLASSIFY_opts,
+		.xlate		= CLASSIFY_xlate,
+	},
+	{
+		.family		= NFPROTO_ARP,
+		.name		= "CLASSIFY",
+		.version	= XTABLES_VERSION,
+		.size		= XT_ALIGN(sizeof(struct xt_classify_target_info)),
+		.userspacesize	= XT_ALIGN(sizeof(struct xt_classify_target_info)),
+		.help		= CLASSIFY_help,
+		.print		= arpCLASSIFY_print,
+		.x6_parse	= CLASSIFY_parse,
+		.x6_options	= CLASSIFY_opts,
+		.xlate		= CLASSIFY_xlate,
+	},
 };
 
 void _init(void)
 {
-	xtables_register_target(&classify_target);
+	xtables_register_targets(classify_target, ARRAY_SIZE(classify_target));
 }

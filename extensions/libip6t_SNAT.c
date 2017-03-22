@@ -18,11 +18,13 @@
 enum {
 	O_TO_SRC = 0,
 	O_RANDOM,
+	O_RANDOM_FULLY,
 	O_PERSISTENT,
 	O_X_TO_SRC,
-	F_TO_SRC   = 1 << O_TO_SRC,
-	F_RANDOM   = 1 << O_RANDOM,
-	F_X_TO_SRC = 1 << O_X_TO_SRC,
+	F_TO_SRC       = 1 << O_TO_SRC,
+	F_RANDOM       = 1 << O_RANDOM,
+	F_RANDOM_FULLY = 1 << O_RANDOM_FULLY,
+	F_X_TO_SRC     = 1 << O_X_TO_SRC,
 };
 
 static void SNAT_help(void)
@@ -31,13 +33,14 @@ static void SNAT_help(void)
 "SNAT target options:\n"
 " --to-source [<ipaddr>[-<ipaddr>]][:port[-port]]\n"
 "				Address to map source to.\n"
-"[--random] [--persistent]\n");
+"[--random] [--random-fully] [--persistent]\n");
 }
 
 static const struct xt_option_entry SNAT_opts[] = {
 	{.name = "to-source", .id = O_TO_SRC, .type = XTTYPE_STRING,
 	 .flags = XTOPT_MAND | XTOPT_MULTI},
 	{.name = "random", .id = O_RANDOM, .type = XTTYPE_NONE},
+	{.name = "random-fully", .id = O_RANDOM_FULLY, .type = XTTYPE_NONE},
 	{.name = "persistent", .id = O_PERSISTENT, .type = XTTYPE_NONE},
 	XTOPT_TABLEEND,
 };
@@ -180,10 +183,13 @@ static void SNAT_parse(struct xt_option_call *cb)
 static void SNAT_fcheck(struct xt_fcheck_call *cb)
 {
 	static const unsigned int f = F_TO_SRC | F_RANDOM;
+	static const unsigned int r = F_TO_SRC | F_RANDOM_FULLY;
 	struct nf_nat_range *range = cb->data;
 
 	if ((cb->xflags & f) == f)
 		range->flags |= NF_NAT_RANGE_PROTO_RANDOM;
+	if ((cb->xflags & r) == r)
+		range->flags |= NF_NAT_RANGE_PROTO_RANDOM_FULLY;
 }
 
 static void print_range(const struct nf_nat_range *range)
@@ -215,6 +221,8 @@ static void SNAT_print(const void *ip, const struct xt_entry_target *target,
 	print_range(range);
 	if (range->flags & NF_NAT_RANGE_PROTO_RANDOM)
 		printf(" random");
+	if (range->flags & NF_NAT_RANGE_PROTO_RANDOM_FULLY)
+		printf(" random-fully");
 	if (range->flags & NF_NAT_RANGE_PERSISTENT)
 		printf(" persistent");
 }
@@ -227,8 +235,66 @@ static void SNAT_save(const void *ip, const struct xt_entry_target *target)
 	print_range(range);
 	if (range->flags & NF_NAT_RANGE_PROTO_RANDOM)
 		printf(" --random");
+	if (range->flags & NF_NAT_RANGE_PROTO_RANDOM_FULLY)
+		printf(" --random-fully");
 	if (range->flags & NF_NAT_RANGE_PERSISTENT)
 		printf(" --persistent");
+}
+
+static void print_range_xlate(const struct nf_nat_range *range,
+			      struct xt_xlate *xl)
+{
+	bool proto_specified = range->flags & NF_NAT_RANGE_PROTO_SPECIFIED;
+
+	if (range->flags & NF_NAT_RANGE_MAP_IPS) {
+		xt_xlate_add(xl, "%s%s%s",
+			     proto_specified ? "[" : "",
+			     xtables_ip6addr_to_numeric(&range->min_addr.in6),
+			     proto_specified ? "]" : "");
+
+		if (memcmp(&range->min_addr, &range->max_addr,
+			   sizeof(range->min_addr))) {
+			xt_xlate_add(xl, "-%s%s%s",
+				     proto_specified ? "[" : "",
+				     xtables_ip6addr_to_numeric(&range->max_addr.in6),
+				     proto_specified ? "]" : "");
+		}
+	}
+	if (proto_specified) {
+		xt_xlate_add(xl, ":%hu", ntohs(range->min_proto.tcp.port));
+
+		if (range->max_proto.tcp.port != range->min_proto.tcp.port)
+			xt_xlate_add(xl, "-%hu",
+				   ntohs(range->max_proto.tcp.port));
+	}
+}
+
+static int SNAT_xlate(struct xt_xlate *xl,
+		      const struct xt_xlate_tg_params *params)
+{
+	const struct nf_nat_range *range = (const void *)params->target->data;
+	bool sep_need = false;
+	const char *sep = " ";
+
+	xt_xlate_add(xl, "snat to ");
+	print_range_xlate(range, xl);
+	if (range->flags & NF_NAT_RANGE_PROTO_RANDOM) {
+		xt_xlate_add(xl, " random");
+		sep_need = true;
+	}
+	if (range->flags & NF_NAT_RANGE_PROTO_RANDOM_FULLY) {
+		if (sep_need)
+			sep = ",";
+		xt_xlate_add(xl, "%sfully-random", sep);
+		sep_need = true;
+	}
+	if (range->flags & NF_NAT_RANGE_PERSISTENT) {
+		if (sep_need)
+			sep = ",";
+		xt_xlate_add(xl, "%spersistent", sep);
+	}
+
+	return 1;
 }
 
 static struct xtables_target snat_tg_reg = {
@@ -244,6 +310,7 @@ static struct xtables_target snat_tg_reg = {
 	.print		= SNAT_print,
 	.save		= SNAT_save,
 	.x6_options	= SNAT_opts,
+	.xlate		= SNAT_xlate,
 };
 
 void _init(void)
