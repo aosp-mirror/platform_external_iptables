@@ -100,6 +100,35 @@ static void ttl_save(const void *ip, const struct xt_entry_match *match)
 	printf(" %u", info->ttl);
 }
 
+static int ttl_xlate(struct xt_xlate *xl,
+		     const struct xt_xlate_mt_params *params)
+{
+	const struct ipt_ttl_info *info =
+		(struct ipt_ttl_info *) params->match->data;
+
+		switch (info->mode) {
+		case IPT_TTL_EQ:
+			xt_xlate_add(xl, "ip ttl");
+			break;
+		case IPT_TTL_NE:
+			xt_xlate_add(xl, "ip ttl !=");
+			break;
+		case IPT_TTL_LT:
+			xt_xlate_add(xl, "ip ttl lt");
+			break;
+		case IPT_TTL_GT:
+			xt_xlate_add(xl, "ip ttl gt");
+			break;
+		default:
+			/* Should not happen. */
+			break;
+	}
+
+	xt_xlate_add(xl, " %u", info->ttl);
+
+	return 1;
+}
+
 #define s struct ipt_ttl_info
 static const struct xt_option_entry ttl_opts[] = {
 	{.name = "ttl-lt", .id = O_TTL_LT, .excl = F_ANY, .type = XTTYPE_UINT8,
@@ -126,6 +155,7 @@ static struct xtables_match ttl_mt_reg = {
 	.x6_parse	= ttl_parse,
 	.x6_fcheck	= ttl_check,
 	.x6_options	= ttl_opts,
+	.xlate		= ttl_xlate,
 };
 
 
