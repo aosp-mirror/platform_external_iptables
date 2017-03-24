@@ -152,6 +152,44 @@ static void udp_save(const void *ip, const struct xt_entry_match *match)
 	}
 }
 
+static int udp_xlate(struct xt_xlate *xl,
+		     const struct xt_xlate_mt_params *params)
+{
+	const struct xt_udp *udpinfo = (struct xt_udp *)params->match->data;
+	char *space= "";
+
+	if (udpinfo->spts[0] != 0 || udpinfo->spts[1] != 0xFFFF) {
+		if (udpinfo->spts[0] != udpinfo->spts[1]) {
+			xt_xlate_add(xl,"udp sport %s%u-%u",
+				   udpinfo->invflags & XT_UDP_INV_SRCPT ?
+					 "!= ": "",
+				   udpinfo->spts[0], udpinfo->spts[1]);
+		} else {
+			xt_xlate_add(xl, "udp sport %s%u",
+				   udpinfo->invflags & XT_UDP_INV_SRCPT ?
+					 "!= ": "",
+				   udpinfo->spts[0]);
+		}
+		space = " ";
+	}
+
+	if (udpinfo->dpts[0] != 0 || udpinfo->dpts[1] != 0xFFFF) {
+		if (udpinfo->dpts[0]  != udpinfo->dpts[1]) {
+			xt_xlate_add(xl,"%sudp dport %s%u-%u", space,
+				   udpinfo->invflags & XT_UDP_INV_SRCPT ?
+					 "!= ": "",
+				   udpinfo->dpts[0], udpinfo->dpts[1]);
+		} else {
+			xt_xlate_add(xl,"%sudp dport %s%u", space,
+				   udpinfo->invflags & XT_UDP_INV_SRCPT ?
+					 "!= ": "",
+				   udpinfo->dpts[0]);
+		}
+	}
+
+	return 1;
+}
+
 static struct xtables_match udp_match = {
 	.family		= NFPROTO_UNSPEC,
 	.name		= "udp",
@@ -164,6 +202,7 @@ static struct xtables_match udp_match = {
 	.save		= udp_save,
 	.x6_parse	= udp_parse,
 	.x6_options	= udp_opts,
+	.xlate		= udp_xlate,
 };
 
 void

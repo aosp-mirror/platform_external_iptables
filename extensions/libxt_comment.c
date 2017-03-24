@@ -48,6 +48,26 @@ comment_save(const void *ip, const struct xt_entry_match *match)
 	xtables_save_string(commentinfo->comment);
 }
 
+static int comment_xlate(struct xt_xlate *xl,
+			 const struct xt_xlate_mt_params *params)
+{
+	struct xt_comment_info *commentinfo = (void *)params->match->data;
+	char comment[XT_MAX_COMMENT_LEN];
+
+	commentinfo->comment[XT_MAX_COMMENT_LEN - 1] = '\0';
+	if (params->escape_quotes)
+		snprintf(comment, XT_MAX_COMMENT_LEN, "\\\"%s\\\"",
+			 commentinfo->comment);
+	else
+		snprintf(comment, XT_MAX_COMMENT_LEN, "\"%s\"",
+			 commentinfo->comment);
+
+	comment[XT_MAX_COMMENT_LEN - 1] = '\0';
+	xt_xlate_add_comment(xl, comment);
+
+	return 1;
+}
+
 static struct xtables_match comment_match = {
 	.family		= NFPROTO_UNSPEC,
 	.name		= "comment",
@@ -59,6 +79,7 @@ static struct xtables_match comment_match = {
 	.save 		= comment_save,
 	.x6_parse	= xtables_option_parse,
 	.x6_options	= comment_opts,
+	.xlate		= comment_xlate,
 };
 
 void _init(void)
