@@ -92,21 +92,59 @@ static void DSCP_save(const void *ip, const struct xt_entry_target *target)
 	printf(" --set-dscp 0x%02x", dinfo->dscp);
 }
 
-static struct xtables_target dscp_target = {
-	.family		= NFPROTO_UNSPEC,
-	.name		= "DSCP",
-	.version	= XTABLES_VERSION,
-	.size		= XT_ALIGN(sizeof(struct xt_DSCP_info)),
-	.userspacesize	= XT_ALIGN(sizeof(struct xt_DSCP_info)),
-	.help		= DSCP_help,
-	.print		= DSCP_print,
-	.save		= DSCP_save,
-	.x6_parse	= DSCP_parse,
-	.x6_fcheck	= DSCP_check,
-	.x6_options	= DSCP_opts,
+
+static int DSCP_xlate(struct xt_xlate *xl,
+		      const struct xt_xlate_tg_params *params)
+{
+	const struct xt_DSCP_info *dinfo =
+		(struct xt_DSCP_info *)params->target->data;
+
+	xt_xlate_add(xl, "ip dscp set 0x%02x", dinfo->dscp);
+	return 1;
+}
+
+static int DSCP_xlate6(struct xt_xlate *xl,
+		       const struct xt_xlate_tg_params *params)
+{
+	const struct xt_DSCP_info *dinfo =
+		(struct xt_DSCP_info *)params->target->data;
+
+	xt_xlate_add(xl, "ip6 dscp set 0x%02x", dinfo->dscp);
+	return 1;
+}
+
+static struct xtables_target dscp_target[] = {
+	{
+		.family		= NFPROTO_IPV4,
+		.name		= "DSCP",
+		.version	= XTABLES_VERSION,
+		.size		= XT_ALIGN(sizeof(struct xt_DSCP_info)),
+		.userspacesize	= XT_ALIGN(sizeof(struct xt_DSCP_info)),
+		.help		= DSCP_help,
+		.print		= DSCP_print,
+		.save		= DSCP_save,
+		.x6_parse	= DSCP_parse,
+		.x6_fcheck	= DSCP_check,
+		.x6_options	= DSCP_opts,
+		.xlate		= DSCP_xlate,
+	},
+	{
+		.family		= NFPROTO_IPV6,
+		.name		= "DSCP",
+		.version	= XTABLES_VERSION,
+		.size		= XT_ALIGN(sizeof(struct xt_DSCP_info)),
+		.userspacesize	= XT_ALIGN(sizeof(struct xt_DSCP_info)),
+		.help		= DSCP_help,
+		.print		= DSCP_print,
+		.save		= DSCP_save,
+		.x6_parse	= DSCP_parse,
+		.x6_fcheck	= DSCP_check,
+		.x6_options	= DSCP_opts,
+		.xlate		= DSCP_xlate6,
+	},
 };
 
 void _init(void)
 {
-	xtables_register_target(&dscp_target);
+	xtables_register_targets(dscp_target, ARRAY_SIZE(dscp_target));
 }

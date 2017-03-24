@@ -599,7 +599,7 @@ static int iptcc_chain_index_rebuild(struct xtc_handle *h)
  * There are different strategies, the simple and safe is to rebuild
  * the chain index every time.  The more advanced is to update the
  * array index to point to the next element, but that requires some
- * house keeping and boundry checks.  The advanced is implemented, as
+ * house keeping and boundary checks.  The advanced is implemented, as
  * the simple approach behaves badly when all chains are deleted
  * because list_for_each processing will always hit the first chain
  * index, thus causing a rebuild for every chain.
@@ -1364,7 +1364,7 @@ retry:
 #ifdef IPTC_DEBUG2
 	{
 		int fd = open("/tmp/libiptc-so_get_entries.blob",
-				O_CREAT|O_WRONLY);
+				O_CREAT|O_WRONLY, 0644);
 		if (fd >= 0) {
 			write(fd, h->entries, tmp);
 			close(fd);
@@ -2595,7 +2595,7 @@ TC_COMMIT(struct xtc_handle *handle)
 #ifdef IPTC_DEBUG2
 	{
 		int fd = open("/tmp/libiptc-so_set_replace.blob",
-				O_CREAT|O_WRONLY);
+				O_CREAT|O_WRONLY, 0644);
 		if (fd >= 0) {
 			write(fd, repl, sizeof(*repl) + repl->size);
 			close(fd);
@@ -2671,7 +2671,7 @@ TC_COMMIT(struct xtc_handle *handle)
 #ifdef IPTC_DEBUG2
 	{
 		int fd = open("/tmp/libiptc-so_set_add_counters.blob",
-				O_CREAT|O_WRONLY);
+				O_CREAT|O_WRONLY, 0644);
 		if (fd >= 0) {
 			write(fd, newcounters, counterlen);
 			close(fd);

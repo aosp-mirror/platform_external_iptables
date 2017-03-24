@@ -17,7 +17,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 #include <stdbool.h>
 #include <stdint.h>
@@ -89,7 +89,8 @@ connmark_print(const void *ip, const struct xt_entry_match *match, int numeric)
 }
 
 static void
-connmark_mt_print(const void *ip, const struct xt_entry_match *match, int numeric)
+connmark_mt_print(const void *ip, const struct xt_entry_match *match,
+		  int numeric)
 {
 	const struct xt_connmark_mtinfo1 *info = (const void *)match->data;
 
@@ -122,6 +123,49 @@ connmark_mt_save(const void *ip, const struct xt_entry_match *match)
 	print_mark(info->mark, info->mask);
 }
 
+static void print_mark_xlate(unsigned int mark, unsigned int mask,
+			     struct xt_xlate *xl, uint32_t op)
+{
+	if (mask != 0xffffffffU)
+		xt_xlate_add(xl, " and 0x%x %s 0x%x", mask,
+			   op == XT_OP_EQ ? "==" : "!=", mark);
+	else
+		xt_xlate_add(xl, " %s0x%x",
+			   op == XT_OP_EQ ? "" : "!= ", mark);
+}
+
+static int connmark_xlate(struct xt_xlate *xl,
+			  const struct xt_xlate_mt_params *params)
+{
+	const struct xt_connmark_info *info = (const void *)params->match->data;
+	enum xt_op op = XT_OP_EQ;
+
+	if (info->invert)
+		op = XT_OP_NEQ;
+
+	xt_xlate_add(xl, "ct mark");
+	print_mark_xlate(info->mark, info->mask, xl, op);
+
+	return 1;
+}
+
+static int
+connmark_mt_xlate(struct xt_xlate *xl,
+		  const struct xt_xlate_mt_params *params)
+{
+	const struct xt_connmark_mtinfo1 *info =
+		(const void *)params->match->data;
+	enum xt_op op = XT_OP_EQ;
+
+	if (info->invert)
+		op = XT_OP_NEQ;
+
+	xt_xlate_add(xl, "ct mark");
+	print_mark_xlate(info->mark, info->mask, xl, op);
+
+	return 1;
+}
+
 static struct xtables_match connmark_mt_reg[] = {
 	{
 		.family        = NFPROTO_UNSPEC,
@@ -135,6 +179,7 @@ static struct xtables_match connmark_mt_reg[] = {
 		.save          = connmark_save,
 		.x6_parse      = connmark_parse,
 		.x6_options    = connmark_mt_opts,
+		.xlate	       = connmark_xlate,
 	},
 	{
 		.version       = XTABLES_VERSION,
@@ -148,6 +193,7 @@ static struct xtables_match connmark_mt_reg[] = {
 		.save          = connmark_mt_save,
 		.x6_parse      = connmark_mt_parse,
 		.x6_options    = connmark_mt_opts,
+		.xlate	       = connmark_mt_xlate,
 	},
 };
 

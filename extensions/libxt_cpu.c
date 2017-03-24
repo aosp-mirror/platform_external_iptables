@@ -44,9 +44,19 @@ static void cpu_save(const void *ip, const struct xt_entry_match *match)
 	printf("%s --cpu %u", info->invert ? " !" : "", info->cpu);
 }
 
+static int cpu_xlate(struct xt_xlate *xl,
+		     const struct xt_xlate_mt_params *params)
+{
+	const struct xt_cpu_info *info = (void *)params->match->data;
+
+	xt_xlate_add(xl, "cpu%s %u", info->invert ? " !=" : "", info->cpu);
+
+	return 1;
+}
+
 static struct xtables_match cpu_match = {
 	.family		= NFPROTO_UNSPEC,
- 	.name		= "cpu",
+	.name		= "cpu",
 	.version	= XTABLES_VERSION,
 	.size		= XT_ALIGN(sizeof(struct xt_cpu_info)),
 	.userspacesize	= XT_ALIGN(sizeof(struct xt_cpu_info)),
@@ -55,6 +65,7 @@ static struct xtables_match cpu_match = {
 	.save		= cpu_save,
 	.x6_parse	= cpu_parse,
 	.x6_options	= cpu_opts,
+	.xlate		= cpu_xlate,
 };
 
 void _init(void)

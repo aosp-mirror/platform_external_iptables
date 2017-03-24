@@ -37,7 +37,7 @@ quota_save(const void *ip, const struct xt_entry_match *match)
 	const struct xt_quota_info *q = (const void *)match->data;
 
 	if (q->flags & XT_QUOTA_INVERT)
-		printf("! ");
+		printf(" !");
 	printf(" --quota %llu", (unsigned long long) q->quota);
 }
 
@@ -51,6 +51,17 @@ static void quota_parse(struct xt_option_call *cb)
 	info->quota = cb->val.u64;
 }
 
+static int quota_xlate(struct xt_xlate *xl,
+		       const struct xt_xlate_mt_params *params)
+{
+	const struct xt_quota_info *q = (void *)params->match->data;
+
+	xt_xlate_add(xl, "quota %s%llu bytes",
+		     q->flags & XT_QUOTA_INVERT ? "over " : "",
+		     (unsigned long long) q->quota);
+	return 1;
+}
+
 static struct xtables_match quota_match = {
 	.family		= NFPROTO_UNSPEC,
 	.name		= "quota",
@@ -62,6 +73,7 @@ static struct xtables_match quota_match = {
 	.save		= quota_save,
 	.x6_parse	= quota_parse,
 	.x6_options	= quota_opts,
+	.xlate		= quota_xlate,
 };
 
 void
