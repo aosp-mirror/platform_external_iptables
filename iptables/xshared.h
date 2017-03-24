@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <netinet/in.h>
 #include <net/if.h>
+#include <sys/time.h>
 #include <linux/netfilter_ipv4/ip_tables.h>
 #include <linux/netfilter_ipv6/ip6_tables.h>
 
@@ -58,10 +59,12 @@ struct iptables_command_state {
 	unsigned int options;
 	struct xtables_rule_match *matches;
 	struct xtables_target *target;
+	struct xt_counters counters;
 	char *protocol;
 	int proto_used;
 	const char *jumpto;
 	char **argv;
+	bool restore;
 };
 
 typedef int (*mainfunc_t)(int, char **);
@@ -100,13 +103,16 @@ extern void xs_init_match(struct xtables_match *);
  * XT_LOCK_NOT_ACQUIRED : We have not yet attempted to acquire the lock.
  */
 enum {
-  XT_LOCK_BUSY = -1,
-  XT_LOCK_UNSUPPORTED  = -2,
-  XT_LOCK_NOT_ACQUIRED  = -3,
+	XT_LOCK_BUSY = -1,
+	XT_LOCK_UNSUPPORTED  = -2,
+	XT_LOCK_NOT_ACQUIRED  = -3,
 };
-extern int xtables_lock(bool wait);
-
+extern int xtables_lock(int wait, struct timeval *tv);
 extern void xtables_unlock(int lock);
+
+int parse_wait_time(int argc, char *argv[]);
+void parse_wait_interval(int argc, char *argv[], struct timeval *wait_interval);
+bool xs_has_arg(int argc, char *argv[]);
 
 extern const struct xtables_afinfo *afinfo;
 

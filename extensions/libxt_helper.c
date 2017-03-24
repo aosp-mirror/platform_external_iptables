@@ -45,6 +45,21 @@ static void helper_save(const void *ip, const struct xt_entry_match *match)
 	xtables_save_string(info->name);
 }
 
+static int helper_xlate(struct xt_xlate *xl,
+			const struct xt_xlate_mt_params *params)
+{
+	const struct xt_helper_info *info = (const void *)params->match->data;
+
+	if (params->escape_quotes)
+		xt_xlate_add(xl, "ct helper%s \\\"%s\\\"",
+			   info->invert ? " !=" : "", info->name);
+	else
+		xt_xlate_add(xl, "ct helper%s \"%s\"",
+			   info->invert ? " !=" : "", info->name);
+
+	return 1;
+}
+
 static struct xtables_match helper_match = {
 	.family		= NFPROTO_UNSPEC,
 	.name		= "helper",
@@ -55,6 +70,7 @@ static struct xtables_match helper_match = {
 	.save		= helper_save,
 	.x6_parse	= helper_parse,
 	.x6_options	= helper_opts,
+	.xlate		= helper_xlate,
 };
 
 void _init(void)

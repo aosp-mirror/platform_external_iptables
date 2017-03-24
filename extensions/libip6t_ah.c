@@ -28,6 +28,14 @@ static const struct xt_option_entry ah_opts[] = {
 };
 #undef s
 
+static void ah_init(struct xt_entry_match *m)
+{
+	struct ip6t_ah *ahinfo = (void *)m->data;
+
+	/* Defaults for when no --ahspi is used at all */
+	ahinfo->spis[1] = ~0U;
+}
+
 static void ah_parse(struct xt_option_call *cb)
 {
 	struct ip6t_ah *ahinfo = cb->data;
@@ -120,6 +128,41 @@ static void ah_save(const void *ip, const struct xt_entry_match *match)
 		printf(" --ahres");
 }
 
+static int ah_xlate(struct xt_xlate *xl,
+		    const struct xt_xlate_mt_params *params)
+{
+	const struct ip6t_ah *ahinfo = (struct ip6t_ah *)params->match->data;
+	char *space = "";
+
+	if (!(ahinfo->spis[0] == 0 && ahinfo->spis[1] == 0xFFFFFFFF)) {
+		xt_xlate_add(xl, "ah spi%s ",
+			(ahinfo->invflags & IP6T_AH_INV_SPI) ? " !=" : "");
+		if (ahinfo->spis[0] != ahinfo->spis[1])
+			xt_xlate_add(xl, "%u-%u", ahinfo->spis[0],
+				     ahinfo->spis[1]);
+		else
+			xt_xlate_add(xl, "%u", ahinfo->spis[0]);
+		space = " ";
+	}
+
+	if (ahinfo->hdrlen != 0 || (ahinfo->invflags & IP6T_AH_INV_LEN)) {
+		xt_xlate_add(xl, "%sah hdrlength%s %u", space,
+			     (ahinfo->invflags & IP6T_AH_INV_LEN) ? " !=" : "",
+			     ahinfo->hdrlen);
+		space = " ";
+	}
+
+	if (ahinfo->hdrres != 0) {
+		xt_xlate_add(xl, "%sah reserved %u", space, ahinfo->hdrres);
+		space = " ";
+	}
+
+	if (!space[0]) /* plain '-m ah' */
+		xt_xlate_add(xl, "meta l4proto ah");
+
+	return 1;
+}
+
 static struct xtables_match ah_mt6_reg = {
 	.name          = "ah",
 	.version       = XTABLES_VERSION,
@@ -127,10 +170,12 @@ static struct xtables_match ah_mt6_reg = {
 	.size          = XT_ALIGN(sizeof(struct ip6t_ah)),
 	.userspacesize = XT_ALIGN(sizeof(struct ip6t_ah)),
 	.help          = ah_help,
+	.init          = ah_init,
 	.print         = ah_print,
 	.save          = ah_save,
 	.x6_parse      = ah_parse,
 	.x6_options    = ah_opts,
+	.xlate	       = ah_xlate,
 };
 
 void

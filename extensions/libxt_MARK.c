@@ -195,7 +195,7 @@ static void MARK_print_v1(const void *ip, const struct xt_entry_target *target,
 	case XT_MARK_AND:
 		printf(" MARK and");
 		break;
-	case XT_MARK_OR: 
+	case XT_MARK_OR:
 		printf(" MARK or");
 		break;
 	}
@@ -231,7 +231,7 @@ static void MARK_save_v1(const void *ip, const struct xt_entry_target *target)
 	case XT_MARK_AND:
 		printf(" --and-mark");
 		break;
-	case XT_MARK_OR: 
+	case XT_MARK_OR:
 		printf(" --or-mark");
 		break;
 	}
@@ -243,6 +243,51 @@ static void mark_tg_save(const void *ip, const struct xt_entry_target *target)
 	const struct xt_mark_tginfo2 *info = (const void *)target->data;
 
 	printf(" --set-xmark 0x%x/0x%x", info->mark, info->mask);
+}
+
+static int mark_tg_xlate(struct xt_xlate *xl,
+			 const struct xt_xlate_tg_params *params)
+{
+	const struct xt_mark_tginfo2 *info = (const void *)params->target->data;
+
+	xt_xlate_add(xl, "meta mark set ");
+
+	if (info->mark == 0)
+		xt_xlate_add(xl, "mark and 0x%x ", ~info->mask);
+	else if (info->mark == info->mask)
+		xt_xlate_add(xl, "mark or 0x%x ", info->mark);
+	else if (info->mask == 0)
+		xt_xlate_add(xl, "mark xor 0x%x ", info->mark);
+	else if (info->mask == 0xffffffffU)
+		xt_xlate_add(xl, "0x%x ", info->mark);
+	else
+		xt_xlate_add(xl, "mark and 0x%x xor 0x%x ", ~info->mask,
+			     info->mark);
+
+	return 1;
+}
+
+static int MARK_xlate(struct xt_xlate *xl,
+		      const struct xt_xlate_tg_params *params)
+{
+	const struct xt_mark_target_info_v1 *markinfo =
+		(const struct xt_mark_target_info_v1 *)params->target->data;
+
+	xt_xlate_add(xl, "meta mark set ");
+
+	switch(markinfo->mode) {
+	case XT_MARK_SET:
+		xt_xlate_add(xl, "0x%x ", markinfo->mark);
+		break;
+	case XT_MARK_AND:
+		xt_xlate_add(xl, "mark and 0x%x ", markinfo->mark);
+		break;
+	case XT_MARK_OR:
+		xt_xlate_add(xl, "mark or 0x%x ", markinfo->mark);
+		break;
+	}
+
+	return 1;
 }
 
 static struct xtables_target mark_tg_reg[] = {
@@ -273,6 +318,7 @@ static struct xtables_target mark_tg_reg[] = {
 		.x6_parse      = MARK_parse_v1,
 		.x6_fcheck     = MARK_check,
 		.x6_options    = MARK_opts,
+		.xlate	       = MARK_xlate,
 	},
 	{
 		.version       = XTABLES_VERSION,
@@ -287,6 +333,7 @@ static struct xtables_target mark_tg_reg[] = {
 		.x6_parse      = mark_tg_parse,
 		.x6_fcheck     = mark_tg_check,
 		.x6_options    = mark_tg_opts,
+		.xlate	       = mark_tg_xlate,
 	},
 };
 

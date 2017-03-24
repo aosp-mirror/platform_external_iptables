@@ -110,6 +110,9 @@ enum {
 	IPSET_ATTR_IFACE,
 	IPSET_ATTR_BYTES,
 	IPSET_ATTR_PACKETS,
+	IPSET_ATTR_SKBMARK,
+	IPSET_ATTR_SKBPRIO,
+	IPSET_ATTR_SKBQUEUE,
 	__IPSET_ATTR_ADT_MAX,
 };
 #define IPSET_ATTR_ADT_MAX	(__IPSET_ATTR_ADT_MAX - 1)
@@ -140,6 +143,7 @@ enum ipset_errno {
 	IPSET_ERR_IPADDR_IPV4,
 	IPSET_ERR_IPADDR_IPV6,
 	IPSET_ERR_COUNTER,
+	IPSET_ERR_SKBINFO,
 
 	/* Type specific error codes */
 	IPSET_ERR_TYPE_SPECIFIC = 4352,
@@ -163,6 +167,12 @@ enum ipset_cmd_flags {
 	IPSET_FLAG_MATCH_COUNTERS = (1 << IPSET_FLAG_BIT_MATCH_COUNTERS),
 	IPSET_FLAG_BIT_RETURN_NOMATCH = 7,
 	IPSET_FLAG_RETURN_NOMATCH = (1 << IPSET_FLAG_BIT_RETURN_NOMATCH),
+	IPSET_FLAG_BIT_MAP_SKBMARK = 8,
+	IPSET_FLAG_MAP_SKBMARK = (1 << IPSET_FLAG_BIT_MAP_SKBMARK),
+	IPSET_FLAG_BIT_MAP_SKBPRIO = 9,
+	IPSET_FLAG_MAP_SKBPRIO = (1 << IPSET_FLAG_BIT_MAP_SKBPRIO),
+	IPSET_FLAG_BIT_MAP_SKBQUEUE = 10,
+	IPSET_FLAG_MAP_SKBQUEUE = (1 << IPSET_FLAG_BIT_MAP_SKBQUEUE),
 	IPSET_FLAG_CMD_MAX = 15,
 };
 
@@ -226,9 +236,15 @@ enum {
 	IPSET_COUNTER_GT,
 };
 
-struct ip_set_counter_match {
+/* Backward compatibility for set match v3 */
+struct ip_set_counter_match0 {
 	__u8 op;
 	__u64 value;
+};
+
+struct ip_set_counter_match {
+	__aligned_u64 value;
+	__u8 op;
 };
 
 /* Interface to iptables/ip6tables */
@@ -249,6 +265,15 @@ struct ip_set_req_get_set {
 
 #define IP_SET_OP_GET_BYINDEX	0x00000007	/* Get set name by index */
 /* Uses ip_set_req_get_set */
+
+#define IP_SET_OP_GET_FNAME	0x00000008	/* Get set index and family */
+struct ip_set_req_get_set_family {
+	unsigned int op;
+	unsigned int version;
+	unsigned int family;
+	union ip_set_name_index set;
+};
+
 
 #define IP_SET_OP_VERSION	0x00000100	/* Ask kernel version */
 struct ip_set_req_version {

@@ -34,6 +34,7 @@ static struct xtables_lmap *realms;
 static void realm_init(struct xt_entry_match *m)
 {
 	const char file[] = "/etc/iproute2/rt_realms";
+
 	realms = xtables_lmap_init(file);
 	if (realms == NULL && errno != ENOENT)
 		fprintf(stderr, "Warning: %s: %s\n", file, strerror(errno));
@@ -70,7 +71,7 @@ static void realm_parse(struct xt_option_call *cb)
 static void
 print_realm(unsigned long id, unsigned long mask, int numeric)
 {
-	const char* name = NULL;
+	const char *name = NULL;
 
 	if (mask != 0xffffffff)
 		printf(" 0x%lx/0x%lx", id, mask);
@@ -85,7 +86,7 @@ print_realm(unsigned long id, unsigned long mask, int numeric)
 }
 
 static void realm_print(const void *ip, const struct xt_entry_match *match,
-                        int numeric)
+			int numeric)
 {
 	const struct xt_realm_info *ri = (const void *)match->data;
 
@@ -107,6 +108,42 @@ static void realm_save(const void *ip, const struct xt_entry_match *match)
 	print_realm(ri->id, ri->mask, 0);
 }
 
+static void
+print_realm_xlate(unsigned long id, unsigned long mask,
+		  int numeric, struct xt_xlate *xl, uint32_t op)
+{
+	const char *name = NULL;
+
+	if (mask != 0xffffffff)
+		xt_xlate_add(xl, " and 0x%lx %s 0x%lx", mask,
+			   op == XT_OP_EQ ? "==" : "!=", id);
+	else {
+		if (numeric == 0)
+			name = xtables_lmap_id2name(realms, id);
+		if (name)
+			xt_xlate_add(xl, " %s%s",
+				   op == XT_OP_EQ ? "" : "!= ", name);
+		else
+			xt_xlate_add(xl, " %s0x%lx",
+				   op == XT_OP_EQ ? "" : "!= ", id);
+	}
+}
+
+static int realm_xlate(struct xt_xlate *xl,
+		       const struct xt_xlate_mt_params *params)
+{
+	const struct xt_realm_info *ri = (const void *)params->match->data;
+	enum xt_op op = XT_OP_EQ;
+
+	if (ri->invert)
+		op = XT_OP_NEQ;
+
+	xt_xlate_add(xl, "rtclassid");
+	print_realm_xlate(ri->id, ri->mask, 0, xl, op);
+
+	return 1;
+}
+
 static struct xtables_match realm_mt_reg = {
 	.name		= "realm",
 	.version	= XTABLES_VERSION,
@@ -119,6 +156,7 @@ static struct xtables_match realm_mt_reg = {
 	.save		= realm_save,
 	.x6_parse	= realm_parse,
 	.x6_options	= realm_opts,
+	.xlate		= realm_xlate,
 };
 
 void _init(void)
