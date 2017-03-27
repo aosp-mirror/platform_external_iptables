@@ -30,7 +30,7 @@ enum {
 	NFLOG_NFLOG	= 0x16,
 };
 
-static struct option brnflog_opts[] = {
+static const struct option brnflog_opts[] = {
 	{ .name = "nflog-group",     .has_arg = true,  .val = NFLOG_GROUP},
 	{ .name = "nflog-prefix",    .has_arg = true,  .val = NFLOG_PREFIX},
 	{ .name = "nflog-range",     .has_arg = true,  .val = NFLOG_RANGE},
