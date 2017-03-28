@@ -183,6 +183,30 @@ static void tos_tg_save(const void *ip, const struct xt_entry_target *target)
 	printf(" --set-tos 0x%02x/0x%02x", info->tos_value, info->tos_mask);
 }
 
+static int tos_xlate(struct xt_xlate *xl,
+		     const struct xt_xlate_tg_params *params)
+{
+	const struct ipt_tos_target_info *info =
+			(struct ipt_tos_target_info *) params->target->data;
+	uint8_t dscp = info->tos >> 2;
+
+	xt_xlate_add(xl, "ip dscp set 0x%02x", dscp);
+
+	return 1;
+}
+
+static int tos_xlate6(struct xt_xlate *xl,
+		     const struct xt_xlate_tg_params *params)
+{
+	const struct ipt_tos_target_info *info =
+			(struct ipt_tos_target_info *) params->target->data;
+	uint8_t dscp = info->tos >> 2;
+
+	xt_xlate_add(xl, "ip6 dscp set 0x%02x", dscp);
+
+	return 1;
+}
+
 static struct xtables_target tos_tg_reg[] = {
 	{
 		.version       = XTABLES_VERSION,
@@ -197,6 +221,7 @@ static struct xtables_target tos_tg_reg[] = {
 		.x6_parse      = tos_tg_parse_v0,
 		.x6_fcheck     = tos_tg_check,
 		.x6_options    = tos_tg_opts_v0,
+		.xlate	       = tos_xlate,
 	},
 	{
 		.version       = XTABLES_VERSION,
@@ -211,6 +236,7 @@ static struct xtables_target tos_tg_reg[] = {
 		.x6_parse      = tos_tg_parse,
 		.x6_fcheck     = tos_tg_check,
 		.x6_options    = tos_tg_opts,
+		.xlate	       = tos_xlate6,
 	},
 };
 
