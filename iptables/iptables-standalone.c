@@ -73,9 +73,8 @@ iptables_main(int argc, char *argv[])
 			fprintf(stderr, "iptables: %s.\n",
 				iptc_strerror(errno));
 		}
-		if (errno == EAGAIN) {
+		if (errno == EAGAIN)
 			exit(RESOURCE_PROBLEM);
-		}
 	}
 
 	exit(!ret);

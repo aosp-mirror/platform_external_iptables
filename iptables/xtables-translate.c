@@ -236,9 +236,8 @@ static int do_command_xlate(struct nft_handle *h, int argc, char *argv[],
 	switch (p.command) {
 	case CMD_APPEND:
 		ret = 1;
-		if (!xlate(h, &p, &cs, &args, true, nft_rule_xlate_add)) {
+		if (!xlate(h, &p, &cs, &args, true, nft_rule_xlate_add))
 			print_ipt_cmd(argc, argv);
-		}
 		break;
 	case CMD_DELETE:
 		break;
@@ -250,9 +249,8 @@ static int do_command_xlate(struct nft_handle *h, int argc, char *argv[],
 		break;
 	case CMD_INSERT:
 		ret = 1;
-		if (!xlate(h, &p, &cs, &args, false, nft_rule_xlate_add)) {
+		if (!xlate(h, &p, &cs, &args, false, nft_rule_xlate_add))
 			print_ipt_cmd(argc, argv);
-		}
 		break;
 	case CMD_FLUSH:
 		if (p.chain) {
