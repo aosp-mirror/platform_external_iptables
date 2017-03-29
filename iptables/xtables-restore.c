@@ -24,7 +24,7 @@
 #define DEBUGP(x, args...)
 #endif
 
-static int counters = 0, verbose = 0, noflush = 0;
+static int counters, verbose, noflush;
 
 /* Keeping track of external matches and targets.  */
 static const struct option options[] = {

@@ -34,9 +34,9 @@ struct xtables_globals iptables_xml_globals = {
 static void print_usage(const char *name, const char *version)
 	    __attribute__ ((noreturn));
 
-static int verbose = 0;
+static int verbose;
 /* Whether to combine actions of sequential rules with identical conditions */
-static int combine = 0;
+static int combine;
 /* Keeping track of external matches and targets.  */
 static struct option options[] = {
 	{"verbose", 0, NULL, 'v'},
@@ -73,10 +73,10 @@ parse_counters(char *string, struct xt_counters *ctr)
 
 /* global new argv and argc */
 static char *newargv[255];
-static unsigned int newargc = 0;
+static unsigned int newargc;
 
 static char *oldargv[255];
-static unsigned int oldargc = 0;
+static unsigned int oldargc;
 
 /* arg meta data, were they quoted, frinstance */
 static int newargvattr[255];
@@ -96,7 +96,7 @@ struct chain {
 
 #define maxChains 10240		/* max chains per table */
 static struct chain chains[maxChains];
-static int nextChain = 0;
+static int nextChain;
 
 /* funCtion adding one argument to newargv, updating newargc 
  * returns true if argument added, false otherwise */

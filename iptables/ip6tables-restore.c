@@ -26,7 +26,7 @@
 #define DEBUGP(x, args...)
 #endif
 
-static int counters = 0, verbose = 0, noflush = 0, wait = 0;
+static int counters, verbose, noflush, wait;
 
 static struct timeval wait_interval = {
 	.tv_sec	= 1,

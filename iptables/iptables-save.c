@@ -17,7 +17,7 @@
 #include "iptables.h"
 #include "iptables-multi.h"
 
-static int show_counters = 0;
+static int show_counters;
 
 static const struct option options[] = {
 	{.name = "counters", .has_arg = false, .val = 'c'},

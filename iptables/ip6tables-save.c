@@ -18,7 +18,7 @@
 #include "ip6tables.h"
 #include "ip6tables-multi.h"
 
-static int show_counters = 0;
+static int show_counters;
 
 static const struct option options[] = {
 	{.name = "counters", .has_arg = false, .val = 'c'},
