@@ -1,0 +1,5 @@
+iptables-translate -I OUTPUT -p udp -d 8.8.8.8 -j ACCEPT
+nft insert rule ip filter OUTPUT ip protocol udp ip daddr 8.8.8.8 counter accept
+
+iptables-translate -F -t nat
+nft flush table ip nat
