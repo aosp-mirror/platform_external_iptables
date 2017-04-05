@@ -36,6 +36,8 @@ LOCAL_CFLAGS+=-D_LARGEFILE_SOURCE=1 -D_LARGE_FILES -D_FILE_OFFSET_BITS=64 -D_REE
 LOCAL_CFLAGS+=-D__ANDROID__
 LOCAL_CFLAGS += $(commonFlags)
 
+LOCAL_REQUIRED_MODULES := xtables.lock
+
 LOCAL_SRC_FILES:= \
 	xtables-multi.c iptables-xml.c xshared.c \
 	iptables-save.c iptables-restore.c \
@@ -73,6 +75,8 @@ LOCAL_CFLAGS+=-D_LARGEFILE_SOURCE=1 -D_LARGE_FILES -D_FILE_OFFSET_BITS=64 -D_REE
 # Accommodate arm-eabi-4.4.3 tools that don't set __ANDROID__
 LOCAL_CFLAGS+=-D__ANDROID__
 LOCAL_CFLAGS += $(commonFlags)
+
+LOCAL_REQUIRED_MODULES := xtables.lock
 
 LOCAL_SRC_FILES:= \
 	xtables-multi.c iptables-xml.c xshared.c \
