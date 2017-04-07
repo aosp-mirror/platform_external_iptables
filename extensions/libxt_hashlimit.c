@@ -12,9 +12,9 @@
  */
 #define _BSD_SOURCE 1
 #define _ISOC99_SOURCE 1
+#include <inttypes.h>
 #include <math.h>
 #include <stdbool.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -262,7 +262,7 @@ static uint64_t parse_burst(const char *burst, int revision)
 	if (v > max)
 		xtables_error(PARAMETER_PROBLEM, "bad value for option "
 			"\"--hashlimit-burst\", value \"%s\" too large "
-				"(max %lumb).", burst, max/1024/1024);
+				"(max %"PRIu64"mb).", burst, max/1024/1024);
 	return v;
 }
 
@@ -285,8 +285,8 @@ static bool parse_bytes(const char *rate, void *val, struct hashlimit_mt_udata *
 	tmp = (uint64_t) r * factor;
 	if (tmp > max)
 		xtables_error(PARAMETER_PROBLEM,
-			"Rate value too large \"%llu\" (max %lu)\n",
-					(unsigned long long)tmp, max);
+			"Rate value too large \"%"PRIu64"\" (max %"PRIu64")\n",
+					tmp, max);
 
 	tmp = bytes_to_cost(tmp);
 	if (tmp == 0)
@@ -557,7 +557,8 @@ static void hashlimit_mt_check_v1(struct xt_fcheck_call *cb)
 		if (cb->xflags & F_BURST) {
 			if (info->cfg.burst < cost_to_bytes(info->cfg.avg))
 				xtables_error(PARAMETER_PROBLEM,
-					"burst cannot be smaller than %lub", cost_to_bytes(info->cfg.avg));
+					"burst cannot be smaller than %"PRIu64"b",
+					cost_to_bytes(info->cfg.avg));
 
 			burst = info->cfg.burst;
 			burst /= cost_to_bytes(info->cfg.avg);
@@ -587,7 +588,8 @@ static void hashlimit_mt_check(struct xt_fcheck_call *cb)
 		if (cb->xflags & F_BURST) {
 			if (info->cfg.burst < cost_to_bytes(info->cfg.avg))
 				xtables_error(PARAMETER_PROBLEM,
-					"burst cannot be smaller than %lub", cost_to_bytes(info->cfg.avg));
+					"burst cannot be smaller than %"PRIu64"b",
+					cost_to_bytes(info->cfg.avg));
 
 			burst = info->cfg.burst;
 			burst /= cost_to_bytes(info->cfg.avg);
@@ -631,7 +633,7 @@ static uint32_t print_rate(uint32_t period, int revision)
             || _rates[i].mult/period < _rates[i].mult%period)
 			break;
 
-	printf(" %lu/%s", _rates[i-1].mult / period, _rates[i-1].name);
+	printf(" %"PRIu64"/%s", _rates[i-1].mult / period, _rates[i-1].name);
 	/* return in msec */
 	return _rates[i-1].mult / scale * 1000;
 }
