@@ -40,8 +40,6 @@ static const struct option options[] = {
 	{NULL},
 };
 
-static void print_usage(const char *name, const char *version) __attribute__((noreturn));
-
 #define prog_name xtables_globals.program_name
 
 static void print_usage(const char *name, const char *version)
@@ -56,8 +54,6 @@ static void print_usage(const char *name, const char *version)
 			"          [ --modprobe=<command> ]\n"
 			"	   [ --ipv4 ]\n"
 			"	   [ --ipv6 ]\n", name);
-
-	exit(1);
 }
 
 static int parse_counters(char *string, struct xt_counters *ctr)
@@ -486,7 +482,7 @@ xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 			case 'h':
 				print_usage("xtables-restore",
 					    IPTABLES_VERSION);
-				break;
+				exit(0);
 			case 'n':
 				noflush = 1;
 				break;
@@ -503,6 +499,10 @@ xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 				h.family = AF_INET6;
 				xtables_set_nfproto(AF_INET6);
 				break;
+			default:
+				fprintf(stderr,
+					"Try `xtables-restore -h' for more information.\n");
+				exit(1);
 		}
 	}
 

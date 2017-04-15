@@ -130,6 +130,10 @@ xtables_save_main(int family, const char *progname, int argc, char *argv[])
 			h.family = AF_INET6;
 			xtables_set_nfproto(AF_INET6);
 			break;
+		default:
+			fprintf(stderr,
+				"Look at manual page `xtables-save.8' for more information.\n");
+			exit(1);
 		}
 	}
 

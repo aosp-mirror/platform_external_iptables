@@ -161,6 +161,10 @@ iptables_save_main(int argc, char *argv[])
 		case 'd':
 			do_output(tablename);
 			exit(0);
+		default:
+			fprintf(stderr,
+				"Look at manual page `iptables-save.8' for more information.\n");
+			exit(1);
 		}
 	}
 
