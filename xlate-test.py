@@ -72,7 +72,9 @@ def load_test_files():
 
 
 def main():
-    if args.test:
+    if os.getuid() != 0:
+        print(red("Error: ") + "You need to be root to run this, sorry")
+    elif args.test:
         if not args.test.endswith(".txlate"):
             args.test += ".txlate"
         try:
