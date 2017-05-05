@@ -538,15 +538,15 @@ void xtables_parse_interface(const char *arg, char *vianame,
 	} else {
 		/* Include nul-terminator in match */
 		memset(mask, 0xFF, vialen + 1);
-		for (i = 0; vianame[i]; i++) {
-			if (vianame[i] == '/' ||
-			    vianame[i] == ' ') {
-				fprintf(stderr,
-					"Warning: weird character in interface"
-					" `%s' ('/' and ' ' are not allowed by the kernel).\n",
-					vianame);
-				break;
-			}
+	}
+
+	/* Display warning on invalid characters */
+	for (i = 0; vianame[i]; i++) {
+		if (vianame[i] == '/' || vianame[i] == ' ') {
+			fprintf(stderr,	"Warning: weird character in interface"
+				" `%s' ('/' and ' ' are not allowed by the kernel).\n",
+				vianame);
+			break;
 		}
 	}
 }
