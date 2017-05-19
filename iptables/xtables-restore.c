@@ -136,8 +136,11 @@ static void add_param_to_argv(char *parsestart)
 			param_buffer[param_len] = '\0';
 
 			/* check if table name specified */
-			if (!strncmp(param_buffer, "-t", 2)
-			    || !strncmp(param_buffer, "--table", 8)) {
+			if ((param_buffer[0] == '-' &&
+			     param_buffer[1] != '-' &&
+			     strchr(param_buffer, 't')) ||
+			    (!strncmp(param_buffer, "--t", 3) &&
+			     !strncmp(param_buffer, "--table", strlen(param_buffer)))) {
 				xtables_error(PARAMETER_PROBLEM,
 				"The -t option (seen in line %u) cannot be "
 				"used in xtables-restore.\n", line);

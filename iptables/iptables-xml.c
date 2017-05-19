@@ -819,9 +819,11 @@ iptables_xml_main(int argc, char *argv[])
 					*(param_buffer + param_len) = '\0';
 
 					/* check if table name specified */
-					if (!strncmp(param_buffer, "-t", 3)
-					    || !strncmp(param_buffer,
-							"--table", 8)) {
+					if ((param_buffer[0] == '-' &&
+					     param_buffer[1] != '-' &&
+					     strchr(param_buffer, 't')) ||
+					    (!strncmp(param_buffer, "--t", 3) &&
+					     !strncmp(param_buffer, "--table", strlen(param_buffer)))) {
 						xtables_error(PARAMETER_PROBLEM,
 							   "Line %u seems to have a "
 							   "-t table option.\n",
