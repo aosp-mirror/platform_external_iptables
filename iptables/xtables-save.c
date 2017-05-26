@@ -14,6 +14,7 @@
 #include <string.h>
 #include <time.h>
 #include <netdb.h>
+#include <unistd.h>
 #include "libiptc/libiptc.h"
 #include "iptables.h"
 #include "xtables-multi.h"
@@ -32,6 +33,7 @@ static const struct option options[] = {
 	{.name = "dump",     .has_arg = false, .val = 'd'},
 	{.name = "table",    .has_arg = true,  .val = 't'},
 	{.name = "modprobe", .has_arg = true,  .val = 'M'},
+	{.name = "file",     .has_arg = true,  .val = 'f'},
 	{.name = "ipv4",     .has_arg = false, .val = '4'},
 	{.name = "ipv6",     .has_arg = false, .val = '6'},
 	{NULL},
@@ -82,7 +84,8 @@ xtables_save_main(int family, const char *progname, int argc, char *argv[])
 	struct nft_handle h = {
 		.family	= family,
 	};
-	int c;
+	FILE *file = NULL;
+	int ret, c;
 
 	xtables_globals.program_name = progname;
 	c = xtables_init_all(&xtables_globals, family);
@@ -104,7 +107,7 @@ xtables_save_main(int family, const char *progname, int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 
-	while ((c = getopt_long(argc, argv, "bcdt:M:46", options, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "bcdt:M:f:46", options, NULL)) != -1) {
 		switch (c) {
 		case 'b':
 			fprintf(stderr, "-b/--binary option is not implemented\n");
@@ -119,6 +122,21 @@ xtables_save_main(int family, const char *progname, int argc, char *argv[])
 			break;
 		case 'M':
 			xtables_modprobe_program = optarg;
+			break;
+		case 'f':
+			file = fopen(optarg, "w");
+			if (file == NULL) {
+				fprintf(stderr, "Failed to open file, error: %s\n",
+					strerror(errno));
+				exit(1);
+			}
+			ret = dup2(fileno(file), STDOUT_FILENO);
+			if (ret == -1) {
+				fprintf(stderr, "Failed to redirect stdout, error: %s\n",
+					strerror(errno));
+				exit(1);
+			}
+			fclose(file);
 			break;
 		case 'd':
 			dump = true;

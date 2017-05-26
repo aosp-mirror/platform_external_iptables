@@ -14,6 +14,7 @@
 #include <time.h>
 #include <netdb.h>
 #include <arpa/inet.h>
+#include <unistd.h>
 #include "libiptc/libip6tc.h"
 #include "ip6tables.h"
 #include "ip6tables-multi.h"
@@ -25,6 +26,7 @@ static const struct option options[] = {
 	{.name = "dump",     .has_arg = false, .val = 'd'},
 	{.name = "table",    .has_arg = true,  .val = 't'},
 	{.name = "modprobe", .has_arg = true,  .val = 'M'},
+	{.name = "file",     .has_arg = true,  .val = 'f'},
 	{NULL},
 };
 
@@ -128,7 +130,8 @@ static int do_output(const char *tablename)
 int ip6tables_save_main(int argc, char *argv[])
 {
 	const char *tablename = NULL;
-	int c;
+	FILE *file = NULL;
+	int ret, c;
 
 	ip6tables_globals.program_name = "ip6tables-save";
 	c = xtables_init_all(&ip6tables_globals, NFPROTO_IPV6);
@@ -143,7 +146,7 @@ int ip6tables_save_main(int argc, char *argv[])
 	init_extensions6();
 #endif
 
-	while ((c = getopt_long(argc, argv, "bcdt:M:", options, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "bcdt:M:f:", options, NULL)) != -1) {
 		switch (c) {
 		case 'b':
 			fprintf(stderr, "-b/--binary option is not implemented\n");
@@ -158,6 +161,21 @@ int ip6tables_save_main(int argc, char *argv[])
 			break;
 		case 'M':
 			xtables_modprobe_program = optarg;
+			break;
+		case 'f':
+			file = fopen(optarg, "w");
+			if (file == NULL) {
+				fprintf(stderr, "Failed to open file, error: %s\n",
+					strerror(errno));
+				exit(1);
+			}
+			ret = dup2(fileno(file), STDOUT_FILENO);
+			if (ret == -1) {
+				fprintf(stderr, "Failed to redirect stdout, error: %s\n",
+					strerror(errno));
+				exit(1);
+			}
+			fclose(file);
 			break;
 		case 'd':
 			do_output(tablename);
