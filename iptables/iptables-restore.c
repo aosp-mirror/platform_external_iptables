@@ -295,12 +295,7 @@ iptables_restore_main(int argc, char *argv[])
 			in_table = 0;
 		} else if ((buffer[0] == '*') && (!in_table)) {
 			/* Acquire a lock before we create a new table handle */
-			lock = xtables_lock(wait, &wait_interval);
-			if (lock == XT_LOCK_BUSY) {
-				fprintf(stderr, "Another app is currently holding the xtables lock. "
-					"Perhaps you want to use the -w option?\n");
-				exit(RESOURCE_PROBLEM);
-			}
+			lock = xtables_lock_or_exit(wait, &wait_interval);
 
 			/* New table */
 			char *table;
