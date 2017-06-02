@@ -426,12 +426,9 @@ do_rule_part(char *leveltag1, char *leveltag2, int part, int argc,
 			else
 				printf("%s%s", spacer, argv[arg]);
 			spacer = " ";
-		} else if (!argvattr[arg] && isTarget(argv[arg])
-			   && existsChain(argv[arg + 1])
-			   && (2 + arg >= argc)) {
-			if (!((1 + arg) < argc))
-				// no args to -j, -m or -g, ignore & finish loop
-				break;
+		} else if (!argvattr[arg] && isTarget(argv[arg]) &&
+			   (arg + 1 < argc) &&
+			   existsChain(argv[arg + 1])) {
 			CLOSE_LEVEL(2);
 			if (level1)
 				printf("%s", leveli1);
