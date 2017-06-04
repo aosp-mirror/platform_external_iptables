@@ -1766,15 +1766,8 @@ int do_command4(int argc, char *argv[], char **table,
 	generic_opt_check(command, cs.options);
 
 	/* Attempt to acquire the xtables lock */
-	if (!restore && xtables_lock(wait, &wait_interval) == XT_LOCK_BUSY) {
-		fprintf(stderr, "Another app is currently holding the xtables lock. ");
-		if (wait == 0)
-			fprintf(stderr, "Perhaps you want to use the -w option?\n");
-		else
-			fprintf(stderr, "Stopped waiting after %ds.\n", wait);
-		xtables_free_opts(1);
-		exit(RESOURCE_PROBLEM);
-	}
+	if (!restore)
+		xtables_lock_or_exit(wait, &wait_interval);
 
 	/* only allocate handle if we weren't called with a handle */
 	if (!*handle)
