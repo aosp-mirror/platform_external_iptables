@@ -60,12 +60,13 @@ int xlate_action(const struct iptables_command_state *cs, bool goto_set,
 	if (cs->target != NULL) {
 		/* Standard target? */
 		if (strcmp(cs->jumpto, XTC_LABEL_ACCEPT) == 0)
-			xt_xlate_add(xl, "accept");
+			xt_xlate_add(xl, " accept");
 		else if (strcmp(cs->jumpto, XTC_LABEL_DROP) == 0)
-			xt_xlate_add(xl, "drop");
+			xt_xlate_add(xl, " drop");
 		else if (strcmp(cs->jumpto, XTC_LABEL_RETURN) == 0)
-			xt_xlate_add(xl, "return");
+			xt_xlate_add(xl, " return");
 		else if (cs->target->xlate) {
+			xt_xlate_add(xl, " ");
 			struct xt_xlate_tg_params params = {
 				.ip		= (const void *)&cs->fw,
 				.target		= cs->target->t,
@@ -79,9 +80,9 @@ int xlate_action(const struct iptables_command_state *cs, bool goto_set,
 	} else if (strlen(cs->jumpto) > 0) {
 		/* Not standard, then it's a go / jump to chain */
 		if (goto_set)
-			xt_xlate_add(xl, "goto %s", cs->jumpto);
+			xt_xlate_add(xl, " goto %s", cs->jumpto);
 		else
-			xt_xlate_add(xl, "jump %s", cs->jumpto);
+			xt_xlate_add(xl, " jump %s", cs->jumpto);
 	}
 
 	return ret;
