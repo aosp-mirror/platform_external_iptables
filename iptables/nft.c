@@ -147,7 +147,8 @@ static void mnl_nftnl_batch_reset(void)
 
 	list_for_each_entry_safe(batch_page, next, &batch_page_list, head) {
 		list_del(&batch_page->head);
-		free(batch_page->batch);
+		free(mnl_nlmsg_batch_head(batch_page->batch));
+		mnl_nlmsg_batch_stop(batch_page->batch);
 		free(batch_page);
 		batch_num_pages--;
 	}
@@ -2536,8 +2537,8 @@ static void xtables_config_perror(uint32_t flags, const char *fmt, ...)
 int nft_xtables_config_load(struct nft_handle *h, const char *filename,
 			    uint32_t flags)
 {
-	struct nftnl_table_list *table_list = nftnl_table_list_alloc();
-	struct nftnl_chain_list *chain_list = nftnl_chain_list_alloc();
+	struct nftnl_table_list *table_list = NULL;
+	struct nftnl_chain_list *chain_list = NULL;
 	struct nftnl_table_list_iter *titer = NULL;
 	struct nftnl_chain_list_iter *citer = NULL;
 	struct nftnl_table *table;
@@ -2547,6 +2548,9 @@ int nft_xtables_config_load(struct nft_handle *h, const char *filename,
 
 	if (h->restore)
 		return 0;
+
+	table_list = nftnl_table_list_alloc();
+	chain_list = nftnl_chain_list_alloc();
 
 	if (xtables_config_parse(filename, table_list, chain_list) < 0) {
 		if (errno == ENOENT) {

@@ -180,8 +180,10 @@ static void chain_delete(struct nftnl_chain_list *clist, const char *curtable,
 	/* This chain has been found, delete from list. Later
 	 * on, unvisited chains will be purged out.
 	 */
-	if (chain_obj != NULL)
+	if (chain_obj != NULL) {
 		nftnl_chain_list_del(chain_obj);
+		nftnl_chain_free(chain_obj);
+	}
 }
 
 struct nft_xt_restore_cb restore_cb = {
@@ -433,6 +435,9 @@ void xtables_restore_parse(struct nft_handle *h,
 				xt_params->program_name, line + 1);
 		exit(1);
 	}
+
+	if (chain_list)
+		nftnl_chain_list_free(chain_list);
 }
 
 static int
@@ -525,6 +530,7 @@ xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 
 	xtables_restore_parse(&h, &p, &restore_cb, argc, argv);
 
+	nft_fini(&h);
 	fclose(p.in);
 	return 0;
 }
