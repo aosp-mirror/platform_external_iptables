@@ -251,6 +251,8 @@ static void nft_ipv6_print_firewall(struct nftnl_rule *r, unsigned int num,
 
 	if (!(format & FMT_NONEWLINE))
 		fputc('\n', stdout);
+
+	xtables_rule_matches_free(&cs.matches);
 }
 
 static void save_ipv6_addr(char letter, const struct in6_addr *addr,
