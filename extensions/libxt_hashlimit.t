@@ -27,3 +27,7 @@
 -m hashlimit --hashlimit-upto 1/sec;;FAIL
 -m hashlimit;;FAIL
 -m hashlimit --hashlimit-upto 40/sec --hashlimit-burst 20 --hashlimit-mode srcip --hashlimit-name syn-flood;=;OK
+-m hashlimit --hashlimit-upto 40/sec --hashlimit-burst 20 --hashlimit-mode srcip --hashlimit-name rate1 --hashlimit-rate-match;=;OK
+-m hashlimit --hashlimit-upto 40mb/s --hashlimit-mode srcip --hashlimit-name rate2 --hashlimit-rate-match;=;OK
+-m hashlimit --hashlimit-upto 40/sec --hashlimit-burst 20 --hashlimit-mode srcip --hashlimit-name rate3 --hashlimit-rate-match --hashlimit-rate-interval 10;=;OK
+-m hashlimit --hashlimit-upto 40mb/s --hashlimit-mode srcip --hashlimit-name rate4 --hashlimit-rate-match --hashlimit-rate-interval 10;=;OK
