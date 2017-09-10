@@ -357,6 +357,8 @@ static int xlate_chain_set(struct nft_handle *h, const char *table,
 
 	if (strcmp(table, "nat") == 0)
 		type = "nat";
+	else if (strcmp(table, "mangle") == 0 && strcmp(chain, "OUTPUT") == 0)
+		type = "route";
 
 	printf("add chain %s %s %s { type %s ",
 	       family2str[h->family], table, chain, type);
