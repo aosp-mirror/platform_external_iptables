@@ -75,7 +75,7 @@ static const char optflags[]
 
 static const char unsupported_rev[] = " [unsupported revision]";
 
-static struct option original_opts[] = {
+static const struct option original_opts[] = {
 	{.name = "append",        .has_arg = 1, .val = 'A'},
 	{.name = "delete",        .has_arg = 1, .val = 'D'},
 	{.name = "check",         .has_arg = 1, .val = 'C'},
