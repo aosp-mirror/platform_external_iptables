@@ -1455,13 +1455,18 @@ int nft_chain_user_add(struct nft_handle *h, const char *chain, const char *tabl
 	return ret == 0 ? 1 : 0;
 }
 
+/* From linux/netlink.h */
+#ifndef NLM_F_NONREC
+#define NLM_F_NONREC	0x100	/* Do not delete recursively    */
+#endif
+
 static int __nft_chain_del(struct nft_handle *h, struct nftnl_chain *c)
 {
 	char buf[MNL_SOCKET_BUFFER_SIZE];
 	struct nlmsghdr *nlh;
 
 	nlh = nftnl_chain_nlmsg_build_hdr(buf, NFT_MSG_DELCHAIN, h->family,
-					NLM_F_ACK, h->seq);
+					  NLM_F_NONREC | NLM_F_ACK, h->seq);
 	nftnl_chain_nlmsg_build_payload(nlh, c);
 
 	return mnl_talk(h, nlh, NULL, NULL);
@@ -2349,7 +2354,8 @@ static int nft_action(struct nft_handle *h, int action)
 			break;
 		case NFT_COMPAT_CHAIN_USER_DEL:
 			nft_compat_chain_batch_add(h, NFT_MSG_DELCHAIN,
-						   0, seq++, n->chain);
+						   NLM_F_NONREC, seq++,
+						   n->chain);
 			break;
 		case NFT_COMPAT_CHAIN_UPDATE:
 			nft_compat_chain_batch_add(h, NFT_MSG_NEWCHAIN,
