@@ -91,21 +91,66 @@ static void dscp_save(const void *ip, const struct xt_entry_match *match)
 	printf("%s --dscp 0x%02x", dinfo->invert ? " !" : "", dinfo->dscp);
 }
 
-static struct xtables_match dscp_match = {
-	.family		= NFPROTO_UNSPEC,
-	.name 		= "dscp",
-	.version 	= XTABLES_VERSION,
-	.size 		= XT_ALIGN(sizeof(struct xt_dscp_info)),
-	.userspacesize	= XT_ALIGN(sizeof(struct xt_dscp_info)),
-	.help		= dscp_help,
-	.print		= dscp_print,
-	.save		= dscp_save,
-	.x6_parse	= dscp_parse,
-	.x6_fcheck	= dscp_check,
-	.x6_options	= dscp_opts,
+static int __dscp_xlate(struct xt_xlate *xl,
+			const struct xt_xlate_mt_params *params)
+{
+	const struct xt_dscp_info *dinfo =
+		(const struct xt_dscp_info *)params->match->data;
+
+	xt_xlate_add(xl, "dscp %s0x%02x", dinfo->invert ? "!= " : "",
+		     dinfo->dscp);
+
+	return 1;
+}
+
+static int dscp_xlate(struct xt_xlate *xl,
+		      const struct xt_xlate_mt_params *params)
+{
+	xt_xlate_add(xl, "ip ");
+
+	return __dscp_xlate(xl, params);
+}
+
+static int dscp_xlate6(struct xt_xlate *xl,
+		       const struct xt_xlate_mt_params *params)
+{
+	xt_xlate_add(xl, "ip6 ");
+
+	return __dscp_xlate(xl, params);
+}
+
+static struct xtables_match dscp_mt_reg[] = {
+	{
+		.family		= NFPROTO_IPV4,
+		.name           = "dscp",
+		.version        = XTABLES_VERSION,
+		.size           = XT_ALIGN(sizeof(struct xt_dscp_info)),
+		.userspacesize	= XT_ALIGN(sizeof(struct xt_dscp_info)),
+		.help		= dscp_help,
+		.print		= dscp_print,
+		.save		= dscp_save,
+		.x6_parse	= dscp_parse,
+		.x6_fcheck	= dscp_check,
+		.x6_options	= dscp_opts,
+		.xlate		= dscp_xlate,
+	},
+	{
+		.family		= NFPROTO_IPV6,
+		.name           = "dscp",
+		.version        = XTABLES_VERSION,
+		.size           = XT_ALIGN(sizeof(struct xt_dscp_info)),
+		.userspacesize	= XT_ALIGN(sizeof(struct xt_dscp_info)),
+		.help		= dscp_help,
+		.print		= dscp_print,
+		.save		= dscp_save,
+		.x6_parse	= dscp_parse,
+		.x6_fcheck	= dscp_check,
+		.x6_options	= dscp_opts,
+		.xlate		= dscp_xlate6,
+	},
 };
 
 void _init(void)
 {
-	xtables_register_match(&dscp_match);
+	xtables_register_matches(dscp_mt_reg, ARRAY_SIZE(dscp_mt_reg));
 }

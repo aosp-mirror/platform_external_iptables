@@ -4,7 +4,7 @@ LOCAL_PATH:= $(call my-dir)
 
 MY_srcdir:=$(LOCAL_PATH)
 # Exclude some modules that are problematic to compile (types/header).
-MY_excluded_modules:=TCPOPTSTRIP connlabel
+MY_excluded_modules:=TCPOPTSTRIP connlabel cgroup
 
 MY_pfx_build_mod := $(patsubst ${MY_srcdir}/libxt_%.c,%,$(sort $(wildcard ${MY_srcdir}/libxt_*.c)))
 MY_pf4_build_mod := $(patsubst ${MY_srcdir}/libipt_%.c,%,$(sort $(wildcard ${MY_srcdir}/libipt_*.c)))
@@ -17,9 +17,14 @@ MY_pf4_objs      := $(patsubst %,libipt_%.o,${MY_pf4_build_mod})
 MY_pf6_objs      := $(patsubst %,libip6t_%.o,${MY_pf6_build_mod})
 # libxt_recent.c:202:11: error: address of array 'info->name' will always evaluate to 'true' [-Werror,-Wpointer-bool-conversion]
 MY_warnings      := \
-    -Wno-unused-parameter -Wno-missing-field-initializers \
-    -Wno-sign-compare -Wno-pointer-arith \
-    -Wno-pointer-bool-conversion
+    -Wall -Werror \
+    -Wno-format \
+    -Wno-missing-field-initializers \
+    -Wno-pointer-arith \
+    -Wno-pointer-bool-conversion \
+    -Wno-sign-compare \
+    -Wno-tautological-pointer-compare \
+    -Wno-unused-parameter \
 
 libext_suffix :=
 libext_prefix := xt

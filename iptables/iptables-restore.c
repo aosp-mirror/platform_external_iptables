@@ -6,7 +6,7 @@
  */
 
 #include <getopt.h>
-#include <sys/errno.h>
+#include <errno.h>
 #include <stdbool.h>
 #include <string.h>
 #include <stdio.h>
@@ -23,19 +23,23 @@
 #define DEBUGP(x, args...)
 #endif
 
-static int binary = 0, counters = 0, verbose = 0, noflush = 0, wait = 0;
+static int counters = 0, verbose = 0, noflush = 0, wait = 0;
+
+static struct timeval wait_interval = {
+	.tv_sec	= 1,
+};
 
 /* Keeping track of external matches and targets.  */
 static const struct option options[] = {
-	{.name = "binary",   .has_arg = false, .val = 'b'},
-	{.name = "counters", .has_arg = false, .val = 'c'},
-	{.name = "verbose",  .has_arg = false, .val = 'v'},
-	{.name = "test",     .has_arg = false, .val = 't'},
-	{.name = "help",     .has_arg = false, .val = 'h'},
-	{.name = "noflush",  .has_arg = false, .val = 'n'},
-	{.name = "wait",     .has_arg = false, .val = 'w'},
-	{.name = "modprobe", .has_arg = true,  .val = 'M'},
-	{.name = "table",    .has_arg = true,  .val = 'T'},
+	{.name = "counters",      .has_arg = 0, .val = 'c'},
+	{.name = "verbose",       .has_arg = 0, .val = 'v'},
+	{.name = "test",          .has_arg = 0, .val = 't'},
+	{.name = "help",          .has_arg = 0, .val = 'h'},
+	{.name = "noflush",       .has_arg = 0, .val = 'n'},
+	{.name = "modprobe",      .has_arg = 1, .val = 'M'},
+	{.name = "table",         .has_arg = 1, .val = 'T'},
+	{.name = "wait",          .has_arg = 2, .val = 'w'},
+	{.name = "wait-interval", .has_arg = 2, .val = 'W'},
 	{NULL},
 };
 
@@ -45,16 +49,16 @@ static void print_usage(const char *name, const char *version) __attribute__((no
 
 static void print_usage(const char *name, const char *version)
 {
-	fprintf(stderr, "Usage: %s [-b] [-c] [-v] [-t] [-h] [-w]\n"
-			"	   [ --binary ]\n"
+	fprintf(stderr, "Usage: %s [-c] [-v] [-t] [-h] [-n] [-w secs] [-W usecs] [-T table] [-M command]\n"
 			"	   [ --counters ]\n"
 			"	   [ --verbose ]\n"
 			"	   [ --test ]\n"
 			"	   [ --help ]\n"
 			"	   [ --noflush ]\n"
-			"	   [ --wait ]\n"
+			"	   [ --wait=<seconds>\n"
+			"	   [ --wait-interval=<usecs>\n"
 			"	   [ --table=<TABLE> ]\n"
-			"          [ --modprobe=<command>]\n", name);
+			"	   [ --modprobe=<command> ]\n", name);
 
 	exit(1);
 }
@@ -185,7 +189,7 @@ iptables_restore_main(int argc, char *argv[])
 {
 	struct xtc_handle *handle = NULL;
 	char buffer[10240];
-	int c;
+	int c, lock;
 	char curtable[XT_TABLE_MAXNAMELEN + 1];
 	FILE *in;
 	int in_table = 0, testing = 0;
@@ -193,6 +197,7 @@ iptables_restore_main(int argc, char *argv[])
 	const struct xtc_ops *ops = &iptc_ops;
 
 	line = 0;
+	lock = XT_LOCK_NOT_ACQUIRED;
 
 	iptables_globals.program_name = "iptables-restore";
 	c = xtables_init_all(&iptables_globals, NFPROTO_IPV4);
@@ -207,10 +212,10 @@ iptables_restore_main(int argc, char *argv[])
 	init_extensions4();
 #endif
 
-	while ((c = getopt_long(argc, argv, "bcvthnwM:T:", options, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "bcvthnwWM:T:", options, NULL)) != -1) {
 		switch (c) {
 			case 'b':
-				binary = 1;
+				fprintf(stderr, "-b/--binary option is not implemented\n");
 				break;
 			case 'c':
 				counters = 1;
@@ -229,7 +234,10 @@ iptables_restore_main(int argc, char *argv[])
 				noflush = 1;
 				break;
 			case 'w':
-				wait = 1;
+				wait = parse_wait_time(argc, argv);
+				break;
+			case 'W':
+				parse_wait_interval(argc, argv, &wait_interval);
 				break;
 			case 'M':
 				xtables_modprobe_program = optarg;
@@ -254,12 +262,6 @@ iptables_restore_main(int argc, char *argv[])
 	}
 	else in = stdin;
 
-	if (!xtables_lock(wait)) {
-		fprintf(stderr, "Another app is currently holding the xtables lock. "
-			"Perhaps you want to use the -w option?\n");
-		exit(RESOURCE_PROBLEM);
-	}
-
 	/* Grab standard input. */
 	while (fgets(buffer, sizeof(buffer), in)) {
 		int ret = 0;
@@ -268,8 +270,10 @@ iptables_restore_main(int argc, char *argv[])
 		if (buffer[0] == '\n')
 			continue;
 		else if (buffer[0] == '#') {
-			if (verbose)
+			if (verbose) {
 				fputs(buffer, stdout);
+				fflush(stdout);
+			}
 			continue;
 		} else if ((strcmp(buffer, "COMMIT\n") == 0) && (in_table)) {
 			if (!testing) {
@@ -281,8 +285,18 @@ iptables_restore_main(int argc, char *argv[])
 				DEBUGP("Not calling commit, testing\n");
 				ret = 1;
 			}
+
+			/* Done with the current table, release the lock. */
+			if (lock >= 0) {
+				xtables_unlock(lock);
+				lock = XT_LOCK_NOT_ACQUIRED;
+			}
+
 			in_table = 0;
 		} else if ((buffer[0] == '*') && (!in_table)) {
+			/* Acquire a lock before we create a new table handle */
+			lock = xtables_lock_or_exit(wait, &wait_interval);
+
 			/* New table */
 			char *table;
 

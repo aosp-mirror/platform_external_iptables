@@ -31,12 +31,12 @@ static const struct xt_option_entry devgroup_opts[] = {
 	XTOPT_TABLEEND,
 };
 
-/* array of devgroups from /etc/iproute2/group_map */
+/* array of devgroups from /etc/iproute2/group */
 static struct xtables_lmap *devgroups;
 
 static void devgroup_init(struct xt_entry_match *match)
 {
-	const char file[] = "/etc/iproute2/group_map";
+	const char file[] = "/etc/iproute2/group";
 	devgroups = xtables_lmap_init(file);
 	if (devgroups == NULL && errno != ENOENT)
 		fprintf(stderr, "Warning: %s: %s\n", file, strerror(errno));
@@ -124,7 +124,7 @@ static void devgroup_show(const char *pfx, const struct xt_devgroup_info *info,
 		if (info->flags & XT_DEVGROUP_INVERT_DST)
 			printf(" !");
 		printf(" %sdst-group ", pfx);
-		print_devgroup(info->src_group, info->src_mask, numeric);
+		print_devgroup(info->dst_group, info->dst_mask, numeric);
 	}
 }
 
@@ -151,6 +151,61 @@ static void devgroup_check(struct xt_fcheck_call *cb)
 			      "'--src-group' or '--dst-group'");
 }
 
+static void
+print_devgroup_xlate(unsigned int id, uint32_t op,  unsigned int mask,
+		     struct xt_xlate *xl, int numeric)
+{
+	const char *name = NULL;
+
+	if (mask != 0xffffffff)
+		xt_xlate_add(xl, "and 0x%x %s 0x%x", mask,
+			   op == XT_OP_EQ ? "==" : "!=", id);
+	else {
+		if (numeric == 0)
+			name = xtables_lmap_id2name(devgroups, id);
+
+		xt_xlate_add(xl, "%s", op == XT_OP_EQ ? "" : "!= ");
+		if (name)
+			xt_xlate_add(xl, "%s", name);
+		else
+			xt_xlate_add(xl, "0x%x", id);
+	}
+}
+
+static void devgroup_show_xlate(const struct xt_devgroup_info *info,
+				struct xt_xlate *xl, int numeric)
+{
+	enum xt_op op = XT_OP_EQ;
+	char *space = "";
+
+	if (info->flags & XT_DEVGROUP_MATCH_SRC) {
+		if (info->flags & XT_DEVGROUP_INVERT_SRC)
+			op = XT_OP_NEQ;
+		xt_xlate_add(xl, "iifgroup ");
+		print_devgroup_xlate(info->src_group, op,
+				     info->src_mask, xl, numeric);
+		space = " ";
+	}
+
+	if (info->flags & XT_DEVGROUP_MATCH_DST) {
+		if (info->flags & XT_DEVGROUP_INVERT_DST)
+			op = XT_OP_NEQ;
+		xt_xlate_add(xl, "%soifgroup ", space);
+		print_devgroup_xlate(info->dst_group, op,
+				     info->dst_mask, xl, numeric);
+	}
+}
+
+static int devgroup_xlate(struct xt_xlate *xl,
+			  const struct xt_xlate_mt_params *params)
+{
+	const struct xt_devgroup_info *info = (const void *)params->match->data;
+
+	devgroup_show_xlate(info, xl, 0);
+
+	return 1;
+}
+
 static struct xtables_match devgroup_mt_reg = {
 	.name		= "devgroup",
 	.version	= XTABLES_VERSION,
@@ -164,6 +219,7 @@ static struct xtables_match devgroup_mt_reg = {
 	.x6_parse	= devgroup_parse,
 	.x6_fcheck	= devgroup_check,
 	.x6_options	= devgroup_opts,
+	.xlate		= devgroup_xlate,
 };
 
 void _init(void)

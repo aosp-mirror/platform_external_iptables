@@ -205,9 +205,24 @@ enum xtables_ext_flags {
 	XTABLES_EXT_ALIAS = 1 << 0,
 };
 
+struct xt_xlate;
+
+struct xt_xlate_mt_params {
+	const void			*ip;
+	const struct xt_entry_match	*match;
+	int				numeric;
+	bool				escape_quotes;
+};
+
+struct xt_xlate_tg_params {
+	const void			*ip;
+	const struct xt_entry_target	*target;
+	int				numeric;
+	bool				escape_quotes;
+};
+
 /* Include file for additions: new matches and targets. */
-struct xtables_match
-{
+struct xtables_match {
 	/*
 	 * ABI/API version this module requires. Must be first member,
 	 * as the rest of this struct may be subject to ABI changes.
@@ -220,17 +235,17 @@ struct xtables_match
 	const char *real_name;
 
 	/* Revision of match (0 by default). */
-	u_int8_t revision;
+	uint8_t revision;
 
 	/* Extension flags */
-	u_int8_t ext_flags;
+	uint8_t ext_flags;
 
-	u_int16_t family;
+	uint16_t family;
 
 	/* Size of match data. */
 	size_t size;
 
-	/* Size of match data relevent for userspace comparison purposes */
+	/* Size of match data relevant for userspace comparison purposes */
 	size_t userspacesize;
 
 	/* Function which prints out usage message. */
@@ -269,6 +284,10 @@ struct xtables_match
 	void (*x6_fcheck)(struct xt_fcheck_call *);
 	const struct xt_option_entry *x6_options;
 
+	/* Translate iptables to nft */
+	int (*xlate)(struct xt_xlate *xl,
+		     const struct xt_xlate_mt_params *params);
+
 	/* Size of per-extension instance extra "global" scratch space */
 	size_t udata_size;
 
@@ -280,8 +299,7 @@ struct xtables_match
 	unsigned int loaded; /* simulate loading so options are merged properly */
 };
 
-struct xtables_target
-{
+struct xtables_target {
 	/*
 	 * ABI/API version this module requires. Must be first member,
 	 * as the rest of this struct may be subject to ABI changes.
@@ -297,18 +315,18 @@ struct xtables_target
 	const char *real_name;
 
 	/* Revision of target (0 by default). */
-	u_int8_t revision;
+	uint8_t revision;
 
 	/* Extension flags */
-	u_int8_t ext_flags;
+	uint8_t ext_flags;
 
-	u_int16_t family;
+	uint16_t family;
 
 
 	/* Size of target data. */
 	size_t size;
 
-	/* Size of target data relevent for userspace comparison purposes */
+	/* Size of target data relevant for userspace comparison purposes */
 	size_t userspacesize;
 
 	/* Function which prints out usage message. */
@@ -346,6 +364,10 @@ struct xtables_target
 	void (*x6_fcheck)(struct xt_fcheck_call *);
 	const struct xt_option_entry *x6_options;
 
+	/* Translate iptables to nft */
+	int (*xlate)(struct xt_xlate *xl,
+		     const struct xt_xlate_tg_params *params);
+
 	size_t udata_size;
 
 	/* Ignore these men behind the curtain: */
@@ -373,7 +395,7 @@ struct xtables_rule_match {
  */
 struct xtables_pprot {
 	const char *name;
-	u_int8_t num;
+	uint8_t num;
 };
 
 enum xtables_tryload {
@@ -401,9 +423,21 @@ struct xtables_globals
 	struct option *orig_opts;
 	struct option *opts;
 	void (*exit_err)(enum xtables_exittype status, const char *msg, ...) __attribute__((noreturn, format(printf,2,3)));
+	int (*compat_rev)(const char *name, uint8_t rev, int opt);
 };
 
 #define XT_GETOPT_TABLEEND {.name = NULL, .has_arg = false}
+
+/*
+ * enum op-
+ *
+ * For writing clean nftables translations code
+ */
+enum xt_op {
+	XT_OP_EQ,
+	XT_OP_NEQ,
+	XT_OP_MAX,
+};
 
 #ifdef __cplusplus
 extern "C" {
@@ -432,6 +466,8 @@ extern struct xtables_match *xtables_find_match(const char *name,
 	enum xtables_tryload, struct xtables_rule_match **match);
 extern struct xtables_target *xtables_find_target(const char *name,
 	enum xtables_tryload);
+extern int xtables_compatible_revision(const char *name, uint8_t revision,
+				       int opt);
 
 extern void xtables_rule_matches_free(struct xtables_rule_match **matches);
 
@@ -446,12 +482,12 @@ extern bool xtables_strtoul(const char *, char **, uintmax_t *,
 extern bool xtables_strtoui(const char *, char **, unsigned int *,
 	unsigned int, unsigned int);
 extern int xtables_service_to_port(const char *name, const char *proto);
-extern u_int16_t xtables_parse_port(const char *port, const char *proto);
+extern uint16_t xtables_parse_port(const char *port, const char *proto);
 extern void
 xtables_parse_interface(const char *arg, char *vianame, unsigned char *mask);
 
 /* this is a special 64bit data type that is 8-byte aligned */
-#define aligned_u64 u_int64_t __attribute__((aligned(8)))
+#define aligned_u64 uint64_t __attribute__((aligned(8)))
 
 extern struct xtables_globals *xt_params;
 #define xtables_error (xt_params->exit_err)
@@ -514,7 +550,7 @@ extern void xtables_print_num(uint64_t number, unsigned int format);
 #endif
 
 extern const struct xtables_pprot xtables_chain_protos[];
-extern u_int16_t xtables_parse_protocol(const char *s);
+extern uint16_t xtables_parse_protocol(const char *s);
 
 /* kernel revision handling */
 extern int kernel_version;
@@ -544,6 +580,14 @@ extern struct xtables_lmap *xtables_lmap_init(const char *);
 extern void xtables_lmap_free(struct xtables_lmap *);
 extern int xtables_lmap_name2id(const struct xtables_lmap *, const char *);
 extern const char *xtables_lmap_id2name(const struct xtables_lmap *, int);
+
+/* xlate infrastructure */
+struct xt_xlate *xt_xlate_alloc(int size);
+void xt_xlate_free(struct xt_xlate *xl);
+void xt_xlate_add(struct xt_xlate *xl, const char *fmt, ...);
+void xt_xlate_add_comment(struct xt_xlate *xl, const char *comment);
+const char *xt_xlate_get_comment(struct xt_xlate *xl);
+const char *xt_xlate_get(struct xt_xlate *xl);
 
 #ifdef XTABLES_INTERNAL
 

@@ -17,6 +17,11 @@ struct reject_names {
 	const char *desc;
 };
 
+struct reject_names_xlate {
+	const char *name;
+	enum ip6t_reject_with with;
+};
+
 enum {
 	O_REJECT_WITH = 0,
 };
@@ -35,7 +40,11 @@ static const struct reject_names reject_table[] = {
 	{"icmp6-port-unreachable", "port-unreach",
 		IP6T_ICMP6_PORT_UNREACH, "ICMPv6 port unreachable"},
 	{"tcp-reset", "tcp-reset",
-		IP6T_TCP_RESET, "TCP RST packet"}
+		IP6T_TCP_RESET, "TCP RST packet"},
+	{"icmp6-policy-fail", "policy-fail",
+		IP6T_ICMP6_POLICY_FAIL, "ICMPv6 policy fail"},
+	{"icmp6-reject-route", "reject-route",
+		IP6T_ICMP6_REJECT_ROUTE, "ICMPv6 reject route"}
 };
 
 static void
@@ -120,6 +129,38 @@ static void REJECT_save(const void *ip, const struct xt_entry_target *target)
 	printf(" --reject-with %s", reject_table[i].name);
 }
 
+static const struct reject_names_xlate reject_table_xlate[] = {
+	{"no-route",		IP6T_ICMP6_NO_ROUTE},
+	{"admin-prohibited",	IP6T_ICMP6_ADM_PROHIBITED},
+	{"addr-unreachable",	IP6T_ICMP6_ADDR_UNREACH},
+	{"port-unreachable",	IP6T_ICMP6_PORT_UNREACH},
+	{"tcp reset",		IP6T_TCP_RESET},
+	{"policy-fail",		IP6T_ICMP6_POLICY_FAIL},
+	{"reject-route",	IP6T_ICMP6_REJECT_ROUTE}
+};
+
+static int REJECT_xlate(struct xt_xlate *xl,
+			const struct xt_xlate_tg_params *params)
+{
+	const struct ip6t_reject_info *reject =
+		(const struct ip6t_reject_info *)params->target->data;
+	unsigned int i;
+
+	for (i = 0; i < ARRAY_SIZE(reject_table_xlate); ++i)
+		if (reject_table_xlate[i].with == reject->with)
+			break;
+
+	if (reject->with == IP6T_ICMP6_PORT_UNREACH)
+		xt_xlate_add(xl, "reject");
+	else if (reject->with == IP6T_TCP_RESET)
+		xt_xlate_add(xl, "reject with %s", reject_table_xlate[i].name);
+	else
+		xt_xlate_add(xl, "reject with icmpv6 type %s",
+			   reject_table_xlate[i].name);
+
+	return 1;
+}
+
 static struct xtables_target reject_tg6_reg = {
 	.name = "REJECT",
 	.version	= XTABLES_VERSION,
@@ -132,6 +173,7 @@ static struct xtables_target reject_tg6_reg = {
 	.save		= REJECT_save,
 	.x6_parse	= REJECT_parse,
 	.x6_options	= REJECT_opts,
+	.xlate		= REJECT_xlate,
 };
 
 void _init(void)
