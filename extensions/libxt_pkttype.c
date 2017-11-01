@@ -21,6 +21,11 @@ struct pkttypes {
 	const char *help;
 };
 
+struct pkttypes_xlate {
+	const char *name;
+	unsigned char pkttype;
+};
+
 static const struct pkttypes supported_types[] = {
 	{"unicast", PACKET_HOST, 1, "to us"},
 	{"broadcast", PACKET_BROADCAST, 1, "to all"},
@@ -115,6 +120,37 @@ static void pkttype_save(const void *ip, const struct xt_entry_match *match)
 	print_pkttype(info);
 }
 
+static const struct pkttypes_xlate supported_types_xlate[] = {
+	{"unicast",	PACKET_HOST},
+	{"broadcast",	PACKET_BROADCAST},
+	{"multicast",	PACKET_MULTICAST},
+};
+
+static void print_pkttype_xlate(const struct xt_pkttype_info *info,
+				struct xt_xlate *xl)
+{
+	unsigned int i;
+
+	for (i = 0; i < ARRAY_SIZE(supported_types_xlate); ++i) {
+		if (supported_types_xlate[i].pkttype == info->pkttype) {
+			xt_xlate_add(xl, "%s", supported_types_xlate[i].name);
+			return;
+		}
+	}
+	xt_xlate_add(xl, "%d", info->pkttype);
+}
+
+static int pkttype_xlate(struct xt_xlate *xl,
+			 const struct xt_xlate_mt_params *params)
+{
+	const struct xt_pkttype_info *info = (const void *)params->match->data;
+
+	xt_xlate_add(xl, "pkttype%s ", info->invert ? " !=" : "");
+	print_pkttype_xlate(info, xl);
+
+	return 1;
+}
+
 static struct xtables_match pkttype_match = {
 	.family		= NFPROTO_UNSPEC,
 	.name		= "pkttype",
@@ -126,6 +162,7 @@ static struct xtables_match pkttype_match = {
 	.save		= pkttype_save,
 	.x6_parse	= pkttype_parse,
 	.x6_options	= pkttype_opts,
+	.xlate		= pkttype_xlate,
 };
 
 void _init(void)

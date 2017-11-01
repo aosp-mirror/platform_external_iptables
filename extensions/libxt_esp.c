@@ -21,6 +21,13 @@ static const struct xt_option_entry esp_opts[] = {
 	XTOPT_TABLEEND,
 };
 
+static void esp_init(struct xt_entry_match *m)
+{
+	struct xt_esp *espinfo = (void *)m->data;
+
+	espinfo->spis[1] = ~0U;
+}
+
 static void esp_parse(struct xt_option_call *cb)
 {
 	struct xt_esp *espinfo = cb->data;
@@ -79,17 +86,37 @@ static void esp_save(const void *ip, const struct xt_entry_match *match)
 
 }
 
+static int esp_xlate(struct xt_xlate *xl,
+		     const struct xt_xlate_mt_params *params)
+{
+	const struct xt_esp *espinfo = (struct xt_esp *)params->match->data;
+
+	if (!(espinfo->spis[0] == 0 && espinfo->spis[1] == 0xFFFFFFFF)) {
+		xt_xlate_add(xl, "esp spi%s",
+			   (espinfo->invflags & XT_ESP_INV_SPI) ? " !=" : "");
+		if (espinfo->spis[0] != espinfo->spis[1])
+			xt_xlate_add(xl, " %u-%u", espinfo->spis[0],
+				   espinfo->spis[1]);
+		else
+			xt_xlate_add(xl, " %u", espinfo->spis[0]);
+	}
+
+	return 1;
+}
+
 static struct xtables_match esp_match = {
 	.family		= NFPROTO_UNSPEC,
-	.name 		= "esp",
-	.version 	= XTABLES_VERSION,
+	.name		= "esp",
+	.version	= XTABLES_VERSION,
 	.size		= XT_ALIGN(sizeof(struct xt_esp)),
 	.userspacesize	= XT_ALIGN(sizeof(struct xt_esp)),
 	.help		= esp_help,
+	.init		= esp_init,
 	.print		= esp_print,
 	.save		= esp_save,
 	.x6_parse	= esp_parse,
 	.x6_options	= esp_opts,
+	.xlate		= esp_xlate,
 };
 
 void

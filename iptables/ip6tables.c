@@ -76,6 +76,8 @@ static const char cmdflags[] = { 'I', 'D', 'D', 'R', 'A', 'L', 'F', 'Z',
 static const char optflags[]
 = { 'n', 's', 'd', 'p', 'j', 'v', 'x', 'i', 'o', '0', 'c'};
 
+static const char unsupported_rev[] = " [unsupported revision]";
+
 static struct option original_opts[] = {
 	{.name = "append",        .has_arg = 1, .val = 'A'},
 	{.name = "delete",        .has_arg = 1, .val = 'D'},
@@ -102,7 +104,8 @@ static struct option original_opts[] = {
 	{.name = "numeric",       .has_arg = 0, .val = 'n'},
 	{.name = "out-interface", .has_arg = 1, .val = 'o'},
 	{.name = "verbose",       .has_arg = 0, .val = 'v'},
-	{.name = "wait",          .has_arg = 0, .val = 'w'},
+	{.name = "wait",          .has_arg = 2, .val = 'w'},
+	{.name = "wait-interval", .has_arg = 2, .val = 'W'},
 	{.name = "exact",         .has_arg = 0, .val = 'x'},
 	{.name = "version",       .has_arg = 0, .val = 'V'},
 	{.name = "help",          .has_arg = 2, .val = 'h'},
@@ -121,6 +124,7 @@ struct xtables_globals ip6tables_globals = {
 	.program_version = IPTABLES_VERSION,
 	.orig_opts = original_opts,
 	.exit_err = ip6tables_exit_error,
+	.compat_rev = xtables_compatible_revision,
 };
 
 /* Table of legal combinations of commands and options.  If any of the
@@ -144,12 +148,12 @@ static const char commands_v_options[NUMBER_OF_CMD][NUMBER_OF_OPT] =
 /*LIST*/      {' ','x','x','x','x',' ',' ','x','x',' ','x'},
 /*FLUSH*/     {'x','x','x','x','x',' ','x','x','x','x','x'},
 /*ZERO*/      {'x','x','x','x','x',' ','x','x','x','x','x'},
-/*ZERO_NUM*/  {'x','x','x','x','x',' ','x','x','x','x','x'},
 /*NEW_CHAIN*/ {'x','x','x','x','x',' ','x','x','x','x','x'},
 /*DEL_CHAIN*/ {'x','x','x','x','x',' ','x','x','x','x','x'},
 /*SET_POLICY*/{'x','x','x','x','x',' ','x','x','x','x',' '},
 /*RENAME*/    {'x','x','x','x','x',' ','x','x','x','x','x'},
 /*LIST_RULES*/{'x','x','x','x','x',' ','x','x','x','x','x'},
+/*ZERO_NUM*/  {'x','x','x','x','x',' ','x','x','x','x','x'},
 /*CHECK*/     {'x',' ',' ',' ',' ',' ','x',' ',' ','x','x'},
 };
 
@@ -258,7 +262,10 @@ exit_printhelp(const struct xtables_rule_match *matches)
 "				network interface name ([+] for wildcard)\n"
 "  --table	-t table	table to manipulate (default: `filter')\n"
 "  --verbose	-v		verbose mode\n"
-"  --wait	-w		wait for the xtables lock\n"
+"  --wait	-w [seconds]	maximum wait to acquire xtables lock before give up\n"
+"  --wait-interval -W [usecs]	wait time to try to acquire xtables lock\n"
+"				interval to wait for xtables lock\n"
+"				default is 1 second\n"
 "  --line-numbers		print line numbers when listing\n"
 "  --exact	-x		expand numbers (display exact values)\n"
 /*"[!] --fragment	-f		match second or further fragments only\n"*/
@@ -387,6 +394,32 @@ parse_rulenumber(const char *rule)
 	return rulenum;
 }
 
+static void
+parse_chain(const char *chainname)
+{
+	const char *ptr;
+
+	if (strlen(chainname) >= XT_EXTENSION_MAXNAMELEN)
+		xtables_error(PARAMETER_PROBLEM,
+			   "chain name `%s' too long (must be under %u chars)",
+			   chainname, XT_EXTENSION_MAXNAMELEN);
+
+	if (*chainname == '-' || *chainname == '!')
+		xtables_error(PARAMETER_PROBLEM,
+			   "chain name not allowed to start "
+			   "with `%c'\n", *chainname);
+
+	if (xtables_find_target(chainname, XTF_TRY_LOAD))
+		xtables_error(PARAMETER_PROBLEM,
+			   "chain name may not clash "
+			   "with target name\n");
+
+	for (ptr = chainname; *ptr; ptr++)
+		if (isspace(*ptr))
+			xtables_error(PARAMETER_PROBLEM,
+				   "Invalid chain name `%s'", chainname);
+}
+
 static const char *
 parse_target(const char *targetname)
 {
@@ -489,8 +522,10 @@ print_match(const struct xt_entry_match *m,
 		xtables_find_match(m->u.user.name, XTF_TRY_LOAD, NULL);
 
 	if (match) {
-		if (match->print)
+		if (match->print && m->u.user.revision == match->revision)
 			match->print(ip, m, numeric);
+		else if (match->print)
+			printf("%s%s ", match->name, unsupported_rev);
 		else
 			printf("%s ", match->name);
 	} else {
@@ -616,9 +651,11 @@ print_firewall(const struct ip6t_entry *fw,
 	IP6T_MATCH_ITERATE(fw, print_match, &fw->ipv6, format & FMT_NUMERIC);
 
 	if (target) {
-		if (target->print)
+		if (target->print && t->u.user.revision == target->revision)
 			/* Print the target information. */
 			target->print(&fw->ipv6, t, format & FMT_NUMERIC);
+		else if (target->print)
+			printf(" %s%s", target->name, unsupported_rev);
 	} else if (t->u.target_size != sizeof(*t))
 		printf("[%u bytes of unknown target data] ",
 		       (unsigned int)(t->u.target_size - sizeof(*t)));
@@ -1006,8 +1043,10 @@ static int print_match_save(const struct xt_entry_match *e,
 			match->alias ? match->alias(e) : e->u.user.name);
 
 		/* some matches don't provide a save function */
-		if (match->save)
+		if (match->save && e->u.user.revision == match->revision)
 			match->save(ip, e);
+		else if (match->save)
+			printf(unsupported_rev);
 	} else {
 		if (e->u.match_size) {
 			fprintf(stderr,
@@ -1019,7 +1058,7 @@ static int print_match_save(const struct xt_entry_match *e,
 	return 0;
 }
 
-/* print a given ip including mask if neccessary */
+/* Print a given ip including mask if necessary. */
 static void print_ip(const char *prefix, const struct in6_addr *ip,
 		     const struct in6_addr *mask, int invert)
 {
@@ -1040,8 +1079,9 @@ static void print_ip(const char *prefix, const struct in6_addr *ip,
 		printf("/%d", l);
 }
 
-/* We want this to be readable, so only print out neccessary fields.
- * Because that's the kind of world I want to live in.  */
+/* We want this to be readable, so only print out necessary fields.
+ * Because that's the kind of world I want to live in.
+ */
 void print_rule6(const struct ip6t_entry *e,
 		       struct xtc_handle *h, const char *chain, int counters)
 {
@@ -1106,8 +1146,10 @@ void print_rule6(const struct ip6t_entry *e,
 		}
 
 		printf(" -j %s", target->alias ? target->alias(t) : target_name);
-		if (target->save)
+		if (target->save && t->u.user.revision == target->revision)
 			target->save(&e->ipv6, t);
+		else if (target->save)
+			printf(unsupported_rev);
 		else {
 			/* If the target size is greater than xt_entry_target
 			 * there is something to be saved, we just don't know
@@ -1296,7 +1338,11 @@ int do_command6(int argc, char *argv[], char **table,
 	struct in6_addr *smasks = NULL, *dmasks = NULL;
 
 	int verbose = 0;
-	bool wait = false;
+	int wait = 0;
+	struct timeval wait_interval = {
+		.tv_sec	= 1,
+	};
+	bool wait_interval_set = false;
 	const char *chain = NULL;
 	const char *shostnetworkmask = NULL, *dhostnetworkmask = NULL;
 	const char *policy = NULL, *newname = NULL;
@@ -1332,7 +1378,7 @@ int do_command6(int argc, char *argv[], char **table,
 
 	opts = xt_params->orig_opts;
 	while ((cs.c = getopt_long(argc, argv,
-	   "-:A:C:D:R:I:L::S::M:F::Z::N:X::E:P:Vh::o:p:s:d:j:i:bvwnt:m:xc:g:46",
+	   "-:A:C:D:R:I:L::S::M:F::Z::N:X::E:P:Vh::o:p:s:d:j:i:bvw::W::nt:m:xc:g:46",
 					   opts, NULL)) != -1) {
 		switch (cs.c) {
 			/*
@@ -1354,8 +1400,7 @@ int do_command6(int argc, char *argv[], char **table,
 			add_command(&command, CMD_DELETE, CMD_NONE,
 				    cs.invert);
 			chain = optarg;
-			if (optind < argc && argv[optind][0] != '-'
-			    && argv[optind][0] != '!') {
+			if (xs_has_arg(argc, argv)) {
 				rulenum = parse_rulenumber(argv[optind++]);
 				command = CMD_DELETE_NUM;
 			}
@@ -1365,8 +1410,7 @@ int do_command6(int argc, char *argv[], char **table,
 			add_command(&command, CMD_REPLACE, CMD_NONE,
 				    cs.invert);
 			chain = optarg;
-			if (optind < argc && argv[optind][0] != '-'
-			    && argv[optind][0] != '!')
+			if (xs_has_arg(argc, argv))
 				rulenum = parse_rulenumber(argv[optind++]);
 			else
 				xtables_error(PARAMETER_PROBLEM,
@@ -1378,8 +1422,7 @@ int do_command6(int argc, char *argv[], char **table,
 			add_command(&command, CMD_INSERT, CMD_NONE,
 				    cs.invert);
 			chain = optarg;
-			if (optind < argc && argv[optind][0] != '-'
-			    && argv[optind][0] != '!')
+			if (xs_has_arg(argc, argv))
 				rulenum = parse_rulenumber(argv[optind++]);
 			else rulenum = 1;
 			break;
@@ -1388,11 +1431,9 @@ int do_command6(int argc, char *argv[], char **table,
 			add_command(&command, CMD_LIST,
 				    CMD_ZERO | CMD_ZERO_NUM, cs.invert);
 			if (optarg) chain = optarg;
-			else if (optind < argc && argv[optind][0] != '-'
-				 && argv[optind][0] != '!')
+			else if (xs_has_arg(argc, argv))
 				chain = argv[optind++];
-			if (optind < argc && argv[optind][0] != '-'
-			    && argv[optind][0] != '!')
+			if (xs_has_arg(argc, argv))
 				rulenum = parse_rulenumber(argv[optind++]);
 			break;
 
@@ -1400,11 +1441,9 @@ int do_command6(int argc, char *argv[], char **table,
 			add_command(&command, CMD_LIST_RULES,
 				    CMD_ZERO | CMD_ZERO_NUM, cs.invert);
 			if (optarg) chain = optarg;
-			else if (optind < argc && argv[optind][0] != '-'
-				 && argv[optind][0] != '!')
+			else if (xs_has_arg(argc, argv))
 				chain = argv[optind++];
-			if (optind < argc && argv[optind][0] != '-'
-			    && argv[optind][0] != '!')
+			if (xs_has_arg(argc, argv))
 				rulenum = parse_rulenumber(argv[optind++]);
 			break;
 
@@ -1412,8 +1451,7 @@ int do_command6(int argc, char *argv[], char **table,
 			add_command(&command, CMD_FLUSH, CMD_NONE,
 				    cs.invert);
 			if (optarg) chain = optarg;
-			else if (optind < argc && argv[optind][0] != '-'
-				 && argv[optind][0] != '!')
+			else if (xs_has_arg(argc, argv))
 				chain = argv[optind++];
 			break;
 
@@ -1421,25 +1459,16 @@ int do_command6(int argc, char *argv[], char **table,
 			add_command(&command, CMD_ZERO, CMD_LIST|CMD_LIST_RULES,
 				    cs.invert);
 			if (optarg) chain = optarg;
-			else if (optind < argc && argv[optind][0] != '-'
-				&& argv[optind][0] != '!')
+			else if (xs_has_arg(argc, argv))
 				chain = argv[optind++];
-			if (optind < argc && argv[optind][0] != '-'
-				&& argv[optind][0] != '!') {
+			if (xs_has_arg(argc, argv)) {
 				rulenum = parse_rulenumber(argv[optind++]);
 				command = CMD_ZERO_NUM;
 			}
 			break;
 
 		case 'N':
-			if (optarg && (*optarg == '-' || *optarg == '!'))
-				xtables_error(PARAMETER_PROBLEM,
-					   "chain name not allowed to start "
-					   "with `%c'\n", *optarg);
-			if (xtables_find_target(optarg, XTF_TRY_LOAD))
-				xtables_error(PARAMETER_PROBLEM,
-					   "chain name may not clash "
-					   "with target name\n");
+			parse_chain(optarg);
 			add_command(&command, CMD_NEW_CHAIN, CMD_NONE,
 				    cs.invert);
 			chain = optarg;
@@ -1449,8 +1478,7 @@ int do_command6(int argc, char *argv[], char **table,
 			add_command(&command, CMD_DELETE_CHAIN, CMD_NONE,
 				    cs.invert);
 			if (optarg) chain = optarg;
-			else if (optind < argc && argv[optind][0] != '-'
-				 && argv[optind][0] != '!')
+			else if (xs_has_arg(argc, argv))
 				chain = argv[optind++];
 			break;
 
@@ -1458,8 +1486,7 @@ int do_command6(int argc, char *argv[], char **table,
 			add_command(&command, CMD_RENAME_CHAIN, CMD_NONE,
 				    cs.invert);
 			chain = optarg;
-			if (optind < argc && argv[optind][0] != '-'
-			    && argv[optind][0] != '!')
+			if (xs_has_arg(argc, argv))
 				newname = argv[optind++];
 			else
 				xtables_error(PARAMETER_PROBLEM,
@@ -1472,8 +1499,7 @@ int do_command6(int argc, char *argv[], char **table,
 			add_command(&command, CMD_SET_POLICY, CMD_NONE,
 				    cs.invert);
 			chain = optarg;
-			if (optind < argc && argv[optind][0] != '-'
-			    && argv[optind][0] != '!')
+			if (xs_has_arg(argc, argv))
 				policy = argv[optind++];
 			else
 				xtables_error(PARAMETER_PROBLEM,
@@ -1583,7 +1609,17 @@ int do_command6(int argc, char *argv[], char **table,
 					      "You cannot use `-w' from "
 					      "ip6tables-restore");
 			}
-			wait = true;
+			wait = parse_wait_time(argc, argv);
+			break;
+
+		case 'W':
+			if (restore) {
+				xtables_error(PARAMETER_PROBLEM,
+					      "You cannot use `-W' from "
+					      "ip6tables-restore");
+			}
+			parse_wait_interval(argc, argv, &wait_interval);
+			wait_interval_set = true;
 			break;
 
 		case 'm':
@@ -1632,8 +1668,7 @@ int do_command6(int argc, char *argv[], char **table,
 			bcnt = strchr(pcnt + 1, ',');
 			if (bcnt)
 			    bcnt++;
-			if (!bcnt && optind < argc && argv[optind][0] != '-'
-			    && argv[optind][0] != '!')
+			if (!bcnt && xs_has_arg(argc, argv))
 				bcnt = argv[optind++];
 			if (!bcnt)
 				xtables_error(PARAMETER_PROBLEM,
@@ -1690,6 +1725,17 @@ int do_command6(int argc, char *argv[], char **table,
 		cs.invert = FALSE;
 	}
 
+	if (!wait && wait_interval_set)
+		xtables_error(PARAMETER_PROBLEM,
+			      "--wait-interval only makes sense with --wait\n");
+
+	if (strcmp(*table, "nat") == 0 &&
+	    ((policy != NULL && strcmp(policy, "DROP") == 0) ||
+	    (cs.jumpto != NULL && strcmp(cs.jumpto, "DROP") == 0)))
+		xtables_error(PARAMETER_PROBLEM,
+			"\nThe \"nat\" table is not intended for filtering, "
+		        "the use of DROP is therefore inhibited.\n\n");
+
 	for (matchp = cs.matches; matchp; matchp = matchp->next)
 		xtables_option_mfcall(matchp->match);
 	if (cs.target != NULL)
@@ -1732,18 +1778,9 @@ int do_command6(int argc, char *argv[], char **table,
 
 	generic_opt_check(command, cs.options);
 
-	if (chain != NULL && strlen(chain) >= XT_EXTENSION_MAXNAMELEN)
-		xtables_error(PARAMETER_PROBLEM,
-			   "chain name `%s' too long (must be under %u chars)",
-			   chain, XT_EXTENSION_MAXNAMELEN);
-
 	/* Attempt to acquire the xtables lock */
-	if (!restore && !xtables_lock(wait)) {
-		fprintf(stderr, "Another app is currently holding the xtables lock. "
-			"Perhaps you want to use the -w option?\n");
-		xtables_free_opts(1);
-		exit(RESOURCE_PROBLEM);
-	}
+	if (!restore)
+		xtables_lock_or_exit(wait, &wait_interval);
 
 	/* only allocate handle if we weren't called with a handle */
 	if (!*handle)
@@ -1813,10 +1850,11 @@ int do_command6(int argc, char *argv[], char **table,
 		}
 
 		if (!cs.target) {
-			/* it is no chain, and we can't load a plugin.
+			/* It is no chain, and we can't load a plugin.
 			 * We cannot know if the plugin is corrupt, non
-			 * existant OR if the user just misspelled a
-			 * chain. */
+			 * existent OR if the user just misspelled a
+			 * chain.
+			 */
 #ifdef IP6T_F_GOTO
 			if (cs.fw6.ipv6.flags & IP6T_F_GOTO)
 				xtables_error(PARAMETER_PROBLEM,

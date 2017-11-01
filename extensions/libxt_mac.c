@@ -50,11 +50,12 @@ static void
 mac_print(const void *ip, const struct xt_entry_match *match, int numeric)
 {
 	const struct xt_mac_info *info = (void *)match->data;
+
 	printf(" MAC");
 
 	if (info->invert)
 		printf(" !");
-	
+
 	print_mac(info->srcaddr);
 }
 
@@ -69,9 +70,30 @@ static void mac_save(const void *ip, const struct xt_entry_match *match)
 	print_mac(info->srcaddr);
 }
 
+static void print_mac_xlate(const unsigned char *macaddress,
+			    struct xt_xlate *xl)
+{
+	unsigned int i;
+
+	xt_xlate_add(xl, "%02x", macaddress[0]);
+	for (i = 1; i < ETH_ALEN; ++i)
+		xt_xlate_add(xl, ":%02x", macaddress[i]);
+}
+
+static int mac_xlate(struct xt_xlate *xl,
+		     const struct xt_xlate_mt_params *params)
+{
+	const struct xt_mac_info *info = (void *)params->match->data;
+
+	xt_xlate_add(xl, "ether saddr%s ", info->invert ? " !=" : "");
+	print_mac_xlate(info->srcaddr, xl);
+
+	return 1;
+}
+
 static struct xtables_match mac_match = {
 	.family		= NFPROTO_UNSPEC,
- 	.name		= "mac",
+	.name		= "mac",
 	.version	= XTABLES_VERSION,
 	.size		= XT_ALIGN(sizeof(struct xt_mac_info)),
 	.userspacesize	= XT_ALIGN(sizeof(struct xt_mac_info)),
@@ -80,6 +102,7 @@ static struct xtables_match mac_match = {
 	.print		= mac_print,
 	.save		= mac_save,
 	.x6_options	= mac_opts,
+	.xlate		= mac_xlate,
 };
 
 void _init(void)

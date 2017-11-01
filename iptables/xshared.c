@@ -1,4 +1,6 @@
+#include <config.h>
 #include <getopt.h>
+#include <errno.h>
 #include <libgen.h>
 #include <netdb.h>
 #include <stdbool.h>
@@ -6,14 +8,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/file.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <sys/time.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <xtables.h>
+#include <math.h>
 #include "xshared.h"
-
-#define XT_SOCKET_NAME "xtables"
-#define XT_SOCKET_LEN 8
 
 /*
  * Print out any special helps. A user might like to be able to add a --help
@@ -243,29 +246,122 @@ void xs_init_match(struct xtables_match *match)
 		match->init(match->m);
 }
 
-bool xtables_lock(bool wait)
+static int xtables_lock(int wait, struct timeval *wait_interval)
 {
-	int i = 0, ret, xt_socket;
-	struct sockaddr_un xt_addr;
+	struct timeval time_left, wait_time;
+	int fd, i = 0;
 
-	memset(&xt_addr, 0, sizeof(xt_addr));
-	xt_addr.sun_family = AF_UNIX;
-	strcpy(xt_addr.sun_path+1, XT_SOCKET_NAME);
-	xt_socket = socket(AF_UNIX, SOCK_STREAM, 0);
-	/* If we can't even create a socket, fall back to prior (lockless) behavior */
-	if (xt_socket < 0)
-		return true;
+	time_left.tv_sec = wait;
+	time_left.tv_usec = 0;
+
+	fd = open(XT_LOCK_NAME, O_CREAT, 0600);
+	if (fd < 0) {
+		fprintf(stderr, "Fatal: can't open lock file %s: %s\n",
+			XT_LOCK_NAME, strerror(errno));
+		return XT_LOCK_FAILED;
+	}
+
+	if (wait == -1) {
+		if (flock(fd, LOCK_EX) == 0)
+			return fd;
+
+		fprintf(stderr, "Can't lock %s: %s\n", XT_LOCK_NAME,
+			strerror(errno));
+		return XT_LOCK_BUSY;
+	}
 
 	while (1) {
-		ret = bind(xt_socket, (struct sockaddr*)&xt_addr,
-			   offsetof(struct sockaddr_un, sun_path)+XT_SOCKET_LEN);
-		if (ret == 0)
-			return true;
-		else if (wait == false)
-			return false;
-		if (++i % 2 == 0)
+		if (flock(fd, LOCK_EX | LOCK_NB) == 0)
+			return fd;
+		else if (timercmp(&time_left, wait_interval, <))
+			return XT_LOCK_BUSY;
+
+		if (++i % 10 == 0) {
 			fprintf(stderr, "Another app is currently holding the xtables lock; "
-				"waiting for it to exit...\n");
-		sleep(1);
+				"still %lds %ldus time ahead to have a chance to grab the lock...\n",
+				time_left.tv_sec, time_left.tv_usec);
+		}
+
+		wait_time = *wait_interval;
+		select(0, NULL, NULL, NULL, &wait_time);
+		timersub(&time_left, wait_interval, &time_left);
 	}
+}
+
+void xtables_unlock(int lock)
+{
+	if (lock >= 0)
+		close(lock);
+}
+
+int xtables_lock_or_exit(int wait, struct timeval *wait_interval)
+{
+	int lock = xtables_lock(wait, wait_interval);
+
+	if (lock == XT_LOCK_FAILED) {
+		xtables_free_opts(1);
+		exit(RESOURCE_PROBLEM);
+	}
+
+	if (lock == XT_LOCK_BUSY) {
+		fprintf(stderr, "Another app is currently holding the xtables lock. ");
+		if (wait == 0)
+			fprintf(stderr, "Perhaps you want to use the -w option?\n");
+		else
+			fprintf(stderr, "Stopped waiting after %ds.\n", wait);
+		xtables_free_opts(1);
+		exit(RESOURCE_PROBLEM);
+	}
+
+	return lock;
+}
+
+int parse_wait_time(int argc, char *argv[])
+{
+	int wait = -1;
+
+	if (optarg) {
+		if (sscanf(optarg, "%i", &wait) != 1)
+			xtables_error(PARAMETER_PROBLEM,
+				"wait seconds not numeric");
+	} else if (xs_has_arg(argc, argv))
+		if (sscanf(argv[optind++], "%i", &wait) != 1)
+			xtables_error(PARAMETER_PROBLEM,
+				"wait seconds not numeric");
+
+	return wait;
+}
+
+void parse_wait_interval(int argc, char *argv[], struct timeval *wait_interval)
+{
+	const char *arg;
+	unsigned int usec;
+	int ret;
+
+	if (optarg)
+		arg = optarg;
+	else if (xs_has_arg(argc, argv))
+		arg = argv[optind++];
+	else
+		return;
+
+	ret = sscanf(arg, "%u", &usec);
+	if (ret == 1) {
+		if (usec > 999999)
+			xtables_error(PARAMETER_PROBLEM,
+				      "too long usec wait %u > 999999 usec",
+				      usec);
+
+		wait_interval->tv_sec = 0;
+		wait_interval->tv_usec = usec;
+		return;
+	}
+	xtables_error(PARAMETER_PROBLEM, "wait interval not numeric");
+}
+
+inline bool xs_has_arg(int argc, char *argv[])
+{
+	return optind < argc &&
+	       argv[optind][0] != '-' &&
+	       argv[optind][0] != '!';
 }

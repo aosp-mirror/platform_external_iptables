@@ -17,7 +17,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 #include <stdbool.h>
 #include <stdint.h>
@@ -347,6 +347,50 @@ connmark_tg_save(const void *ip, const struct xt_entry_target *target)
 	}
 }
 
+static int connmark_tg_xlate(struct xt_xlate *xl,
+			     const struct xt_xlate_tg_params *params)
+{
+	const struct xt_connmark_tginfo1 *info =
+		(const void *)params->target->data;
+
+	switch (info->mode) {
+	case XT_CONNMARK_SET:
+		xt_xlate_add(xl, "ct mark set ");
+		if (info->ctmark == 0)
+			xt_xlate_add(xl, "ct mark and 0x%x", ~info->ctmask);
+		else if (info->ctmark == info->ctmask)
+			xt_xlate_add(xl, "ct mark or 0x%x",
+				     info->ctmark);
+		else if (info->ctmask == 0)
+			xt_xlate_add(xl, "ct mark xor 0x%x",
+				     info->ctmark);
+		else if (info->ctmask == 0xFFFFFFFFU)
+			xt_xlate_add(xl, "0x%x ", info->ctmark);
+		else
+			xt_xlate_add(xl, "ct mark xor 0x%x and 0x%x",
+				     info->ctmark, ~info->ctmask);
+		break;
+	case XT_CONNMARK_SAVE:
+		xt_xlate_add(xl, "ct mark set mark");
+		if (!(info->nfmask == UINT32_MAX &&
+		    info->ctmask == UINT32_MAX)) {
+			if (info->nfmask == info->ctmask)
+				xt_xlate_add(xl, " and 0x%x", info->nfmask);
+		}
+		break;
+	case XT_CONNMARK_RESTORE:
+		xt_xlate_add(xl, "meta mark set ct mark");
+		if (!(info->nfmask == UINT32_MAX &&
+		    info->ctmask == UINT32_MAX)) {
+			if (info->nfmask == info->ctmask)
+				xt_xlate_add(xl, " and 0x%x", info->nfmask);
+		}
+		break;
+	}
+
+	return 1;
+}
+
 static struct xtables_target connmark_tg_reg[] = {
 	{
 		.family        = NFPROTO_UNSPEC,
@@ -377,6 +421,7 @@ static struct xtables_target connmark_tg_reg[] = {
 		.x6_parse      = connmark_tg_parse,
 		.x6_fcheck     = connmark_tg_check,
 		.x6_options    = connmark_tg_opts,
+		.xlate	       = connmark_tg_xlate,
 	},
 };
 

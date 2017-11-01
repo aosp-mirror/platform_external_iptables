@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <netinet/in.h>
 #include <net/if.h>
+#include <sys/time.h>
 #include <linux/netfilter_ipv4/ip_tables.h>
 #include <linux/netfilter_ipv6/ip6_tables.h>
 
@@ -58,10 +59,12 @@ struct iptables_command_state {
 	unsigned int options;
 	struct xtables_rule_match *matches;
 	struct xtables_target *target;
+	struct xt_counters counters;
 	char *protocol;
 	int proto_used;
 	const char *jumpto;
 	char **argv;
+	bool restore;
 };
 
 typedef int (*mainfunc_t)(int, char **);
@@ -84,7 +87,31 @@ extern struct xtables_match *load_proto(struct iptables_command_state *);
 extern int subcmd_main(int, char **, const struct subcommand *);
 extern void xs_init_target(struct xtables_target *);
 extern void xs_init_match(struct xtables_match *);
-extern bool xtables_lock(bool wait);
+
+/**
+ * Values for the iptables lock.
+ *
+ * A value >= 0 indicates the lock filedescriptor. Other values are:
+ *
+ * XT_LOCK_FAILED : The lock could not be acquired.
+ *
+ * XT_LOCK_BUSY : The lock was held by another process. xtables_lock only
+ * returns this value when |wait| == false. If |wait| == true, xtables_lock
+ * will not return unless the lock has been acquired.
+ *
+ * XT_LOCK_NOT_ACQUIRED : We have not yet attempted to acquire the lock.
+ */
+enum {
+	XT_LOCK_BUSY = -1,
+	XT_LOCK_FAILED = -2,
+	XT_LOCK_NOT_ACQUIRED  = -3,
+};
+extern void xtables_unlock(int lock);
+extern int xtables_lock_or_exit(int wait, struct timeval *tv);
+
+int parse_wait_time(int argc, char *argv[]);
+void parse_wait_interval(int argc, char *argv[], struct timeval *wait_interval);
+bool xs_has_arg(int argc, char *argv[]);
 
 extern const struct xtables_afinfo *afinfo;
 
