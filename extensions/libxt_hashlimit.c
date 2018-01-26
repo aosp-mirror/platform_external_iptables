@@ -1338,7 +1338,7 @@ static int hashlimit_mt_xlate(struct xt_xlate *xl, const char *name,
 {
 	int ret = 1;
 
-	xt_xlate_add(xl, "flow table %s {", name);
+	xt_xlate_add(xl, "meter %s {", name);
 	ret = hashlimit_mode_xlate(xl, cfg->mode, family,
 				   cfg->srcmask, cfg->dstmask);
 	if (cfg->expire != 1000)
@@ -1367,7 +1367,7 @@ static int hashlimit_xlate(struct xt_xlate *xl,
 	const struct xt_hashlimit_info *info = (const void *)params->match->data;
 	int ret = 1;
 
-	xt_xlate_add(xl, "flow table %s {", info->name);
+	xt_xlate_add(xl, "meter %s {", info->name);
 	ret = hashlimit_mode_xlate(xl, info->cfg.mode, NFPROTO_IPV4, 32, 32);
 	xt_xlate_add(xl, " timeout %us limit rate", info->cfg.expire / 1000);
 	print_packets_rate_xlate(xl, info->cfg.avg, 1);
