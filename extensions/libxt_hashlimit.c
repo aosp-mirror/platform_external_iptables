@@ -1353,7 +1353,7 @@ static int hashlimit_mt_xlate(struct xt_xlate *xl, const char *name,
 	else {
 		print_packets_rate_xlate(xl, cfg->avg, revision);
 		if (cfg->burst != XT_HASHLIMIT_BURST)
-			xt_xlate_add(xl, " burst %lu packets", cfg->burst);
+			xt_xlate_add(xl, "burst %lu packets", cfg->burst);
 
 	}
 	xt_xlate_add(xl, "}");
