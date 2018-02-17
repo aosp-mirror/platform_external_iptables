@@ -349,11 +349,36 @@ static void xlate_table_new(struct nft_handle *h, const char *table)
 	printf("add table %s %s\n", family2str[h->family], table);
 }
 
+static int get_hook_prio(const char *table, const char *chain)
+{
+	int prio = 0;
+
+	if (strcmp("nat", table) == 0) {
+		if (strcmp(chain, "PREROUTING") == 0)
+			prio = NF_IP_PRI_NAT_DST;
+		if (strcmp(chain, "INPUT") == 0)
+			prio = NF_IP_PRI_NAT_SRC;
+		if (strcmp(chain, "OUTPUT") == 0)
+			prio = NF_IP_PRI_NAT_DST;
+		if (strcmp(chain, "POSTROUTING") == 0)
+			prio = NF_IP_PRI_NAT_SRC;
+	} else if (strcmp("mangle", table) == 0) {
+		prio = NF_IP_PRI_MANGLE;
+	} else if (strcmp("raw", table) == 0) {
+		prio = NF_IP_PRI_RAW;
+	} else if (strcmp(chain, "security") == 0) {
+		prio = NF_IP_PRI_SECURITY;
+	}
+
+	return prio;
+}
+
 static int xlate_chain_set(struct nft_handle *h, const char *table,
 			   const char *chain, const char *policy,
 			   const struct xt_counters *counters)
 {
 	const char *type = "filter";
+	int prio;
 
 	if (strcmp(table, "nat") == 0)
 		type = "nat";
@@ -362,16 +387,17 @@ static int xlate_chain_set(struct nft_handle *h, const char *table,
 
 	printf("add chain %s %s %s { type %s ",
 	       family2str[h->family], table, chain, type);
+	prio = get_hook_prio(table, chain);
 	if (strcmp(chain, "PREROUTING") == 0)
-		printf("hook prerouting priority 0; ");
+		printf("hook prerouting priority %d; ", prio);
 	else if (strcmp(chain, "INPUT") == 0)
-		printf("hook input priority 0; ");
+		printf("hook input priority %d; ", prio);
 	else if (strcmp(chain, "FORWARD") == 0)
-		printf("hook forward priority 0; ");
+		printf("hook forward priority %d; ", prio);
 	else if (strcmp(chain, "OUTPUT") == 0)
-		printf("hook output priority 0; ");
+		printf("hook output priority %d; ", prio);
 	else if (strcmp(chain, "POSTROUTING") == 0)
-		printf("hook postrouting priority 0; ");
+		printf("hook postrouting priority %d; ", prio);
 
 	if (strcmp(policy, "ACCEPT") == 0)
 		printf("policy accept; ");
