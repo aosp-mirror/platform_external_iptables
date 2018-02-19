@@ -371,20 +371,18 @@ static int connmark_tg_xlate(struct xt_xlate *xl,
 				     info->ctmark, ~info->ctmask);
 		break;
 	case XT_CONNMARK_SAVE:
-		xt_xlate_add(xl, "ct mark set mark");
-		if (!(info->nfmask == UINT32_MAX &&
-		    info->ctmask == UINT32_MAX)) {
-			if (info->nfmask == info->ctmask)
-				xt_xlate_add(xl, " and 0x%x", info->nfmask);
-		}
+		if (info->nfmask == info->ctmask &&
+		    info->nfmask == UINT32_MAX)
+			xt_xlate_add(xl, "ct mark set mark");
+		else
+			return 0;
 		break;
 	case XT_CONNMARK_RESTORE:
-		xt_xlate_add(xl, "meta mark set ct mark");
-		if (!(info->nfmask == UINT32_MAX &&
-		    info->ctmask == UINT32_MAX)) {
-			if (info->nfmask == info->ctmask)
-				xt_xlate_add(xl, " and 0x%x", info->nfmask);
-		}
+		if (info->nfmask == info->ctmask &&
+		    info->nfmask == UINT32_MAX)
+			xt_xlate_add(xl, "meta mark set ct mark");
+		else
+			return 0;
 		break;
 	}
 
