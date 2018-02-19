@@ -252,14 +252,14 @@ static int mark_tg_xlate(struct xt_xlate *xl,
 
 	xt_xlate_add(xl, "meta mark set ");
 
-	if (info->mark == 0)
+	if (info->mask == 0xffffffffU)
+		xt_xlate_add(xl, "0x%x ", info->mark);
+	else if (info->mark == 0)
 		xt_xlate_add(xl, "mark and 0x%x ", ~info->mask);
 	else if (info->mark == info->mask)
 		xt_xlate_add(xl, "mark or 0x%x ", info->mark);
 	else if (info->mask == 0)
 		xt_xlate_add(xl, "mark xor 0x%x ", info->mark);
-	else if (info->mask == 0xffffffffU)
-		xt_xlate_add(xl, "0x%x ", info->mark);
 	else
 		xt_xlate_add(xl, "mark and 0x%x xor 0x%x ", ~info->mask,
 			     info->mark);

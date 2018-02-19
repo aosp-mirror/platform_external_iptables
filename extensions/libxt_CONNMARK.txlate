@@ -1,3 +1,6 @@
+iptables-translate -t mangle -A PREROUTING -j CONNMARK --set-mark 0
+nft add rule ip mangle PREROUTING counter ct mark set 0x0
+
 iptables-translate -t mangle -A PREROUTING -j CONNMARK --set-mark 0x16
 nft add rule ip mangle PREROUTING counter ct mark set 0x16
 
