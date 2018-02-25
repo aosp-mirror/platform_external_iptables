@@ -58,7 +58,7 @@ sbin_PROGRAMS	+= xtables-compat-multi
 endif
 man_MANS         = iptables.8 iptables-restore.8 iptables-save.8 \
                    iptables-xml.1 ip6tables.8 ip6tables-restore.8 \
-                   ip6tables-save.8 iptables-extensions.8
+                   ip6tables-save.8 iptables-extensions.8 xtables-compat.8
 CLEANFILES       = iptables.8 \
 		   xtables-config-parser.c xtables-config-syntax.c
 
