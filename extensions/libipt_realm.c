@@ -47,23 +47,6 @@ static void realm_parse(struct xt_option_call *cb)
 		ri->invert = 1;
 }
 
-static void
-print_realm(unsigned long id, unsigned long mask, int numeric)
-{
-	const char *name = NULL;
-
-	if (mask != 0xffffffff)
-		printf(" 0x%lx/0x%lx", id, mask);
-	else {
-		if (numeric == 0)
-			name = xtables_lmap_id2name(realms, id);
-		if (name)
-			printf(" %s", name);
-		else
-			printf(" 0x%lx", id);
-	}
-}
-
 static void realm_print(const void *ip, const struct xt_entry_match *match,
 			int numeric)
 {
@@ -73,7 +56,7 @@ static void realm_print(const void *ip, const struct xt_entry_match *match,
 		printf(" !");
 
 	printf(" realm");
-	print_realm(ri->id, ri->mask, numeric);
+	xtables_print_val_mask(ri->id, ri->mask, numeric ? NULL : realms);
 }
 
 static void realm_save(const void *ip, const struct xt_entry_match *match)
@@ -84,7 +67,7 @@ static void realm_save(const void *ip, const struct xt_entry_match *match)
 		printf(" !");
 
 	printf(" --realm");
-	print_realm(ri->id, ri->mask, 0);
+	xtables_print_val_mask(ri->id, ri->mask, realms);
 }
 
 static void

@@ -548,6 +548,15 @@ static inline void xtables_parse_mark_mask(struct xt_option_call *cb,
 	xtables_parse_val_mask(cb, mark, mask, NULL);
 }
 
+extern void xtables_print_val_mask(unsigned int val, unsigned int mask,
+				   const struct xtables_lmap *lmap);
+
+static inline void xtables_print_mark_mask(unsigned int mark,
+					   unsigned int mask)
+{
+	xtables_print_val_mask(mark, mask, NULL);
+}
+
 #if defined(ALL_INCLUSIVE) || defined(NO_SHARED_LIBS)
 #	ifdef _INIT
 #		undef _init

@@ -61,38 +61,23 @@ static void devgroup_parse(struct xt_option_call *cb)
 	}
 }
 
-static void
-print_devgroup(unsigned int id, unsigned int mask, int numeric)
-{
-	const char *name = NULL;
-
-	if (mask != 0xffffffff)
-		printf("0x%x/0x%x", id, mask);
-	else {
-		if (numeric == 0)
-			name = xtables_lmap_id2name(devgroups, id);
-		if (name)
-			printf("%s", name);
-		else
-			printf("0x%x", id);
-	}
-}
-
 static void devgroup_show(const char *pfx, const struct xt_devgroup_info *info,
 			  int numeric)
 {
 	if (info->flags & XT_DEVGROUP_MATCH_SRC) {
 		if (info->flags & XT_DEVGROUP_INVERT_SRC)
 			printf(" !");
-		printf(" %ssrc-group ", pfx);
-		print_devgroup(info->src_group, info->src_mask, numeric);
+		printf(" %ssrc-group", pfx);
+		xtables_print_val_mask(info->src_group, info->src_mask,
+				       numeric ? NULL : devgroups);
 	}
 
 	if (info->flags & XT_DEVGROUP_MATCH_DST) {
 		if (info->flags & XT_DEVGROUP_INVERT_DST)
 			printf(" !");
-		printf(" %sdst-group ", pfx);
-		print_devgroup(info->dst_group, info->dst_mask, numeric);
+		printf(" %sdst-group", pfx);
+		xtables_print_val_mask(info->dst_group, info->dst_mask,
+				       numeric ? NULL : devgroups);
 	}
 }
 

@@ -2012,6 +2012,26 @@ name2val:
 			cb->ext_name, cb->arg, cb->entry->name);
 }
 
+void xtables_print_val_mask(unsigned int val, unsigned int mask,
+			    const struct xtables_lmap *lmap)
+{
+	if (mask != ~0U) {
+		printf(" 0x%x/0x%x", val, mask);
+		return;
+	}
+
+	if (lmap) {
+		const char *name = xtables_lmap_id2name(lmap, val);
+
+		if (name) {
+			printf(" %s", name);
+			return;
+		}
+	}
+
+	printf(" 0x%x", val);
+}
+
 int kernel_version;
 
 void get_kernel_version(void)
