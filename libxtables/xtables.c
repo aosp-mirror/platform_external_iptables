@@ -857,6 +857,14 @@ void xtables_register_match(struct xtables_match *me)
 		        xt_params->program_name, me->name, me->revision);
 		exit(1);
 	}
+
+	if (me->size != XT_ALIGN(me->size)) {
+		fprintf(stderr, "%s: match \"%s\" has invalid size %u.\n",
+		        xt_params->program_name, me->name,
+		        (unsigned int)me->size);
+		exit(1);
+	}
+
 	if (strcmp(me->version, XTABLES_VERSION) != 0) {
 		fprintf(stderr, "%s: match \"%s\" has version \"%s\", "
 		        "but \"%s\" is required.\n",
@@ -985,13 +993,6 @@ static bool xtables_fully_register_pending_match(struct xtables_match *me)
 		*i = old->next;
 	}
 
-	if (me->size != XT_ALIGN(me->size)) {
-		fprintf(stderr, "%s: match `%s' has invalid size %u.\n",
-		        xt_params->program_name, me->name,
-		        (unsigned int)me->size);
-		exit(1);
-	}
-
 	/* Append to list. */
 	for (i = &xtables_matches; *i; i = &(*i)->next);
 	me->next = NULL;
@@ -1023,6 +1024,14 @@ void xtables_register_target(struct xtables_target *me)
 		        xt_params->program_name, me->name, me->revision);
 		exit(1);
 	}
+
+	if (me->size != XT_ALIGN(me->size)) {
+		fprintf(stderr, "%s: target \"%s\" has invalid size %u.\n",
+		        xt_params->program_name, me->name,
+		        (unsigned int)me->size);
+		exit(1);
+	}
+
 	if (strcmp(me->version, XTABLES_VERSION) != 0) {
 		fprintf(stderr, "%s: target \"%s\" has version \"%s\", "
 		        "but \"%s\" is required.\n",
@@ -1092,13 +1101,6 @@ static bool xtables_fully_register_pending_target(struct xtables_target *me)
 		/* Delete old one. */
 		for (i = &xtables_targets; *i!=old; i = &(*i)->next);
 		*i = old->next;
-	}
-
-	if (me->size != XT_ALIGN(me->size)) {
-		fprintf(stderr, "%s: target `%s' has invalid size %u.\n",
-		        xt_params->program_name, me->name,
-		        (unsigned int)me->size);
-		exit(1);
 	}
 
 	/* Prepend to list. */
