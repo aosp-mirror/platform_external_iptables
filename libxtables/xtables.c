@@ -198,8 +198,8 @@ struct xtables_match *xtables_matches;
 struct xtables_target *xtables_targets;
 
 /* Fully register a match/target which was previously partially registered. */
-static void xtables_fully_register_pending_match(struct xtables_match *me);
-static void xtables_fully_register_pending_target(struct xtables_target *me);
+static bool xtables_fully_register_pending_match(struct xtables_match *me);
+static bool xtables_fully_register_pending_target(struct xtables_target *me);
 
 void xtables_init(void)
 {
@@ -638,11 +638,11 @@ xtables_find_match(const char *name, enum xtables_tryload tryload,
 		if (extension_cmp(name, (*dptr)->name, (*dptr)->family)) {
 			ptr = *dptr;
 			*dptr = (*dptr)->next;
-			ptr->next = NULL;
-			xtables_fully_register_pending_match(ptr);
-		} else {
-			dptr = &((*dptr)->next);
+			if (xtables_fully_register_pending_match(ptr))
+				continue;
+			*dptr = ptr;
 		}
+		dptr = &((*dptr)->next);
 	}
 
 	for (ptr = xtables_matches; ptr; ptr = ptr->next) {
@@ -728,11 +728,11 @@ xtables_find_target(const char *name, enum xtables_tryload tryload)
 		if (extension_cmp(name, (*dptr)->name, (*dptr)->family)) {
 			ptr = *dptr;
 			*dptr = (*dptr)->next;
-			ptr->next = NULL;
-			xtables_fully_register_pending_target(ptr);
-		} else {
-			dptr = &((*dptr)->next);
+			if (xtables_fully_register_pending_target(ptr))
+				continue;
+			*dptr = ptr;
 		}
+		dptr = &((*dptr)->next);
 	}
 
 	for (ptr = xtables_targets; ptr; ptr = ptr->next) {
@@ -846,6 +846,12 @@ static void xtables_check_options(const char *name, const struct option *opt)
 
 void xtables_register_match(struct xtables_match *me)
 {
+	if (me->next) {
+		fprintf(stderr, "%s: match \"%s\" already registered\n",
+			xt_params->program_name, me->name);
+		exit(1);
+	}
+
 	if (me->version == NULL) {
 		fprintf(stderr, "%s: match %s<%u> is missing a version\n",
 		        xt_params->program_name, me->name, me->revision);
@@ -947,11 +953,16 @@ static int xtables_target_prefer(const struct xtables_target *a,
 				 b->revision, b->family);
 }
 
-static void xtables_fully_register_pending_match(struct xtables_match *me)
+static bool xtables_fully_register_pending_match(struct xtables_match *me)
 {
 	struct xtables_match **i, *old;
 	const char *rn;
 	int compare;
+
+	/* See if new match can be used. */
+	rn = (me->real_name != NULL) ? me->real_name : me->name;
+	if (!compatible_match_revision(rn, me->revision))
+		return false;
 
 	old = xtables_find_match(me->name, XTF_DURING_LOAD, NULL);
 	if (old) {
@@ -967,12 +978,7 @@ static void xtables_fully_register_pending_match(struct xtables_match *me)
 		rn = (old->real_name != NULL) ? old->real_name : old->name;
 		if (compare > 0 &&
 		    compatible_match_revision(rn, old->revision))
-			return;
-
-		/* See if new match can be used. */
-		rn = (me->real_name != NULL) ? me->real_name : me->name;
-		if (!compatible_match_revision(rn, me->revision))
-			return;
+			return true;
 
 		/* Delete old one. */
 		for (i = &xtables_matches; *i!=old; i = &(*i)->next);
@@ -993,6 +999,8 @@ static void xtables_fully_register_pending_match(struct xtables_match *me)
 
 	me->m = NULL;
 	me->mflags = 0;
+
+	return true;
 }
 
 void xtables_register_matches(struct xtables_match *match, unsigned int n)
@@ -1004,6 +1012,12 @@ void xtables_register_matches(struct xtables_match *match, unsigned int n)
 
 void xtables_register_target(struct xtables_target *me)
 {
+	if (me->next) {
+		fprintf(stderr, "%s: target \"%s\" already registered\n",
+			xt_params->program_name, me->name);
+		exit(1);
+	}
+
 	if (me->version == NULL) {
 		fprintf(stderr, "%s: target %s<%u> is missing a version\n",
 		        xt_params->program_name, me->name, me->revision);
@@ -1044,11 +1058,18 @@ void xtables_register_target(struct xtables_target *me)
 	xtables_pending_targets = me;
 }
 
-static void xtables_fully_register_pending_target(struct xtables_target *me)
+static bool xtables_fully_register_pending_target(struct xtables_target *me)
 {
 	struct xtables_target *old;
 	const char *rn;
 	int compare;
+
+	if (strcmp(me->name, "standard") != 0) {
+		/* See if new target can be used. */
+		rn = (me->real_name != NULL) ? me->real_name : me->name;
+		if (!compatible_target_revision(rn, me->revision))
+			return false;
+	}
 
 	old = xtables_find_target(me->name, XTF_DURING_LOAD);
 	if (old) {
@@ -1066,12 +1087,7 @@ static void xtables_fully_register_pending_target(struct xtables_target *me)
 		rn = (old->real_name != NULL) ? old->real_name : old->name;
 		if (compare > 0 &&
 		    compatible_target_revision(rn, old->revision))
-			return;
-
-		/* See if new target can be used. */
-		rn = (me->real_name != NULL) ? me->real_name : me->name;
-		if (!compatible_target_revision(rn, me->revision))
-			return;
+			return true;
 
 		/* Delete old one. */
 		for (i = &xtables_targets; *i!=old; i = &(*i)->next);
@@ -1090,6 +1106,8 @@ static void xtables_fully_register_pending_target(struct xtables_target *me)
 	xtables_targets = me;
 	me->t = NULL;
 	me->tflags = 0;
+
+	return true;
 }
 
 void xtables_register_targets(struct xtables_target *target, unsigned int n)
