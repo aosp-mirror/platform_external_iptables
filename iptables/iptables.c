@@ -502,19 +502,23 @@ print_match(const struct xt_entry_match *m,
 	    const struct ipt_ip *ip,
 	    int numeric)
 {
-	const struct xtables_match *match =
-		xtables_find_match(m->u.user.name, XTF_TRY_LOAD, NULL);
+	const char *name = m->u.user.name;
+	const int revision = m->u.user.revision;
+	struct xtables_match *match, *mt;
 
+	match = xtables_find_match(name, XTF_TRY_LOAD, NULL);
 	if (match) {
-		if (match->print && m->u.user.revision == match->revision)
-			match->print(ip, m, numeric);
+		mt = xtables_find_match_revision(name, XTF_TRY_LOAD,
+						 match, revision);
+		if (mt && mt->print)
+			mt->print(ip, m, numeric);
 		else if (match->print)
 			printf("%s%s ", match->name, unsupported_rev);
 		else
 			printf("%s ", match->name);
 	} else {
-		if (m->u.user.name[0])
-			printf("UNKNOWN match `%s' ", m->u.user.name);
+		if (name[0])
+			printf("UNKNOWN match `%s' ", name);
 	}
 	/* Don't stop iterating. */
 	return 0;
@@ -528,7 +532,7 @@ print_firewall(const struct ipt_entry *fw,
 	       unsigned int format,
 	       struct xtc_handle *const handle)
 {
-	const struct xtables_target *target = NULL;
+	struct xtables_target *target, *tg;
 	const struct xt_entry_target *t;
 	uint8_t flags;
 	char buf[BUFSIZ];
@@ -635,9 +639,13 @@ print_firewall(const struct ipt_entry *fw,
 	IPT_MATCH_ITERATE(fw, print_match, &fw->ip, format & FMT_NUMERIC);
 
 	if (target) {
-		if (target->print && t->u.user.revision == target->revision)
+		const int revision = t->u.user.revision;
+
+		tg = xtables_find_target_revision(targname, XTF_TRY_LOAD,
+						  target, revision);
+		if (tg && tg->print)
 			/* Print the target information. */
-			target->print(&fw->ip, t, format & FMT_NUMERIC);
+			tg->print(&fw->ip, t, format & FMT_NUMERIC);
 		else if (target->print)
 			printf(" %s%s", target->name, unsupported_rev);
 	} else if (t->u.target_size != sizeof(*t))
@@ -1025,23 +1033,28 @@ print_iface(char letter, const char *iface, const unsigned char *mask,
 static int print_match_save(const struct xt_entry_match *e,
 			const struct ipt_ip *ip)
 {
-	const struct xtables_match *match =
-		xtables_find_match(e->u.user.name, XTF_TRY_LOAD, NULL);
+	const char *name = e->u.user.name;
+	const int revision = e->u.user.revision;
+	struct xtables_match *match, *mt, *mt2;
 
+	match = xtables_find_match(name, XTF_TRY_LOAD, NULL);
 	if (match) {
-		printf(" -m %s",
-			match->alias ? match->alias(e) : e->u.user.name);
+		mt = mt2 = xtables_find_match_revision(name, XTF_TRY_LOAD,
+						       match, revision);
+		if (!mt2)
+			mt2 = match;
+		printf(" -m %s", mt2->alias ? mt2->alias(e) : name);
 
 		/* some matches don't provide a save function */
-		if (match->save && e->u.user.revision == match->revision)
-			match->save(ip, e);
+		if (mt && mt->save)
+			mt->save(ip, e);
 		else if (match->save)
 			printf(unsupported_rev);
 	} else {
 		if (e->u.match_size) {
 			fprintf(stderr,
 				"Can't find library for match `%s'\n",
-				e->u.user.name);
+				name);
 			exit(1);
 		}
 	}
@@ -1125,18 +1138,25 @@ void print_rule4(const struct ipt_entry *e,
 	target_name = iptc_get_target(e, h);
 	t = ipt_get_target((struct ipt_entry *)e);
 	if (t->u.user.name[0]) {
-		const struct xtables_target *target =
-			xtables_find_target(t->u.user.name, XTF_TRY_LOAD);
+		const char *name = t->u.user.name;
+		const int revision = t->u.user.revision;
+		struct xtables_target *target, *tg, *tg2;
 
+		target = xtables_find_target(name, XTF_TRY_LOAD);
 		if (!target) {
 			fprintf(stderr, "Can't find library for target `%s'\n",
-				t->u.user.name);
+				name);
 			exit(1);
 		}
 
-		printf(" -j %s", target->alias ? target->alias(t) : target_name);
-		if (target->save && t->u.user.revision == target->revision)
-			target->save(&e->ip, t);
+		tg = tg2 = xtables_find_target_revision(name, XTF_TRY_LOAD,
+							target, revision);
+		if (!tg2)
+			tg2 = target;
+		printf(" -j %s", tg2->alias ? tg2->alias(t) : target_name);
+
+		if (tg && tg->save)
+			tg->save(&e->ip, t);
 		else if (target->save)
 			printf(unsupported_rev);
 		else {
@@ -1147,7 +1167,7 @@ void print_rule4(const struct ipt_entry *e,
 			    sizeof(struct xt_entry_target)) {
 				fprintf(stderr, "Target `%s' is missing "
 						"save function\n",
-					t->u.user.name);
+					name);
 				exit(1);
 			}
 		}

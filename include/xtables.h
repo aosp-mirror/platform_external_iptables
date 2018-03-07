@@ -464,8 +464,14 @@ extern struct option *xtables_merge_options(struct option *origopts,
 extern int xtables_init_all(struct xtables_globals *xtp, uint8_t nfproto);
 extern struct xtables_match *xtables_find_match(const char *name,
 	enum xtables_tryload, struct xtables_rule_match **match);
+extern struct xtables_match *xtables_find_match_revision(const char *name,
+	enum xtables_tryload tryload, struct xtables_match *match,
+	int revision);
 extern struct xtables_target *xtables_find_target(const char *name,
 	enum xtables_tryload);
+struct xtables_target *xtables_find_target_revision(const char *name,
+	enum xtables_tryload tryload, struct xtables_target *target,
+	int revision);
 extern int xtables_compatible_revision(const char *name, uint8_t revision,
 				       int opt);
 

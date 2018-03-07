@@ -709,6 +709,27 @@ xtables_find_match(const char *name, enum xtables_tryload tryload,
 	return ptr;
 }
 
+struct xtables_match *
+xtables_find_match_revision(const char *name, enum xtables_tryload tryload,
+			    struct xtables_match *match, int revision)
+{
+	if (!match) {
+		match = xtables_find_match(name, tryload, NULL);
+		if (!match)
+			return NULL;
+	}
+
+	while (1) {
+		if (match->revision == revision)
+			return match;
+		match = match->next;
+		if (!match)
+			return NULL;
+		if (!extension_cmp(name, match->name, match->family))
+			return NULL;
+	}
+}
+
 struct xtables_target *
 xtables_find_target(const char *name, enum xtables_tryload tryload)
 {
@@ -767,6 +788,27 @@ xtables_find_target(const char *name, enum xtables_tryload tryload)
 		ptr->used = 1;
 
 	return ptr;
+}
+
+struct xtables_target *
+xtables_find_target_revision(const char *name, enum xtables_tryload tryload,
+			     struct xtables_target *target, int revision)
+{
+	if (!target) {
+		target = xtables_find_target(name, tryload);
+		if (!target)
+			return NULL;
+	}
+
+	while (1) {
+		if (target->revision == revision)
+			return target;
+		target = target->next;
+		if (!target)
+			return NULL;
+		if (!extension_cmp(name, target->name, target->family))
+			return NULL;
+	}
 }
 
 int xtables_compatible_revision(const char *name, uint8_t revision, int opt)
