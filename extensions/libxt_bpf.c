@@ -22,6 +22,8 @@
 #include <linux/bpf.h>
 #endif
 
+#include <linux/unistd.h>
+
 #define BCODE_FILE_MAX_LEN_B	1024
 
 enum {
