@@ -85,3 +85,6 @@
 
 /* Location of the iptables lock file */
 #define XT_LOCK_NAME "/system/etc/xtables.lock"
+
+/* Define to 1 if you have the <linux/bpf.h> header file. */
+#define HAVE_LINUX_BPF_H 1
