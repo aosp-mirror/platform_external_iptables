@@ -38,7 +38,7 @@ static int verbose;
 /* Whether to combine actions of sequential rules with identical conditions */
 static int combine;
 /* Keeping track of external matches and targets.  */
-static struct option options[] = {
+static const struct option options[] = {
 	{"verbose", 0, NULL, 'v'},
 	{"combine", 0, NULL, 'c'},
 	{"help", 0, NULL, 'h'},
