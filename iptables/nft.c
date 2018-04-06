@@ -2774,22 +2774,36 @@ static int nft_is_rule_compatible(struct nftnl_rule *rule)
 	return ret;
 }
 
-static int nft_is_chain_compatible(const char *table, const char *chain)
+static int nft_is_chain_compatible(const struct nft_handle *h,
+				   const struct nftnl_chain *chain)
 {
-	const char *cur_table;
+	const char *table, *name, *type, *cur_table;
 	struct builtin_chain *chains;
-	int i, j;
+	int i, j, prio;
+	enum nf_inet_hooks hook;
+
+	table = nftnl_chain_get(chain, NFTNL_CHAIN_TABLE);
+	name = nftnl_chain_get(chain, NFTNL_CHAIN_NAME);
+	type = nftnl_chain_get(chain, NFTNL_CHAIN_TYPE);
+	prio = nftnl_chain_get_u32(chain, NFTNL_CHAIN_PRIO);
+	hook = nftnl_chain_get_u32(chain, NFTNL_CHAIN_HOOKNUM);
 
 	for (i = 0; i < TABLES_MAX; i++) {
-		cur_table = xtables_ipv4[i].name;
-		chains = xtables_ipv4[i].chains;
+		cur_table = h->tables[i].name;
+		chains = h->tables[i].chains;
 
 		if (strcmp(table, cur_table) != 0)
 			continue;
 
 		for (j = 0; j < NF_INET_NUMHOOKS && chains[j].name; j++) {
-			if (strcmp(chain, chains[j].name) == 0)
+			if (strcmp(name, chains[j].name) != 0)
+				continue;
+
+			if (strcmp(type, chains[j].type) == 0 &&
+			    prio == chains[j].prio &&
+			    hook == chains[j].hook)
 				return 0;
+			break;
 		}
 	}
 
@@ -2816,14 +2830,9 @@ static int nft_are_chains_compatible(struct nft_handle *h)
 		if (!nft_chain_builtin(chain))
 			goto next;
 
-		const char *table = nftnl_chain_get(chain, NFTNL_CHAIN_TABLE);
-		const char *name = nftnl_chain_get(chain, NFTNL_CHAIN_NAME);
-
-		if (nft_is_chain_compatible(table, name) == 1) {
-			ret = 1;
+		ret = nft_is_chain_compatible(h, chain);
+		if (ret != 0)
 			break;
-		}
-
 next:
 		chain = nftnl_chain_list_iter_next(iter);
 	}
