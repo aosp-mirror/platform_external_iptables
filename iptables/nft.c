@@ -2842,49 +2842,16 @@ next:
 	return ret;
 }
 
-static int nft_is_table_compatible(const char *name)
+bool nft_is_table_compatible(struct nft_handle *h, const char *name)
 {
 	int i;
 
 	for (i = 0; i < TABLES_MAX; i++) {
-		if (strcmp(xtables_ipv4[i].name, name) == 0)
-			return 0;
+		if (strcmp(h->tables[i].name, name) == 0)
+			return true;
 	}
 
-	return 1;
-}
-
-static int nft_are_tables_compatible(struct nft_handle *h)
-{
-	struct nftnl_table_list *list;
-	struct nftnl_table_list_iter *iter;
-	struct nftnl_table *table;
-	int ret = 0;
-
-	list = nftnl_table_list_get(h);
-	if (list == NULL)
-		return -1;
-
-	iter = nftnl_table_list_iter_create(list);
-	if (iter == NULL)
-		return -1;
-
-	table = nftnl_table_list_iter_next(iter);
-	while (table != NULL) {
-		const char *name = nftnl_table_get(table, NFTNL_TABLE_NAME);
-
-		if (nft_is_table_compatible(name) == 0) {
-			table = nftnl_table_list_iter_next(iter);
-			continue;
-		}
-
-		ret = 1;
-		break;
-	}
-
-	nftnl_table_list_iter_destroy(iter);
-	nftnl_table_list_free(list);
-	return ret;
+	return false;
 }
 
 int nft_is_ruleset_compatible(struct nft_handle *h)
@@ -2894,10 +2861,6 @@ int nft_is_ruleset_compatible(struct nft_handle *h)
 	struct nftnl_rule_list_iter *iter;
 	struct nftnl_rule *rule;
 	int ret = 0;
-
-	ret = nft_are_tables_compatible(h);
-	if (ret != 0)
-		return ret;
 
 	ret = nft_are_chains_compatible(h);
 	if (ret != 0)

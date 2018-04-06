@@ -52,6 +52,11 @@ do_output(struct nft_handle *h, const char *tablename, bool counters)
 		return 0;
 	}
 
+	if (!nft_is_table_compatible(h, tablename)) {
+		printf("# Table `%s' is incompatible, use 'nft' tool.\n", tablename);
+		return 1;
+	}
+
 	chain_list = nft_chain_dump(h);
 
 	time_t now = time(NULL);
@@ -160,7 +165,8 @@ xtables_save_main(int family, const char *progname, int argc, char *argv[])
 		exit(1);
 	}
 
-	if (nft_is_ruleset_compatible(&h) == 1) {
+	ret = nft_is_ruleset_compatible(&h);
+	if (ret) {
 		printf("ERROR: You're using nft features that cannot be mapped to iptables, please keep using nft.\n");
 		exit(EXIT_FAILURE);
 	}
