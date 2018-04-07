@@ -2827,7 +2827,10 @@ static int nft_are_chains_compatible(struct nft_handle *h)
 
 	chain = nftnl_chain_list_iter_next(iter);
 	while (chain != NULL) {
-		if (!nft_chain_builtin(chain))
+		const char *table = nftnl_chain_get(chain, NFTNL_CHAIN_TABLE);
+
+		if (!nft_chain_builtin(chain) ||
+		    !nft_is_table_compatible(h, table))
 			goto next;
 
 		ret = nft_is_chain_compatible(h, chain);
@@ -2876,10 +2879,14 @@ int nft_is_ruleset_compatible(struct nft_handle *h)
 
 	rule = nftnl_rule_list_iter_next(iter);
 	while (rule != NULL) {
+		if (!nft_is_table_compatible(h,
+		     nftnl_rule_get_str(rule, NFTA_RULE_TABLE)))
+			goto next;
+
 		ret = nft_is_rule_compatible(rule);
 		if (ret != 0)
 			break;
-
+next:
 		rule = nftnl_rule_list_iter_next(iter);
 	}
 
