@@ -416,7 +416,7 @@ static int nft_ipv6_xlate(const void *data, struct xt_xlate *xl)
 	if (cs->fw6.ipv6.proto != 0) {
 		const struct protoent *pent =
 			getprotobynumber(cs->fw6.ipv6.proto);
-		char protonum[strlen("255") + 1];
+		char protonum[sizeof("65535")];
 
 		if (!xlate_find_match(cs, pent->p_name)) {
 			snprintf(protonum, sizeof(protonum), "%u",
