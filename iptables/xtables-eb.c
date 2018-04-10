@@ -623,14 +623,14 @@ static void ebt_load_match(const char *name)
 		xtables_error(OTHER_PROBLEM, "Can't alloc memory");
 }
 
-static void ebt_load_watcher(const char *name)
+static void __ebt_load_watcher(const char *name, const char *typename)
 {
 	struct xtables_target *watcher;
 	size_t size;
 
 	watcher = xtables_find_target(name, XTF_TRY_LOAD);
 	if (!watcher) {
-		fprintf(stderr, "Unable to load %s watcher\n", name);
+		fprintf(stderr, "Unable to load %s %s\n", name, typename);
 		return;
 	}
 
@@ -651,6 +651,16 @@ static void ebt_load_watcher(const char *name)
 		xtables_error(OTHER_PROBLEM, "Can't alloc memory");
 }
 
+static void ebt_load_watcher(const char *name)
+{
+	return __ebt_load_watcher(name, "watcher");
+}
+
+static void ebt_load_target(const char *name)
+{
+	return __ebt_load_watcher(name, "target");
+}
+
 static void ebt_load_match_extensions(void)
 {
 	opts = ebt_original_options;
@@ -661,6 +671,8 @@ static void ebt_load_match_extensions(void)
 
 	ebt_load_watcher("log");
 	ebt_load_watcher("nflog");
+
+	ebt_load_target("mark");
 }
 
 static void ebt_add_match(struct xtables_match *m,
