@@ -678,6 +678,7 @@ void ebt_load_match_extensions(void)
 	ebt_load_target("mark");
 	ebt_load_target("dnat");
 	ebt_load_target("snat");
+	ebt_load_target("redirect");
 }
 
 void ebt_add_match(struct xtables_match *m,
