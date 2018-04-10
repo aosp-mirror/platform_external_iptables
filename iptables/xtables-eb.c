@@ -605,9 +605,11 @@ static void ebt_load_match(const char *name)
 	struct xtables_match *m;
 	size_t size;
 
-	m = xtables_find_match(name, XTF_LOAD_MUST_SUCCEED, NULL);
-	if (m == NULL)
-		xtables_error(OTHER_PROBLEM, "Unable to load %s match", name);
+	m = xtables_find_match(name, XTF_TRY_LOAD, NULL);
+	if (m == NULL) {
+		fprintf(stderr, "Unable to load %s match\n", name);
+		return;
+	}
 
 	size = XT_ALIGN(sizeof(struct xt_entry_match)) + m->size;
 	m->m = xtables_calloc(1, size);
@@ -626,10 +628,11 @@ static void ebt_load_watcher(const char *name)
 	struct xtables_target *watcher;
 	size_t size;
 
-	watcher = xtables_find_target(name, XTF_LOAD_MUST_SUCCEED);
-	if (!watcher)
-		xtables_error(OTHER_PROBLEM,
-			      "Unable to load %s watcher", name);
+	watcher = xtables_find_target(name, XTF_TRY_LOAD);
+	if (!watcher) {
+		fprintf(stderr, "Unable to load %s watcher\n", name);
+		return;
+	}
 
 	size = XT_ALIGN(sizeof(struct xt_entry_target)) + watcher->size;
 
