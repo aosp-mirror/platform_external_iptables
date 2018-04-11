@@ -291,6 +291,133 @@ static void brip_print(const void *ip, const struct xt_entry_match *match,
 	}
 }
 
+static const char *brip_xlate_proto_to_name(uint8_t proto)
+{
+	switch (proto) {
+	case IPPROTO_TCP:
+		return "tcp";
+	case IPPROTO_UDP:
+		return "udp";
+	case IPPROTO_UDPLITE:
+		return "udplite";
+	case IPPROTO_SCTP:
+		return "sctp";
+	case IPPROTO_DCCP:
+		return "dccp";
+	default:
+		return NULL;
+	}
+}
+
+static void brip_xlate_th(struct xt_xlate *xl,
+			  const struct ebt_ip_info *info, int bit,
+			  const char *pname)
+{
+	const uint16_t *ports;
+
+	if ((info->bitmask & bit) == 0)
+		return;
+
+	switch (bit) {
+	case EBT_IP_SPORT:
+		if (pname)
+			xt_xlate_add(xl, "%s sport ", pname);
+		else
+			xt_xlate_add(xl, "@th,0,16 ");
+
+		ports = info->sport;
+		break;
+	case EBT_IP_DPORT:
+		if (pname)
+			xt_xlate_add(xl, "%s dport ", pname);
+		else
+			xt_xlate_add(xl, "@th,16,16 ");
+
+		ports = info->dport;
+		break;
+	default:
+		return;
+	}
+
+	if (info->invflags & bit)
+		xt_xlate_add(xl, "!= ");
+
+	if (ports[0] == ports[1])
+		xt_xlate_add(xl, "%d ", ports[0]);
+	else
+		xt_xlate_add(xl, "%d-%d ", ports[0], ports[1]);
+}
+
+static void brip_xlate_nh(struct xt_xlate *xl,
+			  const struct ebt_ip_info *info, int bit)
+{
+	struct in_addr *addrp, *maskp;
+
+	if ((info->bitmask & bit) == 0)
+		return;
+
+	switch (bit) {
+	case EBT_IP_SOURCE:
+		xt_xlate_add(xl, "ip saddr ");
+		addrp = (struct in_addr *)&info->saddr;
+		maskp = (struct in_addr *)&info->smsk;
+		break;
+	case EBT_IP_DEST:
+		xt_xlate_add(xl, "ip daddr ");
+		addrp = (struct in_addr *)&info->daddr;
+		maskp = (struct in_addr *)&info->dmsk;
+		break;
+	default:
+		return;
+	}
+
+	if (info->invflags & bit)
+		xt_xlate_add(xl, "!= ");
+
+	xt_xlate_add(xl, "%s%s ", xtables_ipaddr_to_numeric(addrp),
+				  xtables_ipmask_to_numeric(maskp));
+}
+
+static int brip_xlate(struct xt_xlate *xl,
+		      const struct xt_xlate_mt_params *params)
+{
+	const struct ebt_ip_info *info = (const void *)params->match->data;
+	const char *pname = NULL;
+
+	brip_xlate_nh(xl, info, EBT_IP_SOURCE);
+	brip_xlate_nh(xl, info, EBT_IP_DEST);
+
+	if (info->bitmask & EBT_IP_TOS) {
+		xt_xlate_add(xl, "ip dscp ");
+		if (info->invflags & EBT_IP_TOS)
+			xt_xlate_add(xl, "!= ");
+		xt_xlate_add(xl, "0x%02X ", info->tos & ~0x3); /* remove ECN bits */
+	}
+	if (info->bitmask & EBT_IP_PROTO) {
+		struct protoent *pe;
+
+		if (info->bitmask & (EBT_IP_SPORT|EBT_IP_DPORT) &&
+		    (info->invflags & EBT_IP_PROTO) == 0) {
+			/* port number given and not inverted, no need to print this */
+			pname = brip_xlate_proto_to_name(info->protocol);
+		} else {
+			xt_xlate_add(xl, "ip protocol ");
+			if (info->invflags & EBT_IP_PROTO)
+				xt_xlate_add(xl, "!= ");
+			pe = getprotobynumber(info->protocol);
+			if (pe == NULL)
+				xt_xlate_add(xl, "%d ", info->protocol);
+			else
+				xt_xlate_add(xl, "%s ", pe->p_name);
+		}
+	}
+
+	brip_xlate_th(xl, info, EBT_IP_SPORT, pname);
+	brip_xlate_th(xl, info, EBT_IP_DPORT, pname);
+
+	return 1;
+}
+
 static struct xtables_match brip_match = {
 	.name		= "ip",
 	.revision	= 0,
@@ -303,6 +430,7 @@ static struct xtables_match brip_match = {
 	.parse		= brip_parse,
 	.final_check	= brip_final_check,
 	.print		= brip_print,
+	.xlate		= brip_xlate,
 	.extra_opts	= brip_opts,
 };
 

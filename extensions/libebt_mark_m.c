@@ -97,6 +97,30 @@ static void brmark_m_print(const void *ip, const struct xt_entry_match *match,
 		printf("0x%lx ", info->mark);
 }
 
+static int brmark_m_xlate(struct xt_xlate *xl,
+			  const struct xt_xlate_mt_params *params)
+{
+	const struct ebt_mark_m_info *info = (const void*)params->match->data;
+	enum xt_op op = XT_OP_EQ;
+
+	if (info->invert)
+		op = XT_OP_NEQ;
+
+	xt_xlate_add(xl, "meta mark ");
+
+	if (info->bitmask == EBT_MARK_OR) {
+		xt_xlate_add(xl, " and %0x%x %s0", info->mask,
+			     info->invert ? "" : "!= ");
+	} else if (info->mask != 0xffffffffU) {
+		xt_xlate_add(xl, " and 0x%x %s 0x%x", info->mask,
+			   op == XT_OP_EQ ? "==" : "!=", info->mark);
+	} else {
+		xt_xlate_add(xl, " %s0x%x",
+			   op == XT_OP_EQ ? "" : "!= ", info->mark);
+	}
+
+	return 1;
+}
 static struct xtables_match brmark_m_match = {
 	.name		= "mark_m",
 	.revision	= 0,
@@ -109,6 +133,7 @@ static struct xtables_match brmark_m_match = {
 	.parse		= brmark_m_parse,
 	.final_check	= brmark_m_final_check,
 	.print		= brmark_m_print,
+	.xlate		= brmark_m_xlate,
 	.extra_opts	= brmark_m_opts,
 };
 

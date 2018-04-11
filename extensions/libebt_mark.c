@@ -170,6 +170,49 @@ static void brmark_final_check(unsigned int flags)
 			      "You must specify some option");
 }
 
+static const char* brmark_verdict(int verdict)
+{
+	switch (verdict) {
+	case EBT_ACCEPT: return "accept";
+	case EBT_DROP: return "drop";
+	case EBT_CONTINUE: return "continue";
+	case EBT_RETURN: return "return";
+	}
+
+	return "";
+}
+
+static int brmark_xlate(struct xt_xlate *xl,
+			const struct xt_xlate_tg_params *params)
+{
+	const struct ebt_mark_t_info *info = (const void*)params->target->data;
+	int tmp;
+
+	tmp = info->target & ~EBT_VERDICT_BITS;
+
+	xt_xlate_add(xl, "meta mark set ");
+
+	switch (tmp) {
+	case MARK_SET_VALUE:
+		break;
+	case MARK_OR_VALUE:
+		xt_xlate_add(xl, "meta mark or ");
+		break;
+	case MARK_XOR_VALUE:
+		xt_xlate_add(xl, "meta mark xor ");
+		break;
+	case MARK_AND_VALUE:
+		xt_xlate_add(xl, "meta mark and ");
+		break;
+	default:
+		return 0;
+	}
+
+	tmp = info->target & EBT_VERDICT_BITS;
+	xt_xlate_add(xl, "0x%lx %s ", info->mark, brmark_verdict(tmp));
+	return 1;
+}
+
 static struct xtables_target brmark_target = {
 	.name		= "mark",
 	.revision	= 0,
@@ -182,6 +225,7 @@ static struct xtables_target brmark_target = {
 	.parse		= brmark_parse,
 	.final_check	= brmark_final_check,
 	.print		= brmark_print,
+	.xlate		= brmark_xlate,
 	.extra_opts	= brmark_opts,
 };
 
