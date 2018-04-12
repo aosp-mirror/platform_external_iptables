@@ -44,6 +44,7 @@ xtables_compat_multi_SOURCES += xtables-save.c xtables-restore.c \
 				xtables-arp-standalone.c xtables-arp.c \
 				getethertype.c nft-bridge.c \
 				xtables-eb-standalone.c xtables-eb.c \
+				xtables-eb-translate.c \
 				xtables-translate.c
 xtables_compat_multi_LDADD   += ${libmnl_LIBS} ${libnftnl_LIBS} ${libnetfilter_conntrack_LIBS} ../extensions/libext4.a ../extensions/libext6.a ../extensions/libext_ebt.a ../extensions/libext_arpt.a
 # yacc and lex generate dirty code

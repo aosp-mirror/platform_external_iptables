@@ -33,6 +33,7 @@ static const struct subcommand multi_subcommands[] = {
 	{"arptables",			xtables_arp_main},
 	{"arptables-compat",		xtables_arp_main},
 	{"ebtables-compat",		xtables_eb_main},
+	{"ebtables-translate",		xtables_eb_xlate_main},
 	{"ebtables",			xtables_eb_main},
 	{NULL},
 };

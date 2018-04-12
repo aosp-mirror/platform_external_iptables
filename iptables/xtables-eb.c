@@ -247,7 +247,7 @@ static int get_current_chain(const char *chain)
 
 /* Default command line options. Do not mess around with the already
  * assigned numbers unless you know what you are doing */
-static struct option ebt_original_options[] =
+struct option ebt_original_options[] =
 {
 	{ "append"         , required_argument, 0, 'A' },
 	{ "insert"         , required_argument, 0, 'I' },
