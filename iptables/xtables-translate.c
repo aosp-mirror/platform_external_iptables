@@ -420,6 +420,37 @@ static struct nft_xt_restore_cb cb_xlate = {
 	.abort		= commit,
 };
 
+static int xtables_xlate_main_common(struct nft_handle *h,
+				     int family,
+				     const char *progname)
+{
+	int ret;
+
+	xtables_globals.program_name = progname;
+	xtables_globals.compat_rev = dummy_compat_rev;
+	ret = xtables_init_all(&xtables_globals, family);
+	if (ret < 0) {
+		fprintf(stderr, "%s/%s Failed to initialize xtables\n",
+			xtables_globals.program_name,
+			xtables_globals.program_version);
+		return 1;
+	}
+#if defined(ALL_INCLUSIVE) || defined(NO_SHARED_LIBS)
+	init_extensions();
+	init_extensions4();
+#endif
+
+	if (nft_init(h, xtables_ipv4) < 0) {
+		fprintf(stderr, "%s/%s Failed to initialize nft: %s\n",
+				xtables_globals.program_name,
+				xtables_globals.program_version,
+				strerror(errno));
+		return 1;
+	}
+
+	return 0;
+}
+
 static int xtables_xlate_main(int family, const char *progname, int argc,
 			      char *argv[])
 {
@@ -429,28 +460,9 @@ static int xtables_xlate_main(int family, const char *progname, int argc,
 		.family = family,
 	};
 
-	xtables_globals.program_name = progname;
-	xtables_globals.compat_rev = dummy_compat_rev;
-	ret = xtables_init_all(&xtables_globals, family);
-	if (ret < 0) {
-		fprintf(stderr, "%s/%s Failed to initialize xtables\n",
-				xtables_globals.program_name,
-				xtables_globals.program_version);
-				exit(1);
-	}
-#if defined(ALL_INCLUSIVE) || defined(NO_SHARED_LIBS)
-	init_extensions();
-	init_extensions4();
-#endif
-
-	if (nft_init(&h, xtables_ipv4) < 0) {
-		fprintf(stderr, "%s/%s Failed to initialize nft: %s\n",
-				xtables_globals.program_name,
-				xtables_globals.program_version,
-				strerror(errno));
-		nft_fini(&h);
+	ret = xtables_xlate_main_common(&h, family, progname);
+	if (ret < 0)
 		exit(EXIT_FAILURE);
-	}
 
 	ret = do_command_xlate(&h, argc, argv, &table, false);
 	if (!ret)
@@ -472,28 +484,9 @@ static int xtables_restore_xlate_main(int family, const char *progname,
 	time_t now = time(NULL);
 	int c;
 
-	xtables_globals.program_name = progname;
-	xtables_globals.compat_rev = dummy_compat_rev;
-	ret = xtables_init_all(&xtables_globals, family);
-	if (ret < 0) {
-		fprintf(stderr, "%s/%s Failed to initialize xtables\n",
-				xtables_globals.program_name,
-				xtables_globals.program_version);
-				exit(1);
-	}
-#if defined(ALL_INCLUSIVE) || defined(NO_SHARED_LIBS)
-	init_extensions();
-	init_extensions4();
-#endif
-
-	if (nft_init(&h, xtables_ipv4) < 0) {
-		fprintf(stderr, "%s/%s Failed to initialize nft: %s\n",
-				xtables_globals.program_name,
-				xtables_globals.program_version,
-				strerror(errno));
-		nft_fini(&h);
+	ret = xtables_xlate_main_common(&h, family, progname);
+	if (ret < 0)
 		exit(EXIT_FAILURE);
-	}
 
 	opterr = 0;
 	while ((c = getopt_long(argc, argv, "hf:", options, NULL)) != -1) {
