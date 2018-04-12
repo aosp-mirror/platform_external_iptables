@@ -767,8 +767,10 @@ int nft_init(struct nft_handle *h, struct builtin_table *t)
 	if (h->nl == NULL)
 		return -1;
 
-	if (mnl_socket_bind(h->nl, 0, MNL_SOCKET_AUTOPID) < 0)
+	if (mnl_socket_bind(h->nl, 0, MNL_SOCKET_AUTOPID) < 0) {
+		mnl_socket_close(h->nl);
 		return -1;
+	}
 
 	h->portid = mnl_socket_get_portid(h->nl);
 	h->tables = t;
