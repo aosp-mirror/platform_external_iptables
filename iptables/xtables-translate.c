@@ -7,11 +7,6 @@
  * (at your option) any later version.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <string.h>
-#include <iptables.h>
 #include <time.h>
 #include "xtables-multi.h"
 #include "nft.h"
