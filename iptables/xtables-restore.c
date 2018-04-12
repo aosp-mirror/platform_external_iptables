@@ -455,6 +455,7 @@ void xtables_restore_parse(struct nft_handle *h,
 static int
 xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 {
+	struct builtin_table *tables;
 	struct nft_handle h = {
 		.family = family,
 		.restore = true,
@@ -471,18 +472,6 @@ xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 				xtables_globals.program_name,
 				xtables_globals.program_version);
 		exit(1);
-	}
-#if defined(ALL_INCLUSIVE) || defined(NO_SHARED_LIBS)
-	init_extensions();
-	init_extensions4();
-#endif
-
-	if (nft_init(&h, xtables_ipv4) < 0) {
-		fprintf(stderr, "%s/%s Failed to initialize nft: %s\n",
-				xtables_globals.program_name,
-				xtables_globals.program_version,
-				strerror(errno));
-		exit(EXIT_FAILURE);
 	}
 
 	while ((c = getopt_long(argc, argv, "bcvVthnM:T:46wW", options, NULL)) != -1) {
@@ -544,6 +533,34 @@ xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 		exit(1);
 	} else {
 		p.in = stdin;
+	}
+
+	switch (family) {
+	case NFPROTO_IPV4:
+	case NFPROTO_IPV6: /* fallthough, same table */
+		tables = xtables_ipv4;
+#if defined(ALL_INCLUSIVE) || defined(NO_SHARED_LIBS)
+		init_extensions();
+		init_extensions4();
+#endif
+		break;
+	case NFPROTO_ARP:
+		tables = xtables_arp;
+		break;
+	case NFPROTO_BRIDGE:
+		tables = xtables_bridge;
+		break;
+	default:
+		fprintf(stderr, "Unknown family %d\n", family);
+		return 1;
+	}
+
+	if (nft_init(&h, tables) < 0) {
+		fprintf(stderr, "%s/%s Failed to initialize nft: %s\n",
+				xtables_globals.program_name,
+				xtables_globals.program_version,
+				strerror(errno));
+		exit(EXIT_FAILURE);
 	}
 
 	xtables_restore_parse(&h, &p, &restore_cb, argc, argv);

@@ -424,6 +424,7 @@ static int xtables_xlate_main_common(struct nft_handle *h,
 				     int family,
 				     const char *progname)
 {
+	struct builtin_table *tables;
 	int ret;
 
 	xtables_globals.program_name = progname;
@@ -435,12 +436,27 @@ static int xtables_xlate_main_common(struct nft_handle *h,
 			xtables_globals.program_version);
 		return 1;
 	}
+	switch (family) {
+	case NFPROTO_IPV4:
+	case NFPROTO_IPV6: /* fallthrough: same table */
 #if defined(ALL_INCLUSIVE) || defined(NO_SHARED_LIBS)
 	init_extensions();
 	init_extensions4();
 #endif
+		tables = xtables_ipv4;
+		break;
+	case NFPROTO_ARP:
+		tables = xtables_arp;
+		break;
+	case NFPROTO_BRIDGE:
+		tables = xtables_bridge;
+		break;
+	default:
+		fprintf(stderr, "Unknown family %d\n", family);
+		return 1;
+	}
 
-	if (nft_init(h, xtables_ipv4) < 0) {
+	if (nft_init(h, tables) < 0) {
 		fprintf(stderr, "%s/%s Failed to initialize nft: %s\n",
 				xtables_globals.program_name,
 				xtables_globals.program_version,
