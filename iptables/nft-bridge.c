@@ -628,6 +628,141 @@ static bool nft_bridge_rule_find(struct nft_family_ops *ops, struct nftnl_rule *
 	return true;
 }
 
+static int xlate_ebmatches(const struct ebtables_command_state *cs, struct xt_xlate *xl)
+{
+	int ret = 1, numeric = cs->options & OPT_NUMERIC;
+	struct ebt_match *m;
+
+	for (m = cs->match_list; m; m = m->next) {
+		if (m->ismatch) {
+			struct xtables_match *matchp = m->u.match;
+			struct xt_xlate_mt_params mt_params = {
+				.ip		= (const void *)&cs->fw,
+				.numeric	= numeric,
+				.escape_quotes	= false,
+				.match		= matchp->m,
+			};
+
+			if (!matchp->xlate)
+				return 0;
+
+			ret = matchp->xlate(xl, &mt_params);
+		} else {
+			struct xtables_target *watcherp = m->u.watcher;
+			struct xt_xlate_tg_params wt_params = {
+				.ip		= (const void *)&cs->fw,
+				.numeric	= numeric,
+				.escape_quotes	= false,
+				.target		= watcherp->t,
+			};
+
+			if (!watcherp->xlate)
+				return 0;
+
+			ret = watcherp->xlate(xl, &wt_params);
+		}
+
+		if (!ret)
+			break;
+	}
+
+	return ret;
+}
+
+static int xlate_ebaction(const struct ebtables_command_state *cs, struct xt_xlate *xl)
+{
+	int ret = 1, numeric = cs->options & OPT_NUMERIC;
+
+	/* If no target at all, add nothing (default to continue) */
+	if (cs->target != NULL) {
+		/* Standard target? */
+		if (strcmp(cs->jumpto, XTC_LABEL_ACCEPT) == 0)
+			xt_xlate_add(xl, " accept");
+		else if (strcmp(cs->jumpto, XTC_LABEL_DROP) == 0)
+			xt_xlate_add(xl, " drop");
+		else if (strcmp(cs->jumpto, XTC_LABEL_RETURN) == 0)
+			xt_xlate_add(xl, " return");
+		else if (cs->target->xlate) {
+			xt_xlate_add(xl, " ");
+			struct xt_xlate_tg_params params = {
+				.ip		= (const void *)&cs->fw,
+				.target		= cs->target->t,
+				.numeric	= numeric,
+			};
+			ret = cs->target->xlate(xl, &params);
+		}
+		else
+			return 0;
+	} else if (cs->jumpto == NULL) {
+	} else if (strlen(cs->jumpto) > 0)
+		xt_xlate_add(xl, " jump %s", cs->jumpto);
+
+	return ret;
+}
+
+
+static int nft_bridge_xlate(const void *data, struct xt_xlate *xl)
+{
+	const struct ebtables_command_state *cs = data;
+	char one_msk[ETH_ALEN] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+	char zero_msk[ETH_ALEN] = {};
+	const char *addr;
+	int ret;
+
+	xlate_ifname(xl, "iifname", cs->fw.in,
+		     cs->fw.invflags & EBT_IIN);
+	xlate_ifname(xl, "oifname", cs->fw.out,
+		     cs->fw.invflags & EBT_IOUT);
+
+	xlate_ifname(xl, "meta ibridgename", cs->fw.logical_in,
+		     cs->fw.invflags & EBT_ILOGICALIN);
+	xlate_ifname(xl, "meta obridgename", cs->fw.logical_out,
+		     cs->fw.invflags & EBT_ILOGICALOUT);
+
+	if (cs->fw.ethproto != 0) {
+		xt_xlate_add(xl, "ether type %s 0x%x ",
+			     cs->fw.invflags & EBT_IPROTO ? "!= " : "",
+			     ntohs(cs->fw.ethproto));
+	}
+
+	if (cs->fw.bitmask & EBT_802_3)
+		return 0;
+
+	if (memcmp(cs->fw.sourcemac, zero_msk, sizeof(cs->fw.sourcemac))) {
+		addr = ether_ntoa((struct ether_addr *) cs->fw.sourcemac);
+
+		xt_xlate_add(xl, "ether saddr %s%s ",
+			     cs->fw.invflags & EBT_ISOURCE ? "!= " : "", addr);
+
+		if (memcmp(cs->fw.sourcemsk, one_msk, sizeof(cs->fw.sourcemsk))) {
+			addr = ether_ntoa((struct ether_addr *) cs->fw.sourcemsk);
+			xt_xlate_add(xl, "and %s ", addr);
+		}
+	}
+
+	if (memcmp(cs->fw.destmac, zero_msk, sizeof(cs->fw.destmac))) {
+		addr = ether_ntoa((struct ether_addr *) cs->fw.destmac);
+
+		xt_xlate_add(xl, "ether daddr %s %s ",
+			     cs->fw.invflags & EBT_ISOURCE ? "!= " : "", addr);
+
+		if (memcmp(cs->fw.destmsk, one_msk, sizeof(cs->fw.destmsk))) {
+			addr = ether_ntoa((struct ether_addr *) cs->fw.destmsk);
+			xt_xlate_add(xl, "and %s ", addr);
+		}
+	}
+
+	ret = xlate_ebmatches(cs, xl);
+	if (ret == 0)
+		return ret;
+
+	/* Always add counters per rule, as in ebtables */
+	xt_xlate_add(xl, "counter");
+	ret = xlate_ebaction(cs, xl);
+
+	return ret;
+}
+
 struct nft_family_ops nft_family_ops_bridge = {
 	.add			= nft_bridge_add,
 	.is_same		= nft_bridge_is_same,
@@ -644,4 +779,5 @@ struct nft_family_ops nft_family_ops_bridge = {
 	.save_counters		= NULL,
 	.post_parse		= NULL,
 	.rule_find		= nft_bridge_rule_find,
+	.xlate			= nft_bridge_xlate,
 };
