@@ -57,7 +57,7 @@ static void ebt_print_mac(const unsigned char *mac)
 /* Put the mac address into 6 (ETH_ALEN) bytes returns 0 on success. */
 static void ebt_print_mac_and_mask(const unsigned char *mac, const unsigned char *mask)
 {
-	char hlpmsk[6] = {};
+	char hlpmsk[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
 	if (!memcmp(mac, eb_mac_type_unicast, 6) &&
 	    !memcmp(mask, eb_msk_type_unicast, 6))
