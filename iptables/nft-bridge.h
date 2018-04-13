@@ -118,6 +118,7 @@ struct ebtables_command_state {
 	unsigned int options;
 };
 
+struct nftnl_rule;
 void nft_rule_to_ebtables_command_state(struct nftnl_rule *r,
 					struct ebtables_command_state *cs);
 
