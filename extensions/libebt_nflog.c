@@ -135,7 +135,6 @@ static int brnflog_xlate(struct xt_xlate *xl,
 			xt_xlate_add(xl, "prefix \\\"%s\\\" ", info->prefix);
 		else
 			xt_xlate_add(xl, "prefix \"%s\" ", info->prefix);
-
 	}
 
 	xt_xlate_add(xl, "group %u ", info->group);

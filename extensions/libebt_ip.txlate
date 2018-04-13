@@ -1,0 +1,17 @@
+ebtables-translate -A FORWARD --ip-src ! 192.168.0.0/24 -j ACCEPT
+nft add rule bridge filter FORWARD ip saddr != 192.168.0.0/24 counter accept
+
+ebtables-translate -I FORWARD --ip-dst 10.0.0.1
+nft insert rule bridge filter FORWARD ip daddr 10.0.0.1 counter
+
+ebtables-translate -I OUTPUT 3 -o eth0 --ip-tos 0xff
+nft insert rule bridge filter OUTPUT position 3 ip dscp 0xFC counter
+
+ebtables-translate -A FORWARD --ip-proto tcp --ip-dport 22
+nft add rule bridge filter FORWARD tcp dport 22 counter
+
+ebtables-translate -A FORWARD --ip-proto udp --ip-sport 1024:65535
+nft add rule bridge filter FORWARD udp sport 1024-65535 counter
+
+ebtables-translate -A FORWARD --ip-proto 253
+nft add rule bridge filter FORWARD ip protocol 253 counter

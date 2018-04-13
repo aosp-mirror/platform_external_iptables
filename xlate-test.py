@@ -7,7 +7,7 @@ import shlex
 import argparse
 from subprocess import Popen, PIPE
 
-keywords = ("iptables-translate", "ip6tables-translate")
+keywords = ("iptables-translate", "ip6tables-translate", "ebtables-translate")
 
 if sys.stdout.isatty():
     colors = {"magenta": "\033[95m", "green": "\033[92m", "yellow": "\033[93m",
