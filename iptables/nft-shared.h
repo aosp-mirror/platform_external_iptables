@@ -223,9 +223,9 @@ struct nft_xt_cmd_parse {
 	unsigned int			command;
 	unsigned int			rulenum;
 	char				*table;
-	char				*chain;
-	char				*newname;
-	char				*policy;
+	const char			*chain;
+	const char			*newname;
+	const char			*policy;
 	bool				restore;
 	int				verbose;
 };
