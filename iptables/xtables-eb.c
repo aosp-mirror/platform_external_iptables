@@ -661,7 +661,7 @@ static void ebt_load_target(const char *name)
 	return __ebt_load_watcher(name, "target");
 }
 
-static void ebt_load_match_extensions(void)
+void ebt_load_match_extensions(void)
 {
 	opts = ebt_original_options;
 	ebt_load_match("802_3");
@@ -675,8 +675,8 @@ static void ebt_load_match_extensions(void)
 	ebt_load_target("mark");
 }
 
-static void ebt_add_match(struct xtables_match *m,
-			  struct ebtables_command_state *cs)
+void ebt_add_match(struct xtables_match *m,
+		   struct ebtables_command_state *cs)
 {
 	struct xtables_rule_match *i, **rule_matches = &cs->matches;
 	struct xtables_match *newm;
@@ -711,8 +711,8 @@ static void ebt_add_match(struct xtables_match *m,
 		cs->match_list->next = newnode;
 }
 
-static void ebt_add_watcher(struct xtables_target *watcher,
-			    struct ebtables_command_state *cs)
+void ebt_add_watcher(struct xtables_target *watcher,
+		     struct ebtables_command_state *cs)
 {
 	struct ebt_match *i, *newnode;
 
