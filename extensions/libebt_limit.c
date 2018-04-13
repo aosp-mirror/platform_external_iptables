@@ -133,8 +133,8 @@ static struct rates g_rates[] =
 {
 	{ "day",	EBT_LIMIT_SCALE*24*60*60 },
 	{ "hour",	EBT_LIMIT_SCALE*60*60 },
-	{ "min",	EBT_LIMIT_SCALE*60 },
-	{ "sec",	EBT_LIMIT_SCALE }
+	{ "minute",	EBT_LIMIT_SCALE*60 },
+	{ "second",	EBT_LIMIT_SCALE }
 };
 
 static void print_rate(uint32_t period)
@@ -179,7 +179,7 @@ static int brlimit_xlate(struct xt_xlate *xl,
 	xt_xlate_add(xl, "limit rate ");
 	print_rate_xlate(xl, r->avg);
 	if (r->burst != 0)
-		xt_xlate_add(xl, " burst %u packets", r->burst);
+		xt_xlate_add(xl, "burst %u packets ", r->burst);
 
 	return 1;
 }
