@@ -417,16 +417,19 @@ static int nft_ipv6_xlate(const void *data, struct xt_xlate *xl)
 		const struct protoent *pent =
 			getprotobynumber(cs->fw6.ipv6.proto);
 		char protonum[sizeof("65535")];
+		const char *name = protonum;
 
-		if (!xlate_find_match(cs, pent->p_name)) {
-			snprintf(protonum, sizeof(protonum), "%u",
-				 cs->fw6.ipv6.proto);
-			protonum[sizeof(protonum) - 1] = '\0';
+		snprintf(protonum, sizeof(protonum), "%u",
+			 cs->fw6.ipv6.proto);
+
+		if (!pent || !xlate_find_match(cs, pent->p_name)) {
+			if (pent)
+				name = pent->p_name;
 			xt_xlate_add(xl, "meta l4proto %s%s ",
 				   cs->fw6.ipv6.invflags & IP6T_INV_PROTO ?
-					"!= " : "",
-				   pent ? pent->p_name : protonum);
+					"!= " : "", name);
 		}
+
 	}
 
 	xlate_ipv6_addr("ip6 saddr", &cs->fw6.ipv6.src, &cs->fw6.ipv6.smsk,

@@ -460,15 +460,17 @@ static int nft_ipv4_xlate(const void *data, struct xt_xlate *xl)
 		const struct protoent *pent =
 			getprotobynumber(cs->fw.ip.proto);
 		char protonum[sizeof("65535")];
+		const char *name = protonum;
 
-		if (!xlate_find_match(cs, pent->p_name)) {
-			snprintf(protonum, sizeof(protonum), "%u",
-				 cs->fw.ip.proto);
-			protonum[sizeof(protonum) - 1] = '\0';
+		snprintf(protonum, sizeof(protonum), "%u",
+			 cs->fw.ip.proto);
+
+		if (!pent || !xlate_find_match(cs, pent->p_name)) {
+			if (pent)
+				name = pent->p_name;
 			xt_xlate_add(xl, "ip protocol %s%s ",
 				   cs->fw.ip.invflags & IPT_INV_PROTO ?
-					"!= " : "",
-				   pent ? pent->p_name : protonum);
+					"!= " : "", name);
 		}
 	}
 
