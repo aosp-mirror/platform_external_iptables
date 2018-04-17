@@ -43,7 +43,7 @@ void xlate_ifname(struct xt_xlate *xl, const char *nftmeta, const char *ifname,
 	if (iface[ifaclen - 1] == '+')
 		iface[ifaclen - 1] = '*';
 
-	xt_xlate_add(xl, "%s %s%s ", nftmeta, invert ? "!= " : "", iface);
+	xt_xlate_add(xl, "%s %s\"%s\" ", nftmeta, invert ? "!= " : "", iface);
 }
 
 int xlate_action(const struct iptables_command_state *cs, bool goto_set,
