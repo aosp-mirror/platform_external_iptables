@@ -15,3 +15,12 @@ nft add rule bridge filter FORWARD udp sport 1024-65535 counter
 
 ebtables-translate -A FORWARD --ip-proto 253
 nft add rule bridge filter FORWARD ip protocol 253 counter
+
+ebtables-translate -A FORWARD --ip-icmp-type "echo-request"
+nft add rule bridge filter FORWARD ip icmp type 8 counter
+
+ebtables-translate -A FORWARD --ip-icmp-type 1/1
+nft add rule bridge filter FORWARD ip icmp type 1 ip icmp code 1 counter
+
+ebtables-translate -A FORWARD --ip-icmp-type ! 1:10
+nft add rule bridge filter FORWARD ip icmp type != 1-10 counter
