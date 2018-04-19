@@ -561,7 +561,7 @@ static void brip_xlate_icmp(struct xt_xlate *xl,
 	if ((info->bitmask & bit) == 0)
 		return;
 
-	xt_xlate_add(xl, "ip icmp type ");
+	xt_xlate_add(xl, "icmp type ");
 	if (info->invflags & bit)
 		xt_xlate_add(xl, "!= ");
 	if (info->icmp_type[0] == info->icmp_type[1])
@@ -573,7 +573,7 @@ static void brip_xlate_icmp(struct xt_xlate *xl,
 	    info->icmp_code[1] == 0xff)
 		return;
 
-	xt_xlate_add(xl, "ip icmp code ");
+	xt_xlate_add(xl, "icmp code ");
 	if (info->invflags & bit)
 		xt_xlate_add(xl, "!= ");
 	if (info->icmp_code[0] == info->icmp_code[1])
@@ -681,7 +681,7 @@ static int brip_xlate(struct xt_xlate *xl,
 		xt_xlate_add(xl, "ip dscp ");
 		if (info->invflags & EBT_IP_TOS)
 			xt_xlate_add(xl, "!= ");
-		xt_xlate_add(xl, "0x%02X ", info->tos & ~0x3); /* remove ECN bits */
+		xt_xlate_add(xl, "0x%02x ", info->tos & 0x3f); /* remove ECN bits */
 	}
 	if (info->bitmask & EBT_IP_PROTO) {
 		struct protoent *pe;
