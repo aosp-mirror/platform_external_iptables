@@ -514,6 +514,7 @@ print_zero:
 					      "Table name length cannot exceed %d characters",
 					      EBT_TABLE_MAXNAMELEN - 1);
 			*table = optarg;
+			p.table = optarg;
 			break;
 		case 'i': /* Input interface */
 		case 2  : /* Logical input interface */
