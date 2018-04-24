@@ -762,7 +762,7 @@ err:
 	return ret;
 }
 
-int nft_restart(struct nft_handle *h)
+static int nft_restart(struct nft_handle *h)
 {
 	mnl_socket_close(h->nl);
 

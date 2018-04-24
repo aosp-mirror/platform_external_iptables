@@ -49,7 +49,6 @@ int mnl_talk(struct nft_handle *h, struct nlmsghdr *nlh,
 	     void *data);
 int nft_init(struct nft_handle *h, struct builtin_table *t);
 void nft_fini(struct nft_handle *h);
-int nft_restart(struct nft_handle *h);
 
 /*
  * Operations with tables.
