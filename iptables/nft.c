@@ -19,6 +19,7 @@
 #include <time.h>
 #include <stdarg.h>
 #include <inttypes.h>
+#include <assert.h>
 
 #include <xtables.h>
 #include <libiptc/libxtc.h>
@@ -761,6 +762,22 @@ err:
 	return ret;
 }
 
+int nft_restart(struct nft_handle *h)
+{
+	mnl_socket_close(h->nl);
+
+	h->nl = mnl_socket_open(NETLINK_NETFILTER);
+	if (h->nl == NULL)
+		return -1;
+
+	if (mnl_socket_bind(h->nl, 0, MNL_SOCKET_AUTOPID) < 0)
+		return -1;
+
+	h->portid = mnl_socket_get_portid(h->nl);
+
+	return 0;
+}
+
 int nft_init(struct nft_handle *h, struct builtin_table *t)
 {
 	h->nl = mnl_socket_open(NETLINK_NETFILTER);
@@ -1193,7 +1210,9 @@ static struct nftnl_chain_list *nftnl_chain_list_get(struct nft_handle *h)
 	char buf[MNL_SOCKET_BUFFER_SIZE];
 	struct nlmsghdr *nlh;
 	struct nftnl_chain_list *list;
+	int ret;
 
+retry:
 	list = nftnl_chain_list_alloc();
 	if (list == NULL) {
 		errno = ENOMEM;
@@ -1203,7 +1222,12 @@ static struct nftnl_chain_list *nftnl_chain_list_get(struct nft_handle *h)
 	nlh = nftnl_chain_nlmsg_build_hdr(buf, NFT_MSG_GETCHAIN, h->family,
 					NLM_F_DUMP, h->seq);
 
-	mnl_talk(h, nlh, nftnl_chain_list_cb, list);
+	ret = mnl_talk(h, nlh, nftnl_chain_list_cb, list);
+	if (ret < 0 && errno == EINTR) {
+		assert(nft_restart(h) >= 0);
+		nftnl_chain_list_free(list);
+		goto retry;
+	}
 
 	return list;
 }
@@ -1301,6 +1325,7 @@ static struct nftnl_rule_list *nft_rule_list_get(struct nft_handle *h)
 	if (h->rule_cache)
 		return h->rule_cache;
 
+retry:
 	list = nftnl_rule_list_alloc();
 	if (list == NULL)
 		return 0;
@@ -1310,6 +1335,12 @@ static struct nftnl_rule_list *nft_rule_list_get(struct nft_handle *h)
 
 	ret = mnl_talk(h, nlh, nftnl_rule_list_cb, list);
 	if (ret < 0) {
+		if (errno == EINTR) {
+			assert(nft_restart(h) >= 0);
+			nftnl_rule_list_free(list);
+			goto retry;
+		}
+
 		nftnl_rule_list_free(list);
 		return NULL;
 	}
@@ -1660,7 +1691,9 @@ static struct nftnl_table_list *nftnl_table_list_get(struct nft_handle *h)
 	char buf[MNL_SOCKET_BUFFER_SIZE];
 	struct nlmsghdr *nlh;
 	struct nftnl_table_list *list;
+	int ret;
 
+retry:
 	list = nftnl_table_list_alloc();
 	if (list == NULL)
 		return 0;
@@ -1668,7 +1701,12 @@ static struct nftnl_table_list *nftnl_table_list_get(struct nft_handle *h)
 	nlh = nftnl_rule_nlmsg_build_hdr(buf, NFT_MSG_GETTABLE, h->family,
 					NLM_F_DUMP, h->seq);
 
-	mnl_talk(h, nlh, nftnl_table_list_cb, list);
+	ret = mnl_talk(h, nlh, nftnl_table_list_cb, list);
+	if (ret < 0 && errno == EINTR) {
+		assert(nft_restart(h) >= 0);
+		nftnl_table_list_free(list);
+		goto retry;
+	}
 
 	return list;
 }
