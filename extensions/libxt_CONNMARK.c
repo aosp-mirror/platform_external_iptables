@@ -32,28 +32,42 @@ struct xt_connmark_target_info {
 };
 
 enum {
+	D_SHIFT_LEFT = 0,
+	D_SHIFT_RIGHT,
+};
+
+enum {
 	O_SET_MARK = 0,
 	O_SAVE_MARK,
 	O_RESTORE_MARK,
 	O_AND_MARK,
 	O_OR_MARK,
 	O_XOR_MARK,
+	O_LEFT_SHIFT_MARK,
+	O_RIGHT_SHIFT_MARK,
 	O_SET_XMARK,
 	O_CTMASK,
 	O_NFMASK,
 	O_MASK,
-	F_SET_MARK     = 1 << O_SET_MARK,
-	F_SAVE_MARK    = 1 << O_SAVE_MARK,
-	F_RESTORE_MARK = 1 << O_RESTORE_MARK,
-	F_AND_MARK     = 1 << O_AND_MARK,
-	F_OR_MARK      = 1 << O_OR_MARK,
-	F_XOR_MARK     = 1 << O_XOR_MARK,
-	F_SET_XMARK    = 1 << O_SET_XMARK,
-	F_CTMASK       = 1 << O_CTMASK,
-	F_NFMASK       = 1 << O_NFMASK,
-	F_MASK         = 1 << O_MASK,
-	F_OP_ANY       = F_SET_MARK | F_SAVE_MARK | F_RESTORE_MARK |
-	                 F_AND_MARK | F_OR_MARK | F_XOR_MARK | F_SET_XMARK,
+	F_SET_MARK         = 1 << O_SET_MARK,
+	F_SAVE_MARK        = 1 << O_SAVE_MARK,
+	F_RESTORE_MARK     = 1 << O_RESTORE_MARK,
+	F_AND_MARK         = 1 << O_AND_MARK,
+	F_OR_MARK          = 1 << O_OR_MARK,
+	F_XOR_MARK         = 1 << O_XOR_MARK,
+	F_LEFT_SHIFT_MARK  = 1 << O_LEFT_SHIFT_MARK,
+	F_RIGHT_SHIFT_MARK = 1 << O_RIGHT_SHIFT_MARK,
+	F_SET_XMARK        = 1 << O_SET_XMARK,
+	F_CTMASK           = 1 << O_CTMASK,
+	F_NFMASK           = 1 << O_NFMASK,
+	F_MASK             = 1 << O_MASK,
+	F_OP_ANY           = F_SET_MARK | F_SAVE_MARK | F_RESTORE_MARK |
+	                     F_AND_MARK | F_OR_MARK | F_XOR_MARK | F_SET_XMARK,
+};
+
+static const char *const xt_connmark_shift_ops[] = {
+	"left-shift-mark",
+	"right-shift-mark"
 };
 
 static void CONNMARK_help(void)
@@ -104,6 +118,36 @@ static const struct xt_option_entry connmark_tg_opts[] = {
 };
 #undef s
 
+#define s struct xt_connmark_tginfo2
+static const struct xt_option_entry connmark_tg_opts_v2[] = {
+	{.name = "set-xmark", .id = O_SET_XMARK, .type = XTTYPE_MARKMASK32,
+	 .excl = F_OP_ANY},
+	{.name = "set-mark", .id = O_SET_MARK, .type = XTTYPE_MARKMASK32,
+	 .excl = F_OP_ANY},
+	{.name = "and-mark", .id = O_AND_MARK, .type = XTTYPE_UINT32,
+	 .excl = F_OP_ANY},
+	{.name = "or-mark", .id = O_OR_MARK, .type = XTTYPE_UINT32,
+	 .excl = F_OP_ANY},
+	{.name = "xor-mark", .id = O_XOR_MARK, .type = XTTYPE_UINT32,
+	 .excl = F_OP_ANY},
+	{.name = "save-mark", .id = O_SAVE_MARK, .type = XTTYPE_NONE,
+	 .excl = F_OP_ANY},
+	{.name = "restore-mark", .id = O_RESTORE_MARK, .type = XTTYPE_NONE,
+	 .excl = F_OP_ANY},
+	{.name = "left-shift-mark", .id = O_LEFT_SHIFT_MARK, .type = XTTYPE_UINT8,
+	 .min = 0, .max = 32},
+	{.name = "right-shift-mark", .id = O_RIGHT_SHIFT_MARK, .type = XTTYPE_UINT8,
+	 .min = 0, .max = 32},
+	{.name = "ctmask", .id = O_CTMASK, .type = XTTYPE_UINT32,
+	 .excl = F_MASK, .flags = XTOPT_PUT, XTOPT_POINTER(s, ctmask)},
+	{.name = "nfmask", .id = O_NFMASK, .type = XTTYPE_UINT32,
+	 .excl = F_MASK, .flags = XTOPT_PUT, XTOPT_POINTER(s, nfmask)},
+	{.name = "mask", .id = O_MASK, .type = XTTYPE_UINT32,
+	 .excl = F_CTMASK | F_NFMASK},
+	XTOPT_TABLEEND,
+};
+#undef s
+
 static void connmark_tg_help(void)
 {
 	printf(
@@ -122,6 +166,15 @@ static void connmark_tg_help(void)
 );
 }
 
+static void connmark_tg_help_v2(void)
+{
+	connmark_tg_help();
+	printf(
+"  --left-shift-mark value       Left shift the ctmark with bits\n"
+"  --right-shift-mark value      Right shift the ctmark with bits\n"
+);
+}
+
 static void connmark_tg_init(struct xt_entry_target *target)
 {
 	struct xt_connmark_tginfo1 *info = (void *)target->data;
@@ -132,6 +185,18 @@ static void connmark_tg_init(struct xt_entry_target *target)
 	 */
 	info->ctmask = UINT32_MAX;
 	info->nfmask = UINT32_MAX;
+}
+
+static void connmark_tg_init_v2(struct xt_entry_target *target)
+{
+	struct xt_connmark_tginfo2 *info;
+
+	connmark_tg_init(target);
+	info = (void *)target->data;
+
+	/* Left shift by zero bit by default. */
+	info->shift_dir = D_SHIFT_LEFT;
+	info->shift_bits = 0;
 }
 
 static void CONNMARK_parse(struct xt_option_call *cb)
@@ -196,6 +261,61 @@ static void connmark_tg_parse(struct xt_option_call *cb)
 		break;
 	case O_MASK:
 		info->nfmask = info->ctmask = cb->val.u32;
+		break;
+	default:
+		break;
+	}
+}
+
+static void connmark_tg_parse_v2(struct xt_option_call *cb)
+{
+	struct xt_connmark_tginfo2 *info = cb->data;
+
+	xtables_option_parse(cb);
+	switch (cb->entry->id) {
+	case O_SET_XMARK:
+		info->mode   = XT_CONNMARK_SET;
+		info->ctmark = cb->val.mark;
+		info->ctmask = cb->val.mask;
+		break;
+	case O_SET_MARK:
+		info->mode   = XT_CONNMARK_SET;
+		info->ctmark = cb->val.mark;
+		info->ctmask = cb->val.mark | cb->val.mask;
+		break;
+	case O_AND_MARK:
+		info->mode   = XT_CONNMARK_SET;
+		info->ctmark = 0;
+		info->ctmask = ~cb->val.u32;
+		break;
+	case O_OR_MARK:
+		info->mode   = XT_CONNMARK_SET;
+		info->ctmark = cb->val.u32;
+		info->ctmask = cb->val.u32;
+		break;
+	case O_XOR_MARK:
+		info->mode   = XT_CONNMARK_SET;
+		info->ctmark = cb->val.u32;
+		info->ctmask = 0;
+		break;
+	case O_SAVE_MARK:
+		info->mode = XT_CONNMARK_SAVE;
+		break;
+	case O_RESTORE_MARK:
+		info->mode = XT_CONNMARK_RESTORE;
+		break;
+	case O_MASK:
+		info->nfmask = info->ctmask = cb->val.u32;
+		break;
+	case O_LEFT_SHIFT_MARK:
+		info->shift_dir = D_SHIFT_LEFT;
+		info->shift_bits = cb->val.u8;
+		break;
+	case O_RIGHT_SHIFT_MARK:
+		info->shift_dir = D_SHIFT_RIGHT;
+		info->shift_bits = cb->val.u8;
+		break;
+	default:
 		break;
 	}
 }
@@ -291,6 +411,58 @@ connmark_tg_print(const void *ip, const struct xt_entry_target *target,
 	}
 }
 
+static void
+connmark_tg_print_v2(const void *ip, const struct xt_entry_target *target,
+                  int numeric)
+{
+	const struct xt_connmark_tginfo2 *info = (const void *)target->data;
+	const char *shift_op = xt_connmark_shift_ops[info->shift_dir];
+
+	switch (info->mode) {
+	case XT_CONNMARK_SET:
+		if (info->ctmark == 0)
+			printf(" CONNMARK and 0x%x",
+			       (unsigned int)(uint32_t)~info->ctmask);
+		else if (info->ctmark == info->ctmask)
+			printf(" CONNMARK or 0x%x", info->ctmark);
+		else if (info->ctmask == 0)
+			printf(" CONNMARK xor 0x%x", info->ctmark);
+		else if (info->ctmask == 0xFFFFFFFFU)
+			printf(" CONNMARK set 0x%x", info->ctmark);
+		else
+			printf(" CONNMARK xset 0x%x/0x%x",
+			       info->ctmark, info->ctmask);
+		break;
+	case XT_CONNMARK_SAVE:
+		if (info->nfmask == UINT32_MAX && info->ctmask == UINT32_MAX)
+			printf(" CONNMARK save");
+		else if (info->nfmask == info->ctmask)
+			printf(" CONNMARK save mask 0x%x", info->nfmask);
+		else
+			printf(" CONNMARK save nfmask 0x%x ctmask ~0x%x",
+			       info->nfmask, info->ctmask);
+		break;
+	case XT_CONNMARK_RESTORE:
+		if (info->ctmask == UINT32_MAX && info->nfmask == UINT32_MAX)
+			printf(" CONNMARK restore");
+		else if (info->ctmask == info->nfmask)
+			printf(" CONNMARK restore mask 0x%x", info->ctmask);
+		else
+			printf(" CONNMARK restore ctmask 0x%x nfmask ~0x%x",
+			       info->ctmask, info->nfmask);
+		break;
+
+	default:
+		printf(" ERROR: UNKNOWN CONNMARK MODE");
+		break;
+	}
+
+	if (info->mode <= XT_CONNMARK_RESTORE &&
+	    info->shift_bits != 0) {
+		printf(" %s %u", shift_op, info->shift_bits);
+	}
+}
+
 static void CONNMARK_save(const void *ip, const struct xt_entry_target *target)
 {
 	const struct xt_connmark_target_info *markinfo =
@@ -347,6 +519,35 @@ connmark_tg_save(const void *ip, const struct xt_entry_target *target)
 	}
 }
 
+static void
+connmark_tg_save_v2(const void *ip, const struct xt_entry_target *target)
+{
+	const struct xt_connmark_tginfo2 *info = (const void *)target->data;
+	const char *shift_op = xt_connmark_shift_ops[info->shift_dir];
+
+	switch (info->mode) {
+	case XT_CONNMARK_SET:
+		printf(" --set-xmark 0x%x/0x%x", info->ctmark, info->ctmask);
+		break;
+	case XT_CONNMARK_SAVE:
+		printf(" --save-mark --nfmask 0x%x --ctmask 0x%x",
+		       info->nfmask, info->ctmask);
+		break;
+	case XT_CONNMARK_RESTORE:
+		printf(" --restore-mark --nfmask 0x%x --ctmask 0x%x",
+		       info->nfmask, info->ctmask);
+		break;
+	default:
+		printf(" ERROR: UNKNOWN CONNMARK MODE");
+		break;
+	}
+
+	if (info->mode <= XT_CONNMARK_RESTORE &&
+	    info->shift_bits != 0) {
+		printf(" --%s %u", shift_op, info->shift_bits);
+	}
+}
+
 static int connmark_tg_xlate(struct xt_xlate *xl,
 			     const struct xt_xlate_tg_params *params)
 {
@@ -389,6 +590,55 @@ static int connmark_tg_xlate(struct xt_xlate *xl,
 	return 1;
 }
 
+static int connmark_tg_xlate_v2(struct xt_xlate *xl,
+			     const struct xt_xlate_tg_params *params)
+{
+	const struct xt_connmark_tginfo2 *info =
+		(const void *)params->target->data;
+	const char *shift_op = xt_connmark_shift_ops[info->shift_dir];
+
+	switch (info->mode) {
+	case XT_CONNMARK_SET:
+		xt_xlate_add(xl, "ct mark set ");
+		if (info->ctmark == 0)
+			xt_xlate_add(xl, "ct mark and 0x%x", ~info->ctmask);
+		else if (info->ctmark == info->ctmask)
+			xt_xlate_add(xl, "ct mark or 0x%x",
+				     info->ctmark);
+		else if (info->ctmask == 0)
+			xt_xlate_add(xl, "ct mark xor 0x%x",
+				     info->ctmark);
+		else if (info->ctmask == 0xFFFFFFFFU)
+			xt_xlate_add(xl, "0x%x ", info->ctmark);
+		else
+			xt_xlate_add(xl, "ct mark xor 0x%x and 0x%x",
+				     info->ctmark, ~info->ctmask);
+		break;
+	case XT_CONNMARK_SAVE:
+		xt_xlate_add(xl, "ct mark set mark");
+		if (!(info->nfmask == UINT32_MAX &&
+		    info->ctmask == UINT32_MAX)) {
+			if (info->nfmask == info->ctmask)
+				xt_xlate_add(xl, " and 0x%x", info->nfmask);
+		}
+		break;
+	case XT_CONNMARK_RESTORE:
+		xt_xlate_add(xl, "meta mark set ct mark");
+		if (!(info->nfmask == UINT32_MAX &&
+		    info->ctmask == UINT32_MAX)) {
+			if (info->nfmask == info->ctmask)
+				xt_xlate_add(xl, " and 0x%x", info->nfmask);
+		}
+		break;
+	}
+
+	if (info->mode <= XT_CONNMARK_RESTORE &&
+	    info->shift_bits != 0) {
+		xt_xlate_add(xl, " %s %u", shift_op, info->shift_bits);
+	}
+
+	return 1;
+}
 static struct xtables_target connmark_tg_reg[] = {
 	{
 		.family        = NFPROTO_UNSPEC,
@@ -419,7 +669,23 @@ static struct xtables_target connmark_tg_reg[] = {
 		.x6_parse      = connmark_tg_parse,
 		.x6_fcheck     = connmark_tg_check,
 		.x6_options    = connmark_tg_opts,
-		.xlate	       = connmark_tg_xlate,
+		.xlate         = connmark_tg_xlate,
+	},
+	{
+		.version       = XTABLES_VERSION,
+		.name          = "CONNMARK",
+		.revision      = 2,
+		.family        = NFPROTO_UNSPEC,
+		.size          = XT_ALIGN(sizeof(struct xt_connmark_tginfo2)),
+		.userspacesize = XT_ALIGN(sizeof(struct xt_connmark_tginfo2)),
+		.help          = connmark_tg_help_v2,
+		.init          = connmark_tg_init_v2,
+		.print         = connmark_tg_print_v2,
+		.save          = connmark_tg_save_v2,
+		.x6_parse      = connmark_tg_parse_v2,
+		.x6_fcheck     = connmark_tg_check,
+		.x6_options    = connmark_tg_opts_v2,
+		.xlate         = connmark_tg_xlate_v2,
 	},
 };
 
