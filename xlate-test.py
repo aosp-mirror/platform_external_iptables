@@ -40,7 +40,7 @@ def run_test(name, payload):
     for line in payload:
         if line.startswith(keywords):
             tests += 1
-            process = Popen(shlex.split(line), stdout=PIPE, stderr=PIPE)
+            process = Popen([ os.path.abspath(os.path.curdir) + "/iptables/xtables-compat-multi" ] + shlex.split(line), stdout=PIPE, stderr=PIPE)
             (output, error) = process.communicate()
             if process.returncode == 0:
                 translation = output.decode("utf-8").rstrip(" \n")
@@ -86,6 +86,8 @@ def load_test_files():
     print("%d test files, %d tests, %d tests passed, %d tests failed, %d errors" % (test_files, total_tests, total_passed, total_failed, total_error))
 
 def main():
+    os.putenv("XTABLES_LIBDIR", os.path.abspath("extensions"))
+    os.putenv("PATH", "%s/iptables:%s" % (os.path.abspath(os.path.curdir), os.getenv("PATH")))
     if args.test:
         if not args.test.endswith(".txlate"):
             args.test += ".txlate"
