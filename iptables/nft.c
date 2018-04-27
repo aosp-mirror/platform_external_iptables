@@ -2464,14 +2464,27 @@ int nft_compatible_revision(const char *name, uint8_t rev, int opt)
 	struct mnl_socket *nl;
 	char buf[MNL_SOCKET_BUFFER_SIZE];
 	struct nlmsghdr *nlh;
-	uint32_t portid, seq, type;
+	uint32_t portid, seq, type = 0;
+	uint32_t pf = AF_INET;
 	int ret = 0;
 
-	if (opt == IPT_SO_GET_REVISION_MATCH ||
-	    opt == IP6T_SO_GET_REVISION_MATCH)
-		type = 0;
-	else
+	switch (opt) {
+	case IPT_SO_GET_REVISION_MATCH:
+		break;
+	case IP6T_SO_GET_REVISION_MATCH:
+		pf = AF_INET6;
+		break;
+	case IPT_SO_GET_REVISION_TARGET:
 		type = 1;
+		break;
+	case IP6T_SO_GET_REVISION_TARGET:
+		type = 1;
+		pf = AF_INET6;
+		break;
+	default:
+		/* No revision support (arp, ebtables), assume latest version ok */
+		return 1;
+	}
 
 	nlh = mnl_nlmsg_put_header(buf);
 	nlh->nlmsg_type = (NFNL_SUBSYS_NFT_COMPAT << 8) | NFNL_MSG_COMPAT_GET;
@@ -2479,7 +2492,7 @@ int nft_compatible_revision(const char *name, uint8_t rev, int opt)
 	nlh->nlmsg_seq = seq = time(NULL);
 
 	struct nfgenmsg *nfg = mnl_nlmsg_put_extra_header(nlh, sizeof(*nfg));
-	nfg->nfgen_family = AF_INET;
+	nfg->nfgen_family = pf;
 	nfg->version = NFNETLINK_V0;
 	nfg->res_id = 0;
 
