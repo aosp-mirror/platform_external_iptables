@@ -775,6 +775,11 @@ check_extension:
 	return ret;
 }
 
+static int dummy_compat_rev(const char *name, uint8_t rev, int opt)
+{
+	return 1;
+}
+
 int xtables_eb_xlate_main(int argc, char *argv[])
 {
 	int ret;
@@ -792,6 +797,7 @@ int xtables_eb_xlate_main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 
+	ebtables_globals.compat_rev = dummy_compat_rev;
 	ret = do_commandeb_xlate(&h, argc, argv, &table);
 	if (!ret)
 		fprintf(stderr, "Translation not implemented\n");
