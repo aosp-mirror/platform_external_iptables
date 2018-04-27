@@ -457,12 +457,6 @@ struct builtin_table xtables_arp[TABLES_MAX] = {
 				.hook   = NF_ARP_IN,
 			},
 			{
-				.name   = "FORWARD",
-				.type   = "filter",
-				.prio   = NF_IP_PRI_FILTER,
-				.hook   = NF_ARP_FORWARD,
-			},
-			{
 				.name   = "OUTPUT",
 				.type   = "filter",
 				.prio   = NF_IP_PRI_FILTER,
