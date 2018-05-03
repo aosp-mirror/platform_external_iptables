@@ -92,7 +92,7 @@ static char *
 mask_to_dotted(const struct in_addr *mask)
 {
 	int i;
-	static char buf[20];
+	static char buf[22];
 	u_int32_t maskaddr, bits;
 
 	maskaddr = ntohl(mask->s_addr);
@@ -109,7 +109,7 @@ mask_to_dotted(const struct in_addr *mask)
 		sprintf(buf, "/%d", i);
 	else
 		/* mask was not a decent combination of 1's and 0's */
-		sprintf(buf, "/%s", addr_to_dotted(mask));
+		snprintf(buf, sizeof(buf), "/%s", addr_to_dotted(mask));
 
 	return buf;
 }
