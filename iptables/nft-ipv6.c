@@ -67,8 +67,9 @@ static int nft_ipv6_add(struct nftnl_rule *r, void *data)
 		if (strcmp(matchp->match->name, "comment") == 0) {
 			ret = add_comment(r, (char *)matchp->match->m->data);
 			if (ret < 0)
-				return ret;
+				goto try_match;
 		} else {
+try_match:
 			ret = add_match(r, matchp->match->m);
 			if (ret < 0)
 				return ret;

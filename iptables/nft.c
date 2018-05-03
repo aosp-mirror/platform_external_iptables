@@ -1041,15 +1041,21 @@ enum udata_type {
 int add_comment(struct nftnl_rule *r, const char *comment)
 {
 	struct nftnl_udata_buf *udata;
-	char comm[254];
+	uint32_t len;
+
+	if (nftnl_rule_get_data(r, NFTNL_RULE_USERDATA, &len))
+		return -EALREADY;
 
 	udata = nftnl_udata_buf_alloc(NFT_USERDATA_MAXLEN);
 	if (!udata)
 		return -ENOMEM;
 
-	snprintf(comm, sizeof(comm), "%s", comment);
-	if (!nftnl_udata_put_strz(udata, UDATA_TYPE_COMMENT, comm))
+	if (strnlen(comment, 255) == 255)
+		return -ENOSPC;
+
+	if (!nftnl_udata_put_strz(udata, UDATA_TYPE_COMMENT, comment))
 		return -ENOMEM;
+
 	nftnl_rule_set_data(r, NFTNL_RULE_USERDATA,
 			    nftnl_udata_buf_data(udata),
 			    nftnl_udata_buf_len(udata));
