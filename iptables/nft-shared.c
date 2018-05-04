@@ -83,7 +83,7 @@ void add_bitwise_u16(struct nftnl_rule *r, int mask, int xor)
 	nftnl_rule_add_expr(r, expr);
 }
 
-static void add_bitwise(struct nftnl_rule *r, uint8_t *mask, size_t len)
+void add_bitwise(struct nftnl_rule *r, uint8_t *mask, size_t len)
 {
 	struct nftnl_expr *expr;
 	uint32_t xor[4] = { 0 };
