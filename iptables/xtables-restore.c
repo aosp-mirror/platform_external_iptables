@@ -190,7 +190,6 @@ struct nft_xt_restore_cb restore_cb = {
 	.chain_list	= get_chain_list,
 	.commit		= nft_commit,
 	.abort		= nft_abort,
-	.chains_purge	= nft_table_purge_chains,
 	.table_flush	= nft_table_flush,
 	.chain_del	= chain_delete,
 	.do_command	= do_commandx,
@@ -244,10 +243,6 @@ void xtables_restore_parse(struct nft_handle *h,
 					ret = cb->abort(h);
 			}
 			in_table = 0;
-
-			/* Purge out unused chains in this table */
-			if (!p->testing && cb->chains_purge)
-				cb->chains_purge(h, curtable, chain_list);
 
 		} else if ((buffer[0] == '*') && (!in_table)) {
 			/* New table */

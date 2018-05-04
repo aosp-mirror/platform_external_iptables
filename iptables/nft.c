@@ -1405,18 +1405,6 @@ int nft_chain_user_add(struct nft_handle *h, const char *chain, const char *tabl
 #define NLM_F_NONREC	0x100	/* Do not delete recursively    */
 #endif
 
-static int __nft_chain_del(struct nft_handle *h, struct nftnl_chain *c)
-{
-	char buf[MNL_SOCKET_BUFFER_SIZE];
-	struct nlmsghdr *nlh;
-
-	nlh = nftnl_chain_nlmsg_build_hdr(buf, NFT_MSG_DELCHAIN, h->family,
-					  NLM_F_NONREC | NLM_F_ACK, h->seq);
-	nftnl_chain_nlmsg_build_payload(nlh, c);
-
-	return mnl_talk(h, nlh, NULL, NULL);
-}
-
 int nft_chain_user_del(struct nft_handle *h, const char *chain, const char *table)
 {
 	struct nftnl_chain_list *list;
@@ -1672,39 +1660,6 @@ int nft_for_each_table(struct nft_handle *h,
 err:
 	/* the core expects 1 for success and 0 for error */
 	return ret == 0 ? 1 : 0;
-}
-
-int nft_table_purge_chains(struct nft_handle *h, const char *this_table,
-			   struct nftnl_chain_list *chain_list)
-{
-	struct nftnl_chain_list_iter *iter;
-	struct nftnl_chain *chain_obj;
-
-	iter = nftnl_chain_list_iter_create(chain_list);
-	if (iter == NULL)
-		return 0;
-
-	chain_obj = nftnl_chain_list_iter_next(iter);
-	while (chain_obj != NULL) {
-		const char *table =
-			nftnl_chain_get_str(chain_obj, NFTNL_CHAIN_TABLE);
-
-		if (strcmp(this_table, table) != 0)
-			goto next;
-
-		if (nft_chain_builtin(chain_obj))
-			goto next;
-
-		if ( __nft_chain_del(h, chain_obj) < 0) {
-			if (errno != EBUSY)
-				return -1;
-		}
-next:
-		chain_obj = nftnl_chain_list_iter_next(iter);
-	}
-	nftnl_chain_list_iter_destroy(iter);
-
-	return 0;
 }
 
 static int __nft_rule_del(struct nft_handle *h, struct nftnl_rule_list *list,
