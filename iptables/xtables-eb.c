@@ -665,6 +665,7 @@ void ebt_load_match_extensions(void)
 {
 	opts = ebt_original_options;
 	ebt_load_match("802_3");
+	ebt_load_match("arp");
 	ebt_load_match("ip");
 	ebt_load_match("ip6");
 	ebt_load_match("mark_m");
