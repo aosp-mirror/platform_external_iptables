@@ -58,6 +58,7 @@ struct nftnl_chain_list;
 int nft_for_each_table(struct nft_handle *h, int (*func)(struct nft_handle *h, const char *tablename, bool counters), bool counters);
 bool nft_table_find(struct nft_handle *h, const char *tablename);
 int nft_table_purge_chains(struct nft_handle *h, const char *table, struct nftnl_chain_list *list);
+int nft_table_flush(struct nft_handle *h, const char *table);
 
 /*
  * Operations with chains.

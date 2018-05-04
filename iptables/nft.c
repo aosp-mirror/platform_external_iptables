@@ -262,6 +262,7 @@ enum obj_update_type {
 	NFT_COMPAT_RULE_REPLACE,
 	NFT_COMPAT_RULE_DELETE,
 	NFT_COMPAT_RULE_FLUSH,
+	NFT_COMPAT_TABLE_FLUSH,
 };
 
 enum obj_action {
@@ -1289,6 +1290,27 @@ next:
 	return 1;
 }
 
+int nft_table_flush(struct nft_handle *h, const char *table)
+{
+	struct nftnl_table *r;
+	int ret = 0;
+
+	nft_fn = nft_table_flush;
+
+	r = nftnl_table_alloc();
+	if (r == NULL) {
+		ret = -1;
+		goto err;
+	}
+
+	nftnl_table_set_str(r, NFTNL_TABLE_NAME, table);
+
+	batch_table_add(h, NFT_COMPAT_TABLE_FLUSH, r);
+err:
+	/* the core expects 1 for success and 0 for error */
+	return ret == 0 ? 1 : 0;
+}
+
 static void
 __nft_rule_flush(struct nft_handle *h, const char *table, const char *chain)
 {
@@ -2299,6 +2321,11 @@ static int nft_action(struct nft_handle *h, int action)
 		case NFT_COMPAT_RULE_FLUSH:
 			nft_compat_rule_batch_add(h, NFT_MSG_DELRULE, 0,
 						  seq++, n->rule);
+			break;
+		case NFT_COMPAT_TABLE_FLUSH:
+			nft_compat_table_batch_add(h, NFT_MSG_DELTABLE,
+						   0,
+						   seq++, n->table);
 			break;
 		}
 

@@ -191,7 +191,7 @@ struct nft_xt_restore_cb restore_cb = {
 	.commit		= nft_commit,
 	.abort		= nft_abort,
 	.chains_purge	= nft_table_purge_chains,
-	.rule_flush	= nft_rule_flush,
+	.table_flush	= nft_table_flush,
 	.chain_del	= chain_delete,
 	.do_command	= do_commandx,
 	.chain_set	= nft_chain_set,
@@ -270,8 +270,8 @@ void xtables_restore_parse(struct nft_handle *h,
 			if (noflush == 0) {
 				DEBUGP("Cleaning all chains of table '%s'\n",
 					table);
-				if (cb->rule_flush)
-					cb->rule_flush(h, NULL, table);
+				if (cb->table_flush)
+					cb->table_flush(h, table);
 			}
 
 			ret = 1;
