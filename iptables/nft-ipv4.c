@@ -65,10 +65,13 @@ static int nft_ipv4_add(struct nftnl_rule *r, void *data)
 		add_payload(r, offsetof(struct iphdr, frag_off), 2,
 			    NFT_PAYLOAD_NETWORK_HEADER);
 		/* get the 13 bits that contain the fragment offset */
-		add_bitwise_u16(r, 0x1fff, !0x1fff);
+		add_bitwise_u16(r, 0x1fff, 0);
 
 		/* if offset is non-zero, this is a fragment */
-		op = nft_invflags2cmp(cs->fw.ip.invflags, IPT_INV_FRAG);
+		op = NFT_CMP_NEQ;
+		if (cs->fw.ip.invflags & IPT_INV_FRAG)
+			op = NFT_CMP_EQ;
+
 		add_cmp_u16(r, 0, op);
 	}
 
@@ -453,7 +456,7 @@ static int nft_ipv4_xlate(const void *data, struct xt_xlate *xl)
 		     cs->fw.ip.invflags & IPT_INV_VIA_OUT);
 
 	if (cs->fw.ip.flags & IPT_F_FRAG) {
-		xt_xlate_add(xl, "ip frag-off %s%x ",
+		xt_xlate_add(xl, "ip frag-off & 0x1fff %s%x ",
 			   cs->fw.ip.invflags & IPT_INV_FRAG? "" : "!= ", 0);
 	}
 
