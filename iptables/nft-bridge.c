@@ -54,10 +54,16 @@ static void ebt_print_mac(const unsigned char *mac)
 		printf("%s", ether_ntoa((struct ether_addr *) mac));
 }
 
+static bool mac_all_ones(const unsigned char *mac)
+{
+	static const char hlpmsk[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+
+	return memcmp(mac, hlpmsk, sizeof(hlpmsk)) == 0;
+}
+
 /* Put the mac address into 6 (ETH_ALEN) bytes returns 0 on success. */
 static void ebt_print_mac_and_mask(const unsigned char *mac, const unsigned char *mask)
 {
-	char hlpmsk[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
 	if (!memcmp(mac, eb_mac_type_unicast, 6) &&
 	    !memcmp(mask, eb_msk_type_unicast, 6))
@@ -73,7 +79,7 @@ static void ebt_print_mac_and_mask(const unsigned char *mac, const unsigned char
 		printf("BGA");
 	else {
 		ebt_print_mac(mac);
-		if (memcmp(mask, hlpmsk, 6)) {
+		if (!mac_all_ones(mask)) {
 			printf("/");
 			ebt_print_mac(mask);
 		}
@@ -184,7 +190,8 @@ static int nft_bridge_add(struct nftnl_rule *r, void *data)
 		op = nft_invflags2cmp(fw->invflags, EBT_ISOURCE);
 		add_payload(r, offsetof(struct ethhdr, h_source), 6,
 			    NFT_PAYLOAD_LL_HEADER);
-		add_bitwise(r, fw->sourcemsk, 6);
+		if (!mac_all_ones(fw->sourcemsk))
+			add_bitwise(r, fw->sourcemsk, 6);
 		add_cmp_ptr(r, op, fw->sourcemac, 6);
 	}
 
@@ -193,7 +200,8 @@ static int nft_bridge_add(struct nftnl_rule *r, void *data)
 		op = nft_invflags2cmp(fw->invflags, EBT_IDEST);
 		add_payload(r, offsetof(struct ethhdr, h_dest), 6,
 			    NFT_PAYLOAD_LL_HEADER);
-		add_bitwise(r, fw->destmsk, 6);
+		if (!mac_all_ones(fw->destmsk))
+			add_bitwise(r, fw->destmsk, 6);
 		add_cmp_ptr(r, op, fw->destmac, 6);
 	}
 

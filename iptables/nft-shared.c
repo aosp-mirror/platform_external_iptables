@@ -160,8 +160,18 @@ void add_outiface(struct nftnl_rule *r, char *iface, uint32_t op)
 void add_addr(struct nftnl_rule *r, int offset,
 	      void *data, void *mask, size_t len, uint32_t op)
 {
+	const char *m = mask;
+	int i;
+
 	add_payload(r, offset, len, NFT_PAYLOAD_NETWORK_HEADER);
-	add_bitwise(r, mask, len);
+
+	for (i = 0; i < len; i++) {
+		if (m[i] != 0xff)
+			break;
+	}
+
+	if (i != len)
+		add_bitwise(r, mask, len);
 
 	add_cmp_ptr(r, op, data, len);
 }
