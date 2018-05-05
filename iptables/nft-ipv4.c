@@ -339,6 +339,11 @@ static void nft_ipv4_save_firewall(const void *data, unsigned int format)
 {
 	const struct iptables_command_state *cs = data;
 
+	save_ipv4_addr('s', &cs->fw.ip.src, cs->fw.ip.smsk.s_addr,
+		       cs->fw.ip.invflags & IPT_INV_SRCIP);
+	save_ipv4_addr('d', &cs->fw.ip.dst, cs->fw.ip.dmsk.s_addr,
+		       cs->fw.ip.invflags & IPT_INV_DSTIP);
+
 	save_firewall_details(cs, cs->fw.ip.invflags, cs->fw.ip.proto,
 			      cs->fw.ip.iniface, cs->fw.ip.iniface_mask,
 			      cs->fw.ip.outiface, cs->fw.ip.outiface_mask);
@@ -348,11 +353,6 @@ static void nft_ipv4_save_firewall(const void *data, unsigned int format)
 			printf("! ");
 		printf("-f ");
 	}
-
-	save_ipv4_addr('s', &cs->fw.ip.src, cs->fw.ip.smsk.s_addr,
-		       cs->fw.ip.invflags & IPT_INV_SRCIP);
-	save_ipv4_addr('d', &cs->fw.ip.dst, cs->fw.ip.dmsk.s_addr,
-		       cs->fw.ip.invflags & IPT_INV_DSTIP);
 
 	save_matches_and_target(cs->matches, cs->target,
 				cs->jumpto, cs->fw.ip.flags, &cs->fw);

@@ -272,15 +272,15 @@ static void nft_ipv6_save_firewall(const void *data, unsigned int format)
 {
 	const struct iptables_command_state *cs = data;
 
-	save_firewall_details(cs, cs->fw6.ipv6.invflags, cs->fw6.ipv6.proto,
-			      cs->fw6.ipv6.iniface, cs->fw6.ipv6.iniface_mask,
-			      cs->fw6.ipv6.outiface,
-			      cs->fw6.ipv6.outiface_mask);
-
 	save_ipv6_addr('s', &cs->fw6.ipv6.src,
 		       cs->fw6.ipv6.invflags & IP6T_INV_SRCIP);
 	save_ipv6_addr('d', &cs->fw6.ipv6.dst,
 		       cs->fw6.ipv6.invflags & IP6T_INV_DSTIP);
+
+	save_firewall_details(cs, cs->fw6.ipv6.invflags, cs->fw6.ipv6.proto,
+			      cs->fw6.ipv6.iniface, cs->fw6.ipv6.iniface_mask,
+			      cs->fw6.ipv6.outiface,
+			      cs->fw6.ipv6.outiface_mask);
 
 	save_matches_and_target(cs->matches, cs->target,
 				cs->jumpto, cs->fw6.ipv6.flags, &cs->fw6);
