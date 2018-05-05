@@ -848,7 +848,9 @@ bool compare_targets(struct xtables_target *tg1, struct xtables_target *tg2)
 	if (tg1 == NULL && tg2 == NULL)
 		return true;
 
-	if ((tg1 == NULL && tg2 != NULL) || (tg1 != NULL && tg2 == NULL))
+	if (tg1 == NULL || tg2 == NULL)
+		return false;
+	if (tg1->userspacesize != tg2->userspacesize)
 		return false;
 
 	if (strcmp(tg1->t->u.user.name, tg2->t->u.user.name) != 0)
