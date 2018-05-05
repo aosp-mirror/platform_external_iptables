@@ -30,6 +30,7 @@ static int counters, verbose, noflush;
 static const struct option options[] = {
 	{.name = "counters", .has_arg = false, .val = 'c'},
 	{.name = "verbose",  .has_arg = false, .val = 'v'},
+	{.name = "version",       .has_arg = 0, .val = 'V'},
 	{.name = "test",     .has_arg = false, .val = 't'},
 	{.name = "help",     .has_arg = false, .val = 'h'},
 	{.name = "noflush",  .has_arg = false, .val = 'n'},
@@ -37,16 +38,20 @@ static const struct option options[] = {
 	{.name = "table",    .has_arg = true,  .val = 'T'},
 	{.name = "ipv4",     .has_arg = false, .val = '4'},
 	{.name = "ipv6",     .has_arg = false, .val = '6'},
+	{.name = "wait",          .has_arg = 2, .val = 'w'},
+	{.name = "wait-interval", .has_arg = 2, .val = 'W'},
 	{NULL},
 };
 
 #define prog_name xtables_globals.program_name
+#define prog_vers xtables_globals.program_version
 
 static void print_usage(const char *name, const char *version)
 {
-	fprintf(stderr, "Usage: %s [-c] [-v] [-t] [-h] [-n] [-T table] [-M command] [-4] [-6]\n"
+	fprintf(stderr, "Usage: %s [-c] [-v] [-V] [-t] [-h] [-n] [-T table] [-M command] [-4] [-6]\n"
 			"	   [ --counters ]\n"
 			"	   [ --verbose ]\n"
+			"	   [ --version]\n"
 			"	   [ --test ]\n"
 			"	   [ --help ]\n"
 			"	   [ --noflush ]\n"
@@ -468,7 +473,7 @@ xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 
-	while ((c = getopt_long(argc, argv, "bcvthnM:T:46", options, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "bcvVthnM:T:46wW", options, NULL)) != -1) {
 		switch (c) {
 			case 'b':
 				fprintf(stderr, "-b/--binary option is not implemented\n");
@@ -479,6 +484,9 @@ xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 			case 'v':
 				verbose = 1;
 				break;
+			case 'V':
+				printf("%s v%s\n", prog_name, prog_vers);
+				exit(0);
 			case 't':
 				p.testing = 1;
 				break;
@@ -501,6 +509,9 @@ xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 			case '6':
 				h.family = AF_INET6;
 				xtables_set_nfproto(AF_INET6);
+				break;
+			case 'w': /* fallthrough.  Ignored by xt-restore */
+			case 'W':
 				break;
 			default:
 				fprintf(stderr,
