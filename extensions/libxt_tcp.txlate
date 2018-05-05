@@ -18,3 +18,9 @@ nft add rule ip filter INPUT tcp flags & (fin|syn|rst|ack) == syn counter accept
 
 iptables-translate -A INPUT -p tcp --syn --dport 80 -j ACCEPT
 nft add rule ip filter INPUT tcp dport 80 tcp flags & (fin|syn|rst|ack) == syn counter accept
+
+iptables-translate -A INPUT -f -p tcp
+nft add rule ip filter INPUT ip frag-off & 0x1fff != 0 ip protocol tcp counter
+
+iptables-translate -A INPUT ! -f -p tcp --dport 22
+nft add rule ip filter INPUT ip frag-off & 0x1fff 0 tcp dport 22 counter
