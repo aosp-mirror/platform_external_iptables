@@ -51,7 +51,7 @@ def delete_rule(iptables, rule, filename, lineno):
     '''
     Removes an iptables rule
     '''
-    cmd = EXECUTEABLE + " " + iptables + " -D " + rule
+    cmd = iptables + " -D " + rule
     ret = execute_cmd(cmd, filename, lineno)
     if ret == 1:
         reason = "cannot delete: " + iptables + " -I " + rule
@@ -75,7 +75,7 @@ def run_test(iptables, rule, rule_save, res, filename, lineno):
     '''
     ret = 0
 
-    cmd = EXECUTEABLE + " " + iptables + " -A " + rule
+    cmd = iptables + " -A " + rule
     ret = execute_cmd(cmd, filename, lineno)
 
     #
@@ -144,6 +144,9 @@ def execute_cmd(cmd, filename, lineno):
     :param lineno: line number being tested (used for print_error purposes)
     '''
     global log_file
+    if cmd.startswith('iptables ') or cmd.startswith('ip6tables '):
+        cmd = os.path.abspath(os.path.curdir) + "/iptables/" + EXECUTEABLE + " " + cmd
+
     print >> log_file, "command: %s" % cmd
     ret = subprocess.call(cmd, shell=True, universal_newlines=True,
         stderr=subprocess.STDOUT, stdout=log_file)
