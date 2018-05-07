@@ -1539,7 +1539,7 @@ next:
 err:
 
 	/* chain not found */
-	if (deleted_ctr == 0) {
+	if (chain != NULL && deleted_ctr == 0) {
 		ret = -1;
 		errno = ENOENT;
 	}
