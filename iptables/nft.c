@@ -1630,20 +1630,17 @@ int nft_for_each_table(struct nft_handle *h,
 		       int (*func)(struct nft_handle *h, const char *tablename, bool counters),
 		       bool counters)
 {
-	int ret = 1;
 	struct nftnl_table_list *list;
 	struct nftnl_table_list_iter *iter;
 	struct nftnl_table *t;
 
 	list = nftnl_table_list_get(h);
-	if (list == NULL) {
-		ret = 0;
-		goto err;
-	}
+	if (list == NULL)
+		return -1;
 
 	iter = nftnl_table_list_iter_create(list);
 	if (iter == NULL)
-		return 0;
+		return -1;
 
 	t = nftnl_table_list_iter_next(iter);
 	while (t != NULL) {
@@ -1656,10 +1653,7 @@ int nft_for_each_table(struct nft_handle *h,
 	}
 
 	nftnl_table_list_free(list);
-
-err:
-	/* the core expects 1 for success and 0 for error */
-	return ret == 0 ? 1 : 0;
+	return 0;
 }
 
 static int __nft_rule_del(struct nft_handle *h, struct nftnl_rule_list *list,

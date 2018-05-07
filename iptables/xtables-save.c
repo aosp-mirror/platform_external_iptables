@@ -45,16 +45,16 @@ do_output(struct nft_handle *h, const char *tablename, bool counters)
 	struct nftnl_chain_list *chain_list;
 
 	if (!tablename)
-		return nft_for_each_table(h, do_output, counters);
+		return nft_for_each_table(h, do_output, counters) ? 1 : 0;
 
 	if (!nft_table_find(h, tablename)) {
 		printf("Table `%s' does not exist\n", tablename);
-		return 0;
+		return 1;
 	}
 
 	if (!nft_is_table_compatible(h, tablename)) {
 		printf("# Table `%s' is incompatible, use 'nft' tool.\n", tablename);
-		return 1;
+		return 0;
 	}
 
 	chain_list = nft_chain_dump(h);
@@ -73,8 +73,7 @@ do_output(struct nft_handle *h, const char *tablename, bool counters)
 	now = time(NULL);
 	printf("COMMIT\n");
 	printf("# Completed on %s", ctime(&now));
-
-	return 1;
+	return 0;
 }
 
 /* Format:
@@ -176,7 +175,7 @@ xtables_save_main(int family, const char *progname, int argc, char *argv[])
 		exit(0);
 	}
 
-	return !do_output(&h, tablename, show_counters);
+	return do_output(&h, tablename, show_counters);
 }
 
 int xtables_ip4_save_main(int argc, char *argv[])
