@@ -248,6 +248,9 @@ struct nft_xt_restore_cb {
 	struct nftnl_chain_list *(*chain_list)(struct nft_handle *h);
 	void (*chain_del)(struct nftnl_chain_list *clist, const char *curtable,
 			  const char *chain);
+	int (*chain_user_flush)(struct nft_handle *h,
+				struct nftnl_chain_list *clist,
+				const char *table, const char *chain);
 	int (*chain_set)(struct nft_handle *h, const char *table,
 			 const char *chain, const char *policy,
 			 const struct xt_counters *counters);

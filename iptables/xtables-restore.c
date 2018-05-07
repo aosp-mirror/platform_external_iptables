@@ -196,6 +196,7 @@ struct nft_xt_restore_cb restore_cb = {
 	.commit		= nft_commit,
 	.abort		= nft_abort,
 	.table_flush	= nft_table_flush,
+	.chain_user_flush = nft_chain_user_flush,
 	.chain_del	= chain_delete,
 	.do_command	= do_commandx,
 	.chain_set	= nft_chain_set,
@@ -294,8 +295,19 @@ void xtables_restore_parse(struct nft_handle *h,
 				exit(1);
 			}
 
-			if (cb->chain_del)
-				cb->chain_del(chain_list, curtable, chain);
+			if (noflush == 0) {
+				if (cb->chain_del)
+					cb->chain_del(chain_list, curtable,
+						      chain);
+			} else {
+				/* Apparently -n still flushes existing user
+				 * defined chains that are redefined. Otherwise,
+				 * leave them as is.
+				 */
+				if (cb->chain_user_flush)
+					cb->chain_user_flush(h, chain_list,
+							     curtable, chain);
+			}
 
 			if (strlen(chain) >= XT_EXTENSION_MAXNAMELEN)
 				xtables_error(PARAMETER_PROBLEM,

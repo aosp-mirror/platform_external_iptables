@@ -255,6 +255,7 @@ enum obj_update_type {
 	NFT_COMPAT_CHAIN_ADD,
 	NFT_COMPAT_CHAIN_USER_ADD,
 	NFT_COMPAT_CHAIN_USER_DEL,
+	NFT_COMPAT_CHAIN_USER_FLUSH,
 	NFT_COMPAT_CHAIN_UPDATE,
 	NFT_COMPAT_CHAIN_RENAME,
 	NFT_COMPAT_RULE_APPEND,
@@ -1361,6 +1362,55 @@ err:
 	return ret == 0 ? 1 : 0;
 }
 
+struct chain_user_flush_data {
+	struct nft_handle	*handle;
+	const char		*table;
+	const char		*chain;
+};
+
+static int __nft_chain_user_flush(struct nftnl_chain *c, void *data)
+{
+	const char *table_name = nftnl_chain_get_str(c, NFTNL_CHAIN_TABLE);
+	const char *chain_name = nftnl_chain_get_str(c, NFTNL_CHAIN_NAME);
+	struct chain_user_flush_data *d = data;
+	struct nft_handle *h = d->handle;
+	const char *table = d->table;
+	const char *chain = d->chain;
+	int ret;
+
+	if (strcmp(table, table_name) != 0)
+		return 0;
+
+	if (strcmp(chain, chain_name) != 0)
+		return 0;
+
+	if (!nftnl_chain_is_set(c, NFTNL_CHAIN_HOOKNUM)) {
+		ret = batch_chain_add(h, NFT_COMPAT_CHAIN_USER_FLUSH, c);
+		if (ret < 0)
+			return ret;
+
+		nftnl_chain_list_del(c);
+	}
+
+	return 0;
+}
+
+int nft_chain_user_flush(struct nft_handle *h, struct nftnl_chain_list *list,
+			 const char *table, const char *chain)
+{
+	struct chain_user_flush_data d = {
+		.handle = h,
+		.table	= table,
+		.chain  = chain,
+	};
+
+	nft_fn = nft_chain_user_flush;
+
+	nftnl_chain_list_foreach(list, __nft_chain_user_flush, &d);
+
+	return 1;
+}
+
 int nft_rule_flush(struct nft_handle *h, const char *chain, const char *table)
 {
 	int ret;
@@ -2273,6 +2323,11 @@ static int nft_action(struct nft_handle *h, int action)
 		case NFT_COMPAT_CHAIN_USER_DEL:
 			nft_compat_chain_batch_add(h, NFT_MSG_DELCHAIN,
 						   NLM_F_NONREC, seq++,
+						   n->chain);
+			break;
+		case NFT_COMPAT_CHAIN_USER_FLUSH:
+			nft_compat_chain_batch_add(h, NFT_MSG_DELCHAIN,
+						   0, seq++,
 						   n->chain);
 			break;
 		case NFT_COMPAT_CHAIN_UPDATE:
