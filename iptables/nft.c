@@ -61,7 +61,7 @@ int mnl_talk(struct nft_handle *h, struct nlmsghdr *nlh,
 	     void *data)
 {
 	int ret;
-	char buf[MNL_SOCKET_BUFFER_SIZE];
+	char buf[16536];
 
 	if (mnl_socket_sendto(h->nl, nlh, nlh->nlmsg_len) < 0)
 		return -1;
@@ -193,7 +193,7 @@ static ssize_t mnl_nft_socket_sendmsg(const struct mnl_socket *nl)
 static int mnl_nftnl_batch_talk(struct nft_handle *h)
 {
 	int ret, fd = mnl_socket_get_fd(h->nl);
-	char rcv_buf[MNL_SOCKET_BUFFER_SIZE];
+	char rcv_buf[16536];
 	fd_set readfds;
 	struct timeval tv = {
 		.tv_sec		= 0,
@@ -1110,7 +1110,7 @@ err:
 
 static struct nftnl_chain_list *nftnl_chain_list_get(struct nft_handle *h)
 {
-	char buf[MNL_SOCKET_BUFFER_SIZE];
+	char buf[16536];
 	struct nlmsghdr *nlh;
 	struct nftnl_chain_list *list;
 	int ret;
@@ -1220,7 +1220,7 @@ err:
 
 static struct nftnl_rule_list *nft_rule_list_get(struct nft_handle *h)
 {
-	char buf[MNL_SOCKET_BUFFER_SIZE];
+	char buf[16536];
 	struct nlmsghdr *nlh;
 	struct nftnl_rule_list *list;
 	int ret;
@@ -1571,7 +1571,7 @@ err:
 
 static struct nftnl_table_list *nftnl_table_list_get(struct nft_handle *h)
 {
-	char buf[MNL_SOCKET_BUFFER_SIZE];
+	char buf[16536];
 	struct nlmsghdr *nlh;
 	struct nftnl_table_list *list;
 	int ret;
@@ -2317,7 +2317,7 @@ int nft_abort(struct nft_handle *h)
 int nft_compatible_revision(const char *name, uint8_t rev, int opt)
 {
 	struct mnl_socket *nl;
-	char buf[MNL_SOCKET_BUFFER_SIZE];
+	char buf[16536];
 	struct nlmsghdr *nlh;
 	uint32_t portid, seq, type = 0;
 	uint32_t pf = AF_INET;
