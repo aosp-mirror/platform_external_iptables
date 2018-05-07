@@ -1236,12 +1236,9 @@ big_iface_length:
 			 * executed in daemon mode */
 			/*replace->filename = (char *)malloc(strlen(optarg) + 1);
 			strcpy(replace->filename, optarg);
+			break; */
+		case 13 :
 			break;
-		case 13 : *//* concurrent */
-			/*signal(SIGINT, sighandler);
-			signal(SIGTERM, sighandler);
-			use_lockfd = 1;
-			break;*/
 		case 1 :
 			if (!strcmp(optarg, "!"))
 				ebt_check_inverse2(optarg, argc, argv);
