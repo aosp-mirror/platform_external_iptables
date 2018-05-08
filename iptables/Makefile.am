@@ -41,6 +41,7 @@ xtables_compat_multi_SOURCES += xtables-config-parser.y xtables-config-syntax.l
 xtables_compat_multi_SOURCES += xtables-save.c xtables-restore.c \
 				xtables-standalone.c xtables.c nft.c \
 				nft-shared.c nft-ipv4.c nft-ipv6.c nft-arp.c \
+				xtables-monitor.c \
 				xtables-arp-standalone.c xtables-arp.c \
 				getethertype.c nft-bridge.c \
 				xtables-eb-standalone.c xtables-eb.c \
@@ -60,8 +61,9 @@ endif
 man_MANS         = iptables.8 iptables-restore.8 iptables-save.8 \
                    iptables-xml.1 ip6tables.8 ip6tables-restore.8 \
                    ip6tables-save.8 iptables-extensions.8 \
-                   xtables-compat.8 xtables-translate.8
-CLEANFILES       = iptables.8 \
+                   xtables-compat.8 xtables-translate.8 \
+                   xtables-monitor.8
+CLEANFILES       = iptables.8 xtables-monitor.8 \
 		   xtables-config-parser.c xtables-config-syntax.c
 
 vx_bin_links   = iptables-xml
@@ -76,7 +78,7 @@ x_sbin_links  = iptables-compat iptables-compat-restore iptables-compat-save \
 		ip6tables-compat ip6tables-compat-restore ip6tables-compat-save \
 		iptables-translate ip6tables-translate \
 		iptables-restore-translate ip6tables-restore-translate \
-		arptables-compat ebtables-compat
+		arptables-compat ebtables-compat xtables-monitor
 endif
 
 iptables-extensions.8: iptables-extensions.8.tmpl ../extensions/matches.man ../extensions/targets.man

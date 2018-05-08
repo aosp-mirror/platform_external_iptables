@@ -17,7 +17,7 @@ extern int xtables_ip6_xlate_restore_main(int, char **);
 extern int xtables_arp_main(int, char **);
 extern int xtables_eb_main(int, char **);
 extern int xtables_config_main(int, char **);
-extern int xtables_events_main(int, char **);
+extern int xtables_monitor_main(int, char **);
 #endif
 
 #endif /* _XTABLES_MULTI_H */

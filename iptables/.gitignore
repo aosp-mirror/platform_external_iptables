@@ -17,5 +17,6 @@
 /xtables-config-parser.c
 /xtables-config-parser.h
 /xtables-config-syntax.c
+/xtables-monitor.8
 
 /xtables.pc

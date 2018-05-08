@@ -251,6 +251,7 @@ AC_CONFIG_FILES([Makefile extensions/GNUmakefile include/Makefile
 	libiptc/libip4tc.pc libiptc/libip6tc.pc
 	libxtables/Makefile utils/Makefile
 	include/xtables-version.h include/iptables/internal.h
+	iptables/xtables-monitor.8
 	utils/nfnl_osf.8])
 AC_OUTPUT
 
