@@ -406,7 +406,6 @@ static void print_matches_and_watchers(const struct iptables_command_state *cs,
 	}
 }
 
-
 static void nft_bridge_print_firewall(struct nftnl_rule *r, unsigned int num,
 				      unsigned int format)
 {
@@ -547,14 +546,7 @@ static bool nft_bridge_is_same(const void *data_a, const void *data_b)
 		}
 	}
 
-	return is_same_interfaces((char *)a->in,
-				  (char *)a->out,
-				  a->in_mask,
-				  a->out_mask,
-				  (char *)b->in,
-				  (char *)b->out,
-				  b->in_mask,
-				  b->out_mask);
+	return strcmp(a->in, b->in) == 0 && strcmp(a->out, b->out) == 0;
 }
 
 static bool nft_bridge_rule_find(struct nft_family_ops *ops, struct nftnl_rule *r,

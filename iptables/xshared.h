@@ -76,9 +76,6 @@ struct ebt_entry {
 	unsigned char sourcemsk[6];
 	unsigned char destmac[6];
 	unsigned char destmsk[6];
-
-	unsigned char in_mask[IFNAMSIZ];
-	unsigned char out_mask[IFNAMSIZ];
 };
 
 struct iptables_command_state {
