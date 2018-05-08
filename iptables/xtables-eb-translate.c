@@ -294,19 +294,19 @@ invalid:
 	xtables_error(PARAMETER_PROBLEM,"Packet counter '%s' invalid", argv[optind]);
 }
 
-static int parse_iface(char *iface, char *option)
+static void ebtables_parse_interface(const char *arg, char *vianame)
 {
+	unsigned char mask[IFNAMSIZ];
 	char *c;
 
-	if ((c = strchr(iface, '+'))) {
-		if (*(c + 1) != '\0') {
+	xtables_parse_interface(arg, vianame, mask);
+
+	if ((c = strchr(vianame, '+'))) {
+		if (*(c + 1) != '\0')
 			xtables_error(PARAMETER_PROBLEM,
-				      "Spurious characters after '+' wildcard for '%s'", option);
-			return -1;
-		} else
-			*c = IF_WILDCARD;
+				      "Spurious characters after '+' wildcard");
+		*c = IF_WILDCARD;
 	}
-	return 0;
 }
 
 static void print_ebt_cmd(int argc, char *argv[])
@@ -539,12 +539,7 @@ print_zero:
 				if (ebt_check_inverse2(optarg, argc, argv))
 					cs.eb.invflags |= EBT_IIN;
 
-				if (strlen(optarg) >= IFNAMSIZ)
-big_iface_length:
-					xtables_error(PARAMETER_PROBLEM,
-						      "Interface name length cannot exceed %d characters",
-						      IFNAMSIZ - 1);
-				xtables_parse_interface(optarg, cs.eb.in, cs.eb.in_mask);
+				ebtables_parse_interface(optarg, cs.eb.in);
 				break;
 			} else if (c == 2) {
 				ebt_check_option2(&flags, OPT_LOGICALIN);
@@ -554,11 +549,7 @@ big_iface_length:
 				if (ebt_check_inverse2(optarg, argc, argv))
 					cs.eb.invflags |= EBT_ILOGICALIN;
 
-				if (strlen(optarg) >= IFNAMSIZ)
-					goto big_iface_length;
-				strcpy(cs.eb.logical_in, optarg);
-				if (parse_iface(cs.eb.logical_in, "--logical-in"))
-					return -1;
+				ebtables_parse_interface(optarg, cs.eb.logical_in);
 				break;
 			} else if (c == 'o') {
 				ebt_check_option2(&flags, OPT_OUT);
@@ -568,10 +559,7 @@ big_iface_length:
 				if (ebt_check_inverse2(optarg, argc, argv))
 					cs.eb.invflags |= EBT_IOUT;
 
-				if (strlen(optarg) >= IFNAMSIZ)
-					goto big_iface_length;
-
-				xtables_parse_interface(optarg, cs.eb.out, cs.eb.out_mask);
+				ebtables_parse_interface(optarg, cs.eb.out);
 				break;
 			} else if (c == 3) {
 				ebt_check_option2(&flags, OPT_LOGICALOUT);
@@ -581,11 +569,7 @@ big_iface_length:
 				if (ebt_check_inverse2(optarg, argc, argv))
 					cs.eb.invflags |= EBT_ILOGICALOUT;
 
-				if (strlen(optarg) >= IFNAMSIZ)
-					goto big_iface_length;
-				strcpy(cs.eb.logical_out, optarg);
-				if (parse_iface(cs.eb.logical_out, "--logical-out"))
-					return -1;
+				ebtables_parse_interface(optarg, cs.eb.logical_out);
 				break;
 			} else if (c == 'j') {
 				ebt_check_option2(&flags, OPT_JUMP);
