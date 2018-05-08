@@ -252,6 +252,7 @@ static void mnl_nftnl_batch_end(struct mnl_nlmsg_batch *batch, uint32_t seq)
 
 enum obj_update_type {
 	NFT_COMPAT_TABLE_ADD,
+	NFT_COMPAT_TABLE_FLUSH,
 	NFT_COMPAT_CHAIN_ADD,
 	NFT_COMPAT_CHAIN_USER_ADD,
 	NFT_COMPAT_CHAIN_USER_DEL,
@@ -1306,62 +1307,6 @@ __nft_rule_flush(struct nft_handle *h, const char *table, const char *chain)
 		nftnl_rule_free(r);
 }
 
-struct flush_data {
-	struct nft_handle	*handle;
-	const char		*table;
-};
-
-static int __nft_table_flush(struct nftnl_chain *c, void *data)
-{
-	const char *table_name = nftnl_chain_get_str(c, NFTNL_CHAIN_TABLE);
-	const char *chain_name = nftnl_chain_get_str(c, NFTNL_CHAIN_NAME);
-	struct flush_data *d = data;
-	struct nft_handle *h = d->handle;
-	const char *table = d->table;
-	int ret;
-
-	if (strcmp(table, table_name) != 0)
-		return 0;
-
-	__nft_rule_flush(h, table_name, chain_name);
-
-	if (!nftnl_chain_is_set(c, NFTNL_CHAIN_HOOKNUM)) {
-		ret = batch_chain_add(h, NFT_COMPAT_CHAIN_USER_DEL, c);
-		if (ret < 0)
-			return ret;
-
-		nftnl_chain_list_del(c);
-	}
-
-	return 0;
-}
-
-int nft_table_flush(struct nft_handle *h, const char *table)
-{
-	struct flush_data d = {
-		.handle = h,
-		.table	= table,
-	};
-	struct nftnl_chain_list *list;
-	int ret = 0;
-
-	nft_fn = nft_table_flush;
-
-	list = nftnl_chain_list_get(h);
-	if (list == NULL) {
-		ret = 0;
-		goto err;
-	}
-
-	nftnl_chain_list_foreach(list, __nft_table_flush, &d);
-	flush_rule_cache(h);
-err:
-	nftnl_chain_list_free(list);
-
-	/* the core expects 1 for success and 0 for error */
-	return ret == 0 ? 1 : 0;
-}
-
 struct chain_user_flush_data {
 	struct nft_handle	*handle;
 	const char		*table;
@@ -1738,6 +1683,66 @@ int nft_for_each_table(struct nft_handle *h,
 
 	nftnl_table_list_free(list);
 	return 0;
+}
+
+static int __nft_table_flush(struct nft_handle *h, const char *table)
+{
+	struct nftnl_table *t;
+
+	t = nftnl_table_alloc();
+	if (t == NULL)
+		return -1;
+
+	nftnl_table_set_str(t, NFTNL_TABLE_NAME, table);
+
+	batch_table_add(h, NFT_COMPAT_TABLE_FLUSH, t);
+
+	return 0;
+}
+
+int nft_table_flush(struct nft_handle *h, const char *table)
+{
+	struct nftnl_table_list_iter *iter;
+	struct nftnl_table_list *list;
+	struct nftnl_table *t;
+	int ret = 0;
+
+	nft_fn = nft_table_flush;
+
+	list = nftnl_table_list_get(h);
+	if (list == NULL) {
+		ret = -1;
+		goto err_out;
+	}
+
+	iter = nftnl_table_list_iter_create(list);
+	if (iter == NULL) {
+		ret = -1;
+		goto err_table_list;
+	}
+
+	t = nftnl_table_list_iter_next(iter);
+	while (t != NULL) {
+		const char *table_name =
+			nftnl_table_get_str(t, NFTNL_TABLE_NAME);
+
+		if (strcmp(table_name, table) != 0)
+			goto next;
+
+		ret = __nft_table_flush(h, table);
+		if (ret < 0)
+			goto err_table_iter;
+next:
+		t = nftnl_table_list_iter_next(iter);
+	}
+
+err_table_iter:
+	nftnl_table_list_iter_destroy(iter);
+err_table_list:
+	nftnl_table_list_free(list);
+err_out:
+	/* the core expects 1 for success and 0 for error */
+	return ret == 0 ? 1 : 0;
 }
 
 static int __nft_rule_del(struct nft_handle *h, struct nftnl_rule_list *list,
@@ -2309,6 +2314,11 @@ static int nft_action(struct nft_handle *h, int action)
 			nft_compat_table_batch_add(h, NFT_MSG_NEWTABLE,
 						   NLM_F_CREATE, seq++,
 						   n->table);
+			break;
+		case NFT_COMPAT_TABLE_FLUSH:
+			nft_compat_table_batch_add(h, NFT_MSG_DELTABLE,
+						   0,
+						   seq++, n->table);
 			break;
 		case NFT_COMPAT_CHAIN_ADD:
 			nft_compat_chain_batch_add(h, NFT_MSG_NEWCHAIN,
