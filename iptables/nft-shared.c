@@ -217,6 +217,30 @@ bool is_same_interfaces(const char *a_iniface, const char *a_outiface,
 	return true;
 }
 
+static void parse_ifname(const char *name, unsigned int len, char *dst, unsigned char *mask)
+{
+	if (len == 0)
+		return;
+
+	memcpy(dst, name, len);
+	if (name[len - 1] == '\0') {
+		if (mask)
+			memset(mask, 0xff, len);
+		return;
+	}
+
+	if (len >= IFNAMSIZ)
+		return;
+
+	/* wildcard */
+	dst[len++] = '+';
+	if (len >= IFNAMSIZ)
+		return;
+	dst[len++] = 0;
+	if (mask)
+		memset(mask, 0xff, len + 1);
+}
+
 int parse_meta(struct nftnl_expr *e, uint8_t key, char *iniface,
 		unsigned char *iniface_mask, char *outiface,
 		unsigned char *outiface_mask, uint8_t *invflags)
@@ -249,30 +273,14 @@ int parse_meta(struct nftnl_expr *e, uint8_t key, char *iniface,
 		if (nftnl_expr_get_u32(e, NFTNL_EXPR_CMP_OP) == NFT_CMP_NEQ)
 			*invflags |= IPT_INV_VIA_IN;
 
-		memcpy(iniface, ifname, len);
-
-		if (iniface[len] == '\0')
-			memset(iniface_mask, 0xff, len);
-		else {
-			iniface[len] = '+';
-			iniface[len+1] = '\0';
-			memset(iniface_mask, 0xff, len + 1);
-		}
+		parse_ifname(ifname, len, iniface, iniface_mask);
 		break;
 	case NFT_META_OIFNAME:
 		ifname = nftnl_expr_get(e, NFTNL_EXPR_CMP_DATA, &len);
 		if (nftnl_expr_get_u32(e, NFTNL_EXPR_CMP_OP) == NFT_CMP_NEQ)
 			*invflags |= IPT_INV_VIA_OUT;
 
-		memcpy(outiface, ifname, len);
-
-		if (outiface[len] == '\0')
-			memset(outiface_mask, 0xff, len);
-		else {
-			outiface[len] = '+';
-			outiface[len+1] = '\0';
-			memset(outiface_mask, 0xff, len + 1);
-		}
+		parse_ifname(ifname, len, outiface, outiface_mask);
 		break;
 	default:
 		return -1;
