@@ -48,8 +48,42 @@ struct xtables_afinfo {
 	int so_rev_target;
 };
 
+/* trick for ebtables-compat, since watchers are targets */
+struct ebt_match {
+	struct ebt_match			*next;
+	union {
+		struct xtables_match		*match;
+		struct xtables_target		*watcher;
+	} u;
+	bool					ismatch;
+};
+
+/* Fake ebt_entry */
+struct ebt_entry {
+	/* this needs to be the first field */
+	unsigned int bitmask;
+	unsigned int invflags;
+	uint16_t ethproto;
+	/* the physical in-dev */
+	char in[IFNAMSIZ];
+	/* the logical in-dev */
+	char logical_in[IFNAMSIZ];
+	/* the physical out-dev */
+	char out[IFNAMSIZ];
+	/* the logical out-dev */
+	char logical_out[IFNAMSIZ];
+	unsigned char sourcemac[6];
+	unsigned char sourcemsk[6];
+	unsigned char destmac[6];
+	unsigned char destmsk[6];
+
+	unsigned char in_mask[IFNAMSIZ];
+	unsigned char out_mask[IFNAMSIZ];
+};
+
 struct iptables_command_state {
 	union {
+		struct ebt_entry eb;
 		struct ipt_entry fw;
 		struct ip6t_entry fw6;
 	};
@@ -57,6 +91,7 @@ struct iptables_command_state {
 	int c;
 	unsigned int options;
 	struct xtables_rule_match *matches;
+	struct ebt_match *match_list;
 	struct xtables_target *target;
 	struct xt_counters counters;
 	char *protocol;

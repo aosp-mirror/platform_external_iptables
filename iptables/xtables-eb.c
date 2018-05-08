@@ -168,7 +168,7 @@ static int
 append_entry(struct nft_handle *h,
 	     const char *chain,
 	     const char *table,
-	     struct ebtables_command_state *cs,
+	     struct iptables_command_state *cs,
 	     int rule_nr,
 	     bool verbose, bool append)
 {
@@ -186,7 +186,7 @@ static int
 delete_entry(struct nft_handle *h,
 	     const char *chain,
 	     const char *table,
-	     struct ebtables_command_state *cs,
+	     struct iptables_command_state *cs,
 	     int rule_nr,
 	     int rule_nr_end,
 	     bool verbose)
@@ -380,7 +380,7 @@ static struct option *merge_options(struct option *oldopts,
 /*
  * More glue code.
  */
-static struct xtables_target *command_jump(struct ebtables_command_state *cs,
+static struct xtables_target *command_jump(struct iptables_command_state *cs,
 					   const char *jumpto)
 {
 	struct xtables_target *target;
@@ -524,7 +524,7 @@ static int parse_rule_range(const char *argv, int *rule_nr, int *rule_nr_end)
 /* Incrementing or decrementing rules in daemon mode is not supported as the
  * involved code overload is not worth it (too annoying to take the increased
  * counters in the kernel into account). */
-static int parse_change_counters_rule(int argc, char **argv, int *rule_nr, int *rule_nr_end, int exec_style, struct ebtables_command_state *cs)
+static int parse_change_counters_rule(int argc, char **argv, int *rule_nr, int *rule_nr_end, int exec_style, struct iptables_command_state *cs)
 {
 	char *buffer;
 	int ret = 0;
@@ -679,7 +679,7 @@ void ebt_load_match_extensions(void)
 }
 
 void ebt_add_match(struct xtables_match *m,
-		   struct ebtables_command_state *cs)
+		   struct iptables_command_state *cs)
 {
 	struct xtables_rule_match *i, **rule_matches = &cs->matches;
 	struct xtables_match *newm;
@@ -715,7 +715,7 @@ void ebt_add_match(struct xtables_match *m,
 }
 
 void ebt_add_watcher(struct xtables_target *watcher,
-		     struct ebtables_command_state *cs)
+		     struct iptables_command_state *cs)
 {
 	struct ebt_match *i, *newnode;
 
@@ -753,7 +753,7 @@ int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table)
 	unsigned int flags = 0;
 	struct xtables_target *t, *w;
 	struct xtables_match *m;
-	struct ebtables_command_state cs;
+	struct iptables_command_state cs;
 	char command = 'h';
 	const char *chain = NULL;
 	const char *policy = NULL;
@@ -1006,14 +1006,14 @@ print_zero:
 					xtables_error(PARAMETER_PROBLEM,
 						      "Use -i only in INPUT, FORWARD, PREROUTING and BROUTING chains");
 				if (ebt_check_inverse2(optarg, argc, argv))
-					cs.fw.invflags |= EBT_IIN;
+					cs.eb.invflags |= EBT_IIN;
 
 				if (strlen(optarg) >= IFNAMSIZ)
 big_iface_length:
 					xtables_error(PARAMETER_PROBLEM,
 						      "Interface name length cannot exceed %d characters",
 						      IFNAMSIZ - 1);
-				xtables_parse_interface(optarg, cs.fw.in, cs.fw.in_mask);
+				xtables_parse_interface(optarg, cs.eb.in, cs.eb.in_mask);
 				break;
 			} else if (c == 2) {
 				ebt_check_option2(&flags, OPT_LOGICALIN);
@@ -1021,12 +1021,12 @@ big_iface_length:
 					xtables_error(PARAMETER_PROBLEM,
 						      "Use --logical-in only in INPUT, FORWARD, PREROUTING and BROUTING chains");
 				if (ebt_check_inverse2(optarg, argc, argv))
-					cs.fw.invflags |= EBT_ILOGICALIN;
+					cs.eb.invflags |= EBT_ILOGICALIN;
 
 				if (strlen(optarg) >= IFNAMSIZ)
 					goto big_iface_length;
-				strcpy(cs.fw.logical_in, optarg);
-				if (parse_iface(cs.fw.logical_in, "--logical-in"))
+				strcpy(cs.eb.logical_in, optarg);
+				if (parse_iface(cs.eb.logical_in, "--logical-in"))
 					return -1;
 				break;
 			} else if (c == 'o') {
@@ -1035,12 +1035,12 @@ big_iface_length:
 					xtables_error(PARAMETER_PROBLEM,
 						      "Use -o only in OUTPUT, FORWARD and POSTROUTING chains");
 				if (ebt_check_inverse2(optarg, argc, argv))
-					cs.fw.invflags |= EBT_IOUT;
+					cs.eb.invflags |= EBT_IOUT;
 
 				if (strlen(optarg) >= IFNAMSIZ)
 					goto big_iface_length;
 
-				xtables_parse_interface(optarg, cs.fw.out, cs.fw.out_mask);
+				xtables_parse_interface(optarg, cs.eb.out, cs.eb.out_mask);
 				break;
 			} else if (c == 3) {
 				ebt_check_option2(&flags, OPT_LOGICALOUT);
@@ -1048,12 +1048,12 @@ big_iface_length:
 					xtables_error(PARAMETER_PROBLEM,
 						      "Use --logical-out only in OUTPUT, FORWARD and POSTROUTING chains");
 				if (ebt_check_inverse2(optarg, argc, argv))
-					cs.fw.invflags |= EBT_ILOGICALOUT;
+					cs.eb.invflags |= EBT_ILOGICALOUT;
 
 				if (strlen(optarg) >= IFNAMSIZ)
 					goto big_iface_length;
-				strcpy(cs.fw.logical_out, optarg);
-				if (parse_iface(cs.fw.logical_out, "--logical-out"))
+				strcpy(cs.eb.logical_out, optarg);
+				if (parse_iface(cs.eb.logical_out, "--logical-out"))
 					return -1;
 				break;
 			} else if (c == 'j') {
@@ -1064,20 +1064,20 @@ big_iface_length:
 			} else if (c == 's') {
 				ebt_check_option2(&flags, OPT_SOURCE);
 				if (ebt_check_inverse2(optarg, argc, argv))
-					cs.fw.invflags |= EBT_ISOURCE;
+					cs.eb.invflags |= EBT_ISOURCE;
 
-				if (ebt_get_mac_and_mask(optarg, cs.fw.sourcemac, cs.fw.sourcemsk))
+				if (ebt_get_mac_and_mask(optarg, cs.eb.sourcemac, cs.eb.sourcemsk))
 					xtables_error(PARAMETER_PROBLEM, "Problem with specified source mac '%s'", optarg);
-				cs.fw.bitmask |= EBT_SOURCEMAC;
+				cs.eb.bitmask |= EBT_SOURCEMAC;
 				break;
 			} else if (c == 'd') {
 				ebt_check_option2(&flags, OPT_DEST);
 				if (ebt_check_inverse2(optarg, argc, argv))
-					cs.fw.invflags |= EBT_IDEST;
+					cs.eb.invflags |= EBT_IDEST;
 
-				if (ebt_get_mac_and_mask(optarg, cs.fw.destmac, cs.fw.destmsk))
+				if (ebt_get_mac_and_mask(optarg, cs.eb.destmac, cs.eb.destmsk))
 					xtables_error(PARAMETER_PROBLEM, "Problem with specified destination mac '%s'", optarg);
-				cs.fw.bitmask |= EBT_DESTMAC;
+				cs.eb.bitmask |= EBT_DESTMAC;
 				break;
 			} else if (c == 'c') {
 				ebt_check_option2(&flags, OPT_COUNT);
@@ -1103,9 +1103,9 @@ big_iface_length:
 			}
 			ebt_check_option2(&flags, OPT_PROTOCOL);
 			if (ebt_check_inverse2(optarg, argc, argv))
-				cs.fw.invflags |= EBT_IPROTO;
+				cs.eb.invflags |= EBT_IPROTO;
 
-			cs.fw.bitmask &= ~((unsigned int)EBT_NOPROTO);
+			cs.eb.bitmask &= ~((unsigned int)EBT_NOPROTO);
 			i = strtol(optarg, &buffer, 16);
 			if (*buffer == '\0' && (i < 0 || i > 0xFFFF))
 				xtables_error(PARAMETER_PROBLEM,
@@ -1114,18 +1114,18 @@ big_iface_length:
 				struct ethertypeent *ent;
 
 				if (!strcasecmp(optarg, "LENGTH")) {
-					cs.fw.bitmask |= EBT_802_3;
+					cs.eb.bitmask |= EBT_802_3;
 					break;
 				}
 				ent = getethertypebyname(optarg);
 				if (!ent)
 					xtables_error(PARAMETER_PROBLEM,
 						      "Problem with the specified Ethernet protocol '%s', perhaps "_PATH_ETHERTYPES " is missing", optarg);
-				cs.fw.ethproto = ent->e_ethertype;
+				cs.eb.ethproto = ent->e_ethertype;
 			} else
-				cs.fw.ethproto = i;
+				cs.eb.ethproto = i;
 
-			if (cs.fw.ethproto < 0x0600)
+			if (cs.eb.ethproto < 0x0600)
 				xtables_error(PARAMETER_PROBLEM,
 					      "Sorry, protocols have values above or equal to 0x0600");
 			break;
@@ -1331,7 +1331,7 @@ check_extension:
 	}
 	/* So, the extensions can work with the host endian.
 	 * The kernel does not have to do this of course */
-	cs.fw.ethproto = htons(cs.fw.ethproto);
+	cs.eb.ethproto = htons(cs.eb.ethproto);
 
 	if (command == 'P') {
 		if (selected_chain < 0) {

@@ -294,11 +294,10 @@ static void *nft_get_data(struct nft_xt_ctx *ctx)
 	switch(ctx->family) {
 	case NFPROTO_IPV4:
 	case NFPROTO_IPV6:
+	case NFPROTO_BRIDGE:
 		return ctx->state.cs;
 	case NFPROTO_ARP:
 		return ctx->state.cs_arp;
-	case NFPROTO_BRIDGE:
-		return ctx->state.cs_eb;
 	default:
 		/* Should not happen */
 		return NULL;
@@ -351,10 +350,8 @@ void nft_parse_match(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 	switch (ctx->family) {
 	case NFPROTO_IPV4:
 	case NFPROTO_IPV6:
-		matches = &ctx->state.cs->matches;
-		break;
 	case NFPROTO_BRIDGE:
-		matches = &ctx->state.cs_eb->matches;
+		matches = &ctx->state.cs->matches;
 		break;
 	default:
 		fprintf(stderr, "BUG: nft_parse_match() unknown family %d\n",

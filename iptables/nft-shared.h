@@ -49,7 +49,6 @@ struct nft_xt_ctx {
 	union {
 		struct iptables_command_state *cs;
 		struct arptables_command_state *cs_arp;
-		struct ebtables_command_state *cs_eb;
 	} state;
 	struct nftnl_expr_iter *iter;
 	int family;
