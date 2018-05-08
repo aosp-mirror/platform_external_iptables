@@ -413,12 +413,34 @@ static void nft_bridge_print_header(unsigned int format, const char *chain,
 	       chain, refs, basechain ? pol : "RETURN");
 }
 
+static void print_matches_and_watchers(const struct iptables_command_state *cs,
+				       unsigned int format)
+{
+	struct xtables_target *watcherp;
+	struct xtables_match *matchp;
+	struct ebt_match *m;
+
+	for (m = cs->match_list; m; m = m->next) {
+		if (m->ismatch) {
+			matchp = m->u.match;
+			if (matchp->print != NULL) {
+				matchp->print(&cs->eb, matchp->m,
+					      format & FMT_NUMERIC);
+			}
+		} else {
+			watcherp = m->u.watcher;
+			if (watcherp->print != NULL) {
+				watcherp->print(&cs->eb, watcherp->t,
+						format & FMT_NUMERIC);
+			}
+		}
+	}
+}
+
+
 static void nft_bridge_print_firewall(struct nftnl_rule *r, unsigned int num,
 				      unsigned int format)
 {
-	struct xtables_match *matchp;
-	struct xtables_target *watcherp;
-	struct ebt_match *m;
 	struct iptables_command_state cs = {};
 	char *addr;
 
@@ -492,21 +514,7 @@ static void nft_bridge_print_firewall(struct nftnl_rule *r, unsigned int num,
 		print_iface(cs.eb.out);
 	}
 
-	for (m = cs.match_list; m; m = m->next) {
-		if (m->ismatch) {
-			matchp = m->u.match;
-			if (matchp->print != NULL) {
-				matchp->print(&cs.fw, matchp->m,
-					      format & FMT_NUMERIC);
-			}
-		} else {
-			watcherp = m->u.watcher;
-			if (watcherp->print != NULL) {
-				watcherp->print(&cs.fw, watcherp->t,
-						format & FMT_NUMERIC);
-			}
-		}
-	}
+	print_matches_and_watchers(&cs, format);
 
 	printf("-j ");
 
