@@ -686,9 +686,9 @@ static int brip_xlate(struct xt_xlate *xl,
 	if (info->bitmask & EBT_IP_PROTO) {
 		struct protoent *pe;
 
-		if (info->bitmask & (EBT_IP_SPORT|EBT_IP_DPORT) &&
+		if (info->bitmask & (EBT_IP_SPORT|EBT_IP_DPORT|EBT_IP_ICMP) &&
 		    (info->invflags & EBT_IP_PROTO) == 0) {
-			/* port number given and not inverted, no need to print this */
+			/* port number or icmp given and not inverted, no need to print this */
 			pname = brip_xlate_proto_to_name(info->protocol);
 		} else {
 			xt_xlate_add(xl, "ip protocol ");

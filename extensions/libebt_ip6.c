@@ -564,7 +564,7 @@ static int brip6_xlate(struct xt_xlate *xl,
 	if (info->bitmask & EBT_IP6_PROTO) {
 		struct protoent *pe;
 
-		if (info->bitmask & (EBT_IP6_SPORT|EBT_IP6_DPORT) &&
+		if (info->bitmask & (EBT_IP6_SPORT|EBT_IP6_DPORT|EBT_IP6_ICMP6) &&
 		    (info->invflags & EBT_IP6_PROTO) == 0) {
 			/* port number given and not inverted, no need to
 			 * add explicit 'meta l4proto'.

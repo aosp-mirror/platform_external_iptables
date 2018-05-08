@@ -650,9 +650,26 @@ static int nft_bridge_xlate(const void *data, struct xt_xlate *xl)
 		     cs->eb.invflags & EBT_ILOGICALOUT);
 
 	if ((cs->eb.bitmask & EBT_NOPROTO) == 0) {
-		xt_xlate_add(xl, "ether type %s 0x%x ",
-			     cs->eb.invflags & EBT_IPROTO ? "!= " : "",
-			     ntohs(cs->eb.ethproto));
+		const char *implicit = NULL;
+
+		switch (ntohs(cs->eb.ethproto)) {
+		case ETH_P_IP:
+			implicit = "ip";
+			break;
+		case ETH_P_IPV6:
+			implicit = "ip6";
+			break;
+		case ETH_P_8021Q:
+			implicit = "vlan";
+			break;
+		default:
+			break;
+		}
+
+		if (!implicit || !xlate_find_match(cs, implicit))
+			xt_xlate_add(xl, "ether type %s 0x%x ",
+				     cs->eb.invflags & EBT_IPROTO ? "!= " : "",
+				     ntohs(cs->eb.ethproto));
 	}
 
 	if (cs->eb.bitmask & EBT_802_3)
