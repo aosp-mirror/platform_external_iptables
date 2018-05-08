@@ -790,6 +790,7 @@ int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table)
 
 	/* prevent getopt to spoil our error reporting */
 	opterr = false;
+	cs.eb.bitmask = EBT_NOPROTO;
 
 	/* Getopt saves the day */
 	while ((c = getopt_long(argc, argv,

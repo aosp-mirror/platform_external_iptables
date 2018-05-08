@@ -15,9 +15,6 @@
 #define LIST_X	  0x10
 #define LIST_MAC2 0x20
 
-/* Be backwards compatible, so don't use '+' in kernel */
-#define IF_WILDCARD 1
-
 extern unsigned char eb_mac_type_unicast[ETH_ALEN];
 extern unsigned char eb_msk_type_unicast[ETH_ALEN];
 extern unsigned char eb_mac_type_multicast[ETH_ALEN];

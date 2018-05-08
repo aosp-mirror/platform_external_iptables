@@ -305,7 +305,6 @@ static void ebtables_parse_interface(const char *arg, char *vianame)
 		if (*(c + 1) != '\0')
 			xtables_error(PARAMETER_PROBLEM,
 				      "Spurious characters after '+' wildcard");
-		*c = IF_WILDCARD;
 	}
 }
 
@@ -392,6 +391,7 @@ static int do_commandeb_xlate(struct nft_handle *h, int argc, char *argv[], char
 
 	/* prevent getopt to spoil our error reporting */
 	opterr = false;
+	cs.eb.bitmask = EBT_NOPROTO;
 
 	printf("nft ");
 	/* Getopt saves the day */
