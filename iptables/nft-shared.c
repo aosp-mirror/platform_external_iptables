@@ -268,6 +268,7 @@ int parse_meta(struct nftnl_expr *e, uint8_t key, char *iniface,
 
 		memset(outiface_mask, 0xff, strlen(outiface)+1);
 		break;
+	case NFT_META_BRI_IIFNAME:
 	case NFT_META_IIFNAME:
 		ifname = nftnl_expr_get(e, NFTNL_EXPR_CMP_DATA, &len);
 		if (nftnl_expr_get_u32(e, NFTNL_EXPR_CMP_OP) == NFT_CMP_NEQ)
@@ -275,6 +276,7 @@ int parse_meta(struct nftnl_expr *e, uint8_t key, char *iniface,
 
 		parse_ifname(ifname, len, iniface, iniface_mask);
 		break;
+	case NFT_META_BRI_OIFNAME:
 	case NFT_META_OIFNAME:
 		ifname = nftnl_expr_get(e, NFTNL_EXPR_CMP_DATA, &len);
 		if (nftnl_expr_get_u32(e, NFTNL_EXPR_CMP_OP) == NFT_CMP_NEQ)

@@ -86,22 +86,6 @@ static void ebt_print_mac_and_mask(const unsigned char *mac, const unsigned char
 	}
 }
 
-static uint16_t ipt_to_ebt_flags(uint8_t invflags)
-{
-	uint16_t result = 0;
-
-	if (invflags & IPT_INV_VIA_IN)
-		result |= EBT_IIN;
-
-	if (invflags & IPT_INV_VIA_OUT)
-		result |= EBT_IOUT;
-
-	if (invflags & IPT_INV_PROTO)
-		result |= EBT_IPROTO;
-
-	return result;
-}
-
 static void add_logical_iniface(struct nftnl_rule *r, char *iface, uint32_t op)
 {
 	int iface_len;
@@ -235,53 +219,38 @@ static void nft_bridge_parse_meta(struct nft_xt_ctx *ctx,
 {
 	struct iptables_command_state *cs = data;
 	struct ebt_entry *fw = &cs->eb;
-	uint8_t flags = 0;
-	int iface = 0;
-	const void *ifname;
-	uint32_t len;
+	uint8_t invflags = 0;
+	char iifname[IFNAMSIZ], oifname[IFNAMSIZ];
 
-	iface = parse_meta(e, ctx->meta.key, fw->in, fw->in_mask,
-			   fw->out, fw->out_mask, &flags);
-	if (!iface)
-		goto out;
+	memset(iifname, 0, sizeof(iifname));
+	memset(oifname, 0, sizeof(oifname));
+
+	parse_meta(e, ctx->meta.key, iifname, NULL, oifname, NULL, &invflags);
 
 	switch (ctx->meta.key) {
 	case NFT_META_BRI_IIFNAME:
-		ifname = nftnl_expr_get(e, NFTNL_EXPR_CMP_DATA, &len);
-		if (nftnl_expr_get_u32(e, NFTNL_EXPR_CMP_OP) == NFT_CMP_NEQ)
-			flags |= IPT_INV_VIA_IN;
-
-		memcpy(fw->logical_in, ifname, len);
-
-		if (fw->logical_in[len] == '\0')
-			memset(fw->in_mask, 0xff, len);
-		else {
-			fw->logical_in[len] = '+';
-			fw->logical_in[len+1] = '\0';
-			memset(fw->in_mask, 0xff, len + 1);
-		}
+		if (invflags & IPT_INV_VIA_IN)
+			cs->eb.invflags |= EBT_ILOGICALIN;
+		snprintf(fw->logical_in, sizeof(fw->logical_in), "%s", iifname);
+		break;
+	case NFT_META_IIFNAME:
+		if (invflags & IPT_INV_VIA_IN)
+			cs->eb.invflags |= EBT_IIN;
+		snprintf(fw->in, sizeof(fw->in), "%s", iifname);
 		break;
 	case NFT_META_BRI_OIFNAME:
-		ifname = nftnl_expr_get(e, NFTNL_EXPR_CMP_DATA, &len);
-		if (nftnl_expr_get_u32(e, NFTNL_EXPR_CMP_OP) == NFT_CMP_NEQ)
-			flags |= IPT_INV_VIA_OUT;
-
-		memcpy(fw->logical_out, ifname, len);
-
-		if (fw->logical_out[len] == '\0') 
-			memset(fw->out_mask, 0xff, len);
-		else {
-			fw->logical_out[len] = '+';
-			fw->logical_out[len+1] = '\0';
-			memset(fw->out_mask, 0xff, len + 1);
-		}
+		if (invflags & IPT_INV_VIA_OUT)
+			cs->eb.invflags |= EBT_ILOGICALOUT;
+		snprintf(fw->logical_out, sizeof(fw->logical_out), "%s", oifname);
+		break;
+	case NFT_META_OIFNAME:
+		if (invflags & IPT_INV_VIA_OUT)
+			cs->eb.invflags |= EBT_IOUT;
+		snprintf(fw->out, sizeof(fw->out), "%s", oifname);
 		break;
 	default:
 		break;
 	}
-
-out:
-	fw->invflags |= ipt_to_ebt_flags(flags);
 }
 
 static void nft_bridge_parse_payload(struct nft_xt_ctx *ctx,
