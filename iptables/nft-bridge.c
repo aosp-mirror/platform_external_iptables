@@ -357,15 +357,10 @@ static void nft_rule_to_ebtables_command_state(struct nftnl_rule *r,
 	nft_rule_to_iptables_command_state(r, cs);
 }
 
-static void print_iface(const char *iface)
+static void print_iface(const char *option, const char *name, bool invert)
 {
-	char *c;
-
-	if ((c = strchr(iface, IF_WILDCARD)))
-		*c = '+';
-	printf("%s ", iface);
-	if (c)
-		*c = IF_WILDCARD;
+	if (*name)
+		printf("%s%s %s ", invert ? "! " : "", option, name);
 }
 
 static void nft_bridge_print_table_header(const char *tablename)
@@ -406,11 +401,23 @@ static void print_matches_and_watchers(const struct iptables_command_state *cs,
 	}
 }
 
+static void print_mac(char option, const unsigned char *mac,
+		      const unsigned char *mask,
+		      bool invert)
+{
+	printf("-%c ", option);
+	if (invert)
+		printf("! ");
+	ebt_print_mac_and_mask(mac, mask);
+	printf(" ");
+}
+
+
+
 static void nft_bridge_print_firewall(struct nftnl_rule *r, unsigned int num,
 				      unsigned int format)
 {
 	struct iptables_command_state cs = {};
-	char *addr;
 
 	nft_rule_to_ebtables_command_state(r, &cs);
 
@@ -436,51 +443,15 @@ static void nft_bridge_print_firewall(struct nftnl_rule *r, unsigned int num,
 		}
 	}
 
-	addr = ether_ntoa((struct ether_addr *) cs.eb.sourcemac);
-	if (strcmp(addr, "0:0:0:0:0:0") != 0) {
-		printf("-s ");
-		if (cs.eb.invflags & EBT_ISOURCE)
-			printf("! ");
-		ebt_print_mac_and_mask(cs.eb.sourcemac, cs.eb.sourcemsk);
-		printf(" ");
-	}
+	print_mac('s', cs.eb.sourcemac, cs.eb.sourcemsk,
+	          cs.eb.invflags & EBT_ISOURCE);
+	print_mac('d', cs.eb.destmac, cs.eb.destmsk,
+	          cs.eb.invflags & EBT_IDEST);
 
-	addr = ether_ntoa((struct ether_addr *) cs.eb.destmac);
-	if (strcmp(addr, "0:0:0:0:0:0") != 0) {
-		printf("-d ");
-		if (cs.eb.invflags & EBT_IDEST)
-			printf("! ");
-		ebt_print_mac_and_mask(cs.eb.destmac, cs.eb.destmsk);
-		printf(" ");
-	}
-
-	if (cs.eb.in[0] != '\0') {
-		printf("-i ");
-		if (cs.eb.invflags & EBT_IIN)
-			printf("! ");
-		print_iface(cs.eb.in);
-	}
-
-	if (cs.eb.logical_in[0] != '\0') {
-		printf("--logical-in ");
-		if (cs.eb.invflags & EBT_ILOGICALIN)
-			printf("! ");
-		print_iface(cs.eb.logical_in);
-	}
-
-	if (cs.eb.logical_out[0] != '\0') {
-		printf("--logical-out ");
-		if (cs.eb.invflags & EBT_ILOGICALOUT)
-			printf("! ");
-		print_iface(cs.eb.logical_out);
-	}
-
-	if (cs.eb.out[0] != '\0') {
-		printf("-o ");
-		if (cs.eb.invflags & EBT_IOUT)
-			printf("! ");
-		print_iface(cs.eb.out);
-	}
+	print_iface("-i", cs.eb.in, cs.eb.invflags & EBT_IIN);
+	print_iface("--logical-in", cs.eb.logical_in, cs.eb.invflags & EBT_ILOGICALIN);
+	print_iface("-o", cs.eb.out, cs.eb.invflags & EBT_IOUT);
+	print_iface("--logical-out", cs.eb.logical_out, cs.eb.invflags & EBT_ILOGICALOUT);
 
 	print_matches_and_watchers(&cs, format);
 
