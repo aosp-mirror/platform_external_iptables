@@ -929,10 +929,35 @@ static int __add_target(struct nftnl_expr *e, struct xt_entry_target *t)
 	return 0;
 }
 
+static int add_meta_nftrace(struct nftnl_rule *r)
+{
+	struct nftnl_expr *expr;
+
+	expr = nftnl_expr_alloc("immediate");
+	if (expr == NULL)
+		return -ENOMEM;
+
+	nftnl_expr_set_u32(expr, NFTNL_EXPR_IMM_DREG, NFT_REG32_01);
+	nftnl_expr_set_u8(expr, NFTNL_EXPR_IMM_DATA, 1);
+	nftnl_rule_add_expr(r, expr);
+
+	expr = nftnl_expr_alloc("meta");
+	if (expr == NULL)
+		return -ENOMEM;
+	nftnl_expr_set_u32(expr, NFTNL_EXPR_META_KEY, NFT_META_NFTRACE);
+	nftnl_expr_set_u32(expr, NFTNL_EXPR_META_SREG, NFT_REG32_01);
+
+	nftnl_rule_add_expr(r, expr);
+	return 0;
+}
+
 int add_target(struct nftnl_rule *r, struct xt_entry_target *t)
 {
 	struct nftnl_expr *expr;
 	int ret;
+
+	if (strcmp(t->u.user.name, "TRACE") == 0)
+		return add_meta_nftrace(r);
 
 	expr = nftnl_expr_alloc("target");
 	if (expr == NULL)

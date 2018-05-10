@@ -43,6 +43,7 @@ enum {
 	NFT_XT_CTX_PAYLOAD	= (1 << 0),
 	NFT_XT_CTX_META		= (1 << 1),
 	NFT_XT_CTX_BITWISE	= (1 << 2),
+	NFT_XT_CTX_IMMEDIATE	= (1 << 3),
 };
 
 struct nft_xt_ctx {
@@ -62,6 +63,10 @@ struct nft_xt_ctx {
 	struct {
 		uint32_t key;
 	} meta;
+	struct {
+		uint32_t data[4];
+		uint32_t len, reg;
+	} immediate;
 	struct {
 		uint32_t mask[4];
 		uint32_t xor[4];

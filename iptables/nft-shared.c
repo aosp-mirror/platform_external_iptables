@@ -414,10 +414,54 @@ void get_cmp_data(struct nftnl_expr *e, void *data, size_t dlen, bool *inv)
 		*inv = false;
 }
 
+static void nft_meta_set_to_target(struct nft_xt_ctx *ctx)
+{
+	const struct nft_family_ops *ops;
+	struct xtables_target *target;
+	struct xt_entry_target *t;
+	unsigned int size;
+	const char *targname;
+
+	switch (ctx->meta.key) {
+	case NFT_META_NFTRACE:
+		if (ctx->immediate.data[0] == 0)
+			return;
+		targname = "TRACE";
+		break;
+	default:
+		return;
+	}
+
+	target = xtables_find_target(targname, XTF_TRY_LOAD);
+	if (target == NULL)
+		return;
+
+	size = XT_ALIGN(sizeof(struct xt_entry_target)) + target->size;
+
+	t = xtables_calloc(1, size);
+	t->u.target_size = size;
+	t->u.user.revision = target->revision;
+	strcpy(t->u.user.name, targname);
+
+	target->t = t;
+
+	ops = nft_family_ops_lookup(ctx->family);
+	ops->parse_target(target, nft_get_data(ctx));
+}
+
 void nft_parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 {
-	ctx->reg = nftnl_expr_get_u32(e, NFTNL_EXPR_META_DREG);
 	ctx->meta.key = nftnl_expr_get_u32(e, NFTNL_EXPR_META_KEY);
+
+	if (nftnl_expr_is_set(e, NFTNL_EXPR_META_SREG) &&
+	    (ctx->flags & NFT_XT_CTX_IMMEDIATE) &&
+	     nftnl_expr_get_u32(e, NFTNL_EXPR_META_SREG) == ctx->immediate.reg) {
+		ctx->flags &= ~NFT_XT_CTX_IMMEDIATE;
+		nft_meta_set_to_target(ctx);
+		return;
+	}
+
+	ctx->reg = nftnl_expr_get_u32(e, NFTNL_EXPR_META_DREG);
 	ctx->flags |= NFT_XT_CTX_META;
 }
 
@@ -473,13 +517,30 @@ void nft_parse_counter(struct nftnl_expr *e, struct xt_counters *counters)
 
 void nft_parse_immediate(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 {
-	int verdict = nftnl_expr_get_u32(e, NFTNL_EXPR_IMM_VERDICT);
 	const char *chain = nftnl_expr_get_str(e, NFTNL_EXPR_IMM_CHAIN);
 	struct nft_family_ops *ops;
 	const char *jumpto = NULL;
 	bool nft_goto = false;
 	void *data = nft_get_data(ctx);
+	int verdict;
 
+	if (nftnl_expr_is_set(e, NFTNL_EXPR_IMM_DATA)) {
+		const void *imm_data;
+		uint32_t len;
+
+		imm_data = nftnl_expr_get_data(e, NFTNL_EXPR_IMM_DATA, &len);
+
+		if (len > sizeof(ctx->immediate.data))
+			return;
+
+		memcpy(ctx->immediate.data, imm_data, len);
+		ctx->immediate.len = len;
+		ctx->immediate.reg = nftnl_expr_get_u32(e, NFTNL_EXPR_IMM_DREG);
+		ctx->flags |= NFT_XT_CTX_IMMEDIATE;
+		return;
+	}
+
+	verdict = nftnl_expr_get_u32(e, NFTNL_EXPR_IMM_VERDICT);
 	/* Standard target? */
 	switch(verdict) {
 	case NF_ACCEPT:
