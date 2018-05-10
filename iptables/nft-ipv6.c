@@ -141,7 +141,7 @@ static void nft_ipv6_parse_payload(struct nft_xt_ctx *ctx,
 			parse_mask_ipv6(ctx, &cs->fw6.ipv6.smsk);
 			ctx->flags &= ~NFT_XT_CTX_BITWISE;
 		} else {
-			memset(&cs->fw.ip.smsk, 0xff, sizeof(struct in6_addr));
+			memset(&cs->fw6.ipv6.smsk, 0xff, sizeof(struct in6_addr));
 		}
 
 		if (inv)
@@ -154,7 +154,7 @@ static void nft_ipv6_parse_payload(struct nft_xt_ctx *ctx,
 			parse_mask_ipv6(ctx, &cs->fw6.ipv6.dmsk);
 			ctx->flags &= ~NFT_XT_CTX_BITWISE;
 		} else {
-			memset(&cs->fw.ip.dmsk, 0xff, sizeof(struct in6_addr));
+			memset(&cs->fw6.ipv6.dmsk, 0xff, sizeof(struct in6_addr));
 		}
 
 		if (inv)
@@ -257,24 +257,32 @@ static void nft_ipv6_print_firewall(struct nftnl_rule *r, unsigned int num,
 }
 
 static void save_ipv6_addr(char letter, const struct in6_addr *addr,
+			   const struct in6_addr *mask,
 			   int invert)
 {
 	char addr_str[INET6_ADDRSTRLEN];
+	int l = xtables_ip6mask_to_cidr(mask);
 
-	if (!invert && IN6_IS_ADDR_UNSPECIFIED(addr))
+	if (!invert && l == 0)
 		return;
 
-	inet_ntop(AF_INET6, addr, addr_str, INET6_ADDRSTRLEN);
-	printf("%s-%c %s ", invert ? "! " : "", letter, addr_str);
+	printf("%s-%c %s",
+		invert ? " !" : "", letter,
+		inet_ntop(AF_INET6, addr, addr_str, sizeof(addr_str)));
+
+	if (l == -1)
+		printf("/%s ", inet_ntop(AF_INET6, mask, addr_str, sizeof(addr_str)));
+	else
+		printf("/%d ", l);
 }
 
 static void nft_ipv6_save_firewall(const void *data, unsigned int format)
 {
 	const struct iptables_command_state *cs = data;
 
-	save_ipv6_addr('s', &cs->fw6.ipv6.src,
+	save_ipv6_addr('s', &cs->fw6.ipv6.src, &cs->fw6.ipv6.smsk,
 		       cs->fw6.ipv6.invflags & IP6T_INV_SRCIP);
-	save_ipv6_addr('d', &cs->fw6.ipv6.dst,
+	save_ipv6_addr('d', &cs->fw6.ipv6.dst, &cs->fw6.ipv6.dmsk,
 		       cs->fw6.ipv6.invflags & IP6T_INV_DSTIP);
 
 	save_firewall_details(cs, cs->fw6.ipv6.invflags, cs->fw6.ipv6.proto,
