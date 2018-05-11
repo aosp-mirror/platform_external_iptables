@@ -933,9 +933,6 @@ void xtables_register_match(struct xtables_match *me)
 	if (me->extra_opts != NULL)
 		xtables_check_options(me->name, me->extra_opts);
 
-	/* ignore not interested match */
-	if (me->family != afinfo->family && me->family != AF_UNSPEC)
-		return;
 
 	/* place on linked list of matches pending full registration */
 	me->next = xtables_pending_matches;
