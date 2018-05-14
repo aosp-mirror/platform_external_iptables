@@ -631,22 +631,51 @@ static int xlate_ebaction(const struct iptables_command_state *cs, struct xt_xla
 	return ret;
 }
 
+static void xlate_mac(struct xt_xlate *xl, const unsigned char *mac)
+{
+	int i;
+
+	xt_xlate_add(xl, "%02x", mac[0]);
+
+	for (i=1; i < ETH_ALEN; i++)
+		xt_xlate_add(xl, ":%02x", mac[i]);
+}
+
+static void nft_bridge_xlate_mac(struct xt_xlate *xl, const char *type, bool invert,
+				 const unsigned char *mac, const unsigned char *mask)
+{
+	char one_msk[ETH_ALEN] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+
+	xt_xlate_add(xl, "ether %s %s", type, invert ? "!= " : "");
+
+	xlate_mac(xl, mac);
+
+	if (memcmp(mask, one_msk, ETH_ALEN)) {
+		int i;
+		xt_xlate_add(xl, " and ");
+
+		xlate_mac(xl, mask);
+
+		xt_xlate_add(xl, " == %02x", mac[0] & mask[0]);
+		for (i=1; i < ETH_ALEN; i++)
+			xt_xlate_add(xl, ":%02x", mac[i] & mask[i]);
+	}
+
+	xt_xlate_add(xl, " ");
+}
 
 static int nft_bridge_xlate(const void *data, struct xt_xlate *xl)
 {
 	const struct iptables_command_state *cs = data;
-	char one_msk[ETH_ALEN] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
-	const char *addr;
 	int ret;
 
 	xlate_ifname(xl, "iifname", cs->eb.in,
 		     cs->eb.invflags & EBT_IIN);
+	xlate_ifname(xl, "meta ibrname", cs->eb.logical_in,
+		     cs->eb.invflags & EBT_ILOGICALIN);
 	xlate_ifname(xl, "oifname", cs->eb.out,
 		     cs->eb.invflags & EBT_IOUT);
-
-	xlate_ifname(xl, "meta ibridgename", cs->eb.logical_in,
-		     cs->eb.invflags & EBT_ILOGICALIN);
-	xlate_ifname(xl, "meta obridgename", cs->eb.logical_out,
+	xlate_ifname(xl, "meta obrname", cs->eb.logical_out,
 		     cs->eb.invflags & EBT_ILOGICALOUT);
 
 	if ((cs->eb.bitmask & EBT_NOPROTO) == 0) {
@@ -667,7 +696,7 @@ static int nft_bridge_xlate(const void *data, struct xt_xlate *xl)
 		}
 
 		if (!implicit || !xlate_find_match(cs, implicit))
-			xt_xlate_add(xl, "ether type %s 0x%x ",
+			xt_xlate_add(xl, "ether type %s0x%x ",
 				     cs->eb.invflags & EBT_IPROTO ? "!= " : "",
 				     ntohs(cs->eb.ethproto));
 	}
@@ -675,30 +704,12 @@ static int nft_bridge_xlate(const void *data, struct xt_xlate *xl)
 	if (cs->eb.bitmask & EBT_802_3)
 		return 0;
 
-	if (cs->eb.bitmask & EBT_ISOURCE) {
-		addr = ether_ntoa((struct ether_addr *) cs->eb.sourcemac);
-
-		xt_xlate_add(xl, "ether saddr %s%s ",
-			     cs->eb.invflags & EBT_ISOURCE ? "!= " : "", addr);
-
-		if (memcmp(cs->eb.sourcemsk, one_msk, sizeof(cs->eb.sourcemsk))) {
-			addr = ether_ntoa((struct ether_addr *) cs->eb.sourcemsk);
-			xt_xlate_add(xl, "and %s ", addr);
-		}
-	}
-
-	if (cs->eb.bitmask & EBT_IDEST) {
-		addr = ether_ntoa((struct ether_addr *) cs->eb.destmac);
-
-		xt_xlate_add(xl, "ether daddr %s %s ",
-			     cs->eb.invflags & EBT_IDEST ? "!= " : "", addr);
-
-		if (memcmp(cs->eb.destmsk, one_msk, sizeof(cs->eb.destmsk))) {
-			addr = ether_ntoa((struct ether_addr *) cs->eb.destmsk);
-			xt_xlate_add(xl, "and %s ", addr);
-		}
-	}
-
+	if (cs->eb.bitmask & EBT_ISOURCE)
+		nft_bridge_xlate_mac(xl, "saddr", cs->eb.invflags & EBT_ISOURCE,
+				     cs->eb.sourcemac, cs->eb.sourcemsk);
+	if (cs->eb.bitmask & EBT_IDEST)
+		nft_bridge_xlate_mac(xl, "daddr", cs->eb.invflags & EBT_IDEST,
+				     cs->eb.destmac, cs->eb.destmsk);
 	ret = xlate_ebmatches(cs, xl);
 	if (ret == 0)
 		return ret;
