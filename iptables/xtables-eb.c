@@ -397,7 +397,8 @@ static struct xtables_target *command_jump(struct iptables_command_state *cs,
 
 	target->t = xtables_calloc(1, size);
 	target->t->u.target_size = size;
-	strncpy(target->t->u.user.name, jumpto, sizeof(target->t->u.user.name));
+	snprintf(target->t->u.user.name,
+		 sizeof(target->t->u.user.name), "%s", jumpto);
 	target->t->u.user.name[sizeof(target->t->u.user.name)-1] = '\0';
 	target->t->u.user.revision = target->revision;
 
@@ -637,8 +638,8 @@ static void __ebt_load_watcher(const char *name, const char *typename)
 
 	watcher->t = xtables_calloc(1, size);
 	watcher->t->u.target_size = size;
-	strncpy(watcher->t->u.user.name, name,
-		sizeof(watcher->t->u.user.name));
+	snprintf(watcher->t->u.user.name,
+		sizeof(watcher->t->u.user.name), "%s", name);
 	watcher->t->u.user.name[sizeof(watcher->t->u.user.name)-1] = '\0';
 	watcher->t->u.user.revision = watcher->revision;
 
