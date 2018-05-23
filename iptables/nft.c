@@ -1442,6 +1442,8 @@ int nft_chain_user_del(struct nft_handle *h, const char *chain, const char *tabl
 	int ret = 0;
 	int deleted_ctr = 0;
 
+	nft_fn = nft_chain_user_del;
+
 	list = nftnl_chain_list_get(h);
 	if (list == NULL)
 		goto err;
