@@ -57,7 +57,7 @@ do_output(struct nft_handle *h, const char *tablename, bool counters)
 		return 0;
 	}
 
-	chain_list = nft_chain_dump(h);
+	chain_list = nft_chain_dump(h, tablename);
 
 	time_t now = time(NULL);
 
