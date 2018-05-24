@@ -182,13 +182,6 @@ xtables_save_main(int family, const char *progname, int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 
-
-	ret = nft_is_ruleset_compatible(&h);
-	if (ret) {
-		printf("ERROR: You're using nft features that cannot be mapped to iptables, please keep using nft.\n");
-		exit(EXIT_FAILURE);
-	}
-
 	if (dump) {
 		do_output(&h, tablename, show_counters);
 		exit(0);
