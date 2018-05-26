@@ -38,6 +38,11 @@ struct nft_handle {
 	struct builtin_table	*tables;
 	struct nftnl_rule_list	*rule_cache;
 	bool			restore;
+
+	/* meta data, for error reporting */
+	struct {
+		unsigned int	lineno;
+	} error;
 };
 
 extern struct builtin_table xtables_ipv4[TABLES_MAX];

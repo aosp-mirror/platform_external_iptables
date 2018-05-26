@@ -228,6 +228,8 @@ void xtables_restore_parse(struct nft_handle *h,
 		int ret = 0;
 
 		line++;
+		h->error.lineno = line;
+
 		if (buffer[0] == '\n')
 			continue;
 		else if (buffer[0] == '#') {
