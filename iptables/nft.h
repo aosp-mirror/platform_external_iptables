@@ -32,7 +32,8 @@ struct nft_handle {
 	uint32_t		seq;
 	struct list_head	obj_list;
 	int			obj_list_num;
-	struct mnl_nlmsg_batch	*batch;
+	struct nftnl_batch	*batch;
+	struct list_head	err_list;
 	struct nft_family_ops	*ops;
 	struct builtin_table	*tables;
 	struct nftnl_rule_list	*rule_cache;
