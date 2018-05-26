@@ -20,6 +20,7 @@
 #include <xtables.h>
 
 #include <linux/netfilter/nf_tables.h>
+#include <linux/netfilter/xt_comment.h>
 
 #include <libmnl/libmnl.h>
 #include <libnftnl/rule.h>
@@ -554,7 +555,8 @@ void nft_rule_to_iptables_command_state(struct nftnl_rule *r,
 		if (match == NULL)
 			return;
 
-		m = calloc(1, sizeof(struct xt_entry_match) + len);
+		m = calloc(1, sizeof(struct xt_entry_match) +
+			      sizeof(struct xt_comment_info));
 		if (m == NULL) {
 			fprintf(stderr, "OOM");
 			exit(EXIT_FAILURE);
