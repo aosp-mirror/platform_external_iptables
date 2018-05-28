@@ -1465,6 +1465,9 @@ int nft_rule_flush(struct nft_handle *h, const char *chain, const char *table)
 	struct nftnl_chain_list_iter *iter;
 	struct nftnl_chain *c;
 
+	if (nft_xtables_config_load(h, XTABLES_CONFIG_DEFAULT, 0) < 0)
+		nft_xt_builtin_init(h, table);
+
 	nft_fn = nft_rule_flush;
 
 	list = nftnl_chain_list_get(h);
