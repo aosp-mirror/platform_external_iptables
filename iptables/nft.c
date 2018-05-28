@@ -273,11 +273,11 @@ struct obj_update {
 	} error;
 };
 
-static void mnl_show_error(const struct nft_handle *h,
-			   const struct obj_update *o,
-			   const struct mnl_err *err)
+static int mnl_append_error(const struct nft_handle *h,
+			    const struct obj_update *o,
+			    const struct mnl_err *err,
+			    char *buf, unsigned int len)
 {
-	const char *prog = xt_params->program_name;
 	static const char *type_name[] = {
 		[NFT_COMPAT_TABLE_ADD] = "TABLE_ADD",
 		[NFT_COMPAT_TABLE_FLUSH] = "TABLE_FLUSH",
@@ -296,8 +296,12 @@ static void mnl_show_error(const struct nft_handle *h,
 	char errmsg[256];
 	char tcr[128];
 
-	snprintf(errmsg, sizeof(errmsg), "%s: line %u: %s failed (%s): ",
-		 prog, o->error.lineno, type_name[o->type], strerror(err->err));
+	if (o->error.lineno)
+		snprintf(errmsg, sizeof(errmsg), "\nline %u: %s failed (%s)",
+			 o->error.lineno, type_name[o->type], strerror(err->err));
+	else
+		snprintf(errmsg, sizeof(errmsg), "%s failed (%s)",
+			 type_name[o->type], strerror(err->err));
 
 	switch (o->type) {
 	case NFT_COMPAT_TABLE_ADD:
@@ -331,7 +335,7 @@ static void mnl_show_error(const struct nft_handle *h,
 		break;
 	}
 
-	fprintf(stderr, "%s: %s", errmsg, tcr);
+	return snprintf(buf, len, "%s: %s", errmsg, tcr);
 }
 
 static int batch_add(struct nft_handle *h, enum obj_update_type type, void *ptr)
@@ -2396,6 +2400,8 @@ static int nft_action(struct nft_handle *h, int action)
 {
 	struct obj_update *n, *tmp;
 	struct mnl_err *err, *ne;
+	unsigned int buflen, i, len;
+	char errmsg[1024];
 	uint32_t seq = 1;
 	int ret = 0;
 
@@ -2481,25 +2487,37 @@ static int nft_action(struct nft_handle *h, int action)
 
 	ret = mnl_batch_talk(h->nl, h->batch, &h->err_list);
 
-	list_for_each_entry_safe(err, ne, &h->err_list, head) {
-		list_for_each_entry_safe(n, tmp, &h->obj_list, head) {
-			bool next_err = false;
-
-			if (err->seqnum == n->seq) {
-				mnl_show_error(h, n, err);
-				next_err = true;
-			}
-			batch_obj_del(h, n);
-			if (next_err)
-				break;
+	i = 0;
+	buflen = sizeof(errmsg);
+	if (!list_empty(&h->err_list)) {
+		len = snprintf(errmsg, buflen + i, "%s: ", xt_params->program_name);
+		if (len > 0) {
+			i += len;
+			buflen -= len;
 		}
-		mnl_err_list_free(err);
 	}
 
-	list_for_each_entry_safe(n, tmp, &h->obj_list, head)
+	list_for_each_entry_safe(n, tmp, &h->obj_list, head) {
+		list_for_each_entry_safe(err, ne, &h->err_list, head) {
+			if (err->seqnum > n->seq)
+				break;
+
+			if (err->seqnum == n->seq) {
+				len = mnl_append_error(h, n, err, errmsg + i, buflen);
+				if (len > 0 && len <= buflen) {
+					buflen -= len;
+					i += len;
+				}
+			}
+			mnl_err_list_free(err);
+		}
 		batch_obj_del(h, n);
+	}
 
 	mnl_batch_reset(h->batch);
+
+	if (i)
+		xtables_error(RESOURCE_PROBLEM, "%s", errmsg);
 
 	return ret == 0 ? 1 : 0;
 }
