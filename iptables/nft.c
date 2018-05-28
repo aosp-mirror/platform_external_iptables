@@ -671,7 +671,7 @@ static void nft_chain_builtin_init(struct nft_handle *h,
 				   struct builtin_table *table)
 {
 	int i;
-	struct nftnl_chain_list *list = nft_chain_dump(h, NULL);
+	struct nftnl_chain_list *list = nft_chain_dump(h);
 	struct nftnl_chain *c;
 
 	/* Initialize built-in chains if they don't exist yet */
@@ -684,8 +684,6 @@ static void nft_chain_builtin_init(struct nft_handle *h,
 
 		nft_chain_builtin_add(h, table, &table->chains[i]);
 	}
-
-	nftnl_chain_list_free(list);
 }
 
 static int nft_xt_builtin_init(struct nft_handle *h, const char *table)
@@ -762,8 +760,35 @@ static void flush_rule_cache(struct nft_handle *h)
 	h->rule_cache = NULL;
 }
 
+static int __flush_chain_cache(struct nftnl_chain *c, void *data)
+{
+	const char *tablename = data;
+
+	if (!strcmp(nftnl_chain_get_str(c, NFTNL_CHAIN_TABLE), tablename)) {
+		nftnl_chain_list_del(c);
+		nftnl_chain_free(c);
+	}
+
+	return 0;
+}
+
+static void flush_chain_cache(struct nft_handle *h, const char *tablename)
+{
+	if (!h->chain_cache)
+		return;
+
+	if (tablename) {
+		nftnl_chain_list_foreach(h->chain_cache, __flush_chain_cache,
+					 (void *)tablename);
+	} else {
+		nftnl_chain_list_free(h->chain_cache);
+		h->chain_cache = NULL;
+	}
+}
+
 void nft_fini(struct nft_handle *h)
 {
+	flush_chain_cache(h, NULL);
 	flush_rule_cache(h);
 	mnl_socket_close(h->nl);
 }
@@ -1161,14 +1186,15 @@ err:
 	return MNL_CB_OK;
 }
 
-static struct nftnl_chain_list *nftnl_chain_list_get(struct nft_handle *h,
-						     const char *tablename)
+static struct nftnl_chain_list *nftnl_chain_list_get(struct nft_handle *h)
 {
 	char buf[16536];
 	struct nlmsghdr *nlh;
 	struct nftnl_chain_list *list;
 	int ret;
 
+	if (h->chain_cache)
+		return h->chain_cache;
 retry:
 	list = nftnl_chain_list_alloc();
 	if (list == NULL) {
@@ -1178,15 +1204,6 @@ retry:
 
 	nlh = nftnl_chain_nlmsg_build_hdr(buf, NFT_MSG_GETCHAIN, h->family,
 					NLM_F_DUMP, h->seq);
-	if (tablename) {
-		struct nftnl_chain *t = nftnl_chain_alloc();
-
-		if (t) {
-			nftnl_chain_set(t, NFTNL_CHAIN_TABLE, tablename);
-			nftnl_chain_nlmsg_build_payload(nlh, t);
-			nftnl_chain_free(t);
-		}
-	}
 
 	ret = mnl_talk(h, nlh, nftnl_chain_list_cb, list);
 	if (ret < 0 && errno == EINTR) {
@@ -1195,12 +1212,14 @@ retry:
 		goto retry;
 	}
 
+	h->chain_cache = list;
+
 	return list;
 }
 
-struct nftnl_chain_list *nft_chain_dump(struct nft_handle *h, const char *tablename)
+struct nftnl_chain_list *nft_chain_dump(struct nft_handle *h)
 {
-	return nftnl_chain_list_get(h, tablename);
+	return nftnl_chain_list_get(h);
 }
 
 static const char *policy_name[NF_ACCEPT+1] = {
@@ -1254,7 +1273,6 @@ next:
 	}
 
 	nftnl_chain_list_iter_destroy(iter);
-	nftnl_chain_list_free(list);
 
 	return 1;
 }
@@ -1427,7 +1445,7 @@ int nft_rule_flush(struct nft_handle *h, const char *chain, const char *table)
 
 	nft_fn = nft_rule_flush;
 
-	list = nftnl_chain_list_get(h, table);
+	list = nftnl_chain_list_get(h);
 	if (list == NULL) {
 		ret = 0;
 		goto err;
@@ -1461,8 +1479,6 @@ next:
 	nftnl_chain_list_iter_destroy(iter);
 	flush_rule_cache(h);
 err:
-	nftnl_chain_list_free(list);
-
 	/* the core expects 1 for success and 0 for error */
 	return ret == 0 ? 1 : 0;
 }
@@ -1487,6 +1503,10 @@ int nft_chain_user_add(struct nft_handle *h, const char *chain, const char *tabl
 
 	ret = batch_chain_add(h, NFT_COMPAT_CHAIN_USER_ADD, c);
 
+	nft_chain_dump(h);
+
+	nftnl_chain_list_add(c, h->chain_cache);
+
 	/* the core expects 1 for success and 0 for error */
 	return ret == 0 ? 1 : 0;
 }
@@ -1506,7 +1526,7 @@ int nft_chain_user_del(struct nft_handle *h, const char *chain, const char *tabl
 
 	nft_fn = nft_chain_user_del;
 
-	list = nftnl_chain_list_get(h, table);
+	list = nftnl_chain_list_get(h);
 	if (list == NULL)
 		goto err;
 
@@ -1537,6 +1557,7 @@ int nft_chain_user_del(struct nft_handle *h, const char *chain, const char *tabl
 			break;
 
 		deleted_ctr++;
+		nftnl_chain_list_del(c);
 
 		if (chain != NULL)
 			break;
@@ -1595,7 +1616,7 @@ nft_chain_find(struct nft_handle *h, const char *table, const char *chain)
 {
 	struct nftnl_chain_list *list;
 
-	list = nftnl_chain_list_get(h, table);
+	list = nftnl_chain_list_get(h);
 	if (list == NULL)
 		return NULL;
 
@@ -1760,6 +1781,8 @@ static int __nft_table_flush(struct nft_handle *h, const char *table)
 	nftnl_table_set_str(t, NFTNL_TABLE_NAME, table);
 
 	batch_table_add(h, NFT_COMPAT_TABLE_FLUSH, t);
+
+	flush_chain_cache(h, table);
 
 	return 0;
 }
@@ -2132,7 +2155,7 @@ int nft_rule_list(struct nft_handle *h, const char *chain, const char *table,
 		return 1;
 	}
 
-	list = nft_chain_dump(h, table);
+	list = nft_chain_dump(h);
 
 	iter = nftnl_chain_list_iter_create(list);
 	if (iter == NULL)
@@ -2186,8 +2209,6 @@ next:
 
 	nftnl_chain_list_iter_destroy(iter);
 err:
-	nftnl_chain_list_free(list);
-
 	return 1;
 }
 
@@ -2256,7 +2277,7 @@ int nft_rule_list_save(struct nft_handle *h, const char *chain,
 	struct nftnl_chain *c;
 	int ret = 1;
 
-	list = nft_chain_dump(h, table);
+	list = nft_chain_dump(h);
 
 	/* Dump policies and custom chains first */
 	if (!rulenum)
@@ -2291,8 +2312,6 @@ next:
 
 	nftnl_chain_list_iter_destroy(iter);
 err:
-	nftnl_chain_list_free(list);
-
 	return ret;
 }
 
@@ -2376,6 +2395,7 @@ static void batch_obj_del(struct nft_handle *h, struct obj_update *o)
 	case NFT_COMPAT_CHAIN_ADD:
 	case NFT_COMPAT_CHAIN_USER_ADD:
 	case NFT_COMPAT_CHAIN_USER_DEL:
+		break;
 	case NFT_COMPAT_CHAIN_USER_FLUSH:
 	case NFT_COMPAT_CHAIN_UPDATE:
 	case NFT_COMPAT_CHAIN_RENAME:
@@ -2786,7 +2806,7 @@ int nft_chain_zero_counters(struct nft_handle *h, const char *chain,
 	struct nftnl_chain *c;
 	int ret = 0;
 
-	list = nftnl_chain_list_get(h, table);
+	list = nftnl_chain_list_get(h);
 	if (list == NULL)
 		goto err;
 
@@ -2931,7 +2951,7 @@ static int nft_are_chains_compatible(struct nft_handle *h, const char *tablename
 	struct nftnl_chain *chain;
 	int ret = 0;
 
-	list = nftnl_chain_list_get(h, tablename);
+	list = nftnl_chain_list_get(h);
 	if (list == NULL)
 		return -1;
 
@@ -2952,7 +2972,7 @@ next:
 	}
 
 	nftnl_chain_list_iter_destroy(iter);
-	nftnl_chain_list_free(list);
+
 	return ret;
 }
 
