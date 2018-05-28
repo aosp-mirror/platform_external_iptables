@@ -38,6 +38,7 @@ struct nft_handle {
 	struct builtin_table	*tables;
 	struct nftnl_rule_list	*rule_cache;
 	bool			restore;
+	int8_t			config_done;
 
 	/* meta data, for error reporting */
 	struct {

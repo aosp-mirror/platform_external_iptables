@@ -593,9 +593,6 @@ static int nft_table_builtin_add(struct nft_handle *h,
 
 	ret = batch_table_add(h, NFT_COMPAT_TABLE_ADD, t);
 
-	if (ret == 0)
-		_t->initialized = true;
-
 	return ret;
 }
 
@@ -693,22 +690,23 @@ static void nft_chain_builtin_init(struct nft_handle *h,
 
 static int nft_xt_builtin_init(struct nft_handle *h, const char *table)
 {
-	int ret = 0;
 	struct builtin_table *t;
 
 	t = nft_table_builtin_find(h, table);
-	if (t == NULL) {
-		ret = -1;
-		goto out;
-	}
-	if (nft_table_builtin_add(h, t) < 0) {
-		/* Built-in table already initialized, skip. */
-		if (errno == EEXIST)
-			goto out;
-	}
+	if (t == NULL)
+		return -1;
+
+	if (t->initialized)
+		return 0;
+
+	if (nft_table_builtin_add(h, t) < 0)
+		return -1;
+
 	nft_chain_builtin_init(h, t);
-out:
-	return ret;
+
+	t->initialized = true;
+
+	return 0;
 }
 
 static bool nft_chain_builtin(struct nftnl_chain *c)
@@ -2660,8 +2658,8 @@ static void xtables_config_perror(uint32_t flags, const char *fmt, ...)
 	va_end(args);
 }
 
-int nft_xtables_config_load(struct nft_handle *h, const char *filename,
-			    uint32_t flags)
+static int __nft_xtables_config_load(struct nft_handle *h, const char *filename,
+				     uint32_t flags)
 {
 	struct nftnl_table_list *table_list = NULL;
 	struct nftnl_chain_list *chain_list = NULL;
@@ -2671,9 +2669,6 @@ int nft_xtables_config_load(struct nft_handle *h, const char *filename,
 	struct nftnl_chain *chain;
 	uint32_t table_family, chain_family;
 	bool found = false;
-
-	if (h->restore)
-		return 0;
 
 	table_list = nftnl_table_list_alloc();
 	chain_list = nftnl_chain_list_alloc();
@@ -2756,6 +2751,8 @@ int nft_xtables_config_load(struct nft_handle *h, const char *filename,
 	nftnl_chain_list_iter_destroy(citer);
 	nftnl_chain_list_free(chain_list);
 
+	h->config_done = 1;
+
 	return 0;
 
 err:
@@ -2767,7 +2764,18 @@ err:
 	if (citer != NULL)
 		nftnl_chain_list_iter_destroy(citer);
 
+	h->config_done = -1;
+
 	return -1;
+}
+
+int nft_xtables_config_load(struct nft_handle *h, const char *filename,
+			    uint32_t flags)
+{
+	if (!h->config_done)
+		return __nft_xtables_config_load(h, filename, flags);
+
+	return h->config_done;
 }
 
 int nft_chain_zero_counters(struct nft_handle *h, const char *chain, 
