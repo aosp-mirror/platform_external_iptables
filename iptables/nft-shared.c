@@ -139,9 +139,10 @@ void add_iniface(struct nftnl_rule *r, char *iface, uint32_t op)
 	iface_len = strlen(iface);
 
 	add_meta(r, NFT_META_IIFNAME);
-	if (iface[iface_len - 1] == '+')
-		add_cmp_ptr(r, op, iface, iface_len - 1);
-	else
+	if (iface[iface_len - 1] == '+') {
+		if (iface_len > 1)
+			add_cmp_ptr(r, op, iface, iface_len - 1);
+	} else
 		add_cmp_ptr(r, op, iface, iface_len + 1);
 }
 
@@ -152,9 +153,10 @@ void add_outiface(struct nftnl_rule *r, char *iface, uint32_t op)
 	iface_len = strlen(iface);
 
 	add_meta(r, NFT_META_OIFNAME);
-	if (iface[iface_len - 1] == '+')
-		add_cmp_ptr(r, op, iface, iface_len - 1);
-	else
+	if (iface[iface_len - 1] == '+') {
+		if (iface_len > 1)
+			add_cmp_ptr(r, op, iface, iface_len - 1);
+	} else
 		add_cmp_ptr(r, op, iface, iface_len + 1);
 }
 
