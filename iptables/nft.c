@@ -2959,7 +2959,7 @@ static int nft_is_chain_compatible(const struct nft_handle *h,
 		cur_table = h->tables[i].name;
 		chains = h->tables[i].chains;
 
-		if (strcmp(table, cur_table) != 0)
+		if (!cur_table || strcmp(table, cur_table) != 0)
 			continue;
 
 		for (j = 0; j < NF_INET_NUMHOOKS && chains[j].name; j++) {
@@ -3017,6 +3017,8 @@ bool nft_is_table_compatible(struct nft_handle *h, const char *tablename)
 	int ret = 0, i;
 
 	for (i = 0; i < TABLES_MAX; i++) {
+		if (!h->tables[i].name)
+			continue;
 		if (strcmp(h->tables[i].name, tablename) == 0)
 			break;
 	}
