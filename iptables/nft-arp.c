@@ -29,7 +29,7 @@
 #include "nft.h"
 
 /* a few names */
-char *opcodes[] =
+char *arp_opcodes[] =
 {
 	"Request",
 	"Reply",
@@ -539,7 +539,7 @@ after_devdst:
 		printf("%s", fw->arp.invflags & ARPT_INV_ARPOP
 			? "! " : "");
 		if (tmp <= NUMOPCODES && !(format & FMT_NUMERIC))
-			printf("--opcode %s", opcodes[tmp-1]);
+			printf("--opcode %s", arp_opcodes[tmp-1]);
 		else
 			printf("--opcode %d", tmp);
 

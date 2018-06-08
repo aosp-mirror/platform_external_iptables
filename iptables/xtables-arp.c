@@ -485,7 +485,7 @@ exit_printhelp(void)
 "[!] --version	-V		print package version.\n");
 	printf(" opcode strings: \n");
         for (i = 0; i < NUMOPCODES; i++)
-                printf(" %d = %s\n", i + 1, opcodes[i]);
+                printf(" %d = %s\n", i + 1, arp_opcodes[i]);
         printf(
 " hardware type string: 1 = Ethernet\n"
 " protocol type string: 0x800 = IPv4\n");
@@ -1121,7 +1121,7 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table,
 				int i;
 
 				for (i = 0; i < NUMOPCODES; i++)
-					if (!strcasecmp(opcodes[i], optarg))
+					if (!strcasecmp(arp_opcodes[i], optarg))
 						break;
 				if (i == NUMOPCODES)
 					xtables_error(PARAMETER_PROBLEM, "Problem with specified opcode");
