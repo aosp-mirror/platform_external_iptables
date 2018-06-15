@@ -232,69 +232,6 @@ static int parse_rule_range(const char *argv, int *rule_nr, int *rule_nr_end)
 	return 0;
 }
 
-/* Incrementing or decrementing rules in daemon mode is not supported as the
- * involved code overload is not worth it (too annoying to take the increased
- * counters in the kernel into account). */
-static int parse_change_counters_rule(int argc, char **argv, int *rule_nr, int *rule_nr_end, int exec_style, struct iptables_command_state *cs)
-{
-	char *buffer;
-	int ret = 0;
-
-	if (optind + 1 >= argc || (argv[optind][0] == '-' && (argv[optind][1] < '0' || argv[optind][1] > '9')) ||
-	    (argv[optind + 1][0] == '-' && (argv[optind + 1][1] < '0'  && argv[optind + 1][1] > '9')))
-		xtables_error(PARAMETER_PROBLEM,
-			      "The command -C needs at least 2 arguments");
-	if (optind + 2 < argc && (argv[optind + 2][0] != '-' || (argv[optind + 2][1] >= '0' && argv[optind + 2][1] <= '9'))) {
-		if (optind + 3 != argc)
-			xtables_error(PARAMETER_PROBLEM,
-				      "No extra options allowed with -C start_nr[:end_nr] pcnt bcnt");
-		if (parse_rule_range(argv[optind], rule_nr, rule_nr_end))
-			xtables_error(PARAMETER_PROBLEM,
-				      "Something is wrong with the rule number specification '%s'", argv[optind]);
-		optind++;
-	}
-
-	if (argv[optind][0] == '+') {
-		if (exec_style == EXEC_STYLE_DAEMON)
-daemon_incr:
-			xtables_error(PARAMETER_PROBLEM,
-				      "Incrementing rule counters (%s) not allowed in daemon mode", argv[optind]);
-		ret += 1;
-		cs->counters.pcnt = strtoull(argv[optind] + 1, &buffer, 10);
-	} else if (argv[optind][0] == '-') {
-		if (exec_style == EXEC_STYLE_DAEMON)
-daemon_decr:
-			xtables_error(PARAMETER_PROBLEM,
-				      "Decrementing rule counters (%s) not allowed in daemon mode", argv[optind]);
-		ret += 2;
-		cs->counters.pcnt = strtoull(argv[optind] + 1, &buffer, 10);
-	} else
-		cs->counters.pcnt = strtoull(argv[optind], &buffer, 10);
-
-	if (*buffer != '\0')
-		goto invalid;
-	optind++;
-	if (argv[optind][0] == '+') {
-		if (exec_style == EXEC_STYLE_DAEMON)
-			goto daemon_incr;
-		ret += 3;
-		cs->counters.bcnt = strtoull(argv[optind] + 1, &buffer, 10);
-	} else if (argv[optind][0] == '-') {
-		if (exec_style == EXEC_STYLE_DAEMON)
-			goto daemon_decr;
-		ret += 6;
-		cs->counters.bcnt = strtoull(argv[optind] + 1, &buffer, 10);
-	} else
-		cs->counters.bcnt = strtoull(argv[optind], &buffer, 10);
-
-	if (*buffer != '\0')
-		goto invalid;
-	optind++;
-	return ret;
-invalid:
-	xtables_error(PARAMETER_PROBLEM,"Packet counter '%s' invalid", argv[optind]);
-}
-
 static void ebtables_parse_interface(const char *arg, char *vianame)
 {
 	unsigned char mask[IFNAMSIZ];
@@ -397,13 +334,12 @@ static int do_commandeb_xlate(struct nft_handle *h, int argc, char *argv[], char
 	printf("nft ");
 	/* Getopt saves the day */
 	while ((c = getopt_long(argc, argv,
-	   "-A:D:C:I:N:E:X::L::Z::F::P:Vhi:o:j:c:p:s:d:t:M:", opts, NULL)) != -1) {
+	   "-A:D:I:N:E:X::L::Z::F::P:Vhi:o:j:c:p:s:d:t:M:", opts, NULL)) != -1) {
 		cs.c = c;
 		cs.invert = ebt_invert;
 		switch (c) {
 		case 'A': /* Add a rule */
 		case 'D': /* Delete a rule */
-		case 'C': /* Change counters */
 		case 'P': /* Define policy */
 		case 'I': /* Insert a rule */
 		case 'N': /* Make a user defined chain */
@@ -445,9 +381,6 @@ static int do_commandeb_xlate(struct nft_handle *h, int argc, char *argv[], char
 					xtables_error(PARAMETER_PROBLEM,
 							 "Problem with the specified rule number(s) '%s'", argv[optind]);
 				optind++;
-			} else if (c == 'C') {
-				if ((chcounter = parse_change_counters_rule(argc, argv, &rule_nr, &rule_nr_end, exec_style, &cs)) == -1)
-					return -1;
 			} else if (c == 'I') {
 				if (optind >= argc || (argv[optind][0] == '-' && (argv[optind][1] < '0' || argv[optind][1] > '9')))
 					rule_nr = 1;
@@ -529,7 +462,7 @@ print_zero:
 			if (!OPT_COMMANDS)
 				xtables_error(PARAMETER_PROBLEM,
 					      "No command specified");
-			if (command != 'A' && command != 'D' && command != 'I' && command != 'C')
+			if (command != 'A' && command != 'D' && command != 'I')
 				xtables_error(PARAMETER_PROBLEM,
 					      "Command and option do not match");
 			if (c == 'i') {
@@ -718,16 +651,15 @@ print_zero:
 			}
 check_extension:
 			if (command != 'A' && command != 'I' &&
-			    command != 'D' && command != 'C')
+			    command != 'D')
 				xtables_error(PARAMETER_PROBLEM,
-					      "Extensions only for -A, -I, -D and -C");
+					      "Extensions only for -A, -I, -D");
 		}
 		ebt_invert = 0;
 	}
 
 	/* Do the final checks */
-	if (command == 'A' || command == 'I' ||
-	    command == 'D' || command == 'C') {
+	if (command == 'A' || command == 'I' || command == 'D') {
 		for (xtrm_i = cs.matches; xtrm_i; xtrm_i = xtrm_i->next)
 			xtables_option_mfcall(xtrm_i->match);
 
