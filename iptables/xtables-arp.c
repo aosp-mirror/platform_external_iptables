@@ -841,7 +841,7 @@ static struct xtables_target *command_jump(struct arpt_entry *fw,
 
 	target->t = xtables_calloc(1, size);
 	target->t->u.target_size = size;
-	strncpy(target->t->u.user.name, jumpto, sizeof(target->t->u.user.name));
+	strncpy(target->t->u.user.name, jumpto, sizeof(target->t->u.user.name) - 1);
 	target->t->u.user.name[sizeof(target->t->u.user.name)-1] = '\0';
 	target->t->u.user.revision = target->revision;
 

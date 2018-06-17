@@ -282,7 +282,6 @@ static int do_commandeb_xlate(struct nft_handle *h, int argc, char *argv[], char
 {
 	char *buffer;
 	int c, i;
-	int chcounter = 0; /* Needed for -C */
 	int rule_nr = 0;
 	int rule_nr_end = 0;
 	int ret = 0;
