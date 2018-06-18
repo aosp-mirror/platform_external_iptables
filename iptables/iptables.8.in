@@ -462,8 +462,9 @@ Jozsef Kadlecsik wrote the REJECT target.
 .PP
 Harald Welte wrote the ULOG and NFQUEUE target, the new libiptc, as well as the TTL, DSCP, ECN matches and targets.
 .PP
-The Netfilter Core Team is: Jozsef Kadlecsik, Patrick McHardy, Pablo Neira
-Ayuso, Eric Leblond and Florian Westphal. Emeritus Core Team members are: Marc
+The Netfilter Core Team is: Jozsef Kadlecsik, Pablo Neira Ayuso,
+Eric Leblond, Florian Westphal and  Arturo Borrero Gonzalez.
+Emeritus Core Team members are: Marc
 Boucher, Martin Josefsson, Yasuyuki Kozakai, James Morris, Harald Welte and
 Rusty Russell.
 .PP
