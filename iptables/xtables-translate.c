@@ -324,6 +324,7 @@ static void print_usage(const char *name, const char *version)
 static const struct option options[] = {
 	{ .name = "help",	.has_arg = false,	.val = 'h' },
 	{ .name = "file",	.has_arg = true,	.val = 'f' },
+	{ .name = "version",	.has_arg = false,	.val = 'V' },
 	{ NULL },
 };
 
@@ -505,7 +506,7 @@ static int xtables_restore_xlate_main(int family, const char *progname,
 		exit(EXIT_FAILURE);
 
 	opterr = 0;
-	while ((c = getopt_long(argc, argv, "hf:", options, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "hf:V", options, NULL)) != -1) {
 		switch (c) {
 		case 'h':
 			print_usage(argv[0], IPTABLES_VERSION);
@@ -513,6 +514,9 @@ static int xtables_restore_xlate_main(int family, const char *progname,
 		case 'f':
 			file = optarg;
 			break;
+		case 'V':
+			printf("%s v%s\n", argv[0], IPTABLES_VERSION);
+			exit(0);
 		}
 	}
 

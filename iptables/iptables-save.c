@@ -18,6 +18,9 @@
 #include "iptables.h"
 #include "iptables-multi.h"
 
+#define prog_name iptables_globals.program_name
+#define prog_vers iptables_globals.program_version
+
 static int show_counters;
 
 static const struct option options[] = {
@@ -26,6 +29,7 @@ static const struct option options[] = {
 	{.name = "table",    .has_arg = true,  .val = 't'},
 	{.name = "modprobe", .has_arg = true,  .val = 'M'},
 	{.name = "file",     .has_arg = true,  .val = 'f'},
+	{.name = "version",  .has_arg = false, .val = 'V'},
 	{NULL},
 };
 
@@ -145,7 +149,7 @@ iptables_save_main(int argc, char *argv[])
 	init_extensions4();
 #endif
 
-	while ((c = getopt_long(argc, argv, "bcdt:M:f:", options, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "bcdt:M:f:V", options, NULL)) != -1) {
 		switch (c) {
 		case 'b':
 			fprintf(stderr, "-b/--binary option is not implemented\n");
@@ -178,6 +182,9 @@ iptables_save_main(int argc, char *argv[])
 			break;
 		case 'd':
 			do_output(tablename);
+			exit(0);
+		case 'V':
+			printf("%s v%s (legacy)\n", prog_name, prog_vers);
 			exit(0);
 		default:
 			fprintf(stderr,

@@ -228,7 +228,7 @@ int ip6tables_restore_main(int argc, char *argv[])
 				verbose = 1;
 				break;
 			case 'V':
-				printf("%s v%s\n", prog_name, prog_vers);
+				printf("%s v%s (legacy)\n", prog_name, prog_vers);
 				exit(0);
 			case 't':
 				testing = 1;

@@ -1667,7 +1667,7 @@ int do_command6(int argc, char *argv[], char **table,
 			if (cs.invert)
 				printf("Not %s ;-)\n", prog_vers);
 			else
-				printf("%s v%s\n",
+				printf("%s v%s (legacy)\n",
 				       prog_name, prog_vers);
 			exit(0);
 

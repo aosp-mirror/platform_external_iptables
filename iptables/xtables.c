@@ -991,7 +991,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 			if (cs->invert)
 				printf("Not %s ;-)\n", prog_vers);
 			else
-				printf("%s v%s\n",
+				printf("%s v%s (nf_tables)\n",
 				       prog_name, prog_vers);
 			exit(0);
 

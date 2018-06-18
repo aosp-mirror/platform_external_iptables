@@ -26,10 +26,14 @@
 #include <dlfcn.h>
 #endif
 
+#define prog_name xtables_globals.program_name
+#define prog_vers xtables_globals.program_version
+
 static bool show_counters = false;
 
 static const struct option options[] = {
 	{.name = "counters", .has_arg = false, .val = 'c'},
+	{.name = "version",  .has_arg = false, .val = 'V'},
 	{.name = "dump",     .has_arg = false, .val = 'd'},
 	{.name = "table",    .has_arg = true,  .val = 't'},
 	{.name = "modprobe", .has_arg = true,  .val = 'M'},
@@ -101,7 +105,7 @@ xtables_save_main(int family, const char *progname, int argc, char *argv[])
 		exit(1);
 	}
 
-	while ((c = getopt_long(argc, argv, "bcdt:M:f:46", options, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "bcdt:M:f:46V", options, NULL)) != -1) {
 		switch (c) {
 		case 'b':
 			fprintf(stderr, "-b/--binary option is not implemented\n");
@@ -142,6 +146,9 @@ xtables_save_main(int family, const char *progname, int argc, char *argv[])
 			h.family = AF_INET6;
 			xtables_set_nfproto(AF_INET6);
 			break;
+		case 'V':
+			printf("%s v%s (nf_tables)\n", prog_name, prog_vers);
+			exit(0);
 		default:
 			fprintf(stderr,
 				"Look at manual page `xtables-save.8' for more information.\n");

@@ -1259,7 +1259,7 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table)
 			if (invert)
 				printf("Not %s ;-)\n", program_version);
 			else
-				printf("%s v%s\n",
+				printf("%s v%s (nf_tables)\n",
 				       program_name, program_version);
 			exit(0);
 
