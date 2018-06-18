@@ -269,6 +269,8 @@ def main():
     parser.add_argument('filename', nargs='?',
                         metavar='path/to/file.t',
                         help='Run only this test')
+    parser.add_argument('-l', '--legacy', action='store_true',
+                        help='Test iptables-legacy')
     parser.add_argument('-m', '--missing', action='store_true',
                         help='Check for missing tests')
     parser.add_argument('-n', '--nftables', action='store_true',
@@ -283,9 +285,9 @@ def main():
         return
 
     global EXECUTEABLE
-    EXECUTEABLE = "xtables-multi"
+    EXECUTEABLE = "xtables-legacy-multi"
     if args.nftables:
-        EXECUTEABLE = "xtables-compat-multi"
+        EXECUTEABLE = "xtables-nft-multi"
 
     if os.getuid() != 0:
         print "You need to be root to run this, sorry"

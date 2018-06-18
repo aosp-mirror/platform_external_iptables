@@ -25,6 +25,11 @@ static const struct subcommand multi_subcommands[] = {
 	{"save4",               iptables_save_main},
 	{"iptables-restore",    iptables_restore_main},
 	{"restore4",            iptables_restore_main},
+	{"iptables-legacy",     iptables_main},
+	{"iptables-legacy-save",iptables_save_main},
+	{"iptables-legacy-restore",iptables_restore_main},
+
+
 #endif
 	{"iptables-xml",        iptables_xml_main},
 	{"xml",                 iptables_xml_main},
@@ -35,14 +40,9 @@ static const struct subcommand multi_subcommands[] = {
 	{"save6",               ip6tables_save_main},
 	{"ip6tables-restore",   ip6tables_restore_main},
 	{"restore6",            ip6tables_restore_main},
-#endif
-#ifdef ENABLE_NFTABLES
-	{"xtables",             xtables_main},
-	{"xtables-save",        xtables_save_main},
-	{"xtables-restore",     xtables_restore_main},
-	{"xtables-config",      xtables_config_main},
-	{"xtables-arp",		xtables_arp_main},
-	{"xtables-ebtables",	xtables_eb_main},
+	{"ip6tables",           ip6tables_main},
+	{"ip6tables-legacy-save",ip6tables_save_main},
+	{"ip6tables-legacy-restore",ip6tables_restore_main},
 #endif
 	{NULL},
 };
