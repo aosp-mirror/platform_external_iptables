@@ -44,12 +44,10 @@ static const struct option options[] = {
 };
 
 static int
-do_output(struct nft_handle *h, const char *tablename, bool counters)
+__do_output(struct nft_handle *h, const char *tablename, bool counters)
 {
 	struct nftnl_chain_list *chain_list;
 
-	if (!tablename)
-		return nft_for_each_table(h, do_output, counters) ? 1 : 0;
 
 	if (!nft_table_find(h, tablename)) {
 		printf("Table `%s' does not exist\n", tablename);
@@ -78,6 +76,22 @@ do_output(struct nft_handle *h, const char *tablename, bool counters)
 	printf("COMMIT\n");
 	printf("# Completed on %s", ctime(&now));
 	return 0;
+}
+
+static int
+do_output(struct nft_handle *h, const char *tablename, bool counters)
+{
+	int ret;
+
+	if (!tablename) {
+		ret = nft_for_each_table(h, __do_output, counters);
+		nft_check_xt_legacy(h->family, true);
+		return !!ret;
+	}
+
+	ret = __do_output(h, tablename, counters);
+	nft_check_xt_legacy(h->family, true);
+	return ret;
 }
 
 /* Format:

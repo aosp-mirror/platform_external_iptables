@@ -1238,6 +1238,7 @@ int do_commandx(struct nft_handle *h, int argc, char *argv[], char **table,
 			ret = nft_rule_zero_counters(h, p.chain, p.table,
 						     p.rulenum - 1);
 		}
+		nft_check_xt_legacy(h->family, false);
 		break;
 	case CMD_LIST_RULES:
 	case CMD_LIST_RULES|CMD_ZERO:
@@ -1252,6 +1253,7 @@ int do_commandx(struct nft_handle *h, int argc, char *argv[], char **table,
 			ret = nft_rule_zero_counters(h, p.chain, p.table,
 						     p.rulenum - 1);
 		}
+		nft_check_xt_legacy(h->family, false);
 		break;
 	case CMD_NEW_CHAIN:
 		ret = nft_chain_user_add(h, p.chain, p.table);

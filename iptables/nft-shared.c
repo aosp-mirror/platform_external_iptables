@@ -904,3 +904,32 @@ bool nft_ipv46_rule_find(struct nft_family_ops *ops,
 
 	return true;
 }
+
+void nft_check_xt_legacy(int family, bool is_ipt_save)
+{
+	static const char tables6[] = "/proc/net/ip6_tables_names";
+	static const char tables4[] = "/proc/net/ip_tables_names";
+	const char *prefix = "ip";
+	FILE *fp = NULL;
+	char buf[1024];
+
+	switch (family) {
+	case NFPROTO_IPV4:
+		fp = fopen(tables4, "r");
+		break;
+	case NFPROTO_IPV6:
+		fp = fopen(tables6, "r");
+		prefix = "ip6";
+		break;
+	default:
+		break;
+	}
+
+	if (!fp)
+		return;
+
+	if (fgets(buf, sizeof(buf), fp))
+		fprintf(stderr, "# Warning: %stables-legacy tables present, use %stables-legacy%s to see them\n",
+			prefix, prefix, is_ipt_save ? "-save" : "");
+	fclose(fp);
+}

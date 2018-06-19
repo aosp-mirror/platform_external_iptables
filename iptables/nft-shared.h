@@ -270,4 +270,5 @@ void xtables_restore_parse(struct nft_handle *h,
 			   struct nft_xt_restore_cb *cb,
 			   int argc, char *argv[]);
 
+void nft_check_xt_legacy(int family, bool is_ipt_save);
 #endif
