@@ -1,8 +1,6 @@
 #!/bin/bash
 
-set -e
-
-$IPTABLES -t filter -N c1
+$IPTABLES -t filter -N c1 || exit 1
 $IPTABLES -t filter -N c1
 
 if [ $? -eq 0 ]; then
