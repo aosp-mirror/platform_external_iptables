@@ -3,8 +3,10 @@
 #configuration
 TESTDIR="./$(dirname $0)/"
 RETURNCODE_SEPARATOR="_"
-XTABLES_MULTI="$(dirname $0)/../../xtables-multi"
-DIFF=$(which diff)
+XTABLES_NFT_MULTI="$(dirname $0)/../../xtables-nft-multi"
+XTABLES_LEGACY_MULTI="$(dirname $0)/../../xtables-legacy-multi"
+
+export XTABLES_LIBDIR=${TESTDIR}/../../../extensions
 
 msg_error() {
         echo "E: $1 ..." >&2
@@ -23,30 +25,8 @@ if [ "$(id -u)" != "0" ] ; then
         msg_error "this requires root!"
 fi
 
-[ -z "$IPTABLES" ] && IPTABLES=$XTABLES_MULTI
-if [ ! -x "$IPTABLES" ] ; then
-        msg_error "no xtables-multi binary!"
-else
-        msg_info "using xtables-multi binary $IPTABLES"
-fi
-
 if [ ! -d "$TESTDIR" ] ; then
         msg_error "missing testdir $TESTDIR"
-fi
-
-FIND="$(which find)"
-if [ ! -x "$FIND" ] ; then
-        msg_error "no find binary found"
-fi
-
-MODPROBE="$(which modprobe)"
-if [ ! -x "$MODPROBE" ] ; then
-        msg_error "no modprobe binary found"
-fi
-
-DEPMOD="$(which depmod)"
-if [ ! -x "$DEPMOD" ] ; then
-        msg_error "no depmod binary found"
 fi
 
 if [ "$1" == "-v" ] ; then
@@ -63,67 +43,65 @@ for arg in "$@"; do
         fi
 done
 
-kernel_cleanup() {
-	for it in iptables ip6tables; do
-	for table in filter mangle nat raw; do
-		$it -t $table -nL >/dev/null 2>&1 || continue # non-existing table
-		$it -t $table -F        # delete rules
-		$it -t $table -X        # delete custom chains
-		$it -t $table -Z        # zero counters
-	done
-	done
-	$DEPMOD -a
-	$MODPROBE -raq \
-	ip_tables iptable_nat iptable_mangle ipt_REJECT
-}
-
 find_tests() {
         if [ ! -z "$SINGLE" ] ; then
                 echo $SINGLE
                 return
         fi
-        ${FIND} ${TESTDIR} -executable -regex \
+        find ${TESTDIR} -executable -regex \
                 .*${RETURNCODE_SEPARATOR}[0-9]+ | sort
 }
 
-
-echo ""
 ok=0
 failed=0
 
-for testfile in $(find_tests)
-do
+do_test() {
+	testfile="$1"
+	xtables_multi="$2"
 
 	for it in iptables ip6tables; do
-		kernel_cleanup
 		rc_spec=`echo $(basename ${testfile}) | cut -d _ -f2-`
-		IPTABLES="$XTABLES_MULTI $it"
+		IPTABLES="$xtables_multi $it"
 
 		msg_info "[EXECUTING]   $testfile"
-		test_output=$(IPTABLES=$IPTABLES ${testfile} 2>&1)
+
+		if [ "$VERBOSE" = "y" ]; then
+			IPTABLES="$IPTABLES" unshare -n ${testfile}
+		else
+			IPTABLES="$IPTABLES" unshare -n ${testfile} > /dev/null 2>&1
+		fi
+
 		rc_got=$?
 		echo -en "\033[1A\033[K" # clean the [EXECUTING] foobar line
 
 		if [ "$rc_got" == "$rc_spec" ] ; then
 			msg_info "[OK]          $testfile"
-			[ "$VERBOSE" == "y" ] && [ ! -z "$test_output" ] && echo "$test_output"
 			((ok++))
-
 		else
 			((failed++))
-			if [ "$VERBOSE" == "y" ] ; then
-				msg_warn "[FAILED]      $testfile: expected $rc_spec but got $rc_got"
-				[ ! -z "$test_output" ] && echo "$test_output"
-			else
-				msg_warn "[FAILED]      $testfile"
-			fi
+			msg_warn "[FAILED]      $testfile: expected $rc_spec but got $rc_got"
 		fi
-
 	done
-done
+}
 
 echo ""
-msg_info "results: [OK] $ok [FAILED] $failed [TOTAL] $((ok+failed))"
+for testfile in $(find_tests);do
+	do_test "$testfile" "$XTABLES_LEGACY_MULTI"
+done
+msg_info "legacy results: [OK] $ok [FAILED] $failed [TOTAL] $((ok+failed))"
 
-kernel_cleanup
+legacy_ok=$ok
+legacy_fail=$failed
+ok=0
+failed=0
+for testfile in $(find_tests);do
+	do_test "$testfile" "$XTABLES_NFT_MULTI"
+done
+msg_info "nft results: [OK] $ok [FAILED] $failed [TOTAL] $((ok+failed))"
+
+ok=$((legacy_ok+ok))
+failed=$((legacy_fail+failed))
+
+msg_info "combined results: [OK] $ok [FAILED] $failed [TOTAL] $((ok+failed))"
+
 exit 0

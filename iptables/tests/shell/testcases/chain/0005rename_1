@@ -1,12 +1,8 @@
 #!/bin/bash
 
-set -e
+$IPTABLES -N c1 || exit 0
+$IPTABLES -N c2 || exit 0
+$IPTABLES -E c1 c2 || exit 1
 
-$IPTABLES -N c1
-$IPTABLES -N c2
-$IPTABLES -E c1 c2
-
-if [ $? -eq 0 ] ; then
-        echo "E: Renamed with existing chain" >&2
-        exit 0
-fi
+echo "E: Renamed with existing chain" >&2
+exit 0

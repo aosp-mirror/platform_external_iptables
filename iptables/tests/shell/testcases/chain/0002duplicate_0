@@ -1,9 +1,0 @@
-#!/bin/bash
-
-$IPTABLES -t filter -N c1 || exit 1
-$IPTABLES -t filter -N c1
-
-if [ $? -eq 0 ]; then
-	echo "E: Duplicate chains" >&2
-	exit 0
-fi
