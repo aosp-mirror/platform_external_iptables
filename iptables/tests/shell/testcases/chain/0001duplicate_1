@@ -2,8 +2,11 @@
 
 set -x
 
-$IPTABLES -t filter -N c1
-$IPTABLES -t filter -N c1 || exit 1
+$XT_MULTI iptables -t filter -N c1 || exit 0
+$XT_MULTI iptables -t filter -N c1 || exit 1
+
+$XT_MULTI ip6tables -t filter -N c1 || exit 0
+$XT_MULTI ip6tables -t filter -N c1 || exit 1
 
 echo "E: Duplicate chains" >&2
 exit 0

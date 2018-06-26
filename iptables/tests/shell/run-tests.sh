@@ -59,29 +59,26 @@ do_test() {
 	testfile="$1"
 	xtables_multi="$2"
 
-	for it in iptables ip6tables; do
-		rc_spec=`echo $(basename ${testfile}) | cut -d _ -f2-`
-		IPTABLES="$xtables_multi $it"
+	rc_spec=`echo $(basename ${testfile}) | cut -d _ -f2-`
 
-		msg_info "[EXECUTING]   $testfile"
+	msg_info "[EXECUTING]   $testfile"
 
-		if [ "$VERBOSE" = "y" ]; then
-			IPTABLES="$IPTABLES" unshare -n ${testfile}
-		else
-			IPTABLES="$IPTABLES" unshare -n ${testfile} > /dev/null 2>&1
-		fi
+	if [ "$VERBOSE" = "y" ]; then
+		XT_MULTI=$xtables_multi unshare -n ${testfile}
+	else
+		XT_MULTI=$xtables_multi unshare -n ${testfile} > /dev/null 2>&1
+	fi
 
-		rc_got=$?
-		echo -en "\033[1A\033[K" # clean the [EXECUTING] foobar line
+	rc_got=$?
+	echo -en "\033[1A\033[K" # clean the [EXECUTING] foobar line
 
-		if [ "$rc_got" == "$rc_spec" ] ; then
-			msg_info "[OK]          $testfile"
-			((ok++))
-		else
-			((failed++))
-			msg_warn "[FAILED]      $testfile: expected $rc_spec but got $rc_got"
-		fi
-	done
+	if [ "$rc_got" == "$rc_spec" ] ; then
+		msg_info "[OK]          $testfile"
+		((ok++))
+	else
+		((failed++))
+		msg_warn "[FAILED]      $testfile: expected $rc_spec but got $rc_got"
+	fi
 }
 
 echo ""
