@@ -195,6 +195,7 @@ struct nft_xt_restore_cb restore_cb = {
 	.chain_list	= get_chain_list,
 	.commit		= nft_commit,
 	.abort		= nft_abort,
+	.table_new	= nft_table_new,
 	.table_flush	= nft_table_flush,
 	.chain_user_flush = nft_chain_user_flush,
 	.chain_del	= chain_delete,

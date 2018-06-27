@@ -1891,6 +1891,12 @@ err_out:
 	return ret == 0 ? 1 : 0;
 }
 
+void nft_table_new(struct nft_handle *h, const char *table)
+{
+	if (nft_xtables_config_load(h, XTABLES_CONFIG_DEFAULT, 0) < 0)
+		nft_xt_builtin_init(h, table);
+}
+
 static int __nft_rule_del(struct nft_handle *h, struct nftnl_rule_list *list,
 			  struct nftnl_rule *r)
 {
