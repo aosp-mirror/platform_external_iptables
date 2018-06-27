@@ -48,5 +48,6 @@ do_simple()
 
 do_simple "iptables" $(dirname "$0")/dumps/ipt-save-filter.txt
 do_simple "iptables" $(dirname "$0")/dumps/policy-drop.txt
+do_simple "iptables" $(dirname "$0")/dumps/wireless.txt
 
 exit $RET
