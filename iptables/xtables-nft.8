@@ -25,31 +25,31 @@
 .TH XTABLES-NFT 8 "June 2018"
 
 .SH NAME
-xtables-nft \- iptables using nftables kernel api
+xtables-nft \(em iptables using nftables kernel api
 
 .SH DESCRIPTION
-\fBxtables-nft\fP are versions of iptables that use the nftables api.
- is set of tools to help the system administrator migrate the
+\fBxtables-nft\fP are versions of iptables that use the nftables API.
+This is a set of tools to help the system administrator migrate the
 ruleset from \fBiptables(8)\fP, \fBip6tables(8)\fP, \fBarptables(8)\fP, and
 \fBebtables(8)\fP to \fBnftables(8)\fP.
 
 The \fBxtables-nft\fP set is composed of several commands:
 .IP \[bu] 2
-iptables-nft
+iptables\-nft
 .IP \[bu]
-iptables-nft-save
+iptables\-nft\-save
 .IP \[bu]
-iptables-nft-restore
+iptables\-nft\-restore
 .IP \[bu]
-ip6tables-nft
+ip6tables\-nft
 .IP \[bu]
-ip6tables-nft-save
+ip6tables\-nft\-save
 .IP \[bu]
-ip6tables-nft-restore
+ip6tables\-nft\-restore
 .IP \[bu]
-arptables-nft
+arptables\-nft
 .IP \[bu]
-ebtables-nft
+ebtables\-nft
 
 These tools use the libxtables framework extensions and hook to the nf_tables
 kernel subsystem using the \fBnft_compat\fP module.
@@ -60,7 +60,7 @@ native syntax of \fBiptables(8)\fP, \fBip6tables(8)\fP, \fBarptables(8)\fP, and
 \fBebtables(8)\fP.
 
 You should use the xtables-nft tools exactly the same way as you would use the
-corresponding original tool.
+corresponding original tools.
 
 Adding a rule will result in that rule being added to the nf_tables kernel
 subsystem instead.
@@ -70,13 +70,13 @@ When these tools were designed, the main idea was to replace each legacy binary
 with a symlink to the xtables-nft program, for example:
 
 .nf
-	/sbin/iptables  \-> /usr/sbin/iptables-nft-multi
-	/sbin/ip6tables \-> /usr/sbin/ip6tables-nft-mulit
-	/sbin/arptables \-> /usr/sbin/arptables-nft-multi
-	/sbin/ebtables  \-> /usr/sbin/ebtables-nft-multi
+	/sbin/iptables -> /usr/sbin/iptables\-nft\-multi
+	/sbin/ip6tables -> /usr/sbin/ip6tables\-nft\-multi
+	/sbin/arptables -> /usr/sbin/arptables\-nft\-multi
+	/sbin/ebtables -> /usr/sbin/ebtables\-nft\-multi
 .fi
 
-The iptables version string will indicate if the legacy API (get/setsockopt) or
+The iptables version string will indicate whether the legacy API (get/setsockopt) or
 the new nf_tables api is used:
 .nf
 	iptables \-V
@@ -85,19 +85,19 @@ the new nf_tables api is used:
 
 .SH DIFFERENCES TO LEGACY IPTABLES
 
-Because the xtables-nft tools use the nf_tables kernel api, rule additions
-are deletions are always atomic.  Unlike iptables-legacy, iptables-nft \-A ..
+Because the xtables-nft tools use the nf_tables kernel API, rule additions
+and deletions are always atomic.  Unlike iptables-legacy, iptables-nft \-A ..
 will NOT need to retrieve the current ruleset from the kernel, change it, and
 re-load the altered ruleset.  Instead, iptables-nft will tell the kernel to add
 one rule.  For this reason, the iptables-legacy \-\-wait option is a no-op in
 iptables-nft.
 
 Use of the xtables-nft tools allow monitoring ruleset changes using the
-.B xtables-monitor(8)
+.B xtables\-monitor(8)
 command.
 
 When using \-j TRACE to debug packet traversal to the ruleset, note that you will need to use
-.B xtables-monitor(8)
+.B xtables\-monitor(8)
 in \-\-trace mode to obtain monitoring trace events.
 
 .SH EXAMPLES
@@ -105,13 +105,13 @@ One basic example is creating the skeleton ruleset in nf_tables from the
 xtables-nft tools, in a fresh machine:
 
 .nf
-	root@machine:~# iptables-nft -L
+	root@machine:~# iptables\-nft \-L
 	[...]
-	root@machine:~# ip6tables-nft -L
+	root@machine:~# ip6tables\-nft \-L
 	[...]
-	root@machine:~# arptables-nft -L
+	root@machine:~# arptables\-nft \-L
 	[...]
-	root@machine:~# ebtables-nft -L
+	root@machine:~# ebtables\-nft \-L
 	[...]
 	root@machine:~# nft list ruleset
 	table ip filter {
@@ -142,15 +142,15 @@ xtables-nft tools, in a fresh machine:
 	}
 	table bridge filter {
 		chain INPUT {
-			type filter hook input priority -200; policy accept;
+			type filter hook input priority \-200; policy accept;
 		}
 
 		chain FORWARD {
-			type filter hook forward priority -200; policy accept;
+			type filter hook forward priority \-200; policy accept;
 		}
 
 		chain OUTPUT {
-			type filter hook output priority -200; policy accept;
+			type filter hook output priority \-200; policy accept;
 		}
 	}
 	table arp filter {
@@ -175,8 +175,8 @@ To migrate your complete filter ruleset, in the case of \fBiptables(8)\fP,
 you would use:
 
 .nf
-	root@machine:~# iptables-legacy-save > myruleset # reads from x_tables
-	root@machine:~# iptables-nft-restore myruleset   # writes to nf_tables
+	root@machine:~# iptables\-legacy\-save > myruleset # reads from x_tables
+	root@machine:~# iptables\-nft\-restore myruleset   # writes to nf_tables
 .fi
 
 

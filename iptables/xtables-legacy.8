@@ -25,29 +25,29 @@
 .TH XTABLES-LEGACY 8 "June 2018"
 
 .SH NAME
-xtables-legacy \- iptables using old getsockopt/setsockopt based kernel api
+xtables-legacy \(em iptables using old getsockopt/setsockopt-based kernel api
 
 .SH DESCRIPTION
 \fBxtables-legacy\fP are the original versions of iptables that use
-old getsockopt/setsockopt based kernel interface.
+old getsockopt/setsockopt-based kernel interface.
 This kernel interface has some limitations, therefore iptables can also
 be used with the newer nf_tables based API.
 See
-.B xtables-nft(8)
+.B xtables\-nft(8)
 for information about the xtables-nft variants of iptables.
 
 .SH USAGE
 The xtables-legacy-multi binary can be linked to the traditional names:
 
 .nf
-	/sbin/iptables  \-> /sbin/iptables-legacy-multi
-	/sbin/ip6tables \-> /sbin/ip6tables-legacy-mulit
-	/sbin/iptables-save \-> /sbin/ip6tables-legacy-mulit
-	/sbin/iptables-restore \-> /sbin/ip6tables-legacy-mulit
+	/sbin/iptables -> /sbin/iptables\-legacy\-multi
+	/sbin/ip6tables -> /sbin/ip6tables\-legacy\-multi
+	/sbin/iptables\-save -> /sbin/ip6tables\-legacy\-multi
+	/sbin/iptables\-restore -> /sbin/ip6tables\-legacy\-multi
 .fi
 
-The iptables version string will indicate if the legacy API (get/setsockopt) or
-the new nf_tables api is used:
+The iptables version string will indicate whether the legacy API (get/setsockopt) or
+the new nf_tables API is used:
 .nf
 	iptables \-V
 	iptables v1.7 (legacy)
@@ -64,9 +64,9 @@ updates might be lost.  This can be worked around partially with the \-\-wait op
 There is also no method to monitor changes to the ruleset, except periodically calling
 iptables-legacy-save and checking for any differences in output.
 
-.B xtables-monitor(8)
+.B xtables\-monitor(8)
 will need the
-.B xtables-nft(8)
+.B xtables\-nft(8)
 versions to work, it cannot display changes made using the.
 .B iptables-legacy
 tools.
