@@ -819,6 +819,11 @@ int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table)
 				ret = nft_chain_user_add(h, chain, *table);
 				break;
 			} else if (c == 'X') {
+				/* X arg is optional, optarg is NULL */
+				if (!chain && optind < argc && argv[optind][0] != '-') {
+					chain = argv[optind];
+					optind++;
+				}
 				ret = nft_chain_user_del(h, chain, *table);
 				break;
 			}
@@ -897,20 +902,10 @@ print_zero:
 					goto print_zero;
 			}
 
-			/*if (!(replace->flags & OPT_KERNELDATA))
-				ebt_get_kernel_table(replace, 0);
-			i = -1;
 			if (optind < argc && argv[optind][0] != '-') {
-				if ((i = ebt_get_chainnr(replace, argv[optind])) == -1)
-					ebt_print_error2("Chain '%s' doesn't exist", argv[optind]);
+				chain = argv[optind];
 				optind++;
 			}
-			if (i != -1) {
-				if (c == 'Z')
-					zerochain = i;
-				else
-					replace->selected_chain = i;
-			}*/
 			break;
 		case 'V': /* Version */
 			if (OPT_COMMANDS)
