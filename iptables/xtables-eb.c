@@ -208,6 +208,9 @@ delete_entry(struct nft_handle *h,
 
 static int get_current_chain(const char *chain)
 {
+	if (!chain)
+		return -1;
+
 	if (strcmp(chain, "PREROUTING") == 0)
 		return NF_BR_PRE_ROUTING;
 	else if (strcmp(chain, "INPUT") == 0)
@@ -823,13 +826,12 @@ int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table)
 					      "Multiple commands are not allowed");
 
 			command = c;
+			if (optarg && (optarg[0] == '-' || !strcmp(optarg, "!")))
+				xtables_error(PARAMETER_PROBLEM, "No chain name specified");
 			chain = optarg;
 			selected_chain = get_current_chain(chain);
 			flags |= OPT_COMMAND;
-			/*if (!(replace->flags & OPT_KERNELDATA))
-				ebt_get_kernel_table(replace, 0);*/
-			/*if (optarg && (optarg[0] == '-' || !strcmp(optarg, "!")))
-				ebt_print_error2("No chain name specified");*/
+
 			if (c == 'N') {
 				ret = nft_chain_user_add(h, chain, *table);
 				break;
