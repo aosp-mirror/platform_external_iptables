@@ -46,9 +46,6 @@
 /*
  * From include/ebtables_u.h
  */
-#define EXEC_STYLE_PRG    0
-#define EXEC_STYLE_DAEMON 1
-
 #define ebt_check_option2(flags, mask) EBT_CHECK_OPTION(flags, mask)
 
 /*
@@ -528,7 +525,7 @@ static int parse_rule_range(const char *argv, int *rule_nr, int *rule_nr_end)
 /* Incrementing or decrementing rules in daemon mode is not supported as the
  * involved code overload is not worth it (too annoying to take the increased
  * counters in the kernel into account). */
-static int parse_change_counters_rule(int argc, char **argv, int *rule_nr, int *rule_nr_end, int exec_style, struct iptables_command_state *cs)
+static int parse_change_counters_rule(int argc, char **argv, int *rule_nr, int *rule_nr_end, struct iptables_command_state *cs)
 {
 	char *buffer;
 	int ret = 0;
@@ -547,17 +544,9 @@ static int parse_change_counters_rule(int argc, char **argv, int *rule_nr, int *
 	}
 
 	if (argv[optind][0] == '+') {
-		if (exec_style == EXEC_STYLE_DAEMON)
-daemon_incr:
-			xtables_error(PARAMETER_PROBLEM,
-				      "Incrementing rule counters (%s) not allowed in daemon mode", argv[optind]);
 		ret += 1;
 		cs->counters.pcnt = strtoull(argv[optind] + 1, &buffer, 10);
 	} else if (argv[optind][0] == '-') {
-		if (exec_style == EXEC_STYLE_DAEMON)
-daemon_decr:
-			xtables_error(PARAMETER_PROBLEM,
-				      "Decrementing rule counters (%s) not allowed in daemon mode", argv[optind]);
 		ret += 2;
 		cs->counters.pcnt = strtoull(argv[optind] + 1, &buffer, 10);
 	} else
@@ -567,13 +556,9 @@ daemon_decr:
 		goto invalid;
 	optind++;
 	if (argv[optind][0] == '+') {
-		if (exec_style == EXEC_STYLE_DAEMON)
-			goto daemon_incr;
 		ret += 3;
 		cs->counters.bcnt = strtoull(argv[optind] + 1, &buffer, 10);
 	} else if (argv[optind][0] == '-') {
-		if (exec_style == EXEC_STYLE_DAEMON)
-			goto daemon_decr;
 		ret += 6;
 		cs->counters.bcnt = strtoull(argv[optind] + 1, &buffer, 10);
 	} else
@@ -746,7 +731,6 @@ void ebt_add_watcher(struct xtables_target *watcher,
 		cs->match_list->next = newnode;
 }
 
-/* We use exec_style instead of #ifdef's because ebtables.so is a shared object. */
 int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table)
 {
 	char *buffer;
@@ -763,7 +747,6 @@ int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table)
 	char command = 'h';
 	const char *chain = NULL;
 	const char *policy = NULL;
-	int exec_style = EXEC_STYLE_PRG;
 	int selected_chain = -1;
 	struct xtables_rule_match *xtrm_i;
 	struct ebt_match *match;
@@ -866,7 +849,7 @@ int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table)
 							 "Problem with the specified rule number(s) '%s'", argv[optind]);
 				optind++;
 			} else if (c == 'C') {
-				if ((chcounter = parse_change_counters_rule(argc, argv, &rule_nr, &rule_nr_end, exec_style, &cs)) == -1)
+				if ((chcounter = parse_change_counters_rule(argc, argv, &rule_nr, &rule_nr_end, &cs)) == -1)
 					return -1;
 			} else if (c == 'I') {
 				if (optind >= argc || (argv[optind][0] == '-' && (argv[optind][1] < '0' || argv[optind][1] > '9')))
@@ -914,12 +897,6 @@ print_zero:
 					goto print_zero;
 			}
 
-#ifdef SILENT_DAEMON
-			if (c== 'L' && exec_style == EXEC_STYLE_DAEMON)
-				xtables_error(PARAMETER_PROBLEM,
-					      "-L not supported in daemon mode");
-#endif
-
 			/*if (!(replace->flags & OPT_KERNELDATA))
 				ebt_get_kernel_table(replace, 0);
 			i = -1;
@@ -940,17 +917,9 @@ print_zero:
 				xtables_error(PARAMETER_PROBLEM,
 					      "Multiple commands are not allowed");
 			command = 'V';
-			if (exec_style == EXEC_STYLE_DAEMON)
-				xtables_error(PARAMETER_PROBLEM,
-					      "%s %s\n", prog_name, prog_vers);
 			printf("%s %s (nf_tables)\n", prog_name, prog_vers);
 			exit(0);
 		case 'h': /* Help */
-#ifdef SILENT_DAEMON
-			if (exec_style == EXEC_STYLE_DAEMON)
-				xtables_error(PARAMETER_PROBLEM,
-					      "-h not supported in daemon mode");
-#endif
 			if (OPT_COMMANDS)
 				xtables_error(PARAMETER_PROBLEM,
 					      "Multiple commands are not allowed");
@@ -1120,11 +1089,6 @@ print_zero:
 					      "Sorry, protocols have values above or equal to 0x0600");
 			break;
 		case 4  : /* Lc */
-#ifdef SILENT_DAEMON
-			if (exec_style == EXEC_STYLE_DAEMON)
-				xtables_error(PARAMETER_PROBLEM,
-					      "--Lc is not supported in daemon mode");
-#endif
 			ebt_check_option2(&flags, LIST_C);
 			if (command != 'L')
 				xtables_error(PARAMETER_PROBLEM,
@@ -1132,11 +1096,6 @@ print_zero:
 			flags |= LIST_C;
 			break;
 		case 5  : /* Ln */
-#ifdef SILENT_DAEMON
-			if (exec_style == EXEC_STYLE_DAEMON)
-				xtables_error(PARAMETER_PROBLEM,
-					      "--Ln is not supported in daemon mode");
-#endif
 			ebt_check_option2(&flags, LIST_N);
 			if (command != 'L')
 				xtables_error(PARAMETER_PROBLEM,
@@ -1147,11 +1106,6 @@ print_zero:
 			flags |= LIST_N;
 			break;
 		case 6  : /* Lx */
-#ifdef SILENT_DAEMON
-			if (exec_style == EXEC_STYLE_DAEMON)
-				xtables_error(PARAMETER_PROBLEM,
-					      "--Lx is not supported in daemon mode");
-#endif
 			ebt_check_option2(&flags, LIST_X);
 			if (command != 'L')
 				xtables_error(PARAMETER_PROBLEM,
@@ -1162,11 +1116,6 @@ print_zero:
 			flags |= LIST_X;
 			break;
 		case 12 : /* Lmac2 */
-#ifdef SILENT_DAEMON
-			if (exec_style == EXEC_STYLE_DAEMON)
-				xtables_error(PARAMETER_PROBLEM,
-					      "--Lmac2 is not supported in daemon mode");
-#endif
 			ebt_check_option2(&flags, LIST_MAC2);
 			if (command != 'L')
 				xtables_error(PARAMETER_PROBLEM,
@@ -1174,8 +1123,7 @@ print_zero:
 			flags |= LIST_MAC2;
 			break;
 		case 8 : /* atomic-commit */
-/*			if (exec_style == EXEC_STYLE_DAEMON)
-				ebt_print_error2("--atomic-commit is not supported in daemon mode");
+/*
 			replace->command = c;
 			if (OPT_COMMANDS)
 				ebt_print_error2("Multiple commands are not allowed");
@@ -1195,13 +1143,7 @@ print_zero:
 		/*case 7 :*/ /* atomic-init */
 		/*case 10:*/ /* atomic-save */
 		/*case 11:*/ /* init-table */
-		/*	if (exec_style == EXEC_STYLE_DAEMON) {
-				if (c == 7) {
-					ebt_print_error2("--atomic-init is not supported in daemon mode");
-				} else if (c == 10)
-					ebt_print_error2("--atomic-save is not supported in daemon mode");
-				ebt_print_error2("--init-table is not supported in daemon mode");
-			}
+		/*
 			replace->command = c;
 			if (OPT_COMMANDS)
 				ebt_print_error2("Multiple commands are not allowed");
@@ -1218,8 +1160,7 @@ print_zero:
 			}
 			break;
 		case 9 :*/ /* atomic */
-			/*if (exec_style == EXEC_STYLE_DAEMON)
-				ebt_print_error2("--atomic is not supported in daemon mode");
+			/*
 			if (OPT_COMMANDS)
 				ebt_print_error2("--atomic has to come before the command");*/
 			/* A possible memory leak here, but this is not
@@ -1299,8 +1240,7 @@ check_extension:
 
 	if (command == 'h' && !(flags & OPT_ZERO)) {
 		print_help(cs.target, cs.matches, *table);
-		if (exec_style == EXEC_STYLE_PRG)
-			exit(0);
+		exit(0);
 	}
 
 	/* Do the final checks */
@@ -1343,7 +1283,7 @@ check_extension:
 				 /*flags&OPT_EXPANDED*/0,
 				 flags&LIST_N,
 				 flags&LIST_C);
-		if (!(flags & OPT_ZERO) && exec_style == EXEC_STYLE_PRG)
+		if (!(flags & OPT_ZERO))
 			exit(0);
 	}
 	if (flags & OPT_ZERO) {
@@ -1365,19 +1305,6 @@ check_extension:
 		if (ebt_errormsg[0] != '\0')
 			return -1;
 	}*/
-	/* Commands -N, -E, -X, --atomic-commit, --atomic-commit, --atomic-save,
-	 * --init-table fall through */
-
-	/*if (ebt_errormsg[0] != '\0')
-		return -1;
-	if (table->check)
-		table->check(replace);
-
-	if (exec_style == EXEC_STYLE_PRG) {*//* Implies ebt_errormsg[0] == '\0' */
-		/*ebt_deliver_table(replace);
-
-		if (replace->nentries)
-			ebt_deliver_counters(replace);*/
 
 	ebt_cs_clean(&cs);
 	return ret;
