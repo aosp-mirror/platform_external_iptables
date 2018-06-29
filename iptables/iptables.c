@@ -276,7 +276,7 @@ iptables_exit_error(enum xtables_exittype status, const char *msg, ...)
 	va_list args;
 
 	va_start(args, msg);
-	fprintf(stderr, "%s v%s: ", prog_name, prog_vers);
+	fprintf(stderr, "%s v%s (legacy): ", prog_name, prog_vers);
 	vfprintf(stderr, msg, args);
 	va_end(args);
 	fprintf(stderr, "\n");

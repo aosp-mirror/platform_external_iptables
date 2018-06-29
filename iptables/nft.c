@@ -300,7 +300,7 @@ static int mnl_append_error(const struct nft_handle *h,
 		snprintf(errmsg, sizeof(errmsg), "\nline %u: %s failed (%s)",
 			 o->error.lineno, type_name[o->type], strerror(err->err));
 	else
-		snprintf(errmsg, sizeof(errmsg), "%s failed (%s)",
+		snprintf(errmsg, sizeof(errmsg), " %s failed (%s)",
 			 type_name[o->type], strerror(err->err));
 
 	switch (o->type) {
@@ -2484,6 +2484,7 @@ static int nft_action(struct nft_handle *h, int action)
 	struct obj_update *n, *tmp;
 	struct mnl_err *err, *ne;
 	unsigned int buflen, i, len;
+	bool show_errors = true;
 	char errmsg[1024];
 	uint32_t seq = 1;
 	int ret = 0;
@@ -2572,20 +2573,15 @@ static int nft_action(struct nft_handle *h, int action)
 
 	i = 0;
 	buflen = sizeof(errmsg);
-	if (!list_empty(&h->err_list)) {
-		len = snprintf(errmsg, buflen + i, "%s: ", xt_params->program_name);
-		if (len > 0) {
-			i += len;
-			buflen -= len;
-		}
-	}
 
 	list_for_each_entry_safe(n, tmp, &h->obj_list, head) {
 		list_for_each_entry_safe(err, ne, &h->err_list, head) {
 			if (err->seqnum > n->seq)
 				break;
 
-			if (err->seqnum == n->seq) {
+			if (err->seqnum == n->seq && show_errors) {
+				if (n->error.lineno == 0)
+					show_errors = false;
 				len = mnl_append_error(h, n, err, errmsg + i, buflen);
 				if (len > 0 && len <= buflen) {
 					buflen -= len;
