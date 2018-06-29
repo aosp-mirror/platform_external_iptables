@@ -2,8 +2,8 @@
 
 set -e
 
-$XTABLES_MULTI iptables -N c1
-$XTABLES_MULTI ip6tables -N c1
+$XT_MULTI iptables -N c1
+$XT_MULTI ip6tables -N c1
 
-$XTABLES_MULTI iptables -N c2
-$XTABLES_MULTI ip6tables -N c2
+$XT_MULTI iptables -N c2
+$XT_MULTI ip6tables -N c2
