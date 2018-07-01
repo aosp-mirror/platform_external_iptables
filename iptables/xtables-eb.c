@@ -659,6 +659,7 @@ void ebt_load_match_extensions(void)
 	ebt_load_match("limit");
 	ebt_load_match("pkttype");
 	ebt_load_match("vlan");
+	ebt_load_match("stp");
 
 	ebt_load_watcher("log");
 	ebt_load_watcher("nflog");
