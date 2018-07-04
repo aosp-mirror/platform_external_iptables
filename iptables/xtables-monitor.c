@@ -575,6 +575,7 @@ static const struct option options[] = {
 	{.name = "event", .has_arg = false, .val = 'e'},
 	{.name = "ipv4", .has_arg = false, .val = '4'},
 	{.name = "ipv6", .has_arg = false, .val = '6'},
+	{.name = "version", .has_arg = false, .val = 'V'},
 	{NULL},
 };
 
@@ -618,7 +619,7 @@ int xtables_monitor_main(int argc, char *argv[])
 
 	memset(&cb_arg, 0, sizeof(cb_arg));
 	opterr = 0;
-	while ((c = getopt_long(argc, argv, "ceht46", options, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "ceht46V", options, NULL)) != -1) {
 		switch (c) {
 	        case 'c':
 			counters = true;
@@ -638,8 +639,11 @@ int xtables_monitor_main(int argc, char *argv[])
 		case '6':
 			cb_arg.nfproto = NFPROTO_IPV6;
 			break;
+		case 'V':
+			printf("xtables-monitor %s\n", IPTABLES_VERSION);
+			exit(0);
 		default:
-			fprintf(stderr, "xtables-monitor %s: Bad argument.\n", XTABLES_VERSION);
+			fprintf(stderr, "xtables-monitor %s: Bad argument.\n", IPTABLES_VERSION);
 			fprintf(stderr, "Try `xtables-monitor -h' for more information.");
 			exit(PARAMETER_PROBLEM);
 		}
