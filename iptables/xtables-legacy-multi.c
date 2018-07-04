@@ -40,7 +40,7 @@ static const struct subcommand multi_subcommands[] = {
 	{"save6",               ip6tables_save_main},
 	{"ip6tables-restore",   ip6tables_restore_main},
 	{"restore6",            ip6tables_restore_main},
-	{"ip6tables",           ip6tables_main},
+	{"ip6tables-legacy",    ip6tables_main},
 	{"ip6tables-legacy-save",ip6tables_save_main},
 	{"ip6tables-legacy-restore",ip6tables_restore_main},
 #endif
