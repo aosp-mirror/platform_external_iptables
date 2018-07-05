@@ -178,7 +178,14 @@ you would use:
 	root@machine:~# iptables\-legacy\-save > myruleset # reads from x_tables
 	root@machine:~# iptables\-nft\-restore myruleset   # writes to nf_tables
 .fi
+or
+.nf
+	root@machine:~# iptables\-legacy\-save | iptables-translate-restore | less
+.fi
 
+to see how rules would look like in the nft
+\fBnft(8)\fP
+syntax.
 
 .SH LIMITATIONS
 You should use \fBLinux kernel >= 4.17\fP.
