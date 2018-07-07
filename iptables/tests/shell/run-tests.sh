@@ -67,10 +67,10 @@ do_test() {
 		XT_MULTI=$xtables_multi unshare -n ${testfile}
 	else
 		XT_MULTI=$xtables_multi unshare -n ${testfile} > /dev/null 2>&1
+		echo -en "\033[1A\033[K" # clean the [EXECUTING] foobar line
 	fi
 
 	rc_got=$?
-	echo -en "\033[1A\033[K" # clean the [EXECUTING] foobar line
 
 	if [ "$rc_got" == "$rc_spec" ] ; then
 		msg_info "[OK]          $testfile"
