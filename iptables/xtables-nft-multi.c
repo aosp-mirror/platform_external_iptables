@@ -31,8 +31,10 @@ static const struct subcommand multi_subcommands[] = {
 	{"iptables-restore-translate",	xtables_ip4_xlate_restore_main},
 	{"ip6tables-restore-translate",	xtables_ip6_xlate_restore_main},
 	{"arptables",			xtables_arp_main},
+	{"arptables-nft",		xtables_arp_main},
 	{"ebtables-translate",		xtables_eb_xlate_main},
 	{"ebtables",			xtables_eb_main},
+	{"ebtables-nft",		xtables_eb_main},
 	{"xtables-monitor",		xtables_monitor_main},
 	{NULL},
 };

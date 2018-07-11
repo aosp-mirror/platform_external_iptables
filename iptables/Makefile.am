@@ -80,7 +80,9 @@ x_sbin_links  = iptables-nft iptables-nft-restore iptables-nft-save \
 		ip6tables-nft ip6tables-nft-restore ip6tables-nft-save \
 		iptables-translate ip6tables-translate \
 		iptables-restore-translate ip6tables-restore-translate \
-		arptables ebtables xtables-monitor
+		arptables-nft arptables \
+		ebtables-nft ebtables \
+		xtables-monitor
 endif
 
 iptables-extensions.8: iptables-extensions.8.tmpl ../extensions/matches.man ../extensions/targets.man
