@@ -325,8 +325,13 @@ int ip6tables_restore_main(int argc, char *argv[])
 			strncpy(curtable, table, XT_TABLE_MAXNAMELEN);
 			curtable[XT_TABLE_MAXNAMELEN] = '\0';
 
-			if (tablename != NULL && strcmp(tablename, table) != 0)
+			if (tablename != NULL && strcmp(tablename, table) != 0) {
+				if (lock >= 0) {
+					xtables_unlock(lock);
+					lock = XT_LOCK_NOT_ACQUIRED;
+				}
 				continue;
+			}
 			if (handle)
 				ops->free(handle);
 
