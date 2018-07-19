@@ -16,6 +16,7 @@
 #include <stdbool.h>
 #include <netdb.h>
 #include <errno.h>
+#include <inttypes.h>
 
 #include <xtables.h>
 
@@ -800,6 +801,16 @@ void save_counters(const void *data)
 
 	printf("[%llu:%llu] ", (unsigned long long)cs->counters.pcnt,
 			       (unsigned long long)cs->counters.bcnt);
+}
+
+void nft_ipv46_save_chain(const struct nftnl_chain *c, const char *policy)
+{
+	const char *chain = nftnl_chain_get_str(c, NFTNL_CHAIN_NAME);
+	uint64_t pkts = nftnl_chain_get_u64(c, NFTNL_CHAIN_PACKETS);
+	uint64_t bytes = nftnl_chain_get_u64(c, NFTNL_CHAIN_BYTES);
+
+	printf(":%s %s [%"PRIu64":%"PRIu64"]\n",
+	       chain, policy ?: "-", pkts, bytes);
 }
 
 void save_matches_and_target(struct xtables_rule_match *m,

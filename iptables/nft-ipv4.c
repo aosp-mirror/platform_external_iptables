@@ -485,6 +485,7 @@ struct nft_family_ops nft_family_ops_ipv4 = {
 	.print_rule		= nft_ipv4_print_rule,
 	.save_rule		= nft_ipv4_save_rule,
 	.save_counters		= save_counters,
+	.save_chain		= nft_ipv46_save_chain,
 	.proto_parse		= nft_ipv4_proto_parse,
 	.post_parse		= nft_ipv4_post_parse,
 	.parse_target		= nft_ipv46_parse_target,

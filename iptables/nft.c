@@ -1276,31 +1276,14 @@ static const char *policy_name[NF_ACCEPT+1] = {
 	[NF_ACCEPT] = "ACCEPT",
 };
 
-static void nft_chain_print_save(struct nftnl_chain *c, bool basechain)
-{
-	const char *chain = nftnl_chain_get_str(c, NFTNL_CHAIN_NAME);
-	uint64_t pkts = nftnl_chain_get_u64(c, NFTNL_CHAIN_PACKETS);
-	uint64_t bytes = nftnl_chain_get_u64(c, NFTNL_CHAIN_BYTES);
-
-	/* print chain name */
-	if (basechain) {
-		uint32_t pol = NF_ACCEPT;
-
-		/* no default chain policy? don't crash, display accept */
-		if (nftnl_chain_get(c, NFTNL_CHAIN_POLICY))
-			pol = nftnl_chain_get_u32(c, NFTNL_CHAIN_POLICY);
-
-		printf(":%s %s [%"PRIu64":%"PRIu64"]\n", chain, policy_name[pol],
-					     pkts, bytes);
-	} else
-		printf(":%s - [%"PRIu64":%"PRIu64"]\n", chain, pkts, bytes);
-}
-
 int nft_chain_save(struct nft_handle *h, struct nftnl_chain_list *list,
 		   const char *table)
 {
 	struct nftnl_chain_list_iter *iter;
+	struct nft_family_ops *ops;
 	struct nftnl_chain *c;
+
+	ops = nft_family_ops_lookup(h->family);
 
 	iter = nftnl_chain_list_iter_create(list);
 	if (iter == NULL)
@@ -1310,13 +1293,21 @@ int nft_chain_save(struct nft_handle *h, struct nftnl_chain_list *list,
 	while (c != NULL) {
 		const char *chain_table =
 			nftnl_chain_get_str(c, NFTNL_CHAIN_TABLE);
-		bool basechain = false;
+		const char *policy = NULL;
 
 		if (strcmp(table, chain_table) != 0)
 			goto next;
 
-		basechain = nft_chain_builtin(c);
-		nft_chain_print_save(c, basechain);
+		if (nft_chain_builtin(c)) {
+			uint32_t pol = NF_ACCEPT;
+
+			if (nftnl_chain_get(c, NFTNL_CHAIN_POLICY))
+				pol = nftnl_chain_get_u32(c, NFTNL_CHAIN_POLICY);
+			policy = policy_name[pol];
+		}
+
+		if (ops->save_chain)
+			ops->save_chain(c, policy);
 next:
 		c = nftnl_chain_list_iter_next(iter);
 	}

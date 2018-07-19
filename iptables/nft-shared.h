@@ -5,6 +5,7 @@
 
 #include <libnftnl/rule.h>
 #include <libnftnl/expr.h>
+#include <libnftnl/chain.h>
 
 #include <linux/netfilter_arp/arp_tables.h>
 
@@ -95,6 +96,7 @@ struct nft_family_ops {
 			   unsigned int format);
 	void (*save_rule)(const void *data, unsigned int format);
 	void (*save_counters)(const void *data);
+	void (*save_chain)(const struct nftnl_chain *c, const char *policy);
 	void (*proto_parse)(struct iptables_command_state *cs,
 			    struct xtables_args *args);
 	void (*post_parse)(int command, struct iptables_command_state *cs,
@@ -166,6 +168,7 @@ void save_rule_details(const struct iptables_command_state *cs,
 		       const char *outiface,
 		       unsigned const char *outiface_mask);
 void save_counters(const void *data);
+void nft_ipv46_save_chain(const struct nftnl_chain *c, const char *policy);
 void save_matches_and_target(struct xtables_rule_match *m,
 			     struct xtables_target *target,
 			     const char *jumpto,
