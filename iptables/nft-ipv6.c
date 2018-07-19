@@ -367,13 +367,6 @@ static void nft_ipv6_post_parse(int command, struct iptables_command_state *cs,
 			      " source or destination IP addresses");
 }
 
-static void nft_ipv6_parse_target(struct xtables_target *t, void *data)
-{
-	struct iptables_command_state *cs = data;
-
-	cs->target = t;
-}
-
 static bool nft_ipv6_rule_find(struct nft_family_ops *ops,
 			       struct nftnl_rule *r, void *data)
 {
@@ -465,7 +458,7 @@ struct nft_family_ops nft_family_ops_ipv6 = {
 	.save_counters		= nft_ipv6_save_counters,
 	.proto_parse		= nft_ipv6_proto_parse,
 	.post_parse		= nft_ipv6_post_parse,
-	.parse_target		= nft_ipv6_parse_target,
+	.parse_target		= nft_ipv46_parse_target,
 	.rule_to_cs		= nft_rule_to_iptables_command_state,
 	.clear_cs		= nft_clear_iptables_command_state,
 	.rule_find		= nft_ipv6_rule_find,

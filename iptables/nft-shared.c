@@ -924,6 +924,13 @@ bool compare_targets(struct xtables_target *tg1, struct xtables_target *tg2)
 	return true;
 }
 
+void nft_ipv46_parse_target(struct xtables_target *t, void *data)
+{
+	struct iptables_command_state *cs = data;
+
+	cs->target = t;
+}
+
 bool nft_ipv46_rule_find(struct nft_family_ops *ops,
 			 struct nftnl_rule *r, struct iptables_command_state *cs)
 {
