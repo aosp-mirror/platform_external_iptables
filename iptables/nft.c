@@ -1207,8 +1207,8 @@ nft_rule_print_save(const struct nftnl_rule *r, enum nft_rule_print type,
 		break;
 	}
 
-	if (ops->save_firewall)
-		ops->save_firewall(&cs, format);
+	if (ops->save_rule)
+		ops->save_rule(&cs, format);
 
 	if (ops->clear_cs)
 		ops->clear_cs(&cs);
@@ -2216,7 +2216,7 @@ int nft_rule_list(struct nft_handle *h, const char *chain, const char *table,
 
 	if (chain && rulenum) {
 		__nft_rule_list(h, chain, table,
-				rulenum, format, ops->print_firewall);
+				rulenum, format, ops->print_rule);
 		return 1;
 	}
 
@@ -2260,7 +2260,7 @@ int nft_rule_list(struct nft_handle *h, const char *chain, const char *table,
 				  &ctrs, basechain, refs);
 
 		__nft_rule_list(h, chain_name, table,
-				rulenum, format, ops->print_firewall);
+				rulenum, format, ops->print_rule);
 
 		/* we printed the chain we wanted, stop processing. */
 		if (chain)

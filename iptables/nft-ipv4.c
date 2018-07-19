@@ -289,16 +289,15 @@ static void print_fragment(unsigned int flags, unsigned int invflags,
 	fputc(' ', stdout);
 }
 
-static void nft_ipv4_print_firewall(struct nftnl_rule *r, unsigned int num,
-				    unsigned int format)
+static void nft_ipv4_print_rule(struct nftnl_rule *r, unsigned int num,
+				unsigned int format)
 {
 	struct iptables_command_state cs = {};
 
 	nft_rule_to_iptables_command_state(r, &cs);
 
-	print_firewall_details(&cs, cs.jumpto, cs.fw.ip.flags,
-			       cs.fw.ip.invflags, cs.fw.ip.proto,
-			       num, format);
+	print_rule_details(&cs, cs.jumpto, cs.fw.ip.flags,
+			   cs.fw.ip.invflags, cs.fw.ip.proto, num, format);
 	print_fragment(cs.fw.ip.flags, cs.fw.ip.invflags, format);
 	print_ifaces(cs.fw.ip.iniface, cs.fw.ip.outiface, cs.fw.ip.invflags,
 		     format);
@@ -330,7 +329,7 @@ static void save_ipv4_addr(char letter, const struct in_addr *addr,
 	       mask_to_str(mask));
 }
 
-static void nft_ipv4_save_firewall(const void *data, unsigned int format)
+static void nft_ipv4_save_rule(const void *data, unsigned int format)
 {
 	const struct iptables_command_state *cs = data;
 
@@ -339,9 +338,9 @@ static void nft_ipv4_save_firewall(const void *data, unsigned int format)
 	save_ipv4_addr('d', &cs->fw.ip.dst, cs->fw.ip.dmsk.s_addr,
 		       cs->fw.ip.invflags & IPT_INV_DSTIP);
 
-	save_firewall_details(cs, cs->fw.ip.invflags, cs->fw.ip.proto,
-			      cs->fw.ip.iniface, cs->fw.ip.iniface_mask,
-			      cs->fw.ip.outiface, cs->fw.ip.outiface_mask);
+	save_rule_details(cs, cs->fw.ip.invflags, cs->fw.ip.proto,
+			  cs->fw.ip.iniface, cs->fw.ip.iniface_mask,
+			  cs->fw.ip.outiface, cs->fw.ip.outiface_mask);
 
 	if (cs->fw.ip.flags & IPT_F_FRAG) {
 		if (cs->fw.ip.invflags & IPT_INV_FRAG)
@@ -483,8 +482,8 @@ struct nft_family_ops nft_family_ops_ipv4 = {
 	.parse_payload		= nft_ipv4_parse_payload,
 	.parse_immediate	= nft_ipv4_parse_immediate,
 	.print_header		= print_header,
-	.print_firewall		= nft_ipv4_print_firewall,
-	.save_firewall		= nft_ipv4_save_firewall,
+	.print_rule		= nft_ipv4_print_rule,
+	.save_rule		= nft_ipv4_save_rule,
 	.save_counters		= save_counters,
 	.proto_parse		= nft_ipv4_proto_parse,
 	.post_parse		= nft_ipv4_post_parse,

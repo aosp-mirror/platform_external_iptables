@@ -675,10 +675,10 @@ void print_header(unsigned int format, const char *chain, const char *pol,
 	printf("\n");
 }
 
-void print_firewall_details(const struct iptables_command_state *cs,
-			    const char *targname, uint8_t flags,
-			    uint8_t invflags, uint8_t proto,
-			    unsigned int num, unsigned int format)
+void print_rule_details(const struct iptables_command_state *cs,
+			const char *targname, uint8_t flags,
+			uint8_t invflags, uint8_t proto,
+			unsigned int num, unsigned int format)
 {
 	if (format & FMT_LINENUMBERS)
 		printf(FMT("%-4u ", "%u "), num);
@@ -765,12 +765,12 @@ print_iface(char letter, const char *iface, const unsigned char *mask, int inv)
 	printf(" ");
 }
 
-void save_firewall_details(const struct iptables_command_state *cs,
-			   uint8_t invflags, uint16_t proto,
-			   const char *iniface,
-			   unsigned const char *iniface_mask,
-			   const char *outiface,
-			   unsigned const char *outiface_mask)
+void save_rule_details(const struct iptables_command_state *cs,
+		       uint8_t invflags, uint16_t proto,
+		       const char *iniface,
+		       unsigned const char *iniface_mask,
+		       const char *outiface,
+		       unsigned const char *outiface_mask)
 {
 	if (iniface != NULL) {
 		print_iface('i', iniface, iniface_mask,

@@ -435,8 +435,8 @@ static void print_protocol(uint16_t ethproto, bool invert, unsigned int bitmask)
 		printf("%s ", ent->e_name);
 }
 
-static void nft_bridge_print_firewall(struct nftnl_rule *r, unsigned int num,
-				      unsigned int format)
+static void nft_bridge_print_rule(struct nftnl_rule *r, unsigned int num,
+				  unsigned int format)
 {
 	struct iptables_command_state cs = {};
 
@@ -729,8 +729,8 @@ struct nft_family_ops nft_family_ops_bridge = {
 	.parse_target		= nft_bridge_parse_target,
 	.print_table_header	= nft_bridge_print_table_header,
 	.print_header		= nft_bridge_print_header,
-	.print_firewall		= nft_bridge_print_firewall,
-	.save_firewall		= NULL,
+	.print_rule		= nft_bridge_print_rule,
+	.save_rule		= NULL,
 	.save_counters		= NULL,
 	.post_parse		= NULL,
 	.rule_to_cs		= nft_rule_to_ebtables_command_state,

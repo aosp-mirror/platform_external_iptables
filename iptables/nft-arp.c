@@ -436,7 +436,8 @@ static void nft_arp_print_header(unsigned int format, const char *chain,
 	}
 }
 
-static void print_fw_details(struct arpt_entry *fw, unsigned int format)
+static void nft_arp_print_rule_details(struct arpt_entry *fw,
+				       unsigned int format)
 {
 	char buf[BUFSIZ];
 	char iface[IFNAMSIZ+2];
@@ -578,8 +579,7 @@ after_devdst:
 }
 
 static void
-nft_arp_print_firewall(struct nftnl_rule *r, unsigned int num,
-		       unsigned int format)
+nft_arp_print_rule(struct nftnl_rule *r, unsigned int num, unsigned int format)
 {
 	struct iptables_command_state cs = {};
 
@@ -588,7 +588,7 @@ nft_arp_print_firewall(struct nftnl_rule *r, unsigned int num,
 	if (format & FMT_LINENUMBERS)
 		printf("%u ", num);
 
-	print_fw_details(&cs.arp, format);
+	nft_arp_print_rule_details(&cs.arp, format);
 
 	if (cs.jumpto != NULL && strcmp(cs.jumpto, "") != 0) {
 		printf("-j %s", cs.jumpto);
@@ -663,8 +663,8 @@ struct nft_family_ops nft_family_ops_arp = {
 	.parse_payload		= nft_arp_parse_payload,
 	.parse_immediate	= nft_arp_parse_immediate,
 	.print_header		= nft_arp_print_header,
-	.print_firewall		= nft_arp_print_firewall,
-	.save_firewall		= NULL,
+	.print_rule		= nft_arp_print_rule,
+	.save_rule		= NULL,
 	.save_counters		= NULL,
 	.post_parse		= NULL,
 	.rule_to_cs		= nft_arp_rule_to_cs,

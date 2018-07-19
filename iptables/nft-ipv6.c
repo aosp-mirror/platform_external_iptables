@@ -220,16 +220,16 @@ static void print_ipv6_addr(const struct iptables_command_state *cs,
 	}
 }
 
-static void nft_ipv6_print_firewall(struct nftnl_rule *r, unsigned int num,
-				    unsigned int format)
+static void nft_ipv6_print_rule(struct nftnl_rule *r, unsigned int num,
+				unsigned int format)
 {
 	struct iptables_command_state cs = {};
 
 	nft_rule_to_iptables_command_state(r, &cs);
 
-	print_firewall_details(&cs, cs.jumpto, cs.fw6.ipv6.flags,
-			       cs.fw6.ipv6.invflags, cs.fw6.ipv6.proto,
-			       num, format);
+	print_rule_details(&cs, cs.jumpto, cs.fw6.ipv6.flags,
+			   cs.fw6.ipv6.invflags, cs.fw6.ipv6.proto,
+			   num, format);
 	print_ifaces(cs.fw6.ipv6.iniface, cs.fw6.ipv6.outiface,
 		     cs.fw6.ipv6.invflags, format);
 	print_ipv6_addr(&cs, format);
@@ -268,7 +268,7 @@ static void save_ipv6_addr(char letter, const struct in6_addr *addr,
 		printf("/%d ", l);
 }
 
-static void nft_ipv6_save_firewall(const void *data, unsigned int format)
+static void nft_ipv6_save_rule(const void *data, unsigned int format)
 {
 	const struct iptables_command_state *cs = data;
 
@@ -277,10 +277,9 @@ static void nft_ipv6_save_firewall(const void *data, unsigned int format)
 	save_ipv6_addr('d', &cs->fw6.ipv6.dst, &cs->fw6.ipv6.dmsk,
 		       cs->fw6.ipv6.invflags & IP6T_INV_DSTIP);
 
-	save_firewall_details(cs, cs->fw6.ipv6.invflags, cs->fw6.ipv6.proto,
-			      cs->fw6.ipv6.iniface, cs->fw6.ipv6.iniface_mask,
-			      cs->fw6.ipv6.outiface,
-			      cs->fw6.ipv6.outiface_mask);
+	save_rule_details(cs, cs->fw6.ipv6.invflags, cs->fw6.ipv6.proto,
+			  cs->fw6.ipv6.iniface, cs->fw6.ipv6.iniface_mask,
+			  cs->fw6.ipv6.outiface, cs->fw6.ipv6.outiface_mask);
 
 	save_matches_and_target(cs->matches, cs->target,
 				cs->jumpto, cs->fw6.ipv6.flags, &cs->fw6);
@@ -438,8 +437,8 @@ struct nft_family_ops nft_family_ops_ipv6 = {
 	.parse_payload		= nft_ipv6_parse_payload,
 	.parse_immediate	= nft_ipv6_parse_immediate,
 	.print_header		= print_header,
-	.print_firewall		= nft_ipv6_print_firewall,
-	.save_firewall		= nft_ipv6_save_firewall,
+	.print_rule		= nft_ipv6_print_rule,
+	.save_rule		= nft_ipv6_save_rule,
 	.save_counters		= save_counters,
 	.proto_parse		= nft_ipv6_proto_parse,
 	.post_parse		= nft_ipv6_post_parse,

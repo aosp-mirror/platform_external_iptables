@@ -91,9 +91,9 @@ struct nft_family_ops {
 			     const char *pol,
 			     const struct xt_counters *counters, bool basechain,
 			     uint32_t refs);
-	void (*print_firewall)(struct nftnl_rule *r, unsigned int num,
-			       unsigned int format);
-	void (*save_firewall)(const void *data, unsigned int format);
+	void (*print_rule)(struct nftnl_rule *r, unsigned int num,
+			   unsigned int format);
+	void (*save_rule)(const void *data, unsigned int format);
 	void (*save_counters)(const void *data);
 	void (*proto_parse)(struct iptables_command_state *cs,
 			    struct xtables_args *args);
@@ -151,20 +151,20 @@ void nft_clear_iptables_command_state(struct iptables_command_state *cs);
 void print_header(unsigned int format, const char *chain, const char *pol,
 		  const struct xt_counters *counters, bool basechain,
 		  uint32_t refs);
-void print_firewall_details(const struct iptables_command_state *cs,
-			    const char *targname, uint8_t flags,
-			    uint8_t invflags, uint8_t proto,
-			    unsigned int num, unsigned int format);
+void print_rule_details(const struct iptables_command_state *cs,
+			const char *targname, uint8_t flags,
+			uint8_t invflags, uint8_t proto,
+			unsigned int num, unsigned int format);
 void print_ifaces(const char *iniface, const char *outiface, uint8_t invflags,
 		  unsigned int format);
 void print_matches_and_target(struct iptables_command_state *cs,
 			      unsigned int format);
-void save_firewall_details(const struct iptables_command_state *cs,
-			   uint8_t invflags, uint16_t proto,
-			   const char *iniface,
-			   unsigned const char *iniface_mask,
-			   const char *outiface,
-			   unsigned const char *outiface_mask);
+void save_rule_details(const struct iptables_command_state *cs,
+		       uint8_t invflags, uint16_t proto,
+		       const char *iniface,
+		       unsigned const char *iniface_mask,
+		       const char *outiface,
+		       unsigned const char *outiface_mask);
 void save_counters(const void *data);
 void save_matches_and_target(struct xtables_rule_match *m,
 			     struct xtables_target *target,
