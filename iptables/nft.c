@@ -327,9 +327,7 @@ static int mnl_append_error(const struct nft_handle *h,
 			 nftnl_rule_get_str(o->rule, NFTNL_RULE_CHAIN));
 #if 0
 		{
-			struct iptables_command_state cs = {};
-			nft_rule_to_iptables_command_state(o->rule, &cs);
-			nft_rule_print_save(&cs, o->rule, NFT_RULE_APPEND, FMT_NOCOUNTS);
+			nft_rule_print_save(o->rule, NFT_RULE_APPEND, FMT_NOCOUNTS);
 		}
 #endif
 		break;
@@ -1185,18 +1183,19 @@ nft_rule_append(struct nft_handle *h, const char *chain, const char *table,
 }
 
 void
-nft_rule_print_save(const void *data,
-		    struct nftnl_rule *r, enum nft_rule_print type,
+nft_rule_print_save(const struct nftnl_rule *r, enum nft_rule_print type,
 		    unsigned int format)
 {
 	const char *chain = nftnl_rule_get_str(r, NFTNL_RULE_CHAIN);
 	int family = nftnl_rule_get_u32(r, NFTNL_RULE_FAMILY);
+	struct iptables_command_state cs = {};
 	struct nft_family_ops *ops;
 
 	ops = nft_family_ops_lookup(family);
+	ops->rule_to_cs(r, &cs);
 
 	if (!(format & FMT_NOCOUNTS) && ops->save_counters)
-		ops->save_counters(data);
+		ops->save_counters(&cs);
 
 	/* print chain name */
 	switch(type) {
@@ -1209,8 +1208,10 @@ nft_rule_print_save(const void *data,
 	}
 
 	if (ops->save_firewall)
-		ops->save_firewall(data, format);
+		ops->save_firewall(&cs, format);
 
+	if (ops->clear_cs)
+		ops->clear_cs(&cs);
 }
 
 static int nftnl_chain_list_cb(const struct nlmsghdr *nlh, void *data)
@@ -1399,14 +1400,11 @@ int nft_rule_save(struct nft_handle *h, const char *table, bool counters)
 	while (r != NULL) {
 		const char *rule_table =
 			nftnl_rule_get_str(r, NFTNL_RULE_TABLE);
-		struct iptables_command_state cs = {};
 
 		if (strcmp(table, rule_table) != 0)
 			goto next;
 
-		nft_rule_to_iptables_command_state(r, &cs);
-
-		nft_rule_print_save(&cs, r, NFT_RULE_APPEND,
+		nft_rule_print_save(r, NFT_RULE_APPEND,
 				    counters ? 0 : FMT_NOCOUNTS);
 
 next:
@@ -2282,11 +2280,7 @@ err:
 static void
 list_save(struct nftnl_rule *r, unsigned int num, unsigned int format)
 {
-	struct iptables_command_state cs = {};
-
-	nft_rule_to_iptables_command_state(r, &cs);
-
-	nft_rule_print_save(&cs, r, NFT_RULE_APPEND, !(format & FMT_NOCOUNTS));
+	nft_rule_print_save(r, NFT_RULE_APPEND, !(format & FMT_NOCOUNTS));
 }
 
 static int

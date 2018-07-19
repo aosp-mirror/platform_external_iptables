@@ -933,7 +933,7 @@ bool nft_ipv46_rule_find(struct nft_family_ops *ops,
 
 	DEBUGP("comparing with... ");
 #ifdef DEBUG_DEL
-	nft_rule_print_save(&this, r, NFT_RULE_APPEND, 0);
+	nft_rule_print_save(r, NFT_RULE_APPEND, 0);
 #endif
 	if (!ops->is_same(cs, &this))
 		return false;

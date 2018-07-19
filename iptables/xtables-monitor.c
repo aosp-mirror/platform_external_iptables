@@ -73,7 +73,6 @@ static bool events;
 
 static int rule_cb(const struct nlmsghdr *nlh, void *data)
 {
-	struct iptables_command_state cs = {};
 	uint32_t type = nlh->nlmsg_type & 0xFF;
 	const struct cb_arg *arg = data;
 	struct nftnl_rule *r;
@@ -96,19 +95,16 @@ static int rule_cb(const struct nlmsghdr *nlh, void *data)
 	case AF_INET:
 	case AF_INET6:
 		printf("-%c ", family == AF_INET ? '4' : '6');
-		nft_rule_to_iptables_command_state(r, &cs);
 		break;
 	case NFPROTO_ARP:
 		printf("-0 ");
-		nft_rule_to_arptables_command_state(r, &cs);
 		break;
 	default:
 		goto err_free;
 	}
 
 	printf("-t %s ", nftnl_rule_get_str(r, NFTNL_RULE_TABLE));
-	nft_rule_print_save(&cs, r,
-			    type == NFT_MSG_NEWRULE ? NFT_RULE_APPEND :
+	nft_rule_print_save(r, type == NFT_MSG_NEWRULE ? NFT_RULE_APPEND :
 							   NFT_RULE_DEL,
 			    counters ? 0 : FMT_NOCOUNTS);
 err_free:
