@@ -145,6 +145,7 @@ int do_commandx(struct nft_handle *h, int argc, char *argv[], char **table, bool
 /* For xtables-arptables.c */
 int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table);
 /* For xtables-eb.c */
+int nft_init_eb(struct nft_handle *h);
 int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table);
 
 /*

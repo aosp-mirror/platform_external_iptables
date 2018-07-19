@@ -732,6 +732,40 @@ void ebt_add_watcher(struct xtables_target *watcher,
 		cs->match_list->next = newnode;
 }
 
+int nft_init_eb(struct nft_handle *h)
+{
+	ebtables_globals.program_name = "ebtables";
+	if (xtables_init_all(&ebtables_globals, NFPROTO_BRIDGE) < 0) {
+		fprintf(stderr, "%s/%s Failed to initialize ebtables-compat\n",
+			ebtables_globals.program_name,
+			ebtables_globals.program_version);
+		exit(1);
+	}
+
+#if defined(ALL_INCLUSIVE) || defined(NO_SHARED_LIBS)
+	init_extensionsb();
+#endif
+
+	memset(h, 0, sizeof(*h));
+
+	h->family = NFPROTO_BRIDGE;
+
+	if (nft_init(h, xtables_bridge) < 0)
+		xtables_error(OTHER_PROBLEM,
+			      "Could not initialize nftables layer.");
+	h->ops = nft_family_ops_lookup(h->family);
+	if (!h->ops)
+		xtables_error(PARAMETER_PROBLEM, "Unknown family");
+
+	/* manually registering ebt matches, given the original ebtables parser
+	 * don't use '-m matchname' and the match can't be loaded dynamically when
+	 * the user calls it.
+	 */
+	ebt_load_match_extensions();
+
+	return 0;
+}
+
 int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table)
 {
 	char *buffer;
