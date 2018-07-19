@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <netinet/in.h>
 #include <net/if.h>
+#include <linux/netfilter_arp/arp_tables.h>
 #include <linux/netfilter_ipv4/ip_tables.h>
 #include <linux/netfilter_ipv6/ip6_tables.h>
 
@@ -83,6 +84,7 @@ struct iptables_command_state {
 		struct ebt_entry eb;
 		struct ipt_entry fw;
 		struct ip6t_entry fw6;
+		struct arpt_entry arp;
 	};
 	int invert;
 	int c;

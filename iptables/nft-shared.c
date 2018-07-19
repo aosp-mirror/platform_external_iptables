@@ -294,21 +294,6 @@ int parse_meta(struct nftnl_expr *e, uint8_t key, char *iniface,
 	return 0;
 }
 
-static void *nft_get_data(struct nft_xt_ctx *ctx)
-{
-	switch(ctx->family) {
-	case NFPROTO_IPV4:
-	case NFPROTO_IPV6:
-	case NFPROTO_BRIDGE:
-		return ctx->state.cs;
-	case NFPROTO_ARP:
-		return ctx->state.cs_arp;
-	default:
-		/* Should not happen */
-		return NULL;
-	}
-}
-
 void nft_parse_target(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 {
 	uint32_t tg_len;
@@ -318,7 +303,7 @@ void nft_parse_target(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 	struct xt_entry_target *t;
 	size_t size;
 	struct nft_family_ops *ops;
-	void *data = nft_get_data(ctx);
+	void *data = ctx->state.cs;
 
 	target = xtables_find_target(targname, XTF_TRY_LOAD);
 	if (target == NULL)
@@ -383,7 +368,7 @@ void nft_parse_match(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 
 	ops = nft_family_ops_lookup(ctx->family);
 	if (ops->parse_match != NULL)
-		ops->parse_match(match, nft_get_data(ctx));
+		ops->parse_match(match, ctx->state.cs);
 }
 
 void print_proto(uint16_t proto, int invert)
@@ -446,7 +431,7 @@ static void nft_meta_set_to_target(struct nft_xt_ctx *ctx)
 	target->t = t;
 
 	ops = nft_family_ops_lookup(ctx->family);
-	ops->parse_target(target, nft_get_data(ctx));
+	ops->parse_target(target, ctx->state.cs);
 }
 
 void nft_parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
@@ -491,7 +476,7 @@ void nft_parse_bitwise(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 void nft_parse_cmp(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 {
 	struct nft_family_ops *ops = nft_family_ops_lookup(ctx->family);
-	void *data = nft_get_data(ctx);
+	void *data = ctx->state.cs;
 	uint32_t reg;
 
 	reg = nftnl_expr_get_u32(e, NFTNL_EXPR_CMP_SREG);
@@ -521,7 +506,7 @@ void nft_parse_immediate(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 	struct nft_family_ops *ops;
 	const char *jumpto = NULL;
 	bool nft_goto = false;
-	void *data = nft_get_data(ctx);
+	void *data = ctx->state.cs;
 	int verdict;
 
 	if (nftnl_expr_is_set(e, NFTNL_EXPR_IMM_DATA)) {
@@ -563,7 +548,7 @@ void nft_parse_immediate(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 	ops->parse_immediate(jumpto, nft_goto, data);
 }
 
-void nft_rule_to_iptables_command_state(struct nftnl_rule *r,
+void nft_rule_to_iptables_command_state(const struct nftnl_rule *r,
 					struct iptables_command_state *cs)
 {
 	struct nftnl_expr_iter *iter;

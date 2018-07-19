@@ -49,7 +49,6 @@ enum {
 struct nft_xt_ctx {
 	union {
 		struct iptables_command_state *cs;
-		struct arptables_command_state *cs_arp;
 	} state;
 	struct nftnl_expr_iter *iter;
 	int family;
@@ -145,7 +144,7 @@ void nft_parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e);
 void nft_parse_payload(struct nft_xt_ctx *ctx, struct nftnl_expr *e);
 void nft_parse_counter(struct nftnl_expr *e, struct xt_counters *counters);
 void nft_parse_immediate(struct nft_xt_ctx *ctx, struct nftnl_expr *e);
-void nft_rule_to_iptables_command_state(struct nftnl_rule *r,
+void nft_rule_to_iptables_command_state(const struct nftnl_rule *r,
 					struct iptables_command_state *cs);
 void print_header(unsigned int format, const char *chain, const char *pol,
 		  const struct xt_counters *counters, bool basechain,
