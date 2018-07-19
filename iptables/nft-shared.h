@@ -165,7 +165,7 @@ void save_firewall_details(const struct iptables_command_state *cs,
 			   unsigned const char *iniface_mask,
 			   const char *outiface,
 			   unsigned const char *outiface_mask);
-void save_counters(uint64_t pcnt, uint64_t bcnt);
+void save_counters(const void *data);
 void save_matches_and_target(struct xtables_rule_match *m,
 			     struct xtables_target *target,
 			     const char *jumpto,

@@ -367,13 +367,6 @@ static void nft_ipv6_post_parse(int command, struct iptables_command_state *cs,
 			      " source or destination IP addresses");
 }
 
-static void nft_ipv6_save_counters(const void *data)
-{
-	const struct iptables_command_state *cs = data;
-
-	save_counters(cs->counters.pcnt, cs->counters.bcnt);
-}
-
 static void xlate_ipv6_addr(const char *selector, const struct in6_addr *addr,
 			    const struct in6_addr *mask,
 			    int invert, struct xt_xlate *xl)
@@ -447,7 +440,7 @@ struct nft_family_ops nft_family_ops_ipv6 = {
 	.print_header		= print_header,
 	.print_firewall		= nft_ipv6_print_firewall,
 	.save_firewall		= nft_ipv6_save_firewall,
-	.save_counters		= nft_ipv6_save_counters,
+	.save_counters		= save_counters,
 	.proto_parse		= nft_ipv6_proto_parse,
 	.post_parse		= nft_ipv6_post_parse,
 	.parse_target		= nft_ipv46_parse_target,

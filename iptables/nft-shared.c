@@ -794,10 +794,12 @@ void save_firewall_details(const struct iptables_command_state *cs,
 	}
 }
 
-void save_counters(uint64_t pcnt, uint64_t bcnt)
+void save_counters(const void *data)
 {
-	printf("[%llu:%llu] ", (unsigned long long)pcnt,
-			       (unsigned long long)bcnt);
+	const struct iptables_command_state *cs = data;
+
+	printf("[%llu:%llu] ", (unsigned long long)cs->counters.pcnt,
+			       (unsigned long long)cs->counters.bcnt);
 }
 
 void save_matches_and_target(struct xtables_rule_match *m,

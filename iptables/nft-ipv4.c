@@ -414,13 +414,6 @@ static void nft_ipv4_post_parse(int command,
 			      " source or destination IP addresses");
 }
 
-static void nft_ipv4_save_counters(const void *data)
-{
-	const struct iptables_command_state *cs = data;
-
-	save_counters(cs->counters.pcnt, cs->counters.bcnt);
-}
-
 static int nft_ipv4_xlate(const void *data, struct xt_xlate *xl)
 {
 	const struct iptables_command_state *cs = data;
@@ -492,7 +485,7 @@ struct nft_family_ops nft_family_ops_ipv4 = {
 	.print_header		= print_header,
 	.print_firewall		= nft_ipv4_print_firewall,
 	.save_firewall		= nft_ipv4_save_firewall,
-	.save_counters		= nft_ipv4_save_counters,
+	.save_counters		= save_counters,
 	.proto_parse		= nft_ipv4_proto_parse,
 	.post_parse		= nft_ipv4_post_parse,
 	.parse_target		= nft_ipv46_parse_target,
