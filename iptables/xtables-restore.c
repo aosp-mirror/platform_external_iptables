@@ -78,7 +78,7 @@ static int newargc;
 
 /* function adding one argument to newargv, updating newargc 
  * returns true if argument added, false otherwise */
-static int add_argv(char *what) {
+static int add_argv(const char *what) {
 	DEBUGP("add_argv: %s\n", what);
 	if (what && newargc + 1 < ARRAY_SIZE(newargv)) {
 		newargv[newargc] = strdup(what);
