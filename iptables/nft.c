@@ -1176,7 +1176,8 @@ nft_rule_append(struct nft_handle *h, const char *chain, const char *table,
 	if (batch_rule_add(h, type, r) < 0)
 		nftnl_rule_free(r);
 
-	nft_rule_list_get(h);
+	if (!nft_rule_list_get(h))
+		return 0;
 
 	nftnl_rule_list_add_tail(r, h->rule_cache);
 
