@@ -1373,7 +1373,7 @@ retry:
 	return list;
 }
 
-int nft_rule_save(struct nft_handle *h, const char *table, bool counters)
+int nft_rule_save(struct nft_handle *h, const char *table, unsigned int format)
 {
 	struct nftnl_rule_list *list;
 	struct nftnl_rule_list_iter *iter;
@@ -1395,8 +1395,7 @@ int nft_rule_save(struct nft_handle *h, const char *table, bool counters)
 		if (strcmp(table, rule_table) != 0)
 			goto next;
 
-		nft_rule_print_save(r, NFT_RULE_APPEND,
-				    counters ? 0 : FMT_NOCOUNTS);
+		nft_rule_print_save(r, NFT_RULE_APPEND, format);
 
 next:
 		r = nftnl_rule_list_iter_next(iter);

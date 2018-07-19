@@ -98,7 +98,7 @@ int nft_rule_delete_num(struct nft_handle *h, const char *chain, const char *tab
 int nft_rule_replace(struct nft_handle *h, const char *chain, const char *table, void *data, int rulenum, bool verbose);
 int nft_rule_list(struct nft_handle *h, const char *chain, const char *table, int rulenum, unsigned int format);
 int nft_rule_list_save(struct nft_handle *h, const char *chain, const char *table, int rulenum, int counters);
-int nft_rule_save(struct nft_handle *h, const char *table, bool counters);
+int nft_rule_save(struct nft_handle *h, const char *table, unsigned int format);
 int nft_rule_flush(struct nft_handle *h, const char *chain, const char *table);
 int nft_rule_zero_counters(struct nft_handle *h, const char *chain, const char *table, int rulenum);
 

@@ -70,7 +70,7 @@ __do_output(struct nft_handle *h, const char *tablename, bool counters)
 	/* Dump out chain names first,
 	 * thereby preventing dependency conflicts */
 	nft_chain_save(h, chain_list, tablename);
-	nft_rule_save(h, tablename, counters);
+	nft_rule_save(h, tablename, counters ? 0 : FMT_NOCOUNTS);
 
 	now = time(NULL);
 	printf("COMMIT\n");
