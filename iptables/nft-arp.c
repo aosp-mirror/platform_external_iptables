@@ -365,8 +365,8 @@ static void nft_arp_parse_payload(struct nft_xt_ctx *ctx,
 	}
 }
 
-void nft_rule_to_arptables_command_state(const struct nftnl_rule *r,
-					 struct iptables_command_state *cs)
+static void nft_arp_rule_to_cs(const struct nftnl_rule *r,
+			       struct iptables_command_state *cs)
 {
 	struct nftnl_expr_iter *iter;
 	struct nftnl_expr *expr;
@@ -583,7 +583,7 @@ nft_arp_print_firewall(struct nftnl_rule *r, unsigned int num,
 {
 	struct iptables_command_state cs = {};
 
-	nft_rule_to_arptables_command_state(r, &cs);
+	nft_arp_rule_to_cs(r, &cs);
 
 	if (format & FMT_LINENUMBERS)
 		printf("%u ", num);
@@ -641,7 +641,7 @@ static bool nft_arp_rule_find(struct nft_family_ops *ops, struct nftnl_rule *r,
 	struct iptables_command_state this = {};
 
 	/* Delete by matching rule case */
-	nft_rule_to_arptables_command_state(r, &this);
+	nft_arp_rule_to_cs(r, &this);
 
 	if (!nft_arp_is_same(&cs->arp, &this.arp))
 		return false;
@@ -667,7 +667,7 @@ struct nft_family_ops nft_family_ops_arp = {
 	.save_firewall		= NULL,
 	.save_counters		= NULL,
 	.post_parse		= NULL,
-	.rule_to_cs		= nft_rule_to_arptables_command_state,
+	.rule_to_cs		= nft_arp_rule_to_cs,
 	.clear_cs		= NULL,
 	.rule_find		= nft_arp_rule_find,
 	.parse_target		= nft_arp_parse_target,
