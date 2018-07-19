@@ -932,9 +932,9 @@ void nft_ipv46_parse_target(struct xtables_target *t, void *data)
 }
 
 bool nft_ipv46_rule_find(struct nft_family_ops *ops,
-			 struct nftnl_rule *r, struct iptables_command_state *cs)
+			 struct nftnl_rule *r, void *data)
 {
-	struct iptables_command_state this = {};
+	struct iptables_command_state *cs = data, this = {};
 
 	nft_rule_to_iptables_command_state(r, &this);
 

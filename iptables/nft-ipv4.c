@@ -414,14 +414,6 @@ static void nft_ipv4_post_parse(int command,
 			      " source or destination IP addresses");
 }
 
-static bool nft_ipv4_rule_find(struct nft_family_ops *ops,
-			       struct nftnl_rule *r, void *data)
-{
-	struct iptables_command_state *cs = data;
-
-	return nft_ipv46_rule_find(ops, r, cs);
-}
-
 static void nft_ipv4_save_counters(const void *data)
 {
 	const struct iptables_command_state *cs = data;
@@ -506,6 +498,6 @@ struct nft_family_ops nft_family_ops_ipv4 = {
 	.parse_target		= nft_ipv46_parse_target,
 	.rule_to_cs		= nft_rule_to_iptables_command_state,
 	.clear_cs		= nft_clear_iptables_command_state,
-	.rule_find		= nft_ipv4_rule_find,
+	.rule_find		= nft_ipv46_rule_find,
 	.xlate			= nft_ipv4_xlate,
 };
