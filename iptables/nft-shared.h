@@ -101,6 +101,9 @@ struct nft_family_ops {
 			   struct xtables_args *args);
 	void (*parse_match)(struct xtables_match *m, void *data);
 	void (*parse_target)(struct xtables_target *t, void *data);
+	void (*rule_to_cs)(const struct nftnl_rule *r,
+			   struct iptables_command_state *cs);
+	void (*clear_cs)(struct iptables_command_state *cs);
 	bool (*rule_find)(struct nft_family_ops *ops, struct nftnl_rule *r,
 			  void *data);
 	int (*xlate)(const void *data, struct xt_xlate *xl);
@@ -144,6 +147,7 @@ void nft_parse_counter(struct nftnl_expr *e, struct xt_counters *counters);
 void nft_parse_immediate(struct nft_xt_ctx *ctx, struct nftnl_expr *e);
 void nft_rule_to_iptables_command_state(const struct nftnl_rule *r,
 					struct iptables_command_state *cs);
+void nft_clear_iptables_command_state(struct iptables_command_state *cs);
 void print_header(unsigned int format, const char *chain, const char *pol,
 		  const struct xt_counters *counters, bool basechain,
 		  uint32_t refs);

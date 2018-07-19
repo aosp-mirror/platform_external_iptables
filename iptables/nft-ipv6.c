@@ -474,6 +474,8 @@ struct nft_family_ops nft_family_ops_ipv6 = {
 	.proto_parse		= nft_ipv6_proto_parse,
 	.post_parse		= nft_ipv6_post_parse,
 	.parse_target		= nft_ipv6_parse_target,
+	.rule_to_cs		= nft_rule_to_iptables_command_state,
+	.clear_cs		= nft_clear_iptables_command_state,
 	.rule_find		= nft_ipv6_rule_find,
 	.xlate			= nft_ipv6_xlate,
 };

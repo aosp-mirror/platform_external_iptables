@@ -347,7 +347,7 @@ static void nft_bridge_parse_target(struct xtables_target *t, void *data)
 	cs->target = t;
 }
 
-static void nft_rule_to_ebtables_command_state(struct nftnl_rule *r,
+static void nft_rule_to_ebtables_command_state(const struct nftnl_rule *r,
 					       struct iptables_command_state *cs)
 {
 	cs->eb.bitmask = EBT_NOPROTO;
@@ -733,6 +733,8 @@ struct nft_family_ops nft_family_ops_bridge = {
 	.save_firewall		= NULL,
 	.save_counters		= NULL,
 	.post_parse		= NULL,
+	.rule_to_cs		= nft_rule_to_ebtables_command_state,
+	.clear_cs		= ebt_cs_clean,
 	.rule_find		= nft_bridge_rule_find,
 	.xlate			= nft_bridge_xlate,
 };

@@ -626,6 +626,11 @@ void nft_rule_to_iptables_command_state(const struct nftnl_rule *r,
 		cs->jumpto = "";
 }
 
+void nft_clear_iptables_command_state(struct iptables_command_state *cs)
+{
+	xtables_rule_matches_free(&cs->matches);
+}
+
 void print_header(unsigned int format, const char *chain, const char *pol,
 		  const struct xt_counters *counters, bool basechain,
 		  uint32_t refs)
