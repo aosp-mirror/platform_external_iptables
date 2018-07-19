@@ -303,7 +303,7 @@ void nft_parse_target(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 	struct xt_entry_target *t;
 	size_t size;
 	struct nft_family_ops *ops;
-	void *data = ctx->state.cs;
+	void *data = ctx->cs;
 
 	target = xtables_find_target(targname, XTF_TRY_LOAD);
 	if (target == NULL)
@@ -341,7 +341,7 @@ void nft_parse_match(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 	case NFPROTO_IPV4:
 	case NFPROTO_IPV6:
 	case NFPROTO_BRIDGE:
-		matches = &ctx->state.cs->matches;
+		matches = &ctx->cs->matches;
 		break;
 	default:
 		fprintf(stderr, "BUG: nft_parse_match() unknown family %d\n",
@@ -368,7 +368,7 @@ void nft_parse_match(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 
 	ops = nft_family_ops_lookup(ctx->family);
 	if (ops->parse_match != NULL)
-		ops->parse_match(match, ctx->state.cs);
+		ops->parse_match(match, ctx->cs);
 }
 
 void print_proto(uint16_t proto, int invert)
@@ -431,7 +431,7 @@ static void nft_meta_set_to_target(struct nft_xt_ctx *ctx)
 	target->t = t;
 
 	ops = nft_family_ops_lookup(ctx->family);
-	ops->parse_target(target, ctx->state.cs);
+	ops->parse_target(target, ctx->cs);
 }
 
 void nft_parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
@@ -476,7 +476,7 @@ void nft_parse_bitwise(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 void nft_parse_cmp(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 {
 	struct nft_family_ops *ops = nft_family_ops_lookup(ctx->family);
-	void *data = ctx->state.cs;
+	void *data = ctx->cs;
 	uint32_t reg;
 
 	reg = nftnl_expr_get_u32(e, NFTNL_EXPR_CMP_SREG);
@@ -506,7 +506,7 @@ void nft_parse_immediate(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 	struct nft_family_ops *ops;
 	const char *jumpto = NULL;
 	bool nft_goto = false;
-	void *data = ctx->state.cs;
+	void *data = ctx->cs;
 	int verdict;
 
 	if (nftnl_expr_is_set(e, NFTNL_EXPR_IMM_DATA)) {
@@ -555,7 +555,7 @@ void nft_rule_to_iptables_command_state(const struct nftnl_rule *r,
 	struct nftnl_expr *expr;
 	int family = nftnl_rule_get_u32(r, NFTNL_RULE_FAMILY);
 	struct nft_xt_ctx ctx = {
-		.state.cs = cs,
+		.cs = cs,
 		.family = family,
 	};
 
@@ -570,7 +570,7 @@ void nft_rule_to_iptables_command_state(const struct nftnl_rule *r,
 			nftnl_expr_get_str(expr, NFTNL_EXPR_NAME);
 
 		if (strcmp(name, "counter") == 0)
-			nft_parse_counter(expr, &ctx.state.cs->counters);
+			nft_parse_counter(expr, &ctx.cs->counters);
 		else if (strcmp(name, "payload") == 0)
 			nft_parse_payload(&ctx, expr);
 		else if (strcmp(name, "meta") == 0)

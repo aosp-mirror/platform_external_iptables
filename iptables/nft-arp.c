@@ -372,7 +372,7 @@ void nft_rule_to_arptables_command_state(const struct nftnl_rule *r,
 	struct nftnl_expr *expr;
 	int family = nftnl_rule_get_u32(r, NFTNL_RULE_FAMILY);
 	struct nft_xt_ctx ctx = {
-		.state.cs = cs,
+		.cs = cs,
 		.family = family,
 	};
 
@@ -387,7 +387,7 @@ void nft_rule_to_arptables_command_state(const struct nftnl_rule *r,
 			nftnl_expr_get_str(expr, NFTNL_EXPR_NAME);
 
 		if (strcmp(name, "counter") == 0)
-			nft_parse_counter(expr, &ctx.state.cs->arp.counters);
+			nft_parse_counter(expr, &ctx.cs->arp.counters);
 		else if (strcmp(name, "payload") == 0)
 			nft_parse_payload(&ctx, expr);
 		else if (strcmp(name, "meta") == 0)

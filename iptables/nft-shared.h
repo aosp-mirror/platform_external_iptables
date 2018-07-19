@@ -47,9 +47,7 @@ enum {
 };
 
 struct nft_xt_ctx {
-	union {
-		struct iptables_command_state *cs;
-	} state;
+	struct iptables_command_state *cs;
 	struct nftnl_expr_iter *iter;
 	int family;
 	uint32_t flags;
