@@ -1345,7 +1345,10 @@ static void command_match(struct iptables_command_state *cs)
 int do_command4(int argc, char *argv[], char **table,
 		struct xtc_handle **handle, bool restore)
 {
-	struct iptables_command_state cs;
+	struct iptables_command_state cs = {
+		.jumpto	= "",
+		.argv	= argv,
+	};
 	struct ipt_entry *e = NULL;
 	unsigned int nsaddrs = 0, ndaddrs = 0;
 	struct in_addr *saddrs = NULL, *smasks = NULL;
@@ -1366,10 +1369,6 @@ int do_command4(int argc, char *argv[], char **table,
 	struct xtables_rule_match *matchp;
 	struct xtables_target *t;
 	unsigned long long cnt;
-
-	memset(&cs, 0, sizeof(cs));
-	cs.jumpto = "";
-	cs.argv = argv;
 
 	/* re-set optind to 0 in case do_command4 gets called
 	 * a second time */

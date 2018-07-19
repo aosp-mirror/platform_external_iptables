@@ -288,7 +288,10 @@ static int do_commandeb_xlate(struct nft_handle *h, int argc, char *argv[], char
 	unsigned int flags = 0;
 	struct xtables_target *t, *w;
 	struct xtables_match *m;
-	struct iptables_command_state cs;
+	struct iptables_command_state cs = {
+		.argv		= argv,
+		.eb.bitmask	= EBT_NOPROTO,
+	};
 	char command = 'h';
 	const char *chain = NULL;
 	int exec_style = EXEC_STYLE_PRG;
@@ -298,9 +301,6 @@ static int do_commandeb_xlate(struct nft_handle *h, int argc, char *argv[], char
 	struct nft_xt_cmd_parse p = {
 		.table          = *table,
         };
-
-	memset(&cs, 0, sizeof(cs));
-	cs.argv = argv;
 
 	if (nft_init(h, xtables_bridge) < 0)
 		xtables_error(OTHER_PROBLEM,
@@ -328,7 +328,6 @@ static int do_commandeb_xlate(struct nft_handle *h, int argc, char *argv[], char
 
 	/* prevent getopt to spoil our error reporting */
 	opterr = false;
-	cs.eb.bitmask = EBT_NOPROTO;
 
 	printf("nft ");
 	/* Getopt saves the day */

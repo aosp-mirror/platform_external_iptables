@@ -600,7 +600,7 @@ int xtables_monitor_main(int argc, char *argv[])
 	struct mnl_socket *nl;
 	char buf[MNL_SOCKET_BUFFER_SIZE];
 	uint32_t nfgroup = 0;
-	struct cb_arg cb_arg;
+	struct cb_arg cb_arg = {};
 	int ret, c;
 
 	xtables_globals.program_name = "xtables-monitor";
@@ -617,7 +617,6 @@ int xtables_monitor_main(int argc, char *argv[])
 	init_extensions4();
 #endif
 
-	memset(&cb_arg, 0, sizeof(cb_arg));
 	opterr = 0;
 	while ((c = getopt_long(argc, argv, "ceht46V", options, NULL)) != -1) {
 		switch (c) {

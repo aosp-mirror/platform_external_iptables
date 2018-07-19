@@ -393,7 +393,7 @@ int ip6tables_restore_main(int argc, char *argv[])
 			}
 
 			if (strcmp(policy, "-") != 0) {
-				struct xt_counters count;
+				struct xt_counters count = {};
 
 				if (counters) {
 					char *ctrs;
@@ -403,9 +403,6 @@ int ip6tables_restore_main(int argc, char *argv[])
 						xtables_error(PARAMETER_PROBLEM,
 							  "invalid policy counters "
 							  "for chain '%s'\n", chain);
-
-				} else {
-					memset(&count, 0, sizeof(count));
 				}
 
 				DEBUGP("Setting policy of chain %s to %s\n",

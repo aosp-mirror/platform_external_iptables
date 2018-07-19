@@ -744,16 +744,15 @@ int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table)
 	unsigned int flags = 0;
 	struct xtables_target *t, *w;
 	struct xtables_match *m;
-	struct iptables_command_state cs;
+	struct iptables_command_state cs = {
+		.argv = argv,
+	};
 	char command = 'h';
 	const char *chain = NULL;
 	const char *policy = NULL;
 	int selected_chain = -1;
 	struct xtables_rule_match *xtrm_i;
 	struct ebt_match *match;
-
-	memset(&cs, 0, sizeof(cs));
-	cs.argv = argv;
 
 	if (nft_init(h, xtables_bridge) < 0)
 		xtables_error(OTHER_PROBLEM,

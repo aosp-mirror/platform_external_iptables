@@ -217,10 +217,7 @@ static void nft_bridge_parse_meta(struct nft_xt_ctx *ctx,
 	struct iptables_command_state *cs = data;
 	struct ebt_entry *fw = &cs->eb;
 	uint8_t invflags = 0;
-	char iifname[IFNAMSIZ], oifname[IFNAMSIZ];
-
-	memset(iifname, 0, sizeof(iifname));
-	memset(oifname, 0, sizeof(oifname));
+	char iifname[IFNAMSIZ] = {}, oifname[IFNAMSIZ] = {};
 
 	parse_meta(e, ctx->meta.key, iifname, NULL, oifname, NULL, &invflags);
 

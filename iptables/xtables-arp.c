@@ -588,15 +588,14 @@ static struct in_addr *
 host_to_addr(const char *name, unsigned int *naddr)
 {
 	struct in_addr *addr;
-	struct addrinfo hints;
+	struct addrinfo hints = {
+		.ai_flags	= AI_CANONNAME,
+		.ai_family	= AF_INET,
+		.ai_socktype	= SOCK_RAW,
+	};;
 	struct addrinfo *res, *p;
 	int err;
 	unsigned int i;
-
-	memset(&hints, 0, sizeof(hints));
-	hints.ai_flags	  = AI_CANONNAME;
-	hints.ai_family	  = AF_INET;
-	hints.ai_socktype = SOCK_RAW;
 
 	*naddr = 0;
 	err = getaddrinfo(name, NULL, &hints, &res);
@@ -932,7 +931,9 @@ delete_entry(const char *chain,
 
 int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table)
 {
-	struct arptables_command_state cs;
+	struct arptables_command_state cs = {
+		.jumpto = "",
+	};
 	int invert = 0;
 	unsigned int nsaddrs = 0, ndaddrs = 0;
 	struct in_addr *saddrs = NULL, *daddrs = NULL;
@@ -945,9 +946,6 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table)
 	const char *pcnt = NULL, *bcnt = NULL;
 	int ret = 1;
 	struct xtables_target *t;
-
-	memset(&cs, 0, sizeof(cs));
-	cs.jumpto = "";
 
 	opts = original_opts;
 	global_option_offset = 0;
