@@ -82,6 +82,7 @@ x_sbin_links  = iptables-nft iptables-nft-restore iptables-nft-save \
 		iptables-restore-translate ip6tables-restore-translate \
 		arptables-nft arptables \
 		ebtables-nft ebtables \
+		ebtables-nft-restore ebtables-nft-save \
 		xtables-monitor
 endif
 

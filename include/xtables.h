@@ -536,6 +536,7 @@ extern void xtables_save_string(const char *value);
 #define FMT_VIA			0x0040
 #define FMT_NONEWLINE		0x0080
 #define FMT_LINENUMBERS		0x0100
+#define FMT_EBT_SAVE		0x0200
 
 #define FMT_PRINT_RULE (FMT_NOCOUNTS | FMT_OPTIONS | FMT_VIA \
                         | FMT_NUMERIC | FMT_NOTABLE)

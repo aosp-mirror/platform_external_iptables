@@ -203,7 +203,7 @@ delete_entry(struct nft_handle *h,
 	return ret;
 }
 
-static int get_current_chain(const char *chain)
+int ebt_get_current_chain(const char *chain)
 {
 	if (!chain)
 		return -1;
@@ -846,7 +846,7 @@ int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table)
 			if (optarg && (optarg[0] == '-' || !strcmp(optarg, "!")))
 				xtables_error(PARAMETER_PROBLEM, "No chain name specified");
 			chain = optarg;
-			selected_chain = get_current_chain(chain);
+			selected_chain = ebt_get_current_chain(chain);
 			flags |= OPT_COMMAND;
 
 			if (c == 'N') {
