@@ -115,6 +115,16 @@ static void nft_ipv6_parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e,
 {
 	struct iptables_command_state *cs = data;
 
+	switch (ctx->meta.key) {
+	case NFT_META_L4PROTO:
+		cs->fw6.ipv6.proto = nftnl_expr_get_u8(e, NFTNL_EXPR_CMP_DATA);
+		if (nftnl_expr_get_u32(e, NFTNL_EXPR_CMP_OP) == NFT_CMP_NEQ)
+			cs->fw6.ipv6.invflags |= XT_INV_PROTO;
+		return;
+	default:
+		break;
+	}
+
 	parse_meta(e, ctx->meta.key, cs->fw6.ipv6.iniface,
 		   cs->fw6.ipv6.iniface_mask, cs->fw6.ipv6.outiface,
 		   cs->fw6.ipv6.outiface_mask, &cs->fw6.ipv6.invflags);
