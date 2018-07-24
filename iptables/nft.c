@@ -3006,7 +3006,12 @@ static int nft_are_chains_compatible(struct nft_handle *h, const char *tablename
 
 	chain = nftnl_chain_list_iter_next(iter);
 	while (chain != NULL) {
-		if (!nft_chain_builtin(chain))
+		const char *chain_table;
+
+		chain_table = nftnl_chain_get_str(chain, NFTNL_CHAIN_TABLE);
+
+		if (strcmp(chain_table, tablename) ||
+		    !nft_chain_builtin(chain))
 			goto next;
 
 		ret = nft_is_chain_compatible(h, chain);
