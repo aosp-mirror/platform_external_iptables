@@ -2270,7 +2270,7 @@ err:
 static void
 list_save(struct nftnl_rule *r, unsigned int num, unsigned int format)
 {
-	nft_rule_print_save(r, NFT_RULE_APPEND, !(format & FMT_NOCOUNTS));
+	nft_rule_print_save(r, NFT_RULE_APPEND, format);
 }
 
 static int
