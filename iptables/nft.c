@@ -246,6 +246,7 @@ enum obj_update_type {
 	NFT_COMPAT_CHAIN_USER_FLUSH,
 	NFT_COMPAT_CHAIN_UPDATE,
 	NFT_COMPAT_CHAIN_RENAME,
+	NFT_COMPAT_CHAIN_ZERO,
 	NFT_COMPAT_RULE_APPEND,
 	NFT_COMPAT_RULE_INSERT,
 	NFT_COMPAT_RULE_REPLACE,
@@ -310,6 +311,7 @@ static int mnl_append_error(const struct nft_handle *h,
 			 nftnl_table_get_str(o->table, NFTNL_TABLE_NAME));
 		break;
 	case NFT_COMPAT_CHAIN_ADD:
+	case NFT_COMPAT_CHAIN_ZERO:
 	case NFT_COMPAT_CHAIN_USER_ADD:
 	case NFT_COMPAT_CHAIN_USER_DEL:
 	case NFT_COMPAT_CHAIN_USER_FLUSH:
@@ -2445,9 +2447,10 @@ static void batch_obj_del(struct nft_handle *h, struct obj_update *o)
 	case NFT_COMPAT_TABLE_FLUSH:
 		nftnl_table_free(o->table);
 		break;
-	case NFT_COMPAT_CHAIN_ADD:
+	case NFT_COMPAT_CHAIN_ZERO:
 	case NFT_COMPAT_CHAIN_USER_ADD:
 		break;
+	case NFT_COMPAT_CHAIN_ADD:
 	case NFT_COMPAT_CHAIN_USER_DEL:
 	case NFT_COMPAT_CHAIN_USER_FLUSH:
 	case NFT_COMPAT_CHAIN_UPDATE:
@@ -2496,6 +2499,7 @@ static int nft_action(struct nft_handle *h, int action)
 						   n->seq, n->table);
 			break;
 		case NFT_COMPAT_CHAIN_ADD:
+		case NFT_COMPAT_CHAIN_ZERO:
 			nft_compat_chain_batch_add(h, NFT_MSG_NEWCHAIN,
 						   NLM_F_CREATE, n->seq,
 						   n->chain);
@@ -2881,7 +2885,7 @@ int nft_chain_zero_counters(struct nft_handle *h, const char *chain,
 
 		nftnl_chain_unset(c, NFTNL_CHAIN_HANDLE);
 
-		ret = batch_chain_add(h, NFT_COMPAT_CHAIN_ADD, c);
+		ret = batch_chain_add(h, NFT_COMPAT_CHAIN_ZERO, c);
 
 		if (chain != NULL)
 			break;
