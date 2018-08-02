@@ -421,7 +421,7 @@ static void nft_arp_print_header(unsigned int format, const char *chain,
 				 bool basechain, uint32_t refs)
 {
 	printf("Chain %s", chain);
-	if (pol) {
+	if (basechain && pol) {
 		printf(" (policy %s", pol);
 		if (!(format & FMT_NOCOUNTS)) {
 			fputc(' ', stdout);
