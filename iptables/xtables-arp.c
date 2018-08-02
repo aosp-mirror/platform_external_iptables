@@ -1387,17 +1387,6 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table)
 						opt2char(OPT_VIANAMEIN),
 						chain);
 		}
-
-		if (!cs.target && strlen(cs.jumpto) != 0) {
-			size_t size;
-
-			cs.target = xtables_find_target(XT_STANDARD_TARGET,
-							XTF_LOAD_MUST_SUCCEED);
-			size = sizeof(struct arpt_entry_target) + cs.target->size;
-			cs.target->t = xtables_calloc(1, size);
-			cs.target->t->u.target_size = size;
-			strcpy(cs.target->t->u.user.name, cs.jumpto);
-		}
 	}
 
 	switch (command) {
