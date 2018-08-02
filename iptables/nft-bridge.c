@@ -466,8 +466,10 @@ static void nft_bridge_save_rule(const void *data, unsigned int format)
 		else
 			printf("CONTINUE");
 	}
-	else if (cs->target != NULL && cs->target->print != NULL)
+	if (cs->target != NULL && cs->target->print != NULL) {
+		printf(" ");
 		cs->target->print(&cs->fw, cs->target->t, format & FMT_NUMERIC);
+	}
 
 	if (!(format & FMT_NOCOUNTS)) {
 		const char *counter_fmt;
