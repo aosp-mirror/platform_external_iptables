@@ -815,7 +815,7 @@ static void nft_chain_print_debug(struct nftnl_chain *c, struct nlmsghdr *nlh)
 #ifdef NLDEBUG
 	char tmp[1024];
 
-	nft_chain_snprintf(tmp, sizeof(tmp), c, 0, 0);
+	nftnl_chain_snprintf(tmp, sizeof(tmp), c, 0, 0);
 	printf("DEBUG: chain: %s\n", tmp);
 	mnl_nlmsg_fprintf(stdout, nlh, nlh->nlmsg_len, sizeof(struct nfgenmsg));
 #endif
@@ -1031,7 +1031,7 @@ static void nft_rule_print_debug(struct nftnl_rule *r, struct nlmsghdr *nlh)
 #ifdef NLDEBUG
 	char tmp[1024];
 
-	nft_rule_snprintf(tmp, sizeof(tmp), r, 0, 0);
+	nftnl_rule_snprintf(tmp, sizeof(tmp), r, 0, 0);
 	printf("DEBUG: rule: %s\n", tmp);
 	mnl_nlmsg_fprintf(stdout, nlh, nlh->nlmsg_len, sizeof(struct nfgenmsg));
 #endif
