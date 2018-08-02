@@ -1474,7 +1474,7 @@ int nft_chain_user_flush(struct nft_handle *h, struct nftnl_chain_list *list,
 
 int nft_rule_flush(struct nft_handle *h, const char *chain, const char *table)
 {
-	int ret;
+	int ret = 0;
 	struct nftnl_chain_list *list;
 	struct nftnl_chain_list_iter *iter;
 	struct nftnl_chain *c;
@@ -1486,13 +1486,15 @@ int nft_rule_flush(struct nft_handle *h, const char *chain, const char *table)
 
 	list = nftnl_chain_list_get(h);
 	if (list == NULL) {
-		ret = 0;
+		ret = 1;
 		goto err;
 	}
 
 	iter = nftnl_chain_list_iter_create(list);
-	if (iter == NULL)
+	if (iter == NULL) {
+		ret = 1;
 		goto err;
+	}
 
 	c = nftnl_chain_list_iter_next(iter);
 	while (c != NULL) {
