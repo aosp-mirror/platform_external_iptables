@@ -675,7 +675,7 @@ void ebt_add_match(struct xtables_match *m,
 {
 	struct xtables_rule_match *i, **rule_matches = &cs->matches;
 	struct xtables_match *newm;
-	struct ebt_match *newnode;
+	struct ebt_match *newnode, **matchp;
 
 	/* match already in rule_matches, skip inclusion */
 	for (i = *rule_matches; i; i = i->next) {
@@ -700,16 +700,15 @@ void ebt_add_match(struct xtables_match *m,
 	newnode->ismatch = true;
 	newnode->u.match = newm;
 
-	if (cs->match_list == NULL)
-		cs->match_list = newnode;
-	else
-		cs->match_list->next = newnode;
+	for (matchp = &cs->match_list; *matchp; matchp = &(*matchp)->next)
+		;
+	*matchp = newnode;
 }
 
 void ebt_add_watcher(struct xtables_target *watcher,
 		     struct iptables_command_state *cs)
 {
-	struct ebt_match *i, *newnode;
+	struct ebt_match *i, *newnode, **matchp;
 
 	for (i = cs->match_list; i; i = i->next) {
 		if (i->ismatch)
@@ -726,10 +725,9 @@ void ebt_add_watcher(struct xtables_target *watcher,
 
 	newnode->u.watcher = watcher;
 
-	if (cs->match_list == NULL)
-		cs->match_list = newnode;
-	else
-		cs->match_list->next = newnode;
+	for (matchp = &cs->match_list; *matchp; matchp = &(*matchp)->next)
+		;
+	*matchp = newnode;
 }
 
 int nft_init_eb(struct nft_handle *h, const char *pname)
