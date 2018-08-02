@@ -11,12 +11,9 @@
 
 #include "xshared.h"
 
-#if 0
-#define DEBUGP(x, args...) fprintf(stdout, x, ## args)
+#ifdef DEBUG
 #define NLDEBUG
 #define DEBUG_DEL
-#else
-#define DEBUGP(x, args...)
 #endif
 
 /*

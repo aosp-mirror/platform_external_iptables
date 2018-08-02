@@ -17,12 +17,6 @@
 #include "libiptc/libiptc.h"
 #include "iptables-multi.h"
 
-#ifdef DEBUG
-#define DEBUGP(x, args...) fprintf(stderr, x, ## args)
-#else
-#define DEBUGP(x, args...)
-#endif
-
 static int counters, verbose, noflush, wait;
 
 static struct timeval wait_interval = {
