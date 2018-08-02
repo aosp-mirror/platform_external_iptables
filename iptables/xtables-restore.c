@@ -56,99 +56,6 @@ static void print_usage(const char *name, const char *version)
 			"	   [ --ipv6 ]\n", name);
 }
 
-/* global new argv and argc */
-static char *newargv[255];
-static int newargc;
-
-/* function adding one argument to newargv, updating newargc 
- * returns true if argument added, false otherwise */
-static int add_argv(const char *what) {
-	DEBUGP("add_argv: %s\n", what);
-	if (what && newargc + 1 < ARRAY_SIZE(newargv)) {
-		newargv[newargc] = strdup(what);
-		newargv[++newargc] = NULL;
-		return 1;
-	} else {
-		xtables_error(PARAMETER_PROBLEM,
-			"Parser cannot handle more arguments\n");
-		return 0;
-	}
-}
-
-static void free_argv(void) {
-	int i;
-
-	for (i = 0; i < newargc; i++)
-		free(newargv[i]);
-}
-
-static void add_param_to_argv(char *parsestart)
-{
-	int quote_open = 0, escaped = 0, param_len = 0;
-	char param_buffer[1024], *curchar;
-
-	/* After fighting with strtok enough, here's now
-	 * a 'real' parser. According to Rusty I'm now no
-	 * longer a real hacker, but I can live with that */
-
-	for (curchar = parsestart; *curchar; curchar++) {
-		if (quote_open) {
-			if (escaped) {
-				param_buffer[param_len++] = *curchar;
-				escaped = 0;
-				continue;
-			} else if (*curchar == '\\') {
-				escaped = 1;
-				continue;
-			} else if (*curchar == '"') {
-				quote_open = 0;
-				*curchar = ' ';
-			} else {
-				param_buffer[param_len++] = *curchar;
-				continue;
-			}
-		} else {
-			if (*curchar == '"') {
-				quote_open = 1;
-				continue;
-			}
-		}
-
-		if (*curchar == ' '
-		    || *curchar == '\t'
-		    || * curchar == '\n') {
-			if (!param_len) {
-				/* two spaces? */
-				continue;
-			}
-
-			param_buffer[param_len] = '\0';
-
-			/* check if table name specified */
-			if ((param_buffer[0] == '-' &&
-			     param_buffer[1] != '-' &&
-			     strchr(param_buffer, 't')) ||
-			    (!strncmp(param_buffer, "--t", 3) &&
-			     !strncmp(param_buffer, "--table", strlen(param_buffer)))) {
-				xtables_error(PARAMETER_PROBLEM,
-				"The -t option (seen in line %u) cannot be "
-				"used in xtables-restore.\n", line);
-				exit(1);
-			}
-
-			add_argv(param_buffer);
-			param_len = 0;
-		} else {
-			/* regular character, copy to buffer */
-			param_buffer[param_len++] = *curchar;
-
-			if (param_len >= sizeof(param_buffer))
-				xtables_error(PARAMETER_PROBLEM,
-				   "Parameter too long!");
-		}
-	}
-}
-
 static struct nftnl_chain_list *get_chain_list(struct nft_handle *h)
 {
 	struct nftnl_chain_list *chain_list;
@@ -385,17 +292,17 @@ void xtables_restore_parse(struct nft_handle *h,
 				parsestart = buffer;
 			}
 
-			add_argv(argv[0]);
-			add_argv("-t");
-			add_argv(curtable);
+			add_argv(argv[0], 0);
+			add_argv("-t", 0);
+			add_argv(curtable, 0);
 
 			if (counters && pcnt && bcnt) {
-				add_argv("--set-counters");
-				add_argv((char *) pcnt);
-				add_argv((char *) bcnt);
+				add_argv("--set-counters", 0);
+				add_argv((char *) pcnt, 0);
+				add_argv((char *) bcnt, 0);
 			}
 
-			add_param_to_argv(parsestart);
+			add_param_to_argv(parsestart, line);
 
 			DEBUGP("calling do_command4(%u, argv, &%s, handle):\n",
 				newargc, curtable);
@@ -656,10 +563,10 @@ int xtables_eb_restore_main(int argc, char *argv[])
 		}
 
 		newargc = 0;
-		add_argv("ebtables");
-		add_argv("-t");
-		add_argv(table);
-		add_param_to_argv(buffer);
+		add_argv("ebtables", 0);
+		add_argv("-t", 0);
+		add_argv(table, 0);
+		add_param_to_argv(buffer, line);
 
 		DEBUGP("calling do_commandeb(%u, argv, &%s, handle):\n",
 			newargc, table);

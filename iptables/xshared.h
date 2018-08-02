@@ -155,4 +155,17 @@ bool xs_has_arg(int argc, char *argv[]);
 
 extern const struct xtables_afinfo *afinfo;
 
+extern char *newargv[];
+extern int newargc;
+
+extern char *oldargv[];
+extern int oldargc;
+
+extern int newargvattr[];
+
+int add_argv(const char *what, int quoted);
+void free_argv(void);
+void save_argv(void);
+void add_param_to_argv(char *parsestart, int line);
+
 #endif /* IPTABLES_XSHARED_H */
