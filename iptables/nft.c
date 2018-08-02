@@ -675,7 +675,7 @@ static void nft_chain_builtin_init(struct nft_handle *h,
 	struct nftnl_chain *c;
 
 	/* Initialize built-in chains if they don't exist yet */
-	for (i=0; i<NF_IP_NUMHOOKS && table->chains[i].name != NULL; i++) {
+	for (i=0; i < NF_INET_NUMHOOKS && table->chains[i].name != NULL; i++) {
 
 		c = nft_chain_list_find(list, table->name,
 					table->chains[i].name);
