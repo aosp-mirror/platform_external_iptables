@@ -1169,7 +1169,9 @@ print_zero:
 			break;*/
 		/*case 7 :*/ /* atomic-init */
 		/*case 10:*/ /* atomic-save */
-		/*case 11:*/ /* init-table */
+		case 11: /* init-table */
+			nft_table_flush(h, *table);
+			return 1;
 		/*
 			replace->command = c;
 			if (OPT_COMMANDS)
