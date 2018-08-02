@@ -543,6 +543,7 @@ after_devdst:
 		if (tmp <= NUMOPCODES && !(format & FMT_NUMERIC))
 			printf("--opcode %s", opcodes[tmp-1]);
 		else
+			printf("--opcode %d", tmp);
 
 		if (fw->arp.arpop_mask != 65535)
 			printf("/%d", ntohs(fw->arp.arpop_mask));
