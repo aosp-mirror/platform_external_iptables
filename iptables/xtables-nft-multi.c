@@ -34,9 +34,11 @@ static const struct subcommand multi_subcommands[] = {
 	{"arptables-nft",		xtables_arp_main},
 	{"ebtables-translate",		xtables_eb_xlate_main},
 	{"ebtables",			xtables_eb_main},
-	{"ebtables-nft",		xtables_eb_main},
 	{"ebtables-restore",		xtables_eb_restore_main},
 	{"ebtables-save",		xtables_eb_save_main},
+	{"ebtables-nft",		xtables_eb_main},
+	{"ebtables-nft-restore",	xtables_eb_restore_main},
+	{"ebtables-nft-save",		xtables_eb_save_main},
 	{"xtables-monitor",		xtables_monitor_main},
 	{NULL},
 };
