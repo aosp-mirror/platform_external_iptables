@@ -515,7 +515,7 @@ int xtables_eb_restore_main(int argc, char *argv[])
 	const char *table = NULL;
 	struct nft_handle h;
 
-	nft_init_eb(&h);
+	nft_init_eb(&h, "ebtables-restore");
 
 	while ((c = getopt_long(argc, argv, "n",
 				ebt_restore_options, NULL)) != -1) {

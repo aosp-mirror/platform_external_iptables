@@ -47,7 +47,7 @@ int xtables_eb_main(int argc, char *argv[])
 	char *table = "filter";
 	struct nft_handle h;
 
-	nft_init_eb(&h);
+	nft_init_eb(&h, "ebtables");
 
 	ret = do_commandeb(&h, argc, argv, &table);
 	if (ret)

@@ -732,9 +732,9 @@ void ebt_add_watcher(struct xtables_target *watcher,
 		cs->match_list->next = newnode;
 }
 
-int nft_init_eb(struct nft_handle *h)
+int nft_init_eb(struct nft_handle *h, const char *pname)
 {
-	ebtables_globals.program_name = "ebtables";
+	ebtables_globals.program_name = pname;
 	if (xtables_init_all(&ebtables_globals, NFPROTO_BRIDGE) < 0) {
 		fprintf(stderr, "%s/%s Failed to initialize ebtables-compat\n",
 			ebtables_globals.program_name,
