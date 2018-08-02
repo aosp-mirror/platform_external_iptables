@@ -56,17 +56,6 @@ static void print_usage(const char *name, const char *version)
 			"	   [ --ipv6 ]\n", name);
 }
 
-static int parse_counters(char *string, struct xt_counters *ctr)
-{
-	unsigned long long pcnt, bcnt;
-	int ret;
-
-	ret = sscanf(string, "[%llu:%llu]", &pcnt, &bcnt);
-	ctr->pcnt = pcnt;
-	ctr->bcnt = bcnt;
-	return ret == 2;
-}
-
 /* global new argv and argc */
 static char *newargv[255];
 static int newargc;

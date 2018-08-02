@@ -359,6 +359,20 @@ void parse_wait_interval(int argc, char *argv[], struct timeval *wait_interval)
 	xtables_error(PARAMETER_PROBLEM, "wait interval not numeric");
 }
 
+int parse_counters(const char *string, struct xt_counters *ctr)
+{
+	int ret;
+
+	if (!string)
+		return 0;
+
+	ret = sscanf(string, "[%llu:%llu]",
+		     (unsigned long long *)&ctr->pcnt,
+		     (unsigned long long *)&ctr->bcnt);
+
+	return ret == 2;
+}
+
 inline bool xs_has_arg(int argc, char *argv[])
 {
 	return optind < argc &&

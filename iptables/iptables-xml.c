@@ -50,22 +50,6 @@ print_usage(const char *name, const char *version)
 	exit(1);
 }
 
-static int
-parse_counters(char *string, struct xt_counters *ctr)
-{
-	__u64 *pcnt, *bcnt;
-
-	if (string != NULL) {
-		pcnt = &ctr->pcnt;
-		bcnt = &ctr->bcnt;
-		return (sscanf
-			(string, "[%llu:%llu]",
-			 (unsigned long long *)pcnt,
-			 (unsigned long long *)bcnt) == 2);
-	} else
-		return (0 == 2);
-}
-
 /* global new argv and argc */
 static char *newargv[255];
 static unsigned int newargc;
