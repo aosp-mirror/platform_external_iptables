@@ -156,9 +156,9 @@ static const int inverse_for_options[NUMBER_OF_OPT] =
 /* -f */ IPT_INV_FRAG,
 };
 
-#define opts xtables_globals.opts
-#define prog_name xtables_globals.program_name
-#define prog_vers xtables_globals.program_version
+#define opts xt_params->opts
+#define prog_name xt_params->program_name
+#define prog_vers xt_params->program_version
 
 static void __attribute__((noreturn))
 exit_tryhelp(int status)
