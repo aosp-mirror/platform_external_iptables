@@ -149,8 +149,7 @@ static struct option original_opts[] = {
 
 int RUNTIME_NF_ARP_NUMHOOKS = 3;
 
-static struct option *opts = original_opts;
-static unsigned int global_option_offset;
+#define opts xt_params->opts
 
 extern void xtables_exit_error(enum xtables_exittype status, const char *msg, ...) __attribute__((noreturn, format(printf,2,3)));
 struct xtables_globals arptables_globals = {
@@ -947,11 +946,6 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table)
 	int ret = 1;
 	struct xtables_target *t;
 
-	opts = original_opts;
-	global_option_offset = 0;
-
-	xtables_globals.orig_opts = original_opts;
-
 	/* re-set optind to 0 in case do_command gets called
 	 * a second time */
 	optind = 0;
@@ -965,6 +959,7 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table)
 	    demand-load a protocol. */
 	opterr = 0;
 
+	opts = xt_params->orig_opts;
 	while ((c = getopt_long(argc, argv,
 	   "-A:D:R:I:L::M:F::Z::N:X::E:P:Vh::o:p:s:d:j:l:i:vnt:m:c:",
 					   opts, NULL)) != -1) {
@@ -1470,6 +1465,16 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table)
 		/* We should never reach this... */
 		exit_tryhelp(2);
 	}
+
+	if (nsaddrs)
+		free(saddrs);
+	if (ndaddrs)
+		free(daddrs);
+
+	if (cs.target)
+		free(cs.target->t);
+
+	xtables_free_opts(1);
 
 /*	if (verbose > 1)
 		dump_entries(*handle);*/
