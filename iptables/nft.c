@@ -1867,9 +1867,11 @@ next:
 		t = nftnl_table_list_iter_next(iter);
 	}
 
-	h->rule_cache = nftnl_rule_list_alloc();
-	if (h->rule_cache == NULL)
-		return -1;
+	if (!h->rule_cache) {
+		h->rule_cache = nftnl_rule_list_alloc();
+		if (h->rule_cache == NULL)
+			return -1;
+	}
 
 err_table_iter:
 	nftnl_table_list_iter_destroy(iter);
