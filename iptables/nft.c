@@ -2447,8 +2447,8 @@ static void batch_obj_del(struct nft_handle *h, struct obj_update *o)
 		break;
 	case NFT_COMPAT_CHAIN_ADD:
 	case NFT_COMPAT_CHAIN_USER_ADD:
-	case NFT_COMPAT_CHAIN_USER_DEL:
 		break;
+	case NFT_COMPAT_CHAIN_USER_DEL:
 	case NFT_COMPAT_CHAIN_USER_FLUSH:
 	case NFT_COMPAT_CHAIN_UPDATE:
 	case NFT_COMPAT_CHAIN_RENAME:
