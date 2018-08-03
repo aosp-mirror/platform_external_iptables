@@ -2298,11 +2298,11 @@ int nft_rule_list(struct nft_handle *h, const char *chain, const char *table,
 		__nft_rule_list(h, chain_name, table,
 				rulenum, format, ops->print_rule);
 
+		found = true;
+
 		/* we printed the chain we wanted, stop processing. */
 		if (chain)
 			break;
-
-		found = true;
 
 next:
 		c = nftnl_chain_list_iter_next(iter);
@@ -2310,6 +2310,9 @@ next:
 
 	nftnl_chain_list_iter_destroy(iter);
 err:
+	if (chain && !found)
+		return 0;
+
 	return 1;
 }
 
