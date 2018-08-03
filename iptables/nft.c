@@ -2184,6 +2184,42 @@ err:
 	return ret;
 }
 
+static int nft_rule_count(struct nft_handle *h,
+			  const char *chain, const char *table)
+{
+	struct nftnl_rule_list_iter *iter;
+	struct nftnl_rule_list *list;
+	struct nftnl_rule *r;
+	int rule_ctr = 0;
+
+	list = nft_rule_list_get(h);
+	if (list == NULL)
+		return 0;
+
+	iter = nftnl_rule_list_iter_create(list);
+	if (iter == NULL)
+		return 0;
+
+	r = nftnl_rule_list_iter_next(iter);
+	while (r != NULL) {
+		const char *rule_table =
+			nftnl_rule_get_str(r, NFTNL_RULE_TABLE);
+		const char *rule_chain =
+			nftnl_rule_get_str(r, NFTNL_RULE_CHAIN);
+
+		if (strcmp(table, rule_table) != 0 ||
+		    strcmp(chain, rule_chain) != 0)
+			goto next;
+
+		rule_ctr++;
+next:
+		r = nftnl_rule_list_iter_next(iter);
+	}
+
+	nftnl_rule_list_iter_destroy(iter);
+	return rule_ctr;
+}
+
 int nft_rule_list(struct nft_handle *h, const char *chain, const char *table,
 		  int rulenum, unsigned int format)
 {
@@ -2248,6 +2284,8 @@ int nft_rule_list(struct nft_handle *h, const char *chain, const char *table,
 			goto next;
 		if (chain && strcmp(chain, chain_name) != 0)
 			goto next;
+
+		refs -= nft_rule_count(h, chain_name, table);
 
 		if (found)
 			printf("\n");
