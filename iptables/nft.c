@@ -2235,8 +2235,10 @@ int nft_rule_list(struct nft_handle *h, const char *chain, const char *table,
 		/* Force table and chain creation, otherwise first iptables -L
 		 * lists no table/chains.
 		 */
-		if (!list_empty(&h->obj_list))
+		if (!list_empty(&h->obj_list)) {
 			nft_commit(h);
+			flush_chain_cache(h, NULL);
+		}
 	}
 
 	ops = nft_family_ops_lookup(h->family);
