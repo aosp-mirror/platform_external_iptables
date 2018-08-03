@@ -240,6 +240,11 @@ static void nft_ipv6_print_rule(struct nftnl_rule *r, unsigned int num,
 	print_rule_details(&cs, cs.jumpto, cs.fw6.ipv6.flags,
 			   cs.fw6.ipv6.invflags, cs.fw6.ipv6.proto,
 			   num, format);
+	if (format & FMT_OPTIONS) {
+		if (format & FMT_NOTABLE)
+			fputs("opt ", stdout);
+		fputs("   ", stdout);
+	}
 	print_ifaces(cs.fw6.ipv6.iniface, cs.fw6.ipv6.outiface,
 		     cs.fw6.ipv6.invflags, format);
 	print_ipv6_addr(&cs, format);
