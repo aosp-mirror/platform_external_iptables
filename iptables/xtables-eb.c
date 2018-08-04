@@ -856,7 +856,7 @@ int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table)
 					chain = argv[optind];
 					optind++;
 				}
-				ret = nft_chain_user_del(h, chain, *table);
+				ret = nft_chain_user_del(h, chain, *table, 0);
 				break;
 			}
 
@@ -1317,9 +1317,10 @@ check_extension:
 	}
 	if (flags & OPT_ZERO) {
 		selected_chain = zerochain;
-		ret = nft_chain_zero_counters(h, chain, *table);
+		ret = nft_chain_zero_counters(h, chain, *table,
+					      flags & OPT_VERBOSE);
 	} else if (command == 'F') {
-		ret = nft_rule_flush(h, chain, *table);
+		ret = nft_rule_flush(h, chain, *table, flags & OPT_VERBOSE);
 	} else if (command == 'A') {
 		ret = append_entry(h, chain, *table, &cs, 0,
 				   flags&OPT_VERBOSE, true);

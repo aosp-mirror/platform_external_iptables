@@ -1213,10 +1213,12 @@ int do_commandx(struct nft_handle *h, int argc, char *argv[], char **table,
 				cs.options&OPT_VERBOSE, h, false);
 		break;
 	case CMD_FLUSH:
-		ret = nft_rule_flush(h, p.chain, p.table);
+		ret = nft_rule_flush(h, p.chain, p.table,
+				     cs.options & OPT_VERBOSE);
 		break;
 	case CMD_ZERO:
-		ret = nft_chain_zero_counters(h, p.chain, p.table);
+		ret = nft_chain_zero_counters(h, p.chain, p.table,
+					      cs.options & OPT_VERBOSE);
 		break;
 	case CMD_ZERO_NUM:
 		ret = nft_rule_zero_counters(h, p.chain, p.table,
@@ -1231,8 +1233,8 @@ int do_commandx(struct nft_handle *h, int argc, char *argv[], char **table,
 				   cs.options & OPT_EXPANDED,
 				   cs.options & OPT_LINENUMBERS);
 		if (ret && (p.command & CMD_ZERO)) {
-			ret = nft_chain_zero_counters(h, p.chain,
-						      p.table);
+			ret = nft_chain_zero_counters(h, p.chain, p.table,
+						      cs.options & OPT_VERBOSE);
 		}
 		if (ret && (p.command & CMD_ZERO_NUM)) {
 			ret = nft_rule_zero_counters(h, p.chain, p.table,
@@ -1246,8 +1248,8 @@ int do_commandx(struct nft_handle *h, int argc, char *argv[], char **table,
 		ret = list_rules(h, p.chain, p.table, p.rulenum,
 				 cs.options & OPT_VERBOSE);
 		if (ret && (p.command & CMD_ZERO)) {
-			ret = nft_chain_zero_counters(h, p.chain,
-						      p.table);
+			ret = nft_chain_zero_counters(h, p.chain, p.table,
+						      cs.options & OPT_VERBOSE);
 		}
 		if (ret && (p.command & CMD_ZERO_NUM)) {
 			ret = nft_rule_zero_counters(h, p.chain, p.table,
@@ -1259,7 +1261,8 @@ int do_commandx(struct nft_handle *h, int argc, char *argv[], char **table,
 		ret = nft_chain_user_add(h, p.chain, p.table);
 		break;
 	case CMD_DELETE_CHAIN:
-		ret = nft_chain_user_del(h, p.chain, p.table);
+		ret = nft_chain_user_del(h, p.chain, p.table,
+					 cs.options & OPT_VERBOSE);
 		break;
 	case CMD_RENAME_CHAIN:
 		ret = nft_chain_user_rename(h, p.chain, p.table, p.newname);

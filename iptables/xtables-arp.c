@@ -1421,10 +1421,11 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table)
 				   options&OPT_LINENUMBERS);
 		break;
 	case CMD_FLUSH:
-		ret = nft_rule_flush(h, chain, *table);
+		ret = nft_rule_flush(h, chain, *table, options & OPT_VERBOSE);
 		break;
 	case CMD_ZERO:
-		ret = nft_chain_zero_counters(h, chain, *table);
+		ret = nft_chain_zero_counters(h, chain, *table,
+					      options & OPT_VERBOSE);
 		break;
 	case CMD_LIST|CMD_ZERO:
 		ret = list_entries(h, chain, *table, rulenum,
@@ -1433,13 +1434,15 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table)
 				   /*options&OPT_EXPANDED*/0,
 				   options&OPT_LINENUMBERS);
 		if (ret)
-			ret = nft_chain_zero_counters(h, chain, *table);
+			ret = nft_chain_zero_counters(h, chain, *table,
+						      options & OPT_VERBOSE);
 		break;
 	case CMD_NEW_CHAIN:
 		ret = nft_chain_user_add(h, chain, *table);
 		break;
 	case CMD_DELETE_CHAIN:
-		ret = nft_chain_user_del(h, chain, *table);
+		ret = nft_chain_user_del(h, chain, *table,
+					 options & OPT_VERBOSE);
 		break;
 	case CMD_RENAME_CHAIN:
 		ret = nft_chain_user_rename(h, chain, *table, newname);
