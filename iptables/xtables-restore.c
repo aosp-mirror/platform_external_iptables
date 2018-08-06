@@ -106,7 +106,7 @@ void xtables_restore_parse(struct nft_handle *h,
 {
 	char buffer[10240];
 	int in_table = 0;
-	char curtable[XT_TABLE_MAXNAMELEN + 1];
+	struct builtin_table *curtable = NULL;
 	const struct xtc_ops *ops = &xtc_ops;
 	struct nftnl_chain_list *chain_list = NULL;
 
@@ -156,8 +156,11 @@ void xtables_restore_parse(struct nft_handle *h,
 					xt_params->program_name, line);
 				exit(1);
 			}
-			strncpy(curtable, table, XT_TABLE_MAXNAMELEN);
-			curtable[XT_TABLE_MAXNAMELEN] = '\0';
+			curtable = nft_table_builtin_find(h, table);
+			if (!curtable)
+				xtables_error(PARAMETER_PROBLEM,
+					"%s: line %u table name '%s' invalid\n",
+					xt_params->program_name, line, table);
 
 			if (p->tablename && (strcmp(p->tablename, table) != 0))
 				continue;
@@ -191,7 +194,7 @@ void xtables_restore_parse(struct nft_handle *h,
 
 			if (noflush == 0) {
 				if (cb->chain_del)
-					cb->chain_del(chain_list, curtable,
+					cb->chain_del(chain_list, curtable->name,
 						      chain);
 			} else {
 				/* Apparently -n still flushes existing user
@@ -200,7 +203,7 @@ void xtables_restore_parse(struct nft_handle *h,
 				 */
 				if (cb->chain_user_flush)
 					cb->chain_user_flush(h, chain_list,
-							     curtable, chain);
+							     curtable->name, chain);
 			}
 
 			if (strlen(chain) >= XT_EXTENSION_MAXNAMELEN)
@@ -218,7 +221,7 @@ void xtables_restore_parse(struct nft_handle *h,
 				exit(1);
 			}
 
-			if (strcmp(policy, "-") != 0) {
+			if (nft_chain_builtin_find(curtable, chain)) {
 				if (counters) {
 					char *ctrs;
 					ctrs = strtok(NULL, " \t\n");
@@ -230,7 +233,8 @@ void xtables_restore_parse(struct nft_handle *h,
 
 				}
 				if (cb->chain_set &&
-				    cb->chain_set(h, curtable, chain, policy, &count) < 0) {
+				    cb->chain_set(h, curtable->name,
+					          chain, policy, &count) < 0) {
 					xtables_error(OTHER_PROBLEM,
 						      "Can't set policy `%s'"
 						      " on `%s' line %u: %s\n",
@@ -243,7 +247,8 @@ void xtables_restore_parse(struct nft_handle *h,
 
 			} else {
 				if (cb->chain_user_add &&
-				    cb->chain_user_add(h, chain, curtable) < 0) {
+				    cb->chain_user_add(h, chain,
+						       curtable->name) < 0) {
 					if (errno == EEXIST)
 						continue;
 
@@ -294,7 +299,7 @@ void xtables_restore_parse(struct nft_handle *h,
 
 			add_argv(argv[0], 0);
 			add_argv("-t", 0);
-			add_argv(curtable, 0);
+			add_argv(curtable->name, 0);
 
 			if (counters && pcnt && bcnt) {
 				add_argv("--set-counters", 0);
@@ -305,7 +310,7 @@ void xtables_restore_parse(struct nft_handle *h,
 			add_param_to_argv(parsestart, line);
 
 			DEBUGP("calling do_command4(%u, argv, &%s, handle):\n",
-				newargc, curtable);
+				newargc, curtable->name);
 
 			for (a = 0; a < newargc; a++)
 				DEBUGP("argv[%u]: %s\n", a, newargv[a]);
@@ -328,7 +333,8 @@ void xtables_restore_parse(struct nft_handle *h,
 			free_argv();
 			fflush(stdout);
 		}
-		if (p->tablename && (strcmp(p->tablename, curtable) != 0))
+		if (p->tablename && curtable &&
+		    (strcmp(p->tablename, curtable->name) != 0))
 			continue;
 		if (!ret) {
 			fprintf(stderr, "%s: line %u failed\n",
