@@ -1173,8 +1173,10 @@ nft_rule_append(struct nft_handle *h, const char *chain, const char *table,
 	} else
 		type = NFT_COMPAT_RULE_APPEND;
 
-	if (batch_rule_add(h, type, r) < 0)
+	if (batch_rule_add(h, type, r) < 0) {
 		nftnl_rule_free(r);
+		return 0;
+	}
 
 	if (verbose)
 		h->ops->print_rule(r, 0, FMT_PRINT_RULE);
