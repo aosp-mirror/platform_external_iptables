@@ -529,3 +529,29 @@ int xtables_eb_restore_main(int argc, char *argv[])
 
 	return 0;
 }
+
+struct nft_xt_restore_cb arp_restore_cb = {
+	.chain_list	= get_chain_list,
+	.commit		= nft_commit,
+	.table_new	= nft_table_new,
+	.table_flush	= nft_table_flush,
+	.chain_user_flush = nft_chain_user_flush,
+	.chain_del	= chain_delete,
+	.do_command	= do_commandarp,
+	.chain_set	= nft_chain_set,
+	.chain_user_add	= nft_chain_user_add,
+};
+
+int xtables_arp_restore_main(int argc, char *argv[])
+{
+	struct nft_xt_restore_parse p = {
+		.in = stdin,
+	};
+	struct nft_handle h;
+
+	nft_init_arp(&h, "arptables-restore");
+	xtables_restore_parse(&h, &p, &arp_restore_cb, argc, argv);
+	nft_fini(&h);
+
+	return 0;
+}

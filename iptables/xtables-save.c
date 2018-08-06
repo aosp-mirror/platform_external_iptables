@@ -287,3 +287,42 @@ int xtables_eb_save_main(int argc_, char *argv_[])
 	nft_for_each_table(&h, __ebt_save, !!ctr);
 	return 0;
 }
+
+int xtables_arp_save_main(int argc, char **argv)
+{
+	struct nft_handle h = {
+		.family	= NFPROTO_ARP,
+	};
+	int c;
+
+	xtables_globals.program_name = "arptables-save";
+	c = xtables_init_all(&xtables_globals, h.family);
+	if (c < 0) {
+		fprintf(stderr, "%s/%s Failed to initialize xtables\n",
+				xtables_globals.program_name,
+				xtables_globals.program_version);
+		exit(1);
+	}
+
+	if (nft_init(&h, xtables_arp) < 0) {
+		fprintf(stderr, "%s/%s Failed to initialize nft: %s\n",
+				xtables_globals.program_name,
+				xtables_globals.program_version,
+				strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+
+	if (!nft_table_find(&h, "filter"))
+		return 0;
+
+	if (!nft_is_table_compatible(&h, "filter")) {
+		printf("# Table `filter' is incompatible, use 'nft' tool.\n");
+		return 0;
+	}
+
+	printf("*filter\n");
+	nft_chain_save(&h, nft_chain_dump(&h), "filter");
+	nft_rule_save(&h, "filter", FMT_NOCOUNTS);
+	printf("\n");
+	return 0;
+}

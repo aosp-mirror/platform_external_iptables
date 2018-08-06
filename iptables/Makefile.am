@@ -81,6 +81,8 @@ x_sbin_links  = iptables-nft iptables-nft-restore iptables-nft-save \
 		iptables-translate ip6tables-translate \
 		iptables-restore-translate ip6tables-restore-translate \
 		arptables-nft arptables \
+		arptables-nft-restore arptables-restore \
+		arptables-nft-save arptables-save \
 		ebtables-nft ebtables \
 		ebtables-nft-restore ebtables-restore \
 		ebtables-nft-save ebtables-save \

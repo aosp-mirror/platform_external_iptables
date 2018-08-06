@@ -928,7 +928,36 @@ delete_entry(const char *chain,
 	return ret;
 }
 
-int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table)
+int nft_init_arp(struct nft_handle *h, const char *pname)
+{
+	arptables_globals.program_name = pname;
+	if (xtables_init_all(&arptables_globals, NFPROTO_ARP) < 0) {
+		fprintf(stderr, "%s/%s Failed to initialize arptables-compat\n",
+			arptables_globals.program_name,
+			arptables_globals.program_version);
+		exit(1);
+	}
+
+#if defined(ALL_INCLUSIVE) || defined(NO_SHARED_LIBS)
+	init_extensionsa();
+#endif
+
+	memset(h, 0, sizeof(*h));
+	h->family = NFPROTO_ARP;
+
+	if (nft_init(h, xtables_arp) < 0)
+		xtables_error(OTHER_PROBLEM,
+			      "Could not initialize nftables layer.");
+
+	h->ops = nft_family_ops_lookup(h->family);
+	if (h->ops == NULL)
+		xtables_error(PARAMETER_PROBLEM, "Unknown family");
+
+	return 0;
+}
+
+int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table,
+		  bool restore)
 {
 	struct iptables_command_state cs = {
 		.jumpto = "",
@@ -1355,14 +1384,6 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table)
 		xtables_error(PARAMETER_PROBLEM,
 				"chain name `%s' too long (must be under %i chars)",
 				chain, ARPT_FUNCTION_MAXNAMELEN);
-
-	if (nft_init(h, xtables_arp) < 0)
-		xtables_error(OTHER_PROBLEM,
-			      "Could not initialize nftables layer.");
-
-	h->ops = nft_family_ops_lookup(h->family);
-	if (h->ops == NULL)
-		xtables_error(PARAMETER_PROBLEM, "Unknown family");
 
 	if (command == CMD_APPEND
 	    || command == CMD_DELETE

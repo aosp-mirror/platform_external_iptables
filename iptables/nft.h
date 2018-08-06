@@ -145,7 +145,8 @@ const char *nft_strerror(int err);
 /* For xtables.c */
 int do_commandx(struct nft_handle *h, int argc, char *argv[], char **table, bool restore);
 /* For xtables-arptables.c */
-int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table);
+int nft_init_arp(struct nft_handle *h, const char *pname);
+int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table, bool restore);
 /* For xtables-eb.c */
 int nft_init_eb(struct nft_handle *h, const char *pname);
 int ebt_get_current_chain(const char *chain);
