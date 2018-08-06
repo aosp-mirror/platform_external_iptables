@@ -380,33 +380,22 @@ static struct option *merge_options(struct option *oldopts,
 /*
  * More glue code.
  */
-static struct xtables_target *command_jump(struct iptables_command_state *cs,
-					   const char *jumpto)
+static struct xtables_target *command_jump(const char *jumpto)
 {
 	struct xtables_target *target;
-	size_t size;
+	unsigned int verdict;
 
-	/* XTF_TRY_LOAD (may be chain name) */
-	target = xtables_find_target(jumpto, XTF_TRY_LOAD);
+	/* Standard target? */
+	if (!ebt_fill_target(jumpto, &verdict))
+		jumpto = "standard";
 
-	if (!target)
-		return NULL;
-
-	size = XT_ALIGN(sizeof(struct xt_entry_target))
-		+ target->size;
-
-	target->t = xtables_calloc(1, size);
-	target->t->u.target_size = size;
-	snprintf(target->t->u.user.name,
-		 sizeof(target->t->u.user.name), "%s", jumpto);
-	target->t->u.user.name[sizeof(target->t->u.user.name)-1] = '\0';
-	target->t->u.user.revision = target->revision;
-
-	xs_init_target(target);
-
-	opts = merge_options(opts, target->extra_opts, &target->option_offset);
-	if (opts == NULL)
-		xtables_error(OTHER_PROBLEM, "Can't alloc memory");
+	/* For ebtables, all targets are preloaded. Hence it is either in
+	 * xtables_targets or a custom chain to jump to, in which case
+	 * returning NULL is fine. */
+	for (target = xtables_targets; target; target = target->next) {
+		if (!strcmp(target->name, jumpto))
+			break;
+	}
 
 	return target;
 }
@@ -668,6 +657,7 @@ void ebt_load_match_extensions(void)
 	ebt_load_target("dnat");
 	ebt_load_target("snat");
 	ebt_load_target("redirect");
+	ebt_load_target("standard");
 }
 
 void ebt_add_match(struct xtables_match *m,
@@ -786,20 +776,6 @@ int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table,
 	int selected_chain = -1;
 	struct xtables_rule_match *xtrm_i;
 	struct ebt_match *match;
-
-	if (nft_init(h, xtables_bridge) < 0)
-		xtables_error(OTHER_PROBLEM,
-			      "Could not initialize nftables layer.");
-
-	h->ops = nft_family_ops_lookup(h->family);
-	if (h->ops == NULL)
-		xtables_error(PARAMETER_PROBLEM, "Unknown family");
-
-	/* manually registering ebt matches, given the original ebtables parser
-	 * don't use '-m matchname' and the match can't loaded dinamically when
-	 * the user calls it.
-	 */
-	ebt_load_match_extensions();
 
 	/* clear mflags in case do_commandeb gets called a second time
 	 * (we clear the global list of all matches for security)*/
@@ -1047,7 +1023,7 @@ print_zero:
 			} else if (c == 'j') {
 				ebt_check_option2(&flags, OPT_JUMP);
 				cs.jumpto = parse_target(optarg);
-				cs.target = command_jump(&cs, cs.jumpto);
+				cs.target = command_jump(cs.jumpto);
 				break;
 			} else if (c == 's') {
 				ebt_check_option2(&flags, OPT_SOURCE);
@@ -1231,7 +1207,8 @@ print_zero:
 
 			/* Is it a watcher option? */
 			for (w = xtables_targets; w; w = w->next) {
-				if (w->parse(c - w->option_offset, argv,
+				if (w->parse &&
+				    w->parse(c - w->option_offset, argv,
 					     ebt_invert, &w->tflags,
 					     NULL, &w->t)) {
 					ebt_add_watcher(w, &cs);
