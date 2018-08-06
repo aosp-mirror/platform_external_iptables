@@ -144,7 +144,7 @@ void xtables_restore_parse(struct nft_handle *h,
 			}
 			in_table = 0;
 
-		} else if ((buffer[0] == '*') && (!in_table)) {
+		} else if ((buffer[0] == '*') && (!in_table || !p->commit)) {
 			/* New table */
 			char *table;
 
@@ -342,10 +342,13 @@ void xtables_restore_parse(struct nft_handle *h,
 			exit(1);
 		}
 	}
-	if (in_table) {
+	if (in_table && p->commit) {
 		fprintf(stderr, "%s: COMMIT expected at line %u\n",
 				xt_params->program_name, line + 1);
 		exit(1);
+	} else if (in_table && cb->commit && !cb->commit(h)) {
+		xtables_error(OTHER_PROBLEM, "%s: final implicit COMMIT failed",
+			      xt_params->program_name);
 	}
 }
 
@@ -358,7 +361,9 @@ xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 		.restore = true,
 	};
 	int c;
-	struct nft_xt_restore_parse p = {};
+	struct nft_xt_restore_parse p = {
+		.commit = true,
+	};
 
 	line = 0;
 

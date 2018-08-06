@@ -245,6 +245,7 @@ struct nft_xt_restore_parse {
 	FILE		*in;
 	int		testing;
 	const char	*tablename;
+	bool		commit;
 };
 
 struct nftnl_chain_list;
