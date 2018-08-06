@@ -49,7 +49,7 @@ int xtables_eb_main(int argc, char *argv[])
 
 	nft_init_eb(&h, "ebtables");
 
-	ret = do_commandeb(&h, argc, argv, &table);
+	ret = do_commandeb(&h, argc, argv, &table, false);
 	if (ret)
 		ret = nft_commit(&h);
 

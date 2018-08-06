@@ -484,35 +484,17 @@ int xtables_ip6_restore_main(int argc, char *argv[])
 				    argc, argv);
 }
 
-static const char *ebt_parse_table_name(const char *input)
-{
-	if (!strcmp(input, "broute"))
-		xtables_error(PARAMETER_PROBLEM, "broute table not supported");
-	else if (!strcmp(input, "filter"))
-		return "filter";
-	else if (!strcmp(input, "nat"))
-		return "nat";
-
-	xtables_error(PARAMETER_PROBLEM, "table '%s' not recognized", input);
-}
-
-static const char *ebt_parse_policy_name(const char *input)
-{
-	int i;
-
-	for (i = 0; i < NUM_STANDARD_TARGETS; i++) {
-		if (!strcmp(input, ebt_standard_targets[i])) {
-			int policy = -i - 1;
-
-			if (policy == EBT_CONTINUE)
-				i = NUM_STANDARD_TARGETS;
-			break;
-		}
-	}
-	if (i == NUM_STANDARD_TARGETS)
-		xtables_error(PARAMETER_PROBLEM, "invalid policy specified");
-	return ebt_standard_targets[i];
-}
+struct nft_xt_restore_cb ebt_restore_cb = {
+	.chain_list	= get_chain_list,
+	.commit		= nft_commit,
+	.table_new	= nft_table_new,
+	.table_flush	= nft_table_flush,
+	.chain_user_flush = nft_chain_user_flush,
+	.chain_del	= chain_delete,
+	.do_command	= do_commandeb,
+	.chain_set	= nft_chain_set,
+	.chain_user_add	= nft_chain_user_add,
+};
 
 static const struct option ebt_restore_options[] = {
 	{.name = "noflush", .has_arg = 0, .val = 'n'},
@@ -521,18 +503,17 @@ static const struct option ebt_restore_options[] = {
 
 int xtables_eb_restore_main(int argc, char *argv[])
 {
-	char buffer[10240];
-	int i, ret, c, flush = 1;
-	const char *table = NULL;
+	struct nft_xt_restore_parse p = {
+		.in = stdin,
+	};
 	struct nft_handle h;
-
-	nft_init_eb(&h, "ebtables-restore");
+	int c;
 
 	while ((c = getopt_long(argc, argv, "n",
 				ebt_restore_options, NULL)) != -1) {
 		switch(c) {
 		case 'n':
-			flush = 0;
+			noflush = 1;
 			break;
 		default:
 			fprintf(stderr,
@@ -542,57 +523,9 @@ int xtables_eb_restore_main(int argc, char *argv[])
 		}
 	}
 
-	while (fgets(buffer, sizeof(buffer), stdin)) {
-		if (buffer[0] == '#' || buffer[0] == '\n')
-			continue;
-		if (buffer[0] == '*') {
-			table = ebt_parse_table_name(buffer + 1);
-			if (flush)
-				nft_table_flush(&h, table);
-			continue;
-		} else if (!table) {
-			xtables_error(PARAMETER_PROBLEM, "no table specified");
-		}
-		if (buffer[0] == ':') {
-			char *ch, *chain = buffer;
-			const char *policy;
+	nft_init_eb(&h, "ebtables-restore");
+	xtables_restore_parse(&h, &p, &ebt_restore_cb, argc, argv);
+	nft_fini(&h);
 
-			if (!(ch = strchr(buffer, ' ')))
-				xtables_error(PARAMETER_PROBLEM, "no policy specified");
-			*ch = '\0';
-			policy = ebt_parse_policy_name(ch + 1);
-
-			/* No need to check chain name for consistency, since
-			 * we're supposed to be reading an automatically generated
-			 * file. */
-			if (ebt_get_current_chain(chain) < 0)
-				nft_chain_user_add(&h, chain, table);
-			ret = nft_chain_set(&h, table, chain, policy, NULL);
-			if (ret < 0)
-				xtables_error(PARAMETER_PROBLEM, "Wrong policy");
-			continue;
-		}
-
-		newargc = 0;
-		add_argv("ebtables", 0);
-		add_argv("-t", 0);
-		add_argv(table, 0);
-		add_param_to_argv(buffer, line);
-
-		DEBUGP("calling do_commandeb(%u, argv, &%s, handle):\n",
-			newargc, table);
-
-		for (i = 0; i < newargc; i++)
-			DEBUGP("argv[%u]: %s\n", i, newargv[i]);
-
-		optind = 0; /* Setting optind = 1 causes serious annoyances */
-		if (!do_commandeb(&h, newargc, newargv, &newargv[2]))
-			return 1;
-	}
-
-	if (!nft_commit(&h)) {
-		fprintf(stderr, "%s\n", nft_strerror(errno));
-		return 1;
-	}
 	return 0;
 }

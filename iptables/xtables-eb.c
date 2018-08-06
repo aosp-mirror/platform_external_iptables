@@ -764,7 +764,8 @@ int nft_init_eb(struct nft_handle *h, const char *pname)
 	return 0;
 }
 
-int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table)
+int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table,
+		 bool restore)
 {
 	char *buffer;
 	int c, i;
@@ -811,6 +812,7 @@ int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table)
 	}
 
 	/* prevent getopt to spoil our error reporting */
+	optind = 0;
 	opterr = false;
 	cs.eb.bitmask = EBT_NOPROTO;
 
