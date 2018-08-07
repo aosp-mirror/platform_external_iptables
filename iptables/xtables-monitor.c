@@ -577,10 +577,10 @@ static void print_usage(void)
 			  xtables_globals.program_version);
 	printf("Usage: %s [ -t | -e ]\n"
 	       "        --trace    -t    trace ruleset traversal of packets tagged via -j TRACE rule\n"
-	       "        --event    -e    show events  taht modify the ruleset\n"
+	       "        --event    -e    show events that modify the ruleset\n"
 	       "Optional arguments:\n"
-	       "        --ipv4     -4    only monitor ipv4\n"
-	       "        --ipv6     -6    only monitor ipv6\n"
+	       "        --ipv4     -4    only monitor IPv4\n"
+	       "        --ipv6     -6    only monitor IPv6\n"
 	       "	--counters -c    show counters in rules\n"
 
 	       , xtables_globals.program_name);
