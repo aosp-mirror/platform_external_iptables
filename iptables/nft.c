@@ -1201,7 +1201,7 @@ nft_rule_print_save(const struct nftnl_rule *r, enum nft_rule_print type,
 	ops = nft_family_ops_lookup(family);
 	ops->rule_to_cs(r, &cs);
 
-	if (!(format & FMT_NOCOUNTS) && ops->save_counters)
+	if (!(format & (FMT_NOCOUNTS | FMT_C_COUNTS)) && ops->save_counters)
 		ops->save_counters(&cs);
 
 	/* print chain name */
@@ -2396,6 +2396,7 @@ int nft_rule_list_save(struct nft_handle *h, const char *chain,
 {
 	struct nftnl_chain_list *list;
 	struct nftnl_chain_list_iter *iter;
+	unsigned int format = 0;
 	struct nftnl_chain *c;
 	int ret = 1;
 
@@ -2410,6 +2411,11 @@ int nft_rule_list_save(struct nft_handle *h, const char *chain,
 	if (iter == NULL)
 		goto err;
 
+	if (counters < 0)
+		format = FMT_C_COUNTS;
+	else if (counters == 0)
+		format = FMT_NOCOUNTS;
+
 	c = nftnl_chain_list_iter_next(iter);
 	while (c != NULL) {
 		const char *chain_table =
@@ -2423,7 +2429,7 @@ int nft_rule_list_save(struct nft_handle *h, const char *chain,
 			goto next;
 
 		ret = __nft_rule_list(h, chain_name, table, rulenum,
-				      counters ? 0 : FMT_NOCOUNTS, list_save);
+				      format, list_save);
 
 		/* we printed the chain we wanted, stop processing. */
 		if (chain)

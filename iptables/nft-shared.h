@@ -166,10 +166,9 @@ void save_rule_details(const struct iptables_command_state *cs,
 		       unsigned const char *outiface_mask);
 void save_counters(const void *data);
 void nft_ipv46_save_chain(const struct nftnl_chain *c, const char *policy);
-void save_matches_and_target(struct xtables_rule_match *m,
-			     struct xtables_target *target,
-			     const char *jumpto,
-			     uint8_t flags, const void *fw);
+void save_matches_and_target(const struct iptables_command_state *cs,
+			     bool goto_flag, const void *fw,
+			     unsigned int format);
 
 struct nft_family_ops *nft_family_ops_lookup(int family);
 

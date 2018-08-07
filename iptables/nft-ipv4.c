@@ -358,14 +358,8 @@ static void nft_ipv4_save_rule(const void *data, unsigned int format)
 		printf("-f ");
 	}
 
-	save_matches_and_target(cs->matches, cs->target,
-				cs->jumpto, cs->fw.ip.flags, &cs->fw);
-
-	if (cs->target == NULL && strlen(cs->jumpto) > 0) {
-		printf("-%c %s", cs->fw.ip.flags & IPT_F_GOTO ? 'g' : 'j',
-		       cs->jumpto);
-	}
-	printf("\n");
+	save_matches_and_target(cs, cs->fw.ip.flags & IPT_F_GOTO,
+				&cs->fw, format);
 }
 
 static void nft_ipv4_proto_parse(struct iptables_command_state *cs,

@@ -813,13 +813,13 @@ void nft_ipv46_save_chain(const struct nftnl_chain *c, const char *policy)
 	       chain, policy ?: "-", pkts, bytes);
 }
 
-void save_matches_and_target(struct xtables_rule_match *m,
-			     struct xtables_target *target,
-			     const char *jumpto, uint8_t flags, const void *fw)
+void save_matches_and_target(const struct iptables_command_state *cs,
+			     bool goto_flag, const void *fw,
+			     unsigned int format)
 {
 	struct xtables_rule_match *matchp;
 
-	for (matchp = m; matchp; matchp = matchp->next) {
+	for (matchp = cs->matches; matchp; matchp = matchp->next) {
 		if (matchp->match->alias) {
 			printf("-m %s",
 			       matchp->match->alias(matchp->match->m));
@@ -833,15 +833,24 @@ void save_matches_and_target(struct xtables_rule_match *m,
 		printf(" ");
 	}
 
-	if (target != NULL) {
-		if (target->alias) {
-			printf("-j %s", target->alias(target->t));
-		} else
-			printf("-j %s", jumpto);
+	if ((format & (FMT_NOCOUNTS | FMT_C_COUNTS)) == FMT_C_COUNTS)
+		printf("-c %llu %llu ",
+		       (unsigned long long)cs->counters.pcnt,
+		       (unsigned long long)cs->counters.bcnt);
 
-		if (target->save != NULL)
-			target->save(fw, target->t);
+	if (cs->target != NULL) {
+		if (cs->target->alias) {
+			printf("-j %s", cs->target->alias(cs->target->t));
+		} else
+			printf("-j %s", cs->jumpto);
+
+		if (cs->target->save != NULL)
+			cs->target->save(fw, cs->target->t);
+	} else if (strlen(cs->jumpto) > 0) {
+		printf("-%c %s", goto_flag ? 'g' : 'j', cs->jumpto);
 	}
+
+	printf("\n");
 }
 
 void print_matches_and_target(struct iptables_command_state *cs,

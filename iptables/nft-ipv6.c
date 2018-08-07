@@ -296,14 +296,8 @@ static void nft_ipv6_save_rule(const void *data, unsigned int format)
 			  cs->fw6.ipv6.iniface, cs->fw6.ipv6.iniface_mask,
 			  cs->fw6.ipv6.outiface, cs->fw6.ipv6.outiface_mask);
 
-	save_matches_and_target(cs->matches, cs->target,
-				cs->jumpto, cs->fw6.ipv6.flags, &cs->fw6);
-
-	if (cs->target == NULL && strlen(cs->jumpto) > 0) {
-		printf("-%c %s", cs->fw6.ipv6.flags & IP6T_F_GOTO ? 'g' : 'j',
-		       cs->jumpto);
-	}
-	printf("\n");
+	save_matches_and_target(cs, cs->fw6.ipv6.flags & IP6T_F_GOTO,
+				&cs->fw6, format);
 }
 
 /* These are invalid numbers as upper layer protocol */
