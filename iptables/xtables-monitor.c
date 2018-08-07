@@ -568,6 +568,7 @@ static const struct option options[] = {
 	{.name = "ipv4", .has_arg = false, .val = '4'},
 	{.name = "ipv6", .has_arg = false, .val = '6'},
 	{.name = "version", .has_arg = false, .val = 'V'},
+	{.name = "help", .has_arg = false, .val = 'h'},
 	{NULL},
 };
 
@@ -635,7 +636,7 @@ int xtables_monitor_main(int argc, char *argv[])
 			exit(0);
 		default:
 			fprintf(stderr, "xtables-monitor %s: Bad argument.\n", IPTABLES_VERSION);
-			fprintf(stderr, "Try `xtables-monitor -h' for more information.");
+			fprintf(stderr, "Try `xtables-monitor -h' for more information.\n");
 			exit(PARAMETER_PROBLEM);
 		}
 	}
