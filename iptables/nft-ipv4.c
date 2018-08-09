@@ -75,7 +75,7 @@ static int nft_ipv4_add(struct nftnl_rule *r, void *data)
 		add_cmp_u16(r, 0, op);
 	}
 
-	add_compat(r, cs->fw.ip.proto, cs->fw.ip.invflags);
+	add_compat(r, cs->fw.ip.proto, cs->fw.ip.invflags & XT_INV_PROTO);
 
 	for (matchp = cs->matches; matchp; matchp = matchp->next) {
 		/* Use nft built-in comments support instead of comment match */

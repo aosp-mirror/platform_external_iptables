@@ -222,7 +222,7 @@ static int nft_bridge_add(struct nftnl_rule *r, void *data)
 		add_cmp_u16(r, fw->ethproto, op);
 	}
 
-	add_compat(r, fw->ethproto, fw->invflags);
+	add_compat(r, fw->ethproto, fw->invflags & EBT_IPROTO);
 
 	for (iter = cs->match_list; iter; iter = iter->next) {
 		if (iter->ismatch) {

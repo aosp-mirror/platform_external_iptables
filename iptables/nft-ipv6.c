@@ -60,7 +60,7 @@ static int nft_ipv6_add(struct nftnl_rule *r, void *data)
 			 &cs->fw6.ipv6.dst, &cs->fw6.ipv6.dmsk,
 			 sizeof(struct in6_addr), op);
 	}
-	add_compat(r, cs->fw6.ipv6.proto, cs->fw6.ipv6.invflags);
+	add_compat(r, cs->fw6.ipv6.proto, cs->fw6.ipv6.invflags & XT_INV_PROTO);
 
 	for (matchp = cs->matches; matchp; matchp = matchp->next) {
 		/* Use nft built-in comments support instead of comment match */
