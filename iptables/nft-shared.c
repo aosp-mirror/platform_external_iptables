@@ -22,6 +22,7 @@
 
 #include <linux/netfilter/nf_tables.h>
 #include <linux/netfilter/xt_comment.h>
+#include <linux/netfilter/xt_limit.h>
 
 #include <libmnl/libmnl.h>
 #include <libnftnl/rule.h>
@@ -549,6 +550,49 @@ void nft_parse_immediate(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 	ops->parse_immediate(jumpto, nft_goto, data);
 }
 
+static void nft_parse_limit(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
+{
+	__u32 burst = nftnl_expr_get_u32(e, NFTNL_EXPR_LIMIT_BURST);
+	__u64 unit = nftnl_expr_get_u64(e, NFTNL_EXPR_LIMIT_UNIT);
+	__u64 rate = nftnl_expr_get_u64(e, NFTNL_EXPR_LIMIT_RATE);
+	struct xtables_rule_match **matches;
+	struct xtables_match *match;
+	struct nft_family_ops *ops;
+	struct xt_rateinfo *rinfo;
+	size_t size;
+
+	switch (ctx->family) {
+	case NFPROTO_IPV4:
+	case NFPROTO_IPV6:
+	case NFPROTO_BRIDGE:
+		matches = &ctx->cs->matches;
+		break;
+	default:
+		fprintf(stderr, "BUG: nft_parse_match() unknown family %d\n",
+			ctx->family);
+		exit(EXIT_FAILURE);
+	}
+
+	match = xtables_find_match("limit", XTF_TRY_LOAD, matches);
+	if (match == NULL)
+		return;
+
+	size = XT_ALIGN(sizeof(struct xt_entry_match)) + match->size;
+	match->m = xtables_calloc(1, size);
+	match->m->u.match_size = size;
+	strcpy(match->m->u.user.name, match->name);
+	match->m->u.user.revision = match->revision;
+	xs_init_match(match);
+
+	rinfo = (void *)match->m->data;
+	rinfo->avg = XT_LIMIT_SCALE * unit / rate;
+	rinfo->burst = burst;
+
+	ops = nft_family_ops_lookup(ctx->family);
+	if (ops->parse_match != NULL)
+		ops->parse_match(match, ctx->cs);
+}
+
 void nft_rule_to_iptables_command_state(const struct nftnl_rule *r,
 					struct iptables_command_state *cs)
 {
@@ -586,6 +630,8 @@ void nft_rule_to_iptables_command_state(const struct nftnl_rule *r,
 			nft_parse_match(&ctx, expr);
 		else if (strcmp(name, "target") == 0)
 			nft_parse_target(&ctx, expr);
+		else if (strcmp(name, "limit") == 0)
+			nft_parse_limit(&ctx, expr);
 
 		expr = nftnl_expr_iter_next(iter);
 	}

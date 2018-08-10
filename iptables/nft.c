@@ -38,6 +38,8 @@
 #include <linux/netfilter/nf_tables.h>
 #include <linux/netfilter/nf_tables_compat.h>
 
+#include <linux/netfilter/xt_limit.h>
+
 #include <libmnl/libmnl.h>
 #include <libnftnl/table.h>
 #include <libnftnl/chain.h>
@@ -896,10 +898,49 @@ static int __add_match(struct nftnl_expr *e, struct xt_entry_match *m)
 	return 0;
 }
 
+static int add_nft_limit(struct nftnl_rule *r, struct xt_entry_match *m)
+{
+	struct xt_rateinfo *rinfo = (void *)m->data;
+	static const uint32_t mult[] = {
+		XT_LIMIT_SCALE*24*60*60,	/* day */
+		XT_LIMIT_SCALE*60*60,		/* hour */
+		XT_LIMIT_SCALE*60,		/* min */
+		XT_LIMIT_SCALE,			/* sec */
+	};
+	struct nftnl_expr *expr;
+	int i;
+
+	expr = nftnl_expr_alloc("limit");
+	if (!expr)
+		return -ENOMEM;
+
+	for (i = 1; i < ARRAY_SIZE(mult); i++) {
+		if (rinfo->avg > mult[i] ||
+		    mult[i] / rinfo->avg < mult[i] % rinfo->avg)
+			break;
+	}
+
+	nftnl_expr_set_u32(expr, NFTNL_EXPR_LIMIT_TYPE, NFT_LIMIT_PKTS);
+	nftnl_expr_set_u32(expr, NFTNL_EXPR_LIMIT_FLAGS, 0);
+
+	nftnl_expr_set_u64(expr, NFTNL_EXPR_LIMIT_RATE,
+			   mult[i - 1] / rinfo->avg);
+        nftnl_expr_set_u64(expr, NFTNL_EXPR_LIMIT_UNIT,
+			   mult[i - 1] / XT_LIMIT_SCALE);
+
+	nftnl_expr_set_u32(expr, NFTNL_EXPR_LIMIT_BURST, rinfo->burst);
+
+	nftnl_rule_add_expr(r, expr);
+	return 0;
+}
+
 int add_match(struct nftnl_rule *r, struct xt_entry_match *m)
 {
 	struct nftnl_expr *expr;
 	int ret;
+
+	if (!strcmp(m->u.user.name, "limit"))
+		return add_nft_limit(r, m);
 
 	expr = nftnl_expr_alloc("match");
 	if (expr == NULL)
@@ -2996,14 +3037,20 @@ static const char *supported_exprs[NFT_COMPAT_EXPR_MAX] = {
 };
 
 
-static int nft_is_expr_compatible(const char *name)
+static int nft_is_expr_compatible(const struct nftnl_expr *expr)
 {
+	const char *name = nftnl_expr_get_str(expr, NFTNL_EXPR_NAME);
 	int i;
 
 	for (i = 0; i < NFT_COMPAT_EXPR_MAX; i++) {
 		if (strcmp(supported_exprs[i], name) == 0)
 			return 0;
 	}
+
+	if (!strcmp(name, "limit") &&
+	    nftnl_expr_get_u32(expr, NFTNL_EXPR_LIMIT_TYPE) == NFT_LIMIT_PKTS &&
+	    nftnl_expr_get_u32(expr, NFTNL_EXPR_LIMIT_FLAGS) == 0)
+		return 0;
 
 	return 1;
 }
@@ -3020,9 +3067,7 @@ static bool nft_is_rule_compatible(struct nftnl_rule *rule)
 
 	expr = nftnl_expr_iter_next(iter);
 	while (expr != NULL) {
-		const char *name = nftnl_expr_get_str(expr, NFTNL_EXPR_NAME);
-
-		if (nft_is_expr_compatible(name) == 0) {
+		if (nft_is_expr_compatible(expr) == 0) {
 			expr = nftnl_expr_iter_next(iter);
 			continue;
 		}
