@@ -1286,8 +1286,8 @@ check_extension:
 			xtables_error(PARAMETER_PROBLEM, "Wrong policy");
 	} else if (command == 'L') {
 		ret = list_rules(h, chain, *table, rule_nr,
-				 flags&OPT_VERBOSE,
-				 flags&OPT_NUMERIC,
+				 0,
+				 0,
 				 /*flags&OPT_EXPANDED*/0,
 				 flags&LIST_N,
 				 flags&LIST_C);
@@ -1296,19 +1296,17 @@ check_extension:
 	}
 	if (flags & OPT_ZERO) {
 		selected_chain = zerochain;
-		ret = nft_chain_zero_counters(h, chain, *table,
-					      flags & OPT_VERBOSE);
+		ret = nft_chain_zero_counters(h, chain, *table, 0);
 	} else if (command == 'F') {
-		ret = nft_rule_flush(h, chain, *table, flags & OPT_VERBOSE);
+		ret = nft_rule_flush(h, chain, *table, 0);
 	} else if (command == 'A') {
-		ret = append_entry(h, chain, *table, &cs, 0,
-				   flags&OPT_VERBOSE, true);
+		ret = append_entry(h, chain, *table, &cs, 0, 0, true);
 	} else if (command == 'I') {
 		ret = append_entry(h, chain, *table, &cs, rule_nr - 1,
-				   flags&OPT_VERBOSE, false);
+				   0, false);
 	} else if (command == 'D') {
 		ret = delete_entry(h, chain, *table, &cs, rule_nr - 1,
-				   rule_nr_end, flags&OPT_VERBOSE);
+				   rule_nr_end, 0);
 	} /*else if (replace->command == 'C') {
 		ebt_change_counters(replace, new_entry, rule_nr, rule_nr_end, &(new_entry->cnt_surplus), chcounter);
 		if (ebt_errormsg[0] != '\0')
