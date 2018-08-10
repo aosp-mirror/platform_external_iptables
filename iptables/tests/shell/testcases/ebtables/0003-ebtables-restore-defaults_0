@@ -22,8 +22,8 @@ EXPECT='*filter
 :INPUT ACCEPT
 :FORWARD ACCEPT
 :OUTPUT ACCEPT
--A FORWARD --limit 100/second --limit-burst 42 -j ACCEPT
--A FORWARD --limit 1000/second --limit-burst 5 -j ACCEPT
+-A FORWARD --limit 100/sec --limit-burst 42 -j ACCEPT
+-A FORWARD --limit 1000/sec --limit-burst 5 -j ACCEPT
 -A FORWARD --log-level notice --log-prefix "foobar" -j CONTINUE
 -A FORWARD --log-level notice --log-prefix "" -j CONTINUE
 '

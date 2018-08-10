@@ -1199,7 +1199,10 @@ print_zero:
 
 			/* Is it a match_option? */
 			for (m = xtables_matches; m; m = m->next) {
-				if (m->parse(c - m->option_offset, argv, ebt_check_inverse2(optarg, argc, argv), &m->mflags, NULL, &m->m)) {
+				if (m->parse &&
+				    m->parse(c - m->option_offset, argv,
+					     ebt_check_inverse2(optarg, argc, argv),
+					     &m->mflags, NULL, &m->m)) {
 					ebt_add_match(m, &cs);
 					goto check_extension;
 				}
