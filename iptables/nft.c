@@ -2441,6 +2441,23 @@ int nft_rule_list_save(struct nft_handle *h, const char *chain,
 	struct nftnl_chain *c;
 	int ret = 1;
 
+	/* If built-in chains don't exist for this table, create them */
+	if (nft_xtables_config_load(h, XTABLES_CONFIG_DEFAULT, 0) < 0) {
+		nft_xt_builtin_init(h, table);
+		/* Force table and chain creation, otherwise first iptables -L
+		 * lists no table/chains.
+		 */
+		if (!list_empty(&h->obj_list)) {
+			nft_commit(h);
+			flush_chain_cache(h, NULL);
+		}
+	}
+
+	if (!nft_is_table_compatible(h, table)) {
+		xtables_error(OTHER_PROBLEM, "table `%s' is incompatible, use 'nft' tool.\n", table);
+		return 0;
+	}
+
 	list = nft_chain_dump(h);
 
 	/* Dump policies and custom chains first */
