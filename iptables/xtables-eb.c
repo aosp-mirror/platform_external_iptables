@@ -1294,8 +1294,6 @@ check_extension:
 				 /*flags&OPT_EXPANDED*/0,
 				 flags&LIST_N,
 				 flags&LIST_C);
-		if (!(flags & OPT_ZERO))
-			exit(0);
 	}
 	if (flags & OPT_ZERO) {
 		selected_chain = zerochain;

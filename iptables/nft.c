@@ -2323,7 +2323,7 @@ int nft_rule_list(struct nft_handle *h, const char *chain, const char *table,
 	if (iter == NULL)
 		goto err;
 
-	if (ops->print_table_header)
+	if (!chain && ops->print_table_header)
 		ops->print_table_header(table);
 
 	c = nftnl_chain_list_iter_next(iter);
@@ -2347,8 +2347,12 @@ int nft_rule_list(struct nft_handle *h, const char *chain, const char *table,
 
 		if (strcmp(table, chain_table) != 0)
 			goto next;
-		if (chain && strcmp(chain, chain_name) != 0)
-			goto next;
+		if (chain) {
+			if (strcmp(chain, chain_name) != 0)
+				goto next;
+			else if (ops->print_table_header)
+				ops->print_table_header(table);
+		}
 
 		refs -= nft_rule_count(h, chain_name, table);
 
