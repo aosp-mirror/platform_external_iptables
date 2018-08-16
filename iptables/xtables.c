@@ -599,10 +599,7 @@ list_rules(struct nft_handle *h, const char *chain, const char *table,
 	if (counters)
 	    counters = -1;		/* iptables -c format */
 
-	nft_rule_list_save(h, chain, table, rulenum, counters);
-
-	/* iptables does not return error if rule number not found */
-	return 1;
+	return nft_rule_list_save(h, chain, table, rulenum, counters);
 }
 
 static void command_jump(struct iptables_command_state *cs)

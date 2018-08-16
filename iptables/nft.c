@@ -2201,7 +2201,7 @@ __nft_rule_list(struct nft_handle *h, const char *chain, const char *table,
 	struct nftnl_rule_list *list;
 	struct nftnl_rule_list_iter *iter;
 	struct nftnl_rule *r;
-	int rule_ctr = 0, ret = 0;
+	int rule_ctr = 0;
 
 	list = nft_rule_list_get(h);
 	if (list == NULL)
@@ -2209,7 +2209,7 @@ __nft_rule_list(struct nft_handle *h, const char *chain, const char *table,
 
 	iter = nftnl_rule_list_iter_create(list);
 	if (iter == NULL)
-		goto err;
+		return 0;
 
 	r = nftnl_rule_list_iter_next(iter);
 	while (r != NULL) {
@@ -2230,21 +2230,15 @@ __nft_rule_list(struct nft_handle *h, const char *chain, const char *table,
 		}
 
 		cb(r, rule_ctr, format);
-		if (rulenum > 0 && rule_ctr == rulenum) {
-			ret = 1;
+		if (rulenum > 0)
 			break;
-		}
 
 next:
 		r = nftnl_rule_list_iter_next(iter);
 	}
 
 	nftnl_rule_list_iter_destroy(iter);
-err:
-	if (ret == 0)
-		errno = ENOENT;
-
-	return ret;
+	return 1;
 }
 
 static int nft_rule_count(struct nft_handle *h,
@@ -2443,7 +2437,7 @@ int nft_rule_list_save(struct nft_handle *h, const char *chain,
 	struct nftnl_chain_list_iter *iter;
 	unsigned int format = 0;
 	struct nftnl_chain *c;
-	int ret = 1;
+	int ret = 0;
 
 	/* If built-in chains don't exist for this table, create them */
 	if (nft_xtables_config_load(h, XTABLES_CONFIG_DEFAULT, 0) < 0) {
