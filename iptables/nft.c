@@ -2335,6 +2335,7 @@ int nft_rule_list(struct nft_handle *h, const char *chain, const char *table,
 			.bcnt = nftnl_chain_get_u64(c, NFTNL_CHAIN_BYTES),
 		};
 		bool basechain = false;
+		uint32_t entries;
 
 		if (nftnl_chain_get(c, NFTNL_CHAIN_HOOKNUM))
 			basechain = true;
@@ -2348,13 +2349,12 @@ int nft_rule_list(struct nft_handle *h, const char *chain, const char *table,
 				ops->print_table_header(table);
 		}
 
-		refs -= nft_rule_count(h, chain_name, table);
-
 		if (found)
 			printf("\n");
 
+		entries = nft_rule_count(h, chain_name, table);
 		ops->print_header(format, chain_name, policy_name[policy],
-				  &ctrs, basechain, refs);
+				  &ctrs, basechain, refs - entries, entries);
 
 		__nft_rule_list(h, chain_name, table,
 				rulenum, format, ops->print_rule);

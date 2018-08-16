@@ -680,7 +680,7 @@ void nft_clear_iptables_command_state(struct iptables_command_state *cs)
 
 void print_header(unsigned int format, const char *chain, const char *pol,
 		  const struct xt_counters *counters, bool basechain,
-		  uint32_t refs)
+		  uint32_t refs, uint32_t entries)
 {
 	printf("Chain %s", chain);
 	if (basechain) {

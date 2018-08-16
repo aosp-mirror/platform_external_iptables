@@ -397,10 +397,10 @@ static void nft_bridge_print_table_header(const char *tablename)
 static void nft_bridge_print_header(unsigned int format, const char *chain,
 				    const char *pol,
 				    const struct xt_counters *counters,
-				    bool basechain, uint32_t refs)
+				    bool basechain, uint32_t refs, uint32_t entries)
 {
 	printf("Bridge chain: %s, entries: %u, policy: %s\n",
-	       chain, refs, basechain ? pol : "RETURN");
+	       chain, entries, basechain ? pol : "RETURN");
 }
 
 static void print_matches_and_watchers(const struct iptables_command_state *cs,

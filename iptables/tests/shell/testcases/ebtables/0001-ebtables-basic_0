@@ -28,6 +28,36 @@ case "$XT_MULTI" in
 		exit 1
 	fi
 
+	$XT_MULTI ebtables -L FOO | grep -q 'entries: 0'
+	if [ $? -ne 0 ]; then
+		echo "Unexpected entries count in empty unreferenced chain"
+		$XT_MULTI ebtables -L
+		exit 1
+	fi
+
+	$XT_MULTI ebtables -A FORWARD -j FOO
+	$XT_MULTI ebtables -L FORWARD | grep -q 'entries: 1'
+	if [ $? -ne 0 ]; then
+		echo "Unexpected entries count in FORWARD chain"
+		$XT_MULTI ebtables -L
+		exit 1
+	fi
+
+	$XT_MULTI ebtables -L FOO | grep -q 'entries: 0'
+	if [ $? -ne 0 ]; then
+		echo "Unexpected entries count in empty referenced chain"
+		$XT_MULTI ebtables -L
+		exit 1
+	fi
+
+	$XT_MULTI ebtables -A FOO -j ACCEPT
+	$XT_MULTI ebtables -L FOO | grep -q 'entries: 1'
+	if [ $? -ne 0 ]; then
+		echo "Unexpected entries count in non-empty referenced chain"
+		$XT_MULTI ebtables -L
+		exit 1
+	fi
+
 	$XT_MULTI ebtables -t filter -N BAR || exit 1
 	$XT_MULTI ebtables -t filter -N BAZ || exit 1
 
