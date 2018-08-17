@@ -1266,9 +1266,6 @@ int do_commandx(struct nft_handle *h, int argc, char *argv[], char **table,
 		break;
 	case CMD_SET_POLICY:
 		ret = nft_chain_set(h, p.table, p.chain, p.policy, NULL);
-		if (ret < 0)
-			xtables_error(PARAMETER_PROBLEM, "Wrong policy `%s'\n",
-				      p.policy);
 		break;
 	default:
 		/* We should never reach this... */

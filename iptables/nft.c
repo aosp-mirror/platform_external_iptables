@@ -833,9 +833,13 @@ static struct nftnl_chain *nft_chain_new(struct nft_handle *h,
 	struct builtin_chain *_c;
 
 	_t = nft_table_builtin_find(h, table);
+	if (!_t) {
+		errno = ENXIO;
+		return NULL;
+	}
+
 	/* if this built-in table does not exists, create it */
-	if (_t != NULL)
-		nft_table_builtin_add(h, _t);
+	nft_table_builtin_add(h, _t);
 
 	_c = nft_chain_builtin_find(_t, chain);
 	if (_c != NULL) {
@@ -871,6 +875,8 @@ int nft_chain_set(struct nft_handle *h, const char *table,
 		c = nft_chain_new(h, table, chain, NF_DROP, counters);
 	else if (strcmp(policy, "ACCEPT") == 0)
 		c = nft_chain_new(h, table, chain, NF_ACCEPT, counters);
+	else
+		errno = EINVAL;
 
 	if (c == NULL)
 		return 0;
@@ -2828,6 +2834,7 @@ const char *nft_strerror(int err)
 	      "Bad rule (does a matching rule exist in that chain?)" },
 	    { nft_chain_set, ENOENT, "Bad built-in chain name" },
 	    { nft_chain_set, EINVAL, "Bad policy name" },
+	    { nft_chain_set, ENXIO, "Bad table name" },
 	    { NULL, ELOOP, "Loop found in table" },
 	    { NULL, EPERM, "Permission denied (you must be root)" },
 	    { NULL, 0, "Incompatible with this kernel" },
