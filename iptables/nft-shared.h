@@ -122,6 +122,7 @@ void add_addr(struct nftnl_rule *r, int offset,
 	      void *data, void *mask, size_t len, uint32_t op);
 void add_proto(struct nftnl_rule *r, int offset, size_t len,
 	       uint8_t proto, uint32_t op);
+void add_l4proto(struct nftnl_rule *r, uint8_t proto, uint32_t op);
 void add_compat(struct nftnl_rule *r, uint32_t proto, bool inv);
 
 bool is_same_interfaces(const char *a_iniface, const char *a_outiface,

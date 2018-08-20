@@ -45,8 +45,7 @@ static int nft_ipv4_add(struct nftnl_rule *r, void *data)
 
 	if (cs->fw.ip.proto != 0) {
 		op = nft_invflags2cmp(cs->fw.ip.invflags, XT_INV_PROTO);
-		add_proto(r, offsetof(struct iphdr, protocol), 1,
-			  cs->fw.ip.proto, op);
+		add_l4proto(r, cs->fw.ip.proto, op);
 	}
 
 	if (cs->fw.ip.src.s_addr != 0) {

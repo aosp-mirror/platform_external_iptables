@@ -44,8 +44,7 @@ static int nft_ipv6_add(struct nftnl_rule *r, void *data)
 
 	if (cs->fw6.ipv6.proto != 0) {
 		op = nft_invflags2cmp(cs->fw6.ipv6.invflags, XT_INV_PROTO);
-		add_proto(r, offsetof(struct ip6_hdr, ip6_nxt), 1,
-			  cs->fw6.ipv6.proto, op);
+		add_l4proto(r, cs->fw6.ipv6.proto, op);
 	}
 
 	if (!IN6_IS_ADDR_UNSPECIFIED(&cs->fw6.ipv6.src)) {

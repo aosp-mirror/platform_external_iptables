@@ -188,6 +188,12 @@ void add_proto(struct nftnl_rule *r, int offset, size_t len,
 	add_cmp_u8(r, proto, op);
 }
 
+void add_l4proto(struct nftnl_rule *r, uint8_t proto, uint32_t op)
+{
+	add_meta(r, NFT_META_L4PROTO);
+	add_cmp_u8(r, proto, op);
+}
+
 bool is_same_interfaces(const char *a_iniface, const char *a_outiface,
 			unsigned const char *a_iniface_mask,
 			unsigned const char *a_outiface_mask,
