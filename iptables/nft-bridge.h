@@ -121,5 +121,6 @@ void ebt_add_match(struct xtables_match *m,
 void ebt_add_watcher(struct xtables_target *watcher,
                      struct iptables_command_state *cs);
 int ebt_command_default(struct iptables_command_state *cs);
+struct xtables_target *ebt_command_jump(const char *jumpto);
 
 #endif

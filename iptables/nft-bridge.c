@@ -25,44 +25,24 @@
 void ebt_cs_clean(struct iptables_command_state *cs)
 {
 	struct ebt_match *m, *nm;
-	struct xtables_rule_match *matchp, *tmp;
 
-	for (matchp = cs->matches; matchp;) {
-		tmp = matchp->next;
-
-		if (matchp->match == matchp->match->next) {
-			free(matchp->match);
-			matchp->match = NULL;
-		}
-		free(matchp);
-		matchp = tmp;
-	}
+	xtables_rule_matches_free(&cs->matches);
 
 	for (m = cs->match_list; m;) {
-		if (m->ismatch) {
-			struct xtables_match *match = m->u.match;
-
-			memset(match->m->data, 0,
-			       match->m->u.match_size - sizeof(*match->m));
-			if (match->init)
-				match->init(match->m);
-		} else {
+		if (!m->ismatch) {
 			struct xtables_target *target = m->u.watcher;
 
-			memset(target->t->data, 0,
-			       target->t->u.target_size - sizeof(*target->t));
-			if (target->init)
-				target->init(target->t);
+			if (target->t) {
+				free(target->t);
+				target->t = NULL;
+			}
+			if (target == target->next)
+				free(target);
 		}
 
 		nm = m->next;
 		free(m);
 		m = nm;
-	}
-
-	if (cs->target) {
-		if (cs->target->udata_size)
-			free(cs->target->udata);
 	}
 }
 

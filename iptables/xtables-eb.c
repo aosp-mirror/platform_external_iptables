@@ -380,7 +380,7 @@ static struct option *merge_options(struct option *oldopts,
 /*
  * More glue code.
  */
-static struct xtables_target *command_jump(const char *jumpto)
+struct xtables_target *ebt_command_jump(const char *jumpto)
 {
 	struct xtables_target *target;
 	unsigned int verdict;
@@ -663,24 +663,24 @@ void ebt_load_match_extensions(void)
 void ebt_add_match(struct xtables_match *m,
 		   struct iptables_command_state *cs)
 {
-	struct xtables_rule_match *i, **rule_matches = &cs->matches;
+	struct xtables_rule_match **rule_matches = &cs->matches;
 	struct xtables_match *newm;
 	struct ebt_match *newnode, **matchp;
-
-	/* match already in rule_matches, skip inclusion */
-	for (i = *rule_matches; i; i = i->next) {
-		if (strcmp(m->name, i->match->name) == 0) {
-			i->match->mflags |= m->mflags;
-			return;
-		}
-	}
+	struct xt_entry_match *m2;
 
 	newm = xtables_find_match(m->name, XTF_LOAD_MUST_SUCCEED, rule_matches);
 	if (newm == NULL)
 		xtables_error(OTHER_PROBLEM,
 			      "Unable to add match %s", m->name);
 
+	m2 = xtables_calloc(1, newm->m->u.match_size);
+	memcpy(m2, newm->m, newm->m->u.match_size);
+	memset(newm->m->data, 0, newm->size);
+	xs_init_match(newm);
+	newm->m = m2;
+
 	newm->mflags = m->mflags;
+	m->mflags = 0;
 
 	/* glue code for watchers */
 	newnode = calloc(1, sizeof(struct ebt_match));
@@ -698,22 +698,28 @@ void ebt_add_match(struct xtables_match *m,
 void ebt_add_watcher(struct xtables_target *watcher,
 		     struct iptables_command_state *cs)
 {
-	struct ebt_match *i, *newnode, **matchp;
+	struct ebt_match *newnode, **matchp;
+	struct xtables_target *clone;
 
-	for (i = cs->match_list; i; i = i->next) {
-		if (i->ismatch)
-			continue;
-		if (strcmp(i->u.watcher->name, watcher->name) == 0) {
-			i->u.watcher->tflags |= watcher->tflags;
-			return;
-		}
-	}
+	clone = xtables_malloc(sizeof(struct xtables_target));
+	memcpy(clone, watcher, sizeof(struct xtables_target));
+	clone->udata = NULL;
+	clone->tflags = watcher->tflags;
+	clone->next = clone;
+
+	clone->t = xtables_calloc(1, watcher->t->u.target_size);
+	memcpy(clone->t, watcher->t, watcher->t->u.target_size);
+
+	memset(watcher->t->data, 0, watcher->size);
+	xs_init_target(watcher);
+	watcher->tflags = 0;
+
 
 	newnode = calloc(1, sizeof(struct ebt_match));
 	if (newnode == NULL)
 		xtables_error(OTHER_PROBLEM, "Unable to alloc memory");
 
-	newnode->u.watcher = watcher;
+	newnode->u.watcher = clone;
 
 	for (matchp = &cs->match_list; *matchp; matchp = &(*matchp)->next)
 		;
@@ -724,12 +730,30 @@ int ebt_command_default(struct iptables_command_state *cs)
 {
 	struct xtables_target *t = cs->target;
 	struct xtables_match *m;
+	struct ebt_match *matchp;
 
 	/* Is it a target option? */
 	if (t && t->parse) {
 		if (t->parse(cs->c - t->option_offset, cs->argv,
 			     ebt_invert, &t->tflags, NULL, &t->t))
 			return 0;
+	}
+
+	/* check previously added matches/watchers to this rule first */
+	for (matchp = cs->match_list; matchp; matchp = matchp->next) {
+		if (matchp->ismatch) {
+			m = matchp->u.match;
+			if (m->parse &&
+			    m->parse(cs->c - m->option_offset, cs->argv,
+				     ebt_invert, &m->mflags, NULL, &m->m))
+				return 0;
+		} else {
+			t = matchp->u.watcher;
+			if (t->parse &&
+			    t->parse(cs->c - t->option_offset, cs->argv,
+				     ebt_invert, &t->tflags, NULL, &t->t))
+				return 0;
+		}
 	}
 
 	/* Is it a match_option? */
@@ -800,7 +824,6 @@ int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table,
 	int ret = 0;
 	unsigned int flags = 0;
 	struct xtables_target *t;
-	struct xtables_match *m;
 	struct iptables_command_state cs = {
 		.argv = argv,
 		.eb.bitmask = EBT_NOPROTO,
@@ -811,16 +834,6 @@ int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table,
 	int selected_chain = -1;
 	struct xtables_rule_match *xtrm_i;
 	struct ebt_match *match;
-
-	/* clear mflags in case do_commandeb gets called a second time
-	 * (we clear the global list of all matches for security)*/
-	for (m = xtables_matches; m; m = m->next)
-		m->mflags = 0;
-
-	for (t = xtables_targets; t; t = t->next) {
-		t->tflags = 0;
-		t->used = 0;
-	}
 
 	/* prevent getopt to spoil our error reporting */
 	optind = 0;
@@ -1057,7 +1070,7 @@ print_zero:
 			} else if (c == 'j') {
 				ebt_check_option2(&flags, OPT_JUMP);
 				cs.jumpto = parse_target(optarg);
-				cs.target = command_jump(cs.jumpto);
+				cs.target = ebt_command_jump(cs.jumpto);
 				break;
 			} else if (c == 's') {
 				ebt_check_option2(&flags, OPT_SOURCE);
