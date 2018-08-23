@@ -720,6 +720,40 @@ void ebt_add_watcher(struct xtables_target *watcher,
 	*matchp = newnode;
 }
 
+int ebt_command_default(struct iptables_command_state *cs)
+{
+	struct xtables_target *t = cs->target;
+	struct xtables_match *m;
+
+	/* Is it a target option? */
+	if (t && t->parse) {
+		if (t->parse(cs->c - t->option_offset, cs->argv,
+			     ebt_invert, &t->tflags, NULL, &t->t))
+			return 0;
+	}
+
+	/* Is it a match_option? */
+	for (m = xtables_matches; m; m = m->next) {
+		if (m->parse &&
+		    m->parse(cs->c - m->option_offset, cs->argv,
+			     ebt_invert, &m->mflags, NULL, &m->m)) {
+			ebt_add_match(m, cs);
+			return 0;
+		}
+	}
+
+	/* Is it a watcher option? */
+	for (t = xtables_targets; t; t = t->next) {
+		if (t->parse &&
+		    t->parse(cs->c - t->option_offset, cs->argv,
+			     ebt_invert, &t->tflags, NULL, &t->t)) {
+			ebt_add_watcher(t, cs);
+			return 0;
+		}
+	}
+	return 1;
+}
+
 int nft_init_eb(struct nft_handle *h, const char *pname)
 {
 	ebtables_globals.program_name = pname;
@@ -765,7 +799,7 @@ int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table,
 	int rule_nr_end = 0;
 	int ret = 0;
 	unsigned int flags = 0;
-	struct xtables_target *t, *w;
+	struct xtables_target *t;
 	struct xtables_match *m;
 	struct iptables_command_state cs = {
 		.argv = argv,
@@ -1187,53 +1221,13 @@ print_zero:
 			optind--;
 			continue;
 		default:
-			/* Is it a target option? */
-			if (cs.target != NULL && cs.target->parse != NULL) {
-				int opt_offset = cs.target->option_offset;
-				if (cs.target->parse(c - opt_offset,
-						     argv, ebt_invert,
-						     &cs.target->tflags,
-						     NULL, &cs.target->t))
-					goto check_extension;
-			}
+			ebt_check_inverse2(optarg, argc, argv);
 
-			/* Is it a match_option? */
-			for (m = xtables_matches; m; m = m->next) {
-				if (m->parse &&
-				    m->parse(c - m->option_offset, argv,
-					     ebt_check_inverse2(optarg, argc, argv),
-					     &m->mflags, NULL, &m->m)) {
-					ebt_add_match(m, &cs);
-					goto check_extension;
-				}
-			}
+			if (ebt_command_default(&cs))
+				xtables_error(PARAMETER_PROBLEM,
+					      "Unknown argument: '%s'",
+					      argv[optind - 1]);
 
-			/* Is it a watcher option? */
-			for (w = xtables_targets; w; w = w->next) {
-				if (w->parse &&
-				    w->parse(c - w->option_offset, argv,
-					     ebt_invert, &w->tflags,
-					     NULL, &w->t)) {
-					ebt_add_watcher(w, &cs);
-					goto check_extension;
-				}
-			}
-			/*
-			if (w == NULL && c == '?')
-				ebt_print_error2("Unknown argument: '%s'", argv[optind - 1], (char)optopt, (char)c);
-			else if (w == NULL) {
-				if (!strcmp(t->name, "standard"))
-					ebt_print_error2("Unknown argument: don't forget the -t option");
-				else
-					ebt_print_error2("Target-specific option does not correspond with specified target");
-			}
-			if (ebt_errormsg[0] != '\0')
-				return -1;
-			if (w->used == 0) {
-				ebt_add_watcher(new_entry, w);
-				w->used = 1;
-			}*/
-check_extension:
 			if (command != 'A' && command != 'I' &&
 			    command != 'D' && command != 'C')
 				xtables_error(PARAMETER_PROBLEM,
