@@ -769,6 +769,7 @@ int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table,
 	struct xtables_match *m;
 	struct iptables_command_state cs = {
 		.argv = argv,
+		.eb.bitmask = EBT_NOPROTO,
 	};
 	char command = 'h';
 	const char *chain = NULL;
@@ -790,7 +791,6 @@ int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table,
 	/* prevent getopt to spoil our error reporting */
 	optind = 0;
 	opterr = false;
-	cs.eb.bitmask = EBT_NOPROTO;
 
 	/* Getopt saves the day */
 	while ((c = getopt_long(argc, argv,
