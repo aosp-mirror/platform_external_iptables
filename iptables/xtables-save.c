@@ -285,6 +285,7 @@ int xtables_eb_save_main(int argc_, char *argv_[])
 	}
 
 	nft_for_each_table(&h, __ebt_save, !!ctr);
+	nft_fini(&h);
 	return 0;
 }
 

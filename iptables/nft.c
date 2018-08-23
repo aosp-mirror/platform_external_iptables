@@ -1830,12 +1830,15 @@ bool nft_table_find(struct nft_handle *h, const char *tablename)
 		const char *this_tablename =
 			nftnl_table_get(t, NFTNL_TABLE_NAME);
 
-		if (strcmp(tablename, this_tablename) == 0)
-			return true;
+		if (strcmp(tablename, this_tablename) == 0) {
+			ret = true;
+			break;
+		}
 
 		t = nftnl_table_list_iter_next(iter);
 	}
 
+	nftnl_table_list_iter_destroy(iter);
 	nftnl_table_list_free(list);
 
 err:
@@ -1868,6 +1871,7 @@ int nft_for_each_table(struct nft_handle *h,
 		t = nftnl_table_list_iter_next(iter);
 	}
 
+	nftnl_table_list_iter_destroy(iter);
 	nftnl_table_list_free(list);
 	return 0;
 }
