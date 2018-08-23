@@ -40,7 +40,7 @@ def run_test(name, payload):
     for line in payload:
         if line.startswith(keywords):
             tests += 1
-            process = Popen([ os.path.abspath(os.path.curdir) + "/iptables/xtables-compat-multi" ] + shlex.split(line), stdout=PIPE, stderr=PIPE)
+            process = Popen([ os.path.abspath(os.path.curdir) + "/iptables/xtables-nft-multi" ] + shlex.split(line), stdout=PIPE, stderr=PIPE)
             (output, error) = process.communicate()
             if process.returncode == 0:
                 translation = output.decode("utf-8").rstrip(" \n")
