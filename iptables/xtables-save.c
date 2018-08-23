@@ -203,12 +203,12 @@ xtables_save_main(int family, const char *progname, int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 
-	if (dump) {
-		do_output(&h, tablename, show_counters);
+	ret = do_output(&h, tablename, show_counters);
+	nft_fini(&h);
+	if (dump)
 		exit(0);
-	}
 
-	return do_output(&h, tablename, show_counters);
+	return ret;
 }
 
 int xtables_ip4_save_main(int argc, char *argv[])
@@ -325,5 +325,6 @@ int xtables_arp_save_main(int argc, char **argv)
 	nft_chain_save(&h, nft_chain_dump(&h), "filter");
 	nft_rule_save(&h, "filter", FMT_NOCOUNTS);
 	printf("\n");
+	nft_fini(&h);
 	return 0;
 }

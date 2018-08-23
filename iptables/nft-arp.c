@@ -691,7 +691,7 @@ struct nft_family_ops nft_family_ops_arp = {
 	.save_chain		= nft_arp_save_chain,
 	.post_parse		= NULL,
 	.rule_to_cs		= nft_arp_rule_to_cs,
-	.clear_cs		= NULL,
+	.clear_cs		= nft_clear_iptables_command_state,
 	.rule_find		= nft_arp_rule_find,
 	.parse_target		= nft_arp_parse_target,
 };
