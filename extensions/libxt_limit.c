@@ -195,6 +195,14 @@ static int limit_xlate(struct xt_xlate *xl,
 	return 1;
 }
 
+static int limit_xlate_eb(struct xt_xlate *xl,
+			  const struct xt_xlate_mt_params *params)
+{
+	limit_xlate(xl, params);
+	xt_xlate_add(xl, " ");
+	return 1;
+}
+
 #define FLAG_LIMIT		0x01
 #define FLAG_LIMIT_BURST	0x02
 #define ARG_LIMIT		'1'
@@ -276,7 +284,7 @@ static struct xtables_match limit_match[] = {
 		.parse		= brlimit_parse,
 		.print		= brlimit_print,
 		.extra_opts	= brlimit_opts,
-		.xlate		= limit_xlate,
+		.xlate		= limit_xlate_eb,
 	},
 };
 
