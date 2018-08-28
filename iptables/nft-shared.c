@@ -646,7 +646,7 @@ void nft_rule_to_iptables_command_state(const struct nftnl_rule *r,
 
 	if (nftnl_rule_is_set(r, NFTNL_RULE_USERDATA)) {
 		const void *data;
-		uint32_t len;
+		uint32_t len, size;
 		struct xtables_match *match;
 		struct xt_entry_match *m;
 
@@ -656,15 +656,12 @@ void nft_rule_to_iptables_command_state(const struct nftnl_rule *r,
 		if (match == NULL)
 			return;
 
-		m = calloc(1, sizeof(struct xt_entry_match) +
-			      sizeof(struct xt_comment_info));
-		if (m == NULL) {
-			fprintf(stderr, "OOM");
-			exit(EXIT_FAILURE);
-		}
+		size = XT_ALIGN(sizeof(struct xt_entry_match)) + match->size;
+		m = xtables_calloc(1, size);
 
-		memcpy(&m->data, get_comment(data, len), len);
-		m->u.match_size = len + XT_ALIGN(sizeof(struct xt_entry_match));
+		strncpy((char *)m->data, get_comment(data, len),
+			match->size - 1);
+		m->u.match_size = size;
 		m->u.user.revision = 0;
 		strcpy(m->u.user.name, match->name);
 
