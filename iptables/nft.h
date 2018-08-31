@@ -86,6 +86,7 @@ int nft_chain_user_flush(struct nft_handle *h, struct nftnl_chain_list *list,
 int nft_chain_user_rename(struct nft_handle *h, const char *chain, const char *table, const char *newname);
 int nft_chain_zero_counters(struct nft_handle *h, const char *chain, const char *table, bool verbose);
 struct builtin_chain *nft_chain_builtin_find(struct builtin_table *t, const char *chain);
+bool nft_chain_exists(struct nft_handle *h, const char *table, const char *chain);
 
 /*
  * Operations with rule-set.

@@ -1725,6 +1725,21 @@ nft_chain_find(struct nft_handle *h, const char *table, const char *chain)
 	return nft_chain_list_find(list, table, chain);
 }
 
+bool nft_chain_exists(struct nft_handle *h,
+		      const char *table, const char *chain)
+{
+	struct builtin_table *t = nft_table_builtin_find(h, table);
+
+	/* xtables does not support custom tables */
+	if (!t)
+		return false;
+
+	if (nft_chain_builtin_find(t, chain))
+		return true;
+
+	return !!nft_chain_find(h, table, chain);
+}
+
 int nft_chain_user_rename(struct nft_handle *h,const char *chain,
 			  const char *table, const char *newname)
 {

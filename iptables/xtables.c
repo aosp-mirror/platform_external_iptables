@@ -976,6 +976,10 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 			if (cs->invert)
 				xtables_error(PARAMETER_PROBLEM,
 					   "unexpected ! flag before --table");
+			if (!nft_table_builtin_find(h, optarg))
+				xtables_error(VERSION_PROBLEM,
+					      "table '%s' does not exist",
+					      optarg);
 			p->table = optarg;
 			break;
 
@@ -1156,12 +1160,18 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 					   p->chain);
 		}
 
-		/*
-		 * Contrary to what iptables does, we assume that any jumpto
-		 * is a custom chain jumps (if no target is found). Later on,
-		 * nf_table will spot the error if the chain does not exists.
-		 */
+		if (p->chain && !nft_chain_exists(h, p->table, p->chain))
+			xtables_error(OTHER_PROBLEM,
+				      "Chain '%s' does not exist", cs->jumpto);
+
+		if (!cs->target && strlen(cs->jumpto) > 0 &&
+		    !nft_chain_exists(h, p->table, cs->jumpto))
+			xtables_error(PARAMETER_PROBLEM,
+				      "Chain '%s' does not exist", cs->jumpto);
 	}
+	if (p->command == CMD_NEW_CHAIN &&
+	    nft_chain_exists(h, p->table, p->chain))
+		xtables_error(OTHER_PROBLEM, "Chain already exists");
 }
 
 int do_commandx(struct nft_handle *h, int argc, char *argv[], char **table,
