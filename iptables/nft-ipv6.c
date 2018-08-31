@@ -171,7 +171,6 @@ static void nft_ipv6_parse_payload(struct nft_xt_ctx *ctx,
 		break;
 	case offsetof(struct ip6_hdr, ip6_nxt):
 		get_cmp_data(e, &proto, sizeof(proto), &inv);
-		cs->fw6.ipv6.flags |= IP6T_F_PROTO;
 		cs->fw6.ipv6.proto = proto;
 		if (inv)
 			cs->fw6.ipv6.invflags |= IP6T_INV_PROTO;
@@ -325,9 +324,6 @@ static void nft_ipv6_proto_parse(struct iptables_command_state *cs,
 static void nft_ipv6_post_parse(int command, struct iptables_command_state *cs,
 				struct xtables_args *args)
 {
-	if (args->proto != 0)
-		args->flags |= IP6T_F_PROTO;
-
 	cs->fw6.ipv6.flags = args->flags;
 	/* We already set invflags in proto_parse, but we need to refresh it
 	 * to include new parsed options.
