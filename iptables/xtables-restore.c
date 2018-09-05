@@ -419,6 +419,8 @@ xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 				break;
 			case 'w': /* fallthrough.  Ignored by xt-restore */
 			case 'W':
+				if (!optarg && xs_has_arg(argc, argv))
+					optind++;
 				break;
 			default:
 				fprintf(stderr,
