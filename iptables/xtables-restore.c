@@ -182,6 +182,7 @@ void xtables_restore_parse(struct nft_handle *h,
 			/* New chain. */
 			char *policy, *chain = NULL;
 			struct xt_counters count = {};
+			bool chain_exists = false;
 
 			chain = strtok(buffer+1, " \t\n");
 			DEBUGP("line %u, chain '%s'\n", line, chain);
@@ -196,7 +197,9 @@ void xtables_restore_parse(struct nft_handle *h,
 				if (cb->chain_del)
 					cb->chain_del(chain_list, curtable->name,
 						      chain);
-			} else {
+			} else if (nft_chain_list_find(chain_list,
+						       curtable->name, chain)) {
+				chain_exists = true;
 				/* Apparently -n still flushes existing user
 				 * defined chains that are redefined. Otherwise,
 				 * leave them as is.
@@ -246,7 +249,8 @@ void xtables_restore_parse(struct nft_handle *h,
 				ret = 1;
 
 			} else {
-				if (cb->chain_user_add &&
+				if (!chain_exists &&
+				    cb->chain_user_add &&
 				    cb->chain_user_add(h, chain,
 						       curtable->name) < 0) {
 					if (errno == EEXIST)

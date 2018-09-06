@@ -1491,7 +1491,6 @@ static int __nft_chain_user_flush(struct nftnl_chain *c, void *data)
 	struct nft_handle *h = d->handle;
 	const char *table = d->table;
 	const char *chain = d->chain;
-	int ret;
 
 	if (strcmp(table, table_name) != 0)
 		return 0;
@@ -1499,13 +1498,8 @@ static int __nft_chain_user_flush(struct nftnl_chain *c, void *data)
 	if (strcmp(chain, chain_name) != 0)
 		return 0;
 
-	if (!nftnl_chain_is_set(c, NFTNL_CHAIN_HOOKNUM)) {
-		ret = batch_chain_add(h, NFT_COMPAT_CHAIN_USER_FLUSH, c);
-		if (ret < 0)
-			return ret;
-
-		nftnl_chain_list_del(c);
-	}
+	if (!nftnl_chain_is_set(c, NFTNL_CHAIN_HOOKNUM))
+		__nft_rule_flush(h, table, chain);
 
 	return 0;
 }
