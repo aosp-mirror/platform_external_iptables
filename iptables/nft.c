@@ -3219,9 +3219,15 @@ bool nft_is_table_compatible(struct nft_handle *h, const char *tablename)
 
 	rule = nftnl_rule_list_iter_next(iter);
 	while (rule != NULL) {
+		const char *table = nftnl_rule_get_str(rule, NFTNL_RULE_TABLE);
+
+		if (strcmp(table, tablename))
+			goto next_rule;
+
 		ret = nft_is_rule_compatible(rule);
 		if (ret != 0)
 			break;
+next_rule:
 		rule = nftnl_rule_list_iter_next(iter);
 	}
 
