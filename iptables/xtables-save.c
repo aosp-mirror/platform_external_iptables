@@ -49,13 +49,10 @@ __do_output(struct nft_handle *h, const char *tablename, bool counters)
 	struct nftnl_chain_list *chain_list;
 
 
-	if (!nft_table_find(h, tablename)) {
-		printf("Table `%s' does not exist\n", tablename);
-		return 1;
-	}
-
 	if (!nft_is_table_compatible(h, tablename)) {
-		printf("# Table `%s' is incompatible, use 'nft' tool.\n", tablename);
+		if (!nft_table_builtin_find(h, tablename))
+			printf("# Table `%s' is incompatible, use 'nft' tool.\n",
+			       tablename);
 		return 0;
 	}
 
@@ -87,6 +84,11 @@ do_output(struct nft_handle *h, const char *tablename, bool counters)
 		ret = nft_for_each_table(h, __do_output, counters);
 		nft_check_xt_legacy(h->family, true);
 		return !!ret;
+	}
+
+	if (!nft_table_find(h, tablename)) {
+		printf("Table `%s' does not exist\n", tablename);
+		return 1;
 	}
 
 	ret = __do_output(h, tablename, counters);

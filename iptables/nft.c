@@ -3195,14 +3195,7 @@ bool nft_is_table_compatible(struct nft_handle *h, const char *tablename)
 	struct nftnl_rule *rule;
 	int ret = 0, i;
 
-	for (i = 0; i < TABLES_MAX; i++) {
-		if (!h->tables[i].name)
-			continue;
-		if (strcmp(h->tables[i].name, tablename) == 0)
-			break;
-	}
-
-	if (i == TABLES_MAX)
+	if (!nft_table_builtin_find(h, tablename))
 		return false;
 
 	ret = nft_are_chains_compatible(h, tablename);
