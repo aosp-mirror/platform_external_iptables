@@ -234,6 +234,7 @@ static void nft_ipv4_parse_payload(struct nft_xt_ctx *ctx,
 		break;
 	case offsetof(struct iphdr, frag_off):
 		cs->fw.ip.flags |= IPT_F_FRAG;
+		inv = false;
 		get_frag(ctx, e, &inv);
 		if (inv)
 			cs->fw.ip.invflags |= IPT_INV_FRAG;
