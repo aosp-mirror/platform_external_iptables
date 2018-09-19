@@ -2169,8 +2169,6 @@ int nft_rule_delete_num(struct nft_handle *h, const char *chain,
 
 	r = nft_rule_find(h, list, chain, table, NULL, rulenum);
 	if (r != NULL) {
-		ret = 1;
-
 		DEBUGP("deleting rule by number %d\n", rulenum);
 		ret = __nft_rule_del(h, list, r);
 		if (ret < 0)

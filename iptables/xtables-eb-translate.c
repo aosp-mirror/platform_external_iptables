@@ -332,7 +332,6 @@ print_zero:
 			if (OPT_COMMANDS)
 				xtables_error(PARAMETER_PROBLEM,
 					      "Multiple commands are not allowed");
-			command = 'V';
 			if (exec_style == EXEC_STYLE_DAEMON)
 				xtables_error(PARAMETER_PROBLEM,
 					      "%s %s\n", prog_name, prog_vers);
