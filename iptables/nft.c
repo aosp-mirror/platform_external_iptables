@@ -1899,7 +1899,7 @@ static int __nft_table_flush(struct nft_handle *h, const char *table)
 	batch_table_add(h, NFT_COMPAT_TABLE_FLUSH, t);
 
 	_t = nft_table_builtin_find(h, table);
-	assert(t);
+	assert(_t);
 	_t->initialized = false;
 
 	flush_chain_cache(h, table);
