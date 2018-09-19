@@ -547,6 +547,7 @@ void nft_parse_immediate(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 		break;;
 	case NFT_GOTO:
 		nft_goto = true;
+		/* fall through */
 	case NFT_JUMP:
 		jumpto = chain;
 		break;
