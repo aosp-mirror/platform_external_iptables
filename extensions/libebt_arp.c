@@ -209,76 +209,6 @@ static int brarp_get_mac_and_mask(const char *from, unsigned char *to, unsigned 
 	return 0;
 }
 
-static struct ethertypeent *brarp_getethertypeent(FILE *etherf, const char *name)
-{
-	static struct ethertypeent et_ent;
-	char *e, *found_name;
-	char line[1024];
-
-	while ((e = fgets(line, sizeof(line), etherf))) {
-		char *endptr, *cp;
-
-		if (*e == '#')
-			continue;
-
-		cp = strpbrk(e, "#\n");
-		if (cp == NULL)
-			continue;
-		*cp = '\0';
-		found_name = e;
-
-		cp = strpbrk(e, " \t");
-		if (cp == NULL)
-			continue;
-
-		*cp++ = '\0';
-		while (*cp == ' ' || *cp == '\t')
-			cp++;
-		e = strpbrk(cp, " \t");
-		if (e != NULL)
-			*e++ = '\0';
-
-		et_ent.e_ethertype = strtol(cp, &endptr, 16);
-		if (*endptr != '\0' ||
-		    (et_ent.e_ethertype < ETH_ZLEN || et_ent.e_ethertype > 0xFFFF))
-			continue;
-
-		if (strcasecmp(found_name, name) == 0)
-			return (&et_ent);
-
-		if (e != NULL) {
-			cp = e;
-			while (cp && *cp) {
-				if (*cp == ' ' || *cp == '\t') {
-					cp++;
-					continue;
-				}
-				e = cp;
-				cp = strpbrk(cp, " \t");
-				if (cp != NULL)
-					*cp++ = '\0';
-				if (strcasecmp(e, name) == 0)
-					return (&et_ent);
-				e = cp;
-			}
-		}
-	}
-
-	return NULL;
-}
-
-static struct ethertypeent *brarp_getethertypebyname(const char *name)
-{
-	struct ethertypeent *e;
-	FILE *etherf;
-
-	etherf = fopen(_PATH_ETHERTYPES, "r");
-
-	e = brarp_getethertypeent(etherf, name);
-	fclose(etherf);
-	return (e);
-}
-
 static int
 brarp_parse(int c, char **argv, int invert, unsigned int *flags,
 	    const void *entry, struct xt_entry_match **match)
@@ -334,7 +264,7 @@ brarp_parse(int c, char **argv, int invert, unsigned int *flags,
 		if (i < 0 || i >= (0x1 << 16) || *end !='\0') {
 			struct ethertypeent *ent;
 
-			ent = brarp_getethertypebyname(argv[optind - 1]);
+			ent = getethertypebyname(argv[optind - 1]);
 			if (!ent)
 				xtables_error(PARAMETER_PROBLEM, "Problem with specified ARP "
 								 "protocol type");

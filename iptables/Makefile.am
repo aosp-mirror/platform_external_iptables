@@ -43,7 +43,7 @@ xtables_nft_multi_SOURCES += xtables-save.c xtables-restore.c \
 				nft-shared.c nft-ipv4.c nft-ipv6.c nft-arp.c \
 				xtables-monitor.c \
 				xtables-arp-standalone.c xtables-arp.c \
-				getethertype.c nft-bridge.c \
+				nft-bridge.c \
 				xtables-eb-standalone.c xtables-eb.c \
 				xtables-eb-translate.c \
 				xtables-translate.c
