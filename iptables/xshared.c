@@ -568,3 +568,28 @@ void print_ipv6_addresses(const struct ip6t_entry *fw6, unsigned int format)
 	       ipv6_addr_to_string(&fw6->ipv6.dst,
 				   &fw6->ipv6.dmsk, format));
 }
+
+/* Luckily, IPT_INV_VIA_IN and IPT_INV_VIA_OUT
+ * have the same values as IP6T_INV_VIA_IN and IP6T_INV_VIA_OUT
+ * so this function serves for both iptables and ip6tables */
+void print_ifaces(const char *iniface, const char *outiface, uint8_t invflags,
+		  unsigned int format)
+{
+	const char *anyname = format & FMT_NUMERIC ? "*" : "any";
+	char iface[IFNAMSIZ + 2];
+
+	if (!(format & FMT_VIA))
+		return;
+
+	snprintf(iface, IFNAMSIZ + 2, "%s%s",
+		 invflags & IPT_INV_VIA_IN ? "!" : "",
+		 iniface[0] != '\0' ? iniface : anyname);
+
+	printf(FMT(" %-6s ", "in %s "), iface);
+
+	snprintf(iface, IFNAMSIZ + 2, "%s%s",
+		 invflags & IPT_INV_VIA_OUT ? "!" : "",
+		 outiface[0] != '\0' ? outiface : anyname);
+
+	printf(FMT("%-6s ", "out %s "), iface);
+}

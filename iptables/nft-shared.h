@@ -155,8 +155,6 @@ void print_rule_details(const struct iptables_command_state *cs,
 			const char *targname, uint8_t flags,
 			uint8_t invflags, uint8_t proto,
 			unsigned int num, unsigned int format);
-void print_ifaces(const char *iniface, const char *outiface, uint8_t invflags,
-		  unsigned int format);
 void print_matches_and_target(struct iptables_command_state *cs,
 			      unsigned int format);
 void save_rule_details(const struct iptables_command_state *cs,

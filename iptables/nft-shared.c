@@ -755,45 +755,6 @@ void print_rule_details(const struct iptables_command_state *cs,
 	}
 }
 
-void print_ifaces(const char *iniface, const char *outiface, uint8_t invflags,
-		  unsigned int format)
-{
-	char iface[IFNAMSIZ+2];
-
-	if (!(format & FMT_VIA))
-		return;
-
-	if (invflags & IPT_INV_VIA_IN) {
-		iface[0] = '!';
-		iface[1] = '\0';
-	} else
-		iface[0] = '\0';
-
-	if (iniface[0] != '\0')
-		strcat(iface, iniface);
-	else if (format & FMT_NUMERIC)
-		strcat(iface, "*");
-	else
-		strcat(iface, "any");
-
-	printf(FMT(" %-6s ","in %s "), iface);
-
-	if (invflags & IPT_INV_VIA_OUT) {
-		iface[0] = '!';
-		iface[1] = '\0';
-	} else
-		iface[0] = '\0';
-
-	if (outiface[0] != '\0')
-		strcat(iface, outiface);
-	else if (format & FMT_NUMERIC)
-		strcat(iface, "*");
-	else
-		strcat(iface, "any");
-
-	printf(FMT("%-6s ","out %s "), iface);
-}
-
 static void
 print_iface(char letter, const char *iface, const unsigned char *mask, int inv)
 {

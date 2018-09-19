@@ -573,35 +573,7 @@ print_firewall(const struct ipt_entry *fw,
 		fputc(' ', stdout);
 	}
 
-	if (format & FMT_VIA) {
-		char iface[IFNAMSIZ+2];
-
-		if (fw->ip.invflags & IPT_INV_VIA_IN) {
-			iface[0] = '!';
-			iface[1] = '\0';
-		}
-		else iface[0] = '\0';
-
-		if (fw->ip.iniface[0] != '\0') {
-			strcat(iface, fw->ip.iniface);
-		}
-		else if (format & FMT_NUMERIC) strcat(iface, "*");
-		else strcat(iface, "any");
-		printf(FMT(" %-6s ","in %s "), iface);
-
-		if (fw->ip.invflags & IPT_INV_VIA_OUT) {
-			iface[0] = '!';
-			iface[1] = '\0';
-		}
-		else iface[0] = '\0';
-
-		if (fw->ip.outiface[0] != '\0') {
-			strcat(iface, fw->ip.outiface);
-		}
-		else if (format & FMT_NUMERIC) strcat(iface, "*");
-		else strcat(iface, "any");
-		printf(FMT("%-6s ","out %s "), iface);
-	}
+	print_ifaces(fw->ip.iniface, fw->ip.outiface, fw->ip.invflags, format);
 
 	print_ipv4_addresses(fw, format);
 

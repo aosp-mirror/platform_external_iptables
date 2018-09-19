@@ -587,35 +587,8 @@ print_firewall(const struct ip6t_entry *fw,
 		fputc(' ', stdout);
 	}
 
-	if (format & FMT_VIA) {
-		char iface[IFNAMSIZ+2];
-
-		if (fw->ipv6.invflags & IP6T_INV_VIA_IN) {
-			iface[0] = '!';
-			iface[1] = '\0';
-		}
-		else iface[0] = '\0';
-
-		if (fw->ipv6.iniface[0] != '\0') {
-			strcat(iface, fw->ipv6.iniface);
-		}
-		else if (format & FMT_NUMERIC) strcat(iface, "*");
-		else strcat(iface, "any");
-		printf(FMT(" %-6s ","in %s "), iface);
-
-		if (fw->ipv6.invflags & IP6T_INV_VIA_OUT) {
-			iface[0] = '!';
-			iface[1] = '\0';
-		}
-		else iface[0] = '\0';
-
-		if (fw->ipv6.outiface[0] != '\0') {
-			strcat(iface, fw->ipv6.outiface);
-		}
-		else if (format & FMT_NUMERIC) strcat(iface, "*");
-		else strcat(iface, "any");
-		printf(FMT("%-6s ","out %s "), iface);
-	}
+	print_ifaces(fw->ipv6.iniface, fw->ipv6.outiface,
+		     fw->ipv6.invflags, format);
 
 	print_ipv6_addresses(fw, format);
 
