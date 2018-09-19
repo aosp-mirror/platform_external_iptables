@@ -1160,7 +1160,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 					   p->chain);
 		}
 
-		if (p->chain && !nft_chain_exists(h, p->table, p->chain))
+		if (!nft_chain_exists(h, p->table, p->chain))
 			xtables_error(OTHER_PROBLEM,
 				      "Chain '%s' does not exist", cs->jumpto);
 
