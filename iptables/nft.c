@@ -3193,7 +3193,7 @@ bool nft_is_table_compatible(struct nft_handle *h, const char *tablename)
 	struct nftnl_rule_list *list;
 	struct nftnl_rule_list_iter *iter;
 	struct nftnl_rule *rule;
-	int ret = 0, i;
+	int ret = 0;
 
 	if (!nft_table_builtin_find(h, tablename))
 		return false;
