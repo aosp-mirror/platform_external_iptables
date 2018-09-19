@@ -191,43 +191,6 @@ static void nft_ipv6_parse_immediate(const char *jumpto, bool nft_goto,
 		cs->fw6.ipv6.flags |= IP6T_F_GOTO;
 }
 
-static void print_ipv6_addr(const struct iptables_command_state *cs,
-			    unsigned int format)
-{
-	char buf[BUFSIZ];
-
-	fputc(cs->fw6.ipv6.invflags & IP6T_INV_SRCIP ? '!' : ' ', stdout);
-	if (IN6_IS_ADDR_UNSPECIFIED(&cs->fw6.ipv6.src)
-	    && !(format & FMT_NUMERIC))
-		printf(FMT("%-19s ","%s "), "anywhere");
-	else {
-		if (format & FMT_NUMERIC)
-			strcpy(buf,
-			       xtables_ip6addr_to_numeric(&cs->fw6.ipv6.src));
-		else
-			strcpy(buf,
-			       xtables_ip6addr_to_anyname(&cs->fw6.ipv6.src));
-		strcat(buf, xtables_ip6mask_to_numeric(&cs->fw6.ipv6.smsk));
-		printf(FMT("%-19s ","%s "), buf);
-	}
-
-
-	fputc(cs->fw6.ipv6.invflags & IP6T_INV_DSTIP ? '!' : ' ', stdout);
-	if (IN6_IS_ADDR_UNSPECIFIED(&cs->fw6.ipv6.dst)
-	    && !(format & FMT_NUMERIC))
-		printf(FMT("%-19s ","-> %s"), "anywhere");
-	else {
-		if (format & FMT_NUMERIC)
-			strcpy(buf,
-			       xtables_ip6addr_to_numeric(&cs->fw6.ipv6.dst));
-		else
-			strcpy(buf,
-			       xtables_ip6addr_to_anyname(&cs->fw6.ipv6.dst));
-		strcat(buf, xtables_ip6mask_to_numeric(&cs->fw6.ipv6.dmsk));
-		printf(FMT("%-19s ","-> %s"), buf);
-	}
-}
-
 static void nft_ipv6_print_rule(struct nftnl_rule *r, unsigned int num,
 				unsigned int format)
 {
@@ -245,7 +208,7 @@ static void nft_ipv6_print_rule(struct nftnl_rule *r, unsigned int num,
 	}
 	print_ifaces(cs.fw6.ipv6.iniface, cs.fw6.ipv6.outiface,
 		     cs.fw6.ipv6.invflags, format);
-	print_ipv6_addr(&cs, format);
+	print_ipv6_addresses(&cs.fw6, format);
 
 	if (format & FMT_NOTABLE)
 		fputs("  ", stdout);

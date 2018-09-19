@@ -255,36 +255,6 @@ static void nft_ipv4_parse_immediate(const char *jumpto, bool nft_goto,
 		cs->fw.ip.flags |= IPT_F_GOTO;
 }
 
-static void print_ipv4_addr(const struct iptables_command_state *cs,
-			    unsigned int format)
-{
-	char buf[BUFSIZ];
-
-	fputc(cs->fw.ip.invflags & IPT_INV_SRCIP ? '!' : ' ', stdout);
-	if (cs->fw.ip.smsk.s_addr == 0L && !(format & FMT_NUMERIC))
-		printf(FMT("%-19s ","%s "), "anywhere");
-	else {
-		if (format & FMT_NUMERIC)
-			strcpy(buf, xtables_ipaddr_to_numeric(&cs->fw.ip.src));
-		else
-			strcpy(buf, xtables_ipaddr_to_anyname(&cs->fw.ip.src));
-		strcat(buf, xtables_ipmask_to_numeric(&cs->fw.ip.smsk));
-		printf(FMT("%-19s ","%s "), buf);
-	}
-
-	fputc(cs->fw.ip.invflags & IPT_INV_DSTIP ? '!' : ' ', stdout);
-	if (cs->fw.ip.dmsk.s_addr == 0L && !(format & FMT_NUMERIC))
-		printf(FMT("%-19s ","-> %s"), "anywhere");
-	else {
-		if (format & FMT_NUMERIC)
-			strcpy(buf, xtables_ipaddr_to_numeric(&cs->fw.ip.dst));
-		else
-			strcpy(buf, xtables_ipaddr_to_anyname(&cs->fw.ip.dst));
-		strcat(buf, xtables_ipmask_to_numeric(&cs->fw.ip.dmsk));
-		printf(FMT("%-19s ","-> %s"), buf);
-	}
-}
-
 static void print_fragment(unsigned int flags, unsigned int invflags,
 			   unsigned int format)
 {
@@ -310,7 +280,7 @@ static void nft_ipv4_print_rule(struct nftnl_rule *r, unsigned int num,
 	print_fragment(cs.fw.ip.flags, cs.fw.ip.invflags, format);
 	print_ifaces(cs.fw.ip.iniface, cs.fw.ip.outiface, cs.fw.ip.invflags,
 		     format);
-	print_ipv4_addr(&cs, format);
+	print_ipv4_addresses(&cs.fw, format);
 
 	if (format & FMT_NOTABLE)
 		fputs("  ", stdout);
