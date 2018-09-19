@@ -661,7 +661,7 @@ static bool nft_arp_rule_find(struct nft_family_ops *ops, struct nftnl_rule *r,
 	if (!compare_targets(cs->target, this.target))
 		return false;
 
-	if (strcmp(cs->jumpto, this.jumpto) != 0)
+	if (this.jumpto && strcmp(cs->jumpto, this.jumpto) != 0)
 		return false;
 
 	return true;
