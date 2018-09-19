@@ -123,7 +123,8 @@ done
 umask 0700
 
 TMPFILE=$(tempfile -p iptap)
-trap "rm -f $TMPFILE" EXIT 1 2 3 4 5 6 7 8 10 11 12 13 14 15
+trap "rm -f $TMPFILE" EXIT HUP INT QUIT ILL TRAP ABRT BUS \
+		      FPE USR1 SEGV USR2 PIPE ALRM TERM
 
 if ! "$SAVE" >"$TMPFILE"; then
 	if ! grep -q ipt /proc/modules 2>/dev/null; then
