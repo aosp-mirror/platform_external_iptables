@@ -319,11 +319,7 @@ void nft_parse_target(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 
 	size = XT_ALIGN(sizeof(struct xt_entry_target)) + tg_len;
 
-	t = calloc(1, size);
-	if (t == NULL) {
-		fprintf(stderr, "OOM");
-		exit(EXIT_FAILURE);
-	}
+	t = xtables_calloc(1, size);
 	memcpy(&t->data, targinfo, tg_len);
 	t->u.target_size = size;
 	t->u.user.revision = nftnl_expr_get_u32(e, NFTNL_EXPR_TG_REV);
@@ -361,12 +357,7 @@ void nft_parse_match(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 	if (match == NULL)
 		return;
 
-	m = calloc(1, sizeof(struct xt_entry_match) + mt_len);
-	if (m == NULL) {
-		fprintf(stderr, "OOM");
-		exit(EXIT_FAILURE);
-	}
-
+	m = xtables_calloc(1, sizeof(struct xt_entry_match) + mt_len);
 	memcpy(&m->data, mt_info, mt_len);
 	m->u.match_size = mt_len + XT_ALIGN(sizeof(struct xt_entry_match));
 	m->u.user.revision = nftnl_expr_get_u32(e, NFTNL_EXPR_TG_REV);
