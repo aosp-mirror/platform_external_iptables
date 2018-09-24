@@ -424,6 +424,7 @@ struct xtables_globals
 	struct option *opts;
 	void (*exit_err)(enum xtables_exittype status, const char *msg, ...) __attribute__((noreturn, format(printf,2,3)));
 	int (*compat_rev)(const char *name, uint8_t rev, int opt);
+	size_t target_maxnamelen;
 };
 
 #define XT_GETOPT_TABLEEND {.name = NULL, .has_arg = false}

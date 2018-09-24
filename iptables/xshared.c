@@ -1,4 +1,5 @@
 #include <config.h>
+#include <ctype.h>
 #include <getopt.h>
 #include <errno.h>
 #include <libgen.h>
@@ -627,6 +628,68 @@ void command_match(struct iptables_command_state *cs)
 	else if (m->extra_opts != NULL)
 		opts = xtables_merge_options(xt_params->orig_opts, opts,
 					     m->extra_opts, &m->option_offset);
+	if (opts == NULL)
+		xtables_error(OTHER_PROBLEM, "can't alloc memory!");
+	xt_params->opts = opts;
+}
+
+const char *xt_parse_target(const char *targetname)
+{
+	const char *ptr;
+
+	if (strlen(targetname) < 1)
+		xtables_error(PARAMETER_PROBLEM,
+			   "Invalid target name (too short)");
+
+	if (strlen(targetname) >= xt_params->target_maxnamelen)
+		xtables_error(PARAMETER_PROBLEM,
+			   "Invalid target name `%s' (%zu chars max)",
+			   targetname, xt_params->target_maxnamelen - 1);
+
+	for (ptr = targetname; *ptr; ptr++)
+		if (isspace(*ptr))
+			xtables_error(PARAMETER_PROBLEM,
+				   "Invalid target name `%s'", targetname);
+	return targetname;
+}
+
+void command_jump(struct iptables_command_state *cs)
+{
+	struct option *opts = xt_params->opts;
+	size_t size;
+
+	cs->jumpto = xt_parse_target(optarg);
+	/* TRY_LOAD (may be chain name) */
+	cs->target = xtables_find_target(cs->jumpto, XTF_TRY_LOAD);
+
+	if (cs->target == NULL)
+		return;
+
+	size = XT_ALIGN(sizeof(struct xt_entry_target)) + cs->target->size;
+
+	cs->target->t = xtables_calloc(1, size);
+	cs->target->t->u.target_size = size;
+	if (cs->target->real_name == NULL) {
+		strcpy(cs->target->t->u.user.name, cs->jumpto);
+	} else {
+		/* Alias support for userspace side */
+		strcpy(cs->target->t->u.user.name, cs->target->real_name);
+		if (!(cs->target->ext_flags & XTABLES_EXT_ALIAS))
+			fprintf(stderr, "Notice: The %s target is converted into %s target "
+				"in rule listing and saving.\n",
+				cs->jumpto, cs->target->real_name);
+	}
+	cs->target->t->u.user.revision = cs->target->revision;
+	xs_init_target(cs->target);
+
+	if (cs->target->x6_options != NULL)
+		opts = xtables_options_xfrm(xt_params->orig_opts, opts,
+					    cs->target->x6_options,
+					    &cs->target->option_offset);
+	else
+		opts = xtables_merge_options(xt_params->orig_opts, opts,
+					     cs->target->extra_opts,
+					     &cs->target->option_offset);
 	if (opts == NULL)
 		xtables_error(OTHER_PROBLEM, "can't alloc memory!");
 	xt_params->opts = opts;

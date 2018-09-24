@@ -158,6 +158,7 @@ struct xtables_globals arptables_globals = {
 	.orig_opts		= original_opts,
 	.exit_err		= xtables_exit_error,
 	.compat_rev		= nft_compatible_revision,
+	.target_maxnamelen	= sizeof(arpt_chainlabel),
 };
 
 /* Table of legal combinations of commands and options.  If any of the
@@ -755,27 +756,6 @@ parse_rulenumber(const char *rule)
 	return rulenum;
 }
 
-static const char *
-parse_target(const char *targetname)
-{
-	const char *ptr;
-
-	if (strlen(targetname) < 1)
-		xtables_error(PARAMETER_PROBLEM,
-			      "Invalid target name (too short)");
-
-	if (strlen(targetname)+1 > sizeof(arpt_chainlabel))
-		xtables_error(PARAMETER_PROBLEM,
-			      "Invalid target name `%s' (%zu chars max)",
-			      targetname, sizeof(arpt_chainlabel)-1);
-
-	for (ptr = targetname; *ptr; ptr++)
-		if (isspace(*ptr))
-			xtables_error(PARAMETER_PROBLEM,
-				      "Invalid target name `%s'", targetname);
-	return targetname;
-}
-
 static void
 set_option(unsigned int *options, unsigned int option, u_int16_t *invflg,
 	   int invert)
@@ -820,41 +800,6 @@ list_entries(struct nft_handle *h, const char *chain, const char *table,
 		format |= FMT_LINENUMBERS;
 
 	return nft_rule_list(h, chain, table, rulenum, format);
-}
-
-static struct xtables_target *command_jump(struct arpt_entry *fw,
-					   const char *jumpto)
-{
-	struct xtables_target *target;
-	size_t size;
-
-	/* XTF_TRY_LOAD (may be chain name) */
-	target = xtables_find_target(jumpto, XTF_TRY_LOAD);
-
-	if (!target)
-		return NULL;
-
-	size = XT_ALIGN(sizeof(struct xt_entry_target))
-		+ target->size;
-
-	target->t = xtables_calloc(1, size);
-	target->t->u.target_size = size;
-	strncpy(target->t->u.user.name, jumpto, sizeof(target->t->u.user.name) - 1);
-	target->t->u.user.name[sizeof(target->t->u.user.name)-1] = '\0';
-	target->t->u.user.revision = target->revision;
-
-	xs_init_target(target);
-
-	if (target->x6_options != NULL)
-		opts = xtables_options_xfrm(arptables_globals.orig_opts,
-					    opts, target->x6_options,
-					    &target->option_offset);
-	else
-		opts = xtables_merge_options(arptables_globals.orig_opts,
-					     opts, target->extra_opts,
-					     &target->option_offset);
-
-	return target;
 }
 
 static int
@@ -1216,8 +1161,7 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table,
 		case 'j':
 			set_option(&options, OPT_JUMP, &cs.arp.arp.invflags,
 				   invert);
-			cs.jumpto = parse_target(optarg);
-			cs.target = command_jump(&cs.arp, cs.jumpto);
+			command_jump(&cs);
 			break;
 
 		case 'i':

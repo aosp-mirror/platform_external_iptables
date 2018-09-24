@@ -108,6 +108,7 @@ struct xtables_globals xtables_globals = {
 	.orig_opts = original_opts,
 	.exit_err = xtables_exit_error,
 	.compat_rev = nft_compatible_revision,
+	.target_maxnamelen = XT_EXTENSION_MAXNAMELEN,
 };
 
 /* Table of legal combinations of commands and options.  If any of the
@@ -363,27 +364,6 @@ parse_rulenumber(const char *rule)
 	return rulenum;
 }
 
-static const char *
-parse_target(const char *targetname)
-{
-	const char *ptr;
-
-	if (strlen(targetname) < 1)
-		xtables_error(PARAMETER_PROBLEM,
-			   "Invalid target name (too short)");
-
-	if (strlen(targetname) >= XT_EXTENSION_MAXNAMELEN)
-		xtables_error(PARAMETER_PROBLEM,
-			   "Invalid target name `%s' (%u chars max)",
-			   targetname, XT_EXTENSION_MAXNAMELEN - 1);
-
-	for (ptr = targetname; *ptr; ptr++)
-		if (isspace(*ptr))
-			xtables_error(PARAMETER_PROBLEM,
-				   "Invalid target name `%s'", targetname);
-	return targetname;
-}
-
 static void
 set_option(unsigned int *options, unsigned int option, uint8_t *invflg,
 	   int invert)
@@ -600,48 +580,6 @@ list_rules(struct nft_handle *h, const char *chain, const char *table,
 	    counters = -1;		/* iptables -c format */
 
 	return nft_rule_list_save(h, chain, table, rulenum, counters);
-}
-
-static void command_jump(struct iptables_command_state *cs)
-{
-	size_t size;
-
-	set_option(&cs->options, OPT_JUMP, &cs->fw.ip.invflags, cs->invert);
-	cs->jumpto = parse_target(optarg);
-	/* TRY_LOAD (may be chain name) */
-	cs->target = xtables_find_target(cs->jumpto, XTF_TRY_LOAD);
-
-	if (cs->target == NULL)
-		return;
-
-	size = XT_ALIGN(sizeof(struct xt_entry_target))
-		+ cs->target->size;
-
-	cs->target->t = xtables_calloc(1, size);
-	cs->target->t->u.target_size = size;
-	if (cs->target->real_name == NULL) {
-		strcpy(cs->target->t->u.user.name, cs->jumpto);
-	} else {
-		/* Alias support for userspace side */
-		strcpy(cs->target->t->u.user.name, cs->target->real_name);
-		if (!(cs->target->ext_flags & XTABLES_EXT_ALIAS))
-			fprintf(stderr, "Notice: The %s target is converted into %s target "
-				"in rule listing and saving.\n",
-				cs->jumpto, cs->target->real_name);
-	}
-	cs->target->t->u.user.revision = cs->target->revision;
-	xs_init_target(cs->target);
-
-	if (cs->target->x6_options != NULL)
-		opts = xtables_options_xfrm(xtables_globals.orig_opts, opts,
-					    cs->target->x6_options,
-					    &cs->target->option_offset);
-	else
-		opts = xtables_merge_options(xtables_globals.orig_opts, opts,
-					     cs->target->extra_opts,
-					     &cs->target->option_offset);
-	if (opts == NULL)
-		xtables_error(OTHER_PROBLEM, "can't alloc memory!");
 }
 
 void do_parse(struct nft_handle *h, int argc, char *argv[],
@@ -876,11 +814,13 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 			set_option(&cs->options, OPT_JUMP, &args->invflags,
 				   cs->invert);
 			args->goto_set = true;
-			cs->jumpto = parse_target(optarg);
+			cs->jumpto = xt_parse_target(optarg);
 			break;
 #endif
 
 		case 'j':
+			set_option(&cs->options, OPT_JUMP, &cs->fw.ip.invflags,
+				   cs->invert);
 			command_jump(cs);
 			break;
 
