@@ -271,13 +271,6 @@ static void nft_arp_parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e,
 	fw->arp.invflags |= ipt_to_arpt_flags(flags);
 }
 
-static void nft_arp_parse_target(struct xtables_target *target, void *data)
-{
-	struct iptables_command_state *cs = data;
-
-	cs->target = target;
-}
-
 static void nft_arp_parse_immediate(const char *jumpto, bool nft_goto,
 				    void *data)
 {
@@ -690,5 +683,5 @@ struct nft_family_ops nft_family_ops_arp = {
 	.rule_to_cs		= nft_arp_rule_to_cs,
 	.clear_cs		= nft_clear_iptables_command_state,
 	.rule_find		= nft_arp_rule_find,
-	.parse_target		= nft_arp_parse_target,
+	.parse_target		= nft_ipv46_parse_target,
 };
