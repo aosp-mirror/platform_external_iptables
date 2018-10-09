@@ -655,6 +655,7 @@ void ebt_load_match_extensions(void)
 	ebt_load_target("mark");
 	ebt_load_target("dnat");
 	ebt_load_target("snat");
+	ebt_load_target("arpreply");
 	ebt_load_target("redirect");
 	ebt_load_target("standard");
 }
