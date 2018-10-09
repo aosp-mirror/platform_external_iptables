@@ -51,6 +51,24 @@ static const struct xt_option_entry cgroup_opts_v1[] = {
 	XTOPT_TABLEEND,
 };
 
+static const struct xt_option_entry cgroup_opts_v2[] = {
+	{
+		.name = "path",
+		.id = O_PATH,
+		.type = XTTYPE_STRING,
+		.flags = XTOPT_INVERT | XTOPT_PUT,
+		XTOPT_POINTER(struct xt_cgroup_info_v2, path)
+	},
+	{
+		.name = "cgroup",
+		.id = O_CLASSID,
+		.type = XTTYPE_UINT32,
+		.flags = XTOPT_INVERT | XTOPT_PUT,
+		XTOPT_POINTER(struct xt_cgroup_info_v2, classid)
+	},
+	XTOPT_TABLEEND,
+};
+
 static void cgroup_parse_v0(struct xt_option_call *cb)
 {
 	struct xt_cgroup_info_v0 *cgroupinfo = cb->data;
@@ -249,7 +267,7 @@ static struct xtables_match cgroup_match[] = {
 		.print		= cgroup_print_v2,
 		.save		= cgroup_save_v2,
 		.x6_parse	= cgroup_parse_v2,
-		.x6_options	= cgroup_opts_v1,
+		.x6_options	= cgroup_opts_v2,
 		.xlate		= cgroup_xlate_v2,
 	},
 };
