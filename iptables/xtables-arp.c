@@ -158,7 +158,6 @@ struct xtables_globals arptables_globals = {
 	.orig_opts		= original_opts,
 	.exit_err		= xtables_exit_error,
 	.compat_rev		= nft_compatible_revision,
-	.target_maxnamelen	= sizeof(arpt_chainlabel),
 };
 
 /* Table of legal combinations of commands and options.  If any of the

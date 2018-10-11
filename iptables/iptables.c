@@ -124,7 +124,6 @@ struct xtables_globals iptables_globals = {
 	.orig_opts = original_opts,
 	.exit_err = iptables_exit_error,
 	.compat_rev = xtables_compatible_revision,
-	.target_maxnamelen = XT_EXTENSION_MAXNAMELEN,
 };
 
 /* Table of legal combinations of commands and options.  If any of the

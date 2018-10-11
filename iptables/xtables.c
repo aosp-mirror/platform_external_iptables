@@ -108,7 +108,6 @@ struct xtables_globals xtables_globals = {
 	.orig_opts = original_opts,
 	.exit_err = xtables_exit_error,
 	.compat_rev = nft_compatible_revision,
-	.target_maxnamelen = XT_EXTENSION_MAXNAMELEN,
 };
 
 /* Table of legal combinations of commands and options.  If any of the
