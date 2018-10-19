@@ -14,7 +14,6 @@
 
 #include <linux/netfilter_bridge.h>
 #include <linux/netfilter/nf_tables.h>
-#include <ebtables/ethernetdb.h>
 #include <libiptc/libxtc.h>
 
 #include "xshared.h"
@@ -474,7 +473,7 @@ print_zero:
 				ent = xtables_getethertypebyname(optarg);
 				if (!ent)
 					xtables_error(PARAMETER_PROBLEM,
-						      "Problem with the specified Ethernet protocol '%s', perhaps "_XT_PATH_ETHERTYPES " is missing", optarg);
+						      "Problem with the specified Ethernet protocol '%s', perhaps "XT_PATH_ETHERTYPES " is missing", optarg);
 				cs.eb.ethproto = ent->e_ethertype;
 			} else
 				cs.eb.ethproto = i;

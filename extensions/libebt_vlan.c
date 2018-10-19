@@ -12,7 +12,6 @@
 #include <getopt.h>
 #include <ctype.h>
 #include <xtables.h>
-#include <ebtables/ethernetdb.h>
 #include <linux/netfilter_bridge/ebt_vlan.h>
 #include <linux/if_ether.h>
 #include "iptables/nft.h"

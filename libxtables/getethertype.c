@@ -42,8 +42,7 @@
 #include <string.h>
 #include <netinet/ether.h>
 #include <net/ethernet.h>
-
-#include <ebtables/ethernetdb.h>
+#include <xtables.h>
 
 #define	MAXALIASES	35
 
@@ -56,7 +55,7 @@ static int ethertype_stayopen;
 static void setethertypeent(int f)
 {
 	if (etherf == NULL)
-		etherf = fopen(_XT_PATH_ETHERTYPES, "r");
+		etherf = fopen(XT_PATH_ETHERTYPES, "r");
 	else
 		rewind(etherf);
 	ethertype_stayopen |= f;
@@ -79,7 +78,7 @@ static struct xt_ethertypeent *getethertypeent(void)
 	register char *cp, **q;
 
 	if (etherf == NULL
-	    && (etherf = fopen(_XT_PATH_ETHERTYPES, "r")) == NULL) {
+	    && (etherf = fopen(XT_PATH_ETHERTYPES, "r")) == NULL) {
 		return (NULL);
 	}
 

@@ -521,6 +521,18 @@ extern void xtables_ip6parse_any(const char *, struct in6_addr **,
 extern void xtables_ip6parse_multiple(const char *, struct in6_addr **,
 	struct in6_addr **, unsigned int *);
 
+/* Absolute file name for network data base files.  */
+#define XT_PATH_ETHERTYPES     "/etc/ethertypes"
+
+struct xt_ethertypeent {
+	char *e_name;           /* Official ethernet type name.  */
+	char **e_aliases;       /* Alias list.  */
+	int e_ethertype;        /* Ethernet type number.  */
+};
+
+extern struct xt_ethertypeent *xtables_getethertypebyname(const char *name);
+extern struct xt_ethertypeent *xtables_getethertypebynumber(int ethertype);
+
 /**
  * Print the specified value to standard output, quoting dangerous
  * characters if required.

@@ -16,7 +16,6 @@
 #include <xtables.h>
 #include <libiptc/libxtc.h>
 #include <linux/netfilter/nf_tables.h>
-#include <ebtables/ethernetdb.h>
 
 #include "nft-shared.h"
 #include "nft-bridge.h"

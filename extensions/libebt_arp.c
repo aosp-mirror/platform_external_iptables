@@ -14,7 +14,7 @@
 #include <xtables.h>
 #include <netinet/ether.h>
 
-#include <ebtables/ethernetdb.h>
+#include <xtables.h>
 #include <net/if_arp.h>
 #include <linux/netfilter_bridge/ebt_arp.h>
 #include "iptables/nft.h"
@@ -75,7 +75,7 @@ static void brarp_print_help(void)
 		printf(" %d = %s\n", i + 1, opcodes[i]);
 	printf(
 " hardware type string: 1 = Ethernet\n"
-" protocol type string: see "_XT_PATH_ETHERTYPES"\n");
+" protocol type string: see "XT_PATH_ETHERTYPES"\n");
 }
 
 #define OPT_OPCODE 0x01
