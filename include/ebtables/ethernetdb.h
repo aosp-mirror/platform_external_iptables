@@ -26,32 +26,20 @@
 #include <stdint.h>
 
 /* Absolute file name for network data base files.  */
-#ifndef	_PATH_ETHERTYPES
-#define	_PATH_ETHERTYPES	"/etc/ethertypes"
+#ifndef	_XT_PATH_ETHERTYPES
+#define	_XT_PATH_ETHERTYPES	"/etc/ethertypes"
 #endif				/* _PATH_ETHERTYPES */
 
-struct ethertypeent {
+struct xt_ethertypeent {
 	char *e_name;		/* Official ethernet type name.  */
 	char **e_aliases;	/* Alias list.  */
 	int e_ethertype;	/* Ethernet type number.  */
 };
 
-/* Open ethertype data base files and mark them as staying open even
-   after a later search if STAY_OPEN is non-zero.  */
-extern void setethertypeent(int __stay_open);
-
-/* Close ethertype data base files and clear `stay open' flag.  */
-extern void endethertypeent(void);
-
-/* Get next entry from ethertype data base file.  Open data base if
-   necessary.  */
-extern struct ethertypeent *getethertypeent(void);
-
 /* Return entry from ethertype data base for network with NAME.  */
-extern struct ethertypeent *getethertypebyname(__const char *__name);
+extern struct xt_ethertypeent *xtables_getethertypebyname(__const char *__name);
 
 /* Return entry from ethertype data base which number is PROTO.  */
-extern struct ethertypeent *getethertypebynumber(int __ethertype);
-
+extern struct xt_ethertypeent *xtables_getethertypebynumber(int __ethertype);
 
 #endif				/* ethernetdb.h */

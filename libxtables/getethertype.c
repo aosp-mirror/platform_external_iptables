@@ -49,20 +49,20 @@
 
 static FILE *etherf = NULL;
 static char line[BUFSIZ + 1];
-static struct ethertypeent et_ent;
+static struct xt_ethertypeent et_ent;
 static char *ethertype_aliases[MAXALIASES];
 static int ethertype_stayopen;
 
-void setethertypeent(int f)
+static void setethertypeent(int f)
 {
 	if (etherf == NULL)
-		etherf = fopen(_PATH_ETHERTYPES, "r");
+		etherf = fopen(_XT_PATH_ETHERTYPES, "r");
 	else
 		rewind(etherf);
 	ethertype_stayopen |= f;
 }
 
-void endethertypeent(void)
+static void endethertypeent(void)
 {
 	if (etherf) {
 		fclose(etherf);
@@ -71,14 +71,15 @@ void endethertypeent(void)
 	ethertype_stayopen = 0;
 }
 
-struct ethertypeent *getethertypeent(void)
+
+static struct xt_ethertypeent *getethertypeent(void)
 {
 	char *e;
 	char *endptr;
 	register char *cp, **q;
 
 	if (etherf == NULL
-	    && (etherf = fopen(_PATH_ETHERTYPES, "r")) == NULL) {
+	    && (etherf = fopen(_XT_PATH_ETHERTYPES, "r")) == NULL) {
 		return (NULL);
 	}
 
@@ -127,10 +128,9 @@ again:
 	return (&et_ent);
 }
 
-
-struct ethertypeent *getethertypebyname(const char *name)
+struct xt_ethertypeent *xtables_getethertypebyname(const char *name)
 {
-	register struct ethertypeent *e;
+	register struct xt_ethertypeent *e;
 	register char **cp;
 
 	setethertypeent(ethertype_stayopen);
@@ -147,9 +147,9 @@ found:
 	return (e);
 }
 
-struct ethertypeent *getethertypebynumber(int type)
+struct xt_ethertypeent *xtables_getethertypebynumber(int type)
 {
-	register struct ethertypeent *e;
+	register struct xt_ethertypeent *e;
 
 	setethertypeent(ethertype_stayopen);
 	while ((e = getethertypeent()) != NULL)

@@ -1120,16 +1120,16 @@ print_zero:
 				xtables_error(PARAMETER_PROBLEM,
 					      "Problem with the specified protocol");
 			if (*buffer != '\0') {
-				struct ethertypeent *ent;
+				struct xt_ethertypeent *ent;
 
 				if (!strcasecmp(optarg, "LENGTH")) {
 					cs.eb.bitmask |= EBT_802_3;
 					break;
 				}
-				ent = getethertypebyname(optarg);
+				ent = xtables_getethertypebyname(optarg);
 				if (!ent)
 					xtables_error(PARAMETER_PROBLEM,
-						      "Problem with the specified Ethernet protocol '%s', perhaps "_PATH_ETHERTYPES " is missing", optarg);
+						      "Problem with the specified Ethernet protocol '%s', perhaps "_XT_PATH_ETHERTYPES " is missing", optarg);
 				cs.eb.ethproto = ent->e_ethertype;
 			} else
 				cs.eb.ethproto = i;

@@ -421,7 +421,7 @@ static void print_mac(char option, const unsigned char *mac,
 
 static void print_protocol(uint16_t ethproto, bool invert, unsigned int bitmask)
 {
-	struct ethertypeent *ent;
+	struct xt_ethertypeent *ent;
 
 	/* Dont print anything about the protocol if no protocol was
 	 * specified, obviously this means any protocol will do. */
@@ -437,7 +437,7 @@ static void print_protocol(uint16_t ethproto, bool invert, unsigned int bitmask)
 		return;
 	}
 
-	ent = getethertypebynumber(ntohs(ethproto));
+	ent = xtables_getethertypebynumber(ntohs(ethproto));
 	if (!ent)
 		printf("0x%x ", ntohs(ethproto));
 	else

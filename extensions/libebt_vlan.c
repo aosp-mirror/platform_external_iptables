@@ -55,7 +55,7 @@ brvlan_parse(int c, char **argv, int invert, unsigned int *flags,
 	       const void *entry, struct xt_entry_match **match)
 {
 	struct ebt_vlan_info *vlaninfo = (struct ebt_vlan_info *) (*match)->data;
-	struct ethertypeent *ethent;
+	struct xt_ethertypeent *ethent;
 	char *end;
 	struct ebt_vlan_info local;
 
@@ -86,7 +86,7 @@ brvlan_parse(int c, char **argv, int invert, unsigned int *flags,
 			vlaninfo->invflags |= EBT_VLAN_ENCAP;
 		local.encap = strtoul(optarg, &end, 16);
 		if (*end != '\0') {
-			ethent = getethertypebyname(optarg);
+			ethent = xtables_getethertypebyname(optarg);
 			if (ethent == NULL)
 				xtables_error(PARAMETER_PROBLEM, "Unknown --vlan-encap value ('%s')", optarg);
 			local.encap = ethent->e_ethertype;

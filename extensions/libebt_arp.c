@@ -75,7 +75,7 @@ static void brarp_print_help(void)
 		printf(" %d = %s\n", i + 1, opcodes[i]);
 	printf(
 " hardware type string: 1 = Ethernet\n"
-" protocol type string: see "_PATH_ETHERTYPES"\n");
+" protocol type string: see "_XT_PATH_ETHERTYPES"\n");
 }
 
 #define OPT_OPCODE 0x01
@@ -262,9 +262,9 @@ brarp_parse(int c, char **argv, int invert, unsigned int *flags,
 
 		i = strtol(optarg, &end, 16);
 		if (i < 0 || i >= (0x1 << 16) || *end !='\0') {
-			struct ethertypeent *ent;
+			struct xt_ethertypeent *ent;
 
-			ent = getethertypebyname(argv[optind - 1]);
+			ent = xtables_getethertypebyname(argv[optind - 1]);
 			if (!ent)
 				xtables_error(PARAMETER_PROBLEM, "Problem with specified ARP "
 								 "protocol type");
