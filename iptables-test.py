@@ -61,7 +61,7 @@ def delete_rule(iptables, rule, filename, lineno):
     return 0
 
 
-def run_test(iptables, rule, rule_save, res, filename, lineno):
+def run_test(iptables, rule, rule_save, res, filename, lineno, netns):
     '''
     Executes an unit test. Returns the output of delete_rule().
 
@@ -76,6 +76,9 @@ def run_test(iptables, rule, rule_save, res, filename, lineno):
     ret = 0
 
     cmd = iptables + " -A " + rule
+    if netns:
+            cmd = "ip netns exec ____iptables-container-test " + EXECUTEABLE + " " + cmd
+
     ret = execute_cmd(cmd, filename, lineno)
 
     #
@@ -108,8 +111,15 @@ def run_test(iptables, rule, rule_save, res, filename, lineno):
             command = IPTABLES_SAVE
         elif splitted[0] == IP6TABLES:
             command = IP6TABLES_SAVE
+
+    path = os.path.abspath(os.path.curdir) + "/iptables/" + EXECUTEABLE
+    command = path + " " + command
+
+    if netns:
+            command = "ip netns exec ____iptables-container-test " + command
+
     args = splitted[1:]
-    proc = subprocess.Popen((os.path.abspath(os.path.curdir) + "/iptables/" + EXECUTEABLE, command),
+    proc = subprocess.Popen(command, shell=True,
                             stdin=subprocess.PIPE,
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = proc.communicate()
@@ -131,8 +141,17 @@ def run_test(iptables, rule, rule_save, res, filename, lineno):
         delete_rule(iptables, rule, filename, lineno)
         return -1
 
+    # Test "ip netns del NETNS" path with rules in place
+    if netns:
+        return 0
+
     return delete_rule(iptables, rule, filename, lineno)
 
+def run_test_netns(iptables, rule, rule_save, res, filename, lineno):
+    execute_cmd("ip netns add ____iptables-container-test", filename, lineno)
+    ret = run_test(iptables, rule, rule_save, res, filename, lineno, True)
+    execute_cmd("ip netns del ____iptables-container-test", filename, lineno)
+    return ret
 
 def execute_cmd(cmd, filename, lineno):
     '''
@@ -159,7 +178,7 @@ def execute_cmd(cmd, filename, lineno):
     return ret
 
 
-def run_test_file(filename):
+def run_test_file(filename, netns):
     '''
     Runs a test file
 
@@ -227,8 +246,13 @@ def run_test_file(filename):
 
             res = item[2].rstrip()
 
-            ret = run_test(iptables, rule, rule_save,
-                           res, filename, lineno + 1)
+            if netns:
+                ret = run_test_netns(iptables, rule, rule_save,
+                                     res, filename, lineno + 1)
+            else:
+                ret = run_test(iptables, rule, rule_save,
+                               res, filename, lineno + 1, False)
+
             if ret < 0:
                 test_passed = False
                 total_test_passed = False
@@ -275,6 +299,8 @@ def main():
                         help='Check for missing tests')
     parser.add_argument('-n', '--nftables', action='store_true',
                         help='Test iptables-over-nftables')
+    parser.add_argument('-N', '--netns', action='store_true',
+                        help='Test netnamespace path')
     args = parser.parse_args()
 
     #
@@ -313,7 +339,7 @@ def main():
     if args.filename:
         file_list = [args.filename]
     for filename in file_list:
-        file_tests, file_passed = run_test_file(filename)
+        file_tests, file_passed = run_test_file(filename, args.netns)
         if file_tests:
             tests += file_tests
             passed += file_passed
