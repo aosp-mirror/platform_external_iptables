@@ -1063,16 +1063,16 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 					   p->chain);
 		}
 
-		if (!nft_chain_exists(h, p->table, p->chain))
+		if (!p->xlate && !nft_chain_exists(h, p->table, p->chain))
 			xtables_error(OTHER_PROBLEM,
 				      "Chain '%s' does not exist", cs->jumpto);
 
-		if (!cs->target && strlen(cs->jumpto) > 0 &&
+		if (!p->xlate && !cs->target && strlen(cs->jumpto) > 0 &&
 		    !nft_chain_exists(h, p->table, cs->jumpto))
 			xtables_error(PARAMETER_PROBLEM,
 				      "Chain '%s' does not exist", cs->jumpto);
 	}
-	if (p->command == CMD_NEW_CHAIN &&
+	if (!p->xlate && p->command == CMD_NEW_CHAIN &&
 	    nft_chain_exists(h, p->table, p->chain))
 		xtables_error(OTHER_PROBLEM, "Chain already exists");
 }
