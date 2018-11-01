@@ -147,12 +147,6 @@ def run_test(iptables, rule, rule_save, res, filename, lineno, netns):
 
     return delete_rule(iptables, rule, filename, lineno)
 
-def run_test_netns(iptables, rule, rule_save, res, filename, lineno):
-    execute_cmd("ip netns add ____iptables-container-test", filename, lineno)
-    ret = run_test(iptables, rule, rule_save, res, filename, lineno, True)
-    execute_cmd("ip netns del ____iptables-container-test", filename, lineno)
-    return ret
-
 def execute_cmd(cmd, filename, lineno):
     '''
     Executes a command, checking for segfaults and returning the command exit
@@ -207,6 +201,9 @@ def run_test_file(filename, netns):
     table = ""
     total_test_passed = True
 
+    if netns:
+        execute_cmd("ip netns add ____iptables-container-test", filename, 0)
+
     for lineno, line in enumerate(f):
         if line[0] == "#":
             continue
@@ -218,6 +215,8 @@ def run_test_file(filename, netns):
         # external non-iptables invocation, executed as is.
         if line[0] == "@":
             external_cmd = line.rstrip()[1:]
+            if netns:
+                external_cmd = "ip netns exec ____iptables-container-test " + EXECUTEABLE + " " + external_cmd
             execute_cmd(external_cmd, filename, lineno)
             continue
 
@@ -245,13 +244,8 @@ def run_test_file(filename, netns):
                 rule_save = chain + " " + item[1]
 
             res = item[2].rstrip()
-
-            if netns:
-                ret = run_test_netns(iptables, rule, rule_save,
-                                     res, filename, lineno + 1)
-            else:
-                ret = run_test(iptables, rule, rule_save,
-                               res, filename, lineno + 1, False)
+            ret = run_test(iptables, rule, rule_save,
+                           res, filename, lineno + 1, netns)
 
             if ret < 0:
                 test_passed = False
@@ -261,6 +255,8 @@ def run_test_file(filename, netns):
         if test_passed:
             passed += 1
 
+    if netns:
+        execute_cmd("ip netns del ____iptables-container-test", filename, 0)
     if total_test_passed:
         print filename + ": " + Colors.GREEN + "OK" + Colors.ENDC
 
