@@ -48,13 +48,13 @@ static int nft_ipv4_add(struct nftnl_rule *r, void *data)
 		add_l4proto(r, cs->fw.ip.proto, op);
 	}
 
-	if (cs->fw.ip.src.s_addr != 0) {
+	if (cs->fw.ip.src.s_addr || cs->fw.ip.smsk.s_addr || cs->fw.ip.invflags & IPT_INV_SRCIP) {
 		op = nft_invflags2cmp(cs->fw.ip.invflags, IPT_INV_SRCIP);
 		add_addr(r, offsetof(struct iphdr, saddr),
 			 &cs->fw.ip.src.s_addr, &cs->fw.ip.smsk.s_addr,
 			 sizeof(struct in_addr), op);
 	}
-	if (cs->fw.ip.dst.s_addr != 0) {
+	if (cs->fw.ip.dst.s_addr || cs->fw.ip.dmsk.s_addr || cs->fw.ip.invflags & IPT_INV_DSTIP) {
 		op = nft_invflags2cmp(cs->fw.ip.invflags, IPT_INV_DSTIP);
 		add_addr(r, offsetof(struct iphdr, daddr),
 			 &cs->fw.ip.dst.s_addr, &cs->fw.ip.dmsk.s_addr,
