@@ -1000,9 +1000,6 @@ print_zero:
 			}
 			break;
 		case 't': /* Table */
-			if (OPT_COMMANDS)
-				xtables_error(PARAMETER_PROBLEM,
-					      "Please put the -t option first");
 			ebt_check_option2(&flags, OPT_TABLE);
 			if (strlen(optarg) > EBT_TABLE_MAXNAMELEN - 1)
 				xtables_error(PARAMETER_PROBLEM,
