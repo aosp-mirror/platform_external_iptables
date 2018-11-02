@@ -120,33 +120,9 @@ static void add_logical_outiface(struct nftnl_rule *r, char *iface, uint32_t op)
 		add_cmp_ptr(r, op, iface, iface_len + 1);
 }
 
-/* TODO: Use generic add_action() once we convert this to use
- * iptables_command_state.
- */
 static int _add_action(struct nftnl_rule *r, struct iptables_command_state *cs)
 {
-	int ret = 0;
-
-	if (cs->jumpto == NULL || strcmp(cs->jumpto, "CONTINUE") == 0)
-		return 0;
-
-	/* If no target at all, add nothing (default to continue) */
-	if (cs->target != NULL) {
-		/* Standard target? */
-		if (strcmp(cs->jumpto, XTC_LABEL_ACCEPT) == 0)
-			ret = add_verdict(r, NF_ACCEPT);
-		else if (strcmp(cs->jumpto, XTC_LABEL_DROP) == 0)
-			ret = add_verdict(r, NF_DROP);
-		else if (strcmp(cs->jumpto, XTC_LABEL_RETURN) == 0)
-			ret = add_verdict(r, NFT_RETURN);
-		else
-			ret = add_target(r, cs->target->t);
-	} else if (strlen(cs->jumpto) > 0) {
-		/* Not standard, then it's a jump to chain */
-		ret = add_jumpto(r, cs->jumpto, NFT_JUMP);
-	}
-
-	return ret;
+	return add_action(r, cs, false);
 }
 
 static int nft_bridge_add(struct nftnl_rule *r, void *data)

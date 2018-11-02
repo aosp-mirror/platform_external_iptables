@@ -824,6 +824,7 @@ int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table,
 	struct xtables_target *t;
 	struct iptables_command_state cs = {
 		.argv = argv,
+		.jumpto	= "",
 		.eb.bitmask = EBT_NOPROTO,
 	};
 	char command = 'h';
@@ -1066,8 +1067,10 @@ print_zero:
 				break;
 			} else if (c == 'j') {
 				ebt_check_option2(&flags, OPT_JUMP);
-				cs.jumpto = parse_target(optarg);
-				cs.target = ebt_command_jump(cs.jumpto);
+				if (strcmp(optarg, "CONTINUE") != 0) {
+					cs.jumpto = parse_target(optarg);
+					cs.target = ebt_command_jump(cs.jumpto);
+				}
 				break;
 			} else if (c == 's') {
 				ebt_check_option2(&flags, OPT_SOURCE);
