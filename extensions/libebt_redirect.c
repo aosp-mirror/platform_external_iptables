@@ -63,7 +63,7 @@ static void brredir_print(const void *ip, const struct xt_entry_target *target, 
 
 	if (redirectinfo->target == EBT_ACCEPT)
 		return;
-	printf(" --redirect-target %s", ebt_target_name(redirectinfo->target));
+	printf("--redirect-target %s", ebt_target_name(redirectinfo->target));
 }
 
 static const char* brredir_verdict(int verdict)
