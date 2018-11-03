@@ -223,7 +223,7 @@ def run_test_file(filename, netns):
         if line[0] == "@":
             external_cmd = line.rstrip()[1:]
             if netns:
-                external_cmd = "ip netns exec ____iptables-container-test " + EXECUTEABLE + " " + external_cmd
+                external_cmd = "ip netns exec ____iptables-container-test " + external_cmd
             execute_cmd(external_cmd, filename, lineno)
             continue
 
