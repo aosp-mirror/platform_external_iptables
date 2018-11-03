@@ -227,6 +227,14 @@ def run_test_file(filename, netns):
             execute_cmd(external_cmd, filename, lineno)
             continue
 
+        # external iptables invocation, executed as is.
+        if line[0] == "%":
+            external_cmd = line.rstrip()[1:]
+            if netns:
+                external_cmd = "ip netns exec ____iptables-container-test " + EXECUTEABLE + " " + external_cmd
+            execute_cmd(external_cmd, filename, lineno)
+            continue
+
         if line[0] == "*":
             table = line.rstrip()[1:]
             continue
