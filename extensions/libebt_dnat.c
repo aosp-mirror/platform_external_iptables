@@ -74,17 +74,12 @@ static void brdnat_final_check(unsigned int flags)
 			      "You must specify proper arguments");
 }
 
-static void ebt_print_mac(const unsigned char *mac)
-{
-	printf("%s", ether_ntoa((struct ether_addr *) mac));
-}
-
 static void brdnat_print(const void *ip, const struct xt_entry_target *target, int numeric)
 {
 	struct ebt_nat_info *natinfo = (struct ebt_nat_info *)target->data;
 
 	printf("--to-dst ");
-	ebt_print_mac(natinfo->mac);
+	xtables_print_mac(natinfo->mac);
 	printf(" --dnat-target %s", ebt_target_name(natinfo->target));
 }
 

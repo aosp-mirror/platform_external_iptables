@@ -45,21 +45,12 @@ void ebt_cs_clean(struct iptables_command_state *cs)
 	}
 }
 
-/* 0: default, print only 2 digits if necessary
- * 2: always print 2 digits, a printed mac address
- * then always has the same length
- */
-int ebt_printstyle_mac;
-
 static void ebt_print_mac(const unsigned char *mac)
 {
-	if (ebt_printstyle_mac == 2) {
-		int j;
-		for (j = 0; j < ETH_ALEN; j++)
-			printf("%02x%s", mac[j],
-				(j==ETH_ALEN-1) ? "" : ":");
-	} else
-		printf("%s", ether_ntoa((struct ether_addr *) mac));
+	int j;
+
+	for (j = 0; j < ETH_ALEN; j++)
+		printf("%02x%s", mac[j], (j==ETH_ALEN-1) ? "" : ":");
 }
 
 static bool mac_all_ones(const unsigned char *mac)

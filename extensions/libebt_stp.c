@@ -297,31 +297,6 @@ brstp_parse(int c, char **argv, int invert, unsigned int *flags,
 	return 1;
 }
 
-static void ebt_print_mac(const unsigned char *mac)
-{
-	int j;
-	for (j = 0; j < ETH_ALEN; j++)
-		printf("%02x%s", mac[j],
-			(j==ETH_ALEN-1) ? "" : ":");
-}
-
-static bool mac_all_ones(const unsigned char *mac)
-{
-	static const char hlpmsk[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
-
-	return memcmp(mac, hlpmsk, sizeof(hlpmsk)) == 0;
-}
-
-static void ebt_print_mac_and_mask(const unsigned char *mac, const unsigned char *mask)
-{
-
-	ebt_print_mac(mac);
-	if (!mac_all_ones(mask)) {
-		printf("/");
-		ebt_print_mac(mask);
-	}
-}
-
 static void brstp_print(const void *ip, const struct xt_entry_match *match,
 			 int numeric)
 {
@@ -351,14 +326,14 @@ static void brstp_print(const void *ip, const struct xt_entry_match *match,
 		} else if (EBT_STP_ROOTPRIO == (1 << i))
 			print_range(c->root_priol, c->root_priou);
 		else if (EBT_STP_ROOTADDR == (1 << i))
-			ebt_print_mac_and_mask((unsigned char *)c->root_addr,
+			xtables_print_mac_and_mask((unsigned char *)c->root_addr,
 			   (unsigned char*)c->root_addrmsk);
 		else if (EBT_STP_ROOTCOST == (1 << i))
 			print_range(c->root_costl, c->root_costu);
 		else if (EBT_STP_SENDERPRIO == (1 << i))
 			print_range(c->sender_priol, c->sender_priou);
 		else if (EBT_STP_SENDERADDR == (1 << i))
-			ebt_print_mac_and_mask((unsigned char *)c->sender_addr,
+			xtables_print_mac_and_mask((unsigned char *)c->sender_addr,
 			   (unsigned char *)c->sender_addrmsk);
 		else if (EBT_STP_PORT == (1 << i))
 			print_range(c->portl, c->portu);

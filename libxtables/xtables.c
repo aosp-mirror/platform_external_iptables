@@ -2077,6 +2077,28 @@ void xtables_print_num(uint64_t number, unsigned int format)
 	printf(FMT("%4lluT ","%lluT "), (unsigned long long)number);
 }
 
+void xtables_print_mac(const unsigned char *macaddress)
+{
+	unsigned int i;
+
+	printf("%02x", macaddress[0]);
+	for (i = 1; i < 6; ++i)
+		printf(":%02x", macaddress[i]);
+}
+
+void xtables_print_mac_and_mask(const unsigned char *mac, const unsigned char *mask)
+{
+	static const char hlpmsk[] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+
+	xtables_print_mac(mac);
+
+	if (memcmp(mask, hlpmsk, 6) == 0)
+		return;
+
+	printf("/");
+	xtables_print_mac(mask);
+}
+
 void xtables_parse_val_mask(struct xt_option_call *cb,
 			    unsigned int *val, unsigned int *mask,
 			    const struct xtables_lmap *lmap)

@@ -332,15 +332,6 @@ brarp_parse(int c, char **argv, int invert, unsigned int *flags,
 	return 1;
 }
 
-static void brarp_print_mac_and_mask(const unsigned char *mac, const unsigned char *mask)
-{
-	char hlpmsk[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
-
-	printf("%s", ether_ntoa((struct ether_addr *) mac));
-	if (memcmp(mask, hlpmsk, 6))
-	        printf("/%s", ether_ntoa((struct ether_addr *) mask));
-}
-
 static void brarp_print(const void *ip, const struct xt_entry_match *match, int numeric)
 {
 	const struct ebt_arp_info *arpinfo = (struct ebt_arp_info *)match->data;
@@ -385,14 +376,14 @@ static void brarp_print(const void *ip, const struct xt_entry_match *match, int 
 		printf("--arp-mac-src ");
 		if (arpinfo->invflags & EBT_ARP_SRC_MAC)
 			printf("! ");
-		brarp_print_mac_and_mask(arpinfo->smaddr, arpinfo->smmsk);
+		xtables_print_mac_and_mask(arpinfo->smaddr, arpinfo->smmsk);
 		printf(" ");
 	}
 	if (arpinfo->bitmask & EBT_ARP_DST_MAC) {
 		printf("--arp-mac-dst ");
 		if (arpinfo->invflags & EBT_ARP_DST_MAC)
 			printf("! ");
-		brarp_print_mac_and_mask(arpinfo->dmaddr, arpinfo->dmmsk);
+		xtables_print_mac_and_mask(arpinfo->dmaddr, arpinfo->dmmsk);
 		printf(" ");
 	}
 	if (arpinfo->bitmask & EBT_ARP_GRAT) {

@@ -71,17 +71,12 @@ brarpreply_parse(int c, char **argv, int invert, unsigned int *flags,
 	return 1;
 }
 
-static void ebt_print_mac(const unsigned char *mac)
-{
-	printf("%s", ether_ntoa((struct ether_addr *) mac));
-}
-
 static void brarpreply_print(const void *ip, const struct xt_entry_target *t, int numeric)
 {
 	struct ebt_arpreply_info *replyinfo = (void *)t->data;
 
 	printf("--arpreply-mac ");
-	ebt_print_mac(replyinfo->mac);
+	xtables_print_mac(replyinfo->mac);
 	if (replyinfo->target == EBT_DROP)
 		return;
 	printf(" --arpreply-target %s", ebt_target_name(replyinfo->target));
