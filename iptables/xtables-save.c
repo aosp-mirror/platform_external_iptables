@@ -43,6 +43,13 @@ static const struct option options[] = {
 	{NULL},
 };
 
+static const struct option arp_save_options[] = {
+	{.name = "counters", .has_arg = false, .val = 'c'},
+	{.name = "version",  .has_arg = false, .val = 'V'},
+	{.name = "modprobe", .has_arg = true,  .val = 'M'},
+	{NULL},
+};
+
 static const struct option ebt_save_options[] = {
 	{.name = "counters", .has_arg = false, .val = 'c'},
 	{.name = "version",  .has_arg = false, .val = 'V'},
@@ -357,6 +364,24 @@ int xtables_arp_save_main(int argc, char **argv)
 		exit(1);
 	}
 
+	while ((c = getopt_long(argc, argv, "cM:V", arp_save_options, NULL)) != -1) {
+		switch (c) {
+		case 'c':
+			show_counters = true;
+			break;
+		case 'M':
+			xtables_modprobe_program = optarg;
+			break;
+		case 'V':
+			printf("%s v%s (nf_tables)\n", prog_name, prog_vers);
+			exit(0);
+		default:
+			fprintf(stderr,
+				"Look at manual page `xtables-save.8' for more information.\n");
+			exit(1);
+		}
+	}
+
 	if (nft_init(&h, xtables_arp) < 0) {
 		fprintf(stderr, "%s/%s Failed to initialize nft: %s\n",
 				xtables_globals.program_name,
@@ -375,7 +400,7 @@ int xtables_arp_save_main(int argc, char **argv)
 
 	printf("*filter\n");
 	nft_chain_save(&h, nft_chain_list_get(&h), "filter");
-	nft_rule_save(&h, "filter", FMT_NOCOUNTS);
+	nft_rule_save(&h, "filter", show_counters ? 0 : FMT_NOCOUNTS);
 	printf("\n");
 	nft_fini(&h);
 	return 0;

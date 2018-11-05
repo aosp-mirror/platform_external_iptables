@@ -570,6 +570,14 @@ after_devdst:
 	}
 }
 
+static void nft_arp_save_counters(const void *data)
+{
+	const struct iptables_command_state *cs = data;
+
+	printf("[%llu:%llu] ", (unsigned long long)cs->arp.counters.pcnt,
+			       (unsigned long long)cs->arp.counters.bcnt);
+}
+
 static void
 nft_arp_save_rule(const void *data, unsigned int format)
 {
@@ -585,13 +593,6 @@ nft_arp_save_rule(const void *data, unsigned int format)
 		printf("-j %s", cs->target->name);
 		if (cs->target->save != NULL)
 			cs->target->save(&cs->arp, cs->target->t);
-	}
-
-	if (!(format & FMT_NOCOUNTS)) {
-		printf(", pcnt=");
-		xtables_print_num(cs->arp.counters.pcnt, format);
-		printf("-- bcnt=");
-		xtables_print_num(cs->arp.counters.bcnt, format);
 	}
 
 	if (!(format & FMT_NONEWLINE))
@@ -692,7 +693,7 @@ struct nft_family_ops nft_family_ops_arp = {
 	.print_header		= nft_arp_print_header,
 	.print_rule		= nft_arp_print_rule,
 	.save_rule		= nft_arp_save_rule,
-	.save_counters		= NULL,
+	.save_counters		= nft_arp_save_counters,
 	.save_chain		= nft_arp_save_chain,
 	.post_parse		= NULL,
 	.rule_to_cs		= nft_arp_rule_to_cs,
