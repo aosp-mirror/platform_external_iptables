@@ -1104,18 +1104,8 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table,
 
 			break;
 
-		case 8:/* protocol length */
+		case 8: /* was never supported, not even in arptables-legacy */
 			xtables_error(PARAMETER_PROBLEM, "not supported");
-/*
-			check_inverse(optarg, &invert, &optind, argc);
-			set_option(&options, OPT_P_LENGTH, &cs.arp.arp.invflags,
-				   invert);
-
-			getlength_and_mask(argv[optind - 1], &cs.arp.arp.arpln,
-					   &cs.arp.arp.arpln_mask);
-			break;
-*/
-
 		case 4:/* opcode */
 			check_inverse(optarg, &invert, &optind, argc);
 			set_option(&options, OPT_OPCODE, &cs.arp.arp.invflags,
@@ -1170,7 +1160,6 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table,
 			parse_interface(argv[optind-1],
 					cs.arp.arp.iniface,
 					cs.arp.arp.iniface_mask);
-/*			cs.arp.nfcache |= NFC_IP_IF_IN; */
 			break;
 
 		case 'o':
@@ -1180,7 +1169,6 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table,
 			parse_interface(argv[optind-1],
 					cs.arp.arp.outiface,
 					cs.arp.arp.outiface_mask);
-			/* cs.arp.nfcache |= NFC_IP_IF_OUT; */
 			break;
 
 		case 'v':
@@ -1190,24 +1178,8 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table,
 			verbose++;
 			break;
 
-		case 'm': /*{
-			size_t size;
-
-			if (invert)
-				exit_error(PARAMETER_PROBLEM,
-					   "unexpected ! flag before --match");
-
-			m = find_match(optarg, LOAD_MUST_SUCCEED);
-			size = ARPT_ALIGN(sizeof(struct arpt_entry_match))
-					 + m->size;
-			m->m = fw_calloc(1, size);
-			m->m->u.match_size = size;
-			strcpy(m->m->u.user.name, m->name);
-			m->init(m->m, &fw.nfcache);
-			opts = merge_options(opts, m->extra_opts, &m->option_offset);
-		}*/
-		break;
-
+		case 'm': /* ignored by arptables-legacy */
+			break;
 		case 'n':
 			set_option(&options, OPT_NUMERIC, &cs.arp.arp.invflags,
 				   invert);
