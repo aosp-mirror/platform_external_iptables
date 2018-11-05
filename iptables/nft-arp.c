@@ -154,21 +154,24 @@ static int nft_arp_add(struct nftnl_rule *r, void *data)
 		add_outiface(r, fw->arp.outiface, op);
 	}
 
-	if (fw->arp.arhrd != 0) {
+	if (fw->arp.arhrd != 0 ||
+	    fw->arp.invflags & ARPT_INV_ARPHRD) {
 		op = nft_invflags2cmp(fw->arp.invflags, ARPT_INV_ARPHRD);
 		add_payload(r, offsetof(struct arphdr, ar_hrd), 2,
 			    NFT_PAYLOAD_NETWORK_HEADER);
 		add_cmp_u16(r, fw->arp.arhrd, op);
 	}
 
-	if (fw->arp.arpro != 0) {
+	if (fw->arp.arpro != 0 ||
+	    fw->arp.invflags & ARPT_INV_ARPPRO) {
 		op = nft_invflags2cmp(fw->arp.invflags, ARPT_INV_ARPPRO);
 	        add_payload(r, offsetof(struct arphdr, ar_pro), 2,
 			    NFT_PAYLOAD_NETWORK_HEADER);
 		add_cmp_u16(r, fw->arp.arpro, op);
 	}
 
-	if (fw->arp.arhln != 0) {
+	if (fw->arp.arhln != 0 ||
+	    fw->arp.invflags & ARPT_INV_ARPHLN) {
 		op = nft_invflags2cmp(fw->arp.invflags, ARPT_INV_ARPHLN);
 		add_proto(r, offsetof(struct arphdr, ar_hln), 1,
 			  fw->arp.arhln, op);
@@ -176,7 +179,8 @@ static int nft_arp_add(struct nftnl_rule *r, void *data)
 
 	add_proto(r, offsetof(struct arphdr, ar_pln), 1, 4, NFT_CMP_EQ);
 
-	if (fw->arp.arpop != 0) {
+	if (fw->arp.arpop != 0 ||
+	    fw->arp.invflags & ARPT_INV_ARPOP) {
 		op = nft_invflags2cmp(fw->arp.invflags, ARPT_INV_ARPOP);
 		add_payload(r, offsetof(struct arphdr, ar_op), 2,
 			    NFT_PAYLOAD_NETWORK_HEADER);
@@ -190,7 +194,9 @@ static int nft_arp_add(struct nftnl_rule *r, void *data)
 		add_cmp_ptr(r, op, fw->arp.src_devaddr.addr, fw->arp.arhln);
 	}
 
-	if (fw->arp.src.s_addr != 0) {
+	if (fw->arp.src.s_addr != 0 ||
+	    fw->arp.smsk.s_addr != 0 ||
+	    fw->arp.invflags & ARPT_INV_SRCIP) {
 		op = nft_invflags2cmp(fw->arp.invflags, ARPT_INV_SRCIP);
 		add_addr(r, sizeof(struct arphdr) + fw->arp.arhln,
 			 &fw->arp.src.s_addr, &fw->arp.smsk.s_addr,
@@ -204,7 +210,9 @@ static int nft_arp_add(struct nftnl_rule *r, void *data)
 		add_cmp_ptr(r, op, fw->arp.tgt_devaddr.addr, fw->arp.arhln);
 	}
 
-	if (fw->arp.tgt.s_addr != 0) {
+	if (fw->arp.tgt.s_addr != 0 ||
+	    fw->arp.tmsk.s_addr != 0 ||
+	    fw->arp.invflags & ARPT_INV_TGTIP) {
 		op = nft_invflags2cmp(fw->arp.invflags, ARPT_INV_TGTIP);
 		add_addr(r, sizeof(struct arphdr) + fw->arp.arhln + sizeof(struct in_addr),
 			 &fw->arp.tgt.s_addr, &fw->arp.tmsk.s_addr,
