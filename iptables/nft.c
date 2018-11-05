@@ -2997,6 +2997,78 @@ int nft_xtables_config_load(struct nft_handle *h, const char *filename,
 	return h->config_done;
 }
 
+static void nft_chain_zero_rule_counters(struct nft_handle *h,
+					 struct nftnl_chain *c)
+{
+	struct nftnl_rule_list_iter *iter;
+	struct nftnl_rule_list *list;
+	const char *table_name;
+	const char *chain_name;
+	struct nftnl_rule *r;
+
+	list = nft_rule_list_get(h);
+	if (list == NULL)
+		return;
+	iter = nftnl_rule_list_iter_create(list);
+	if (iter == NULL)
+		return;
+
+	table_name = nftnl_chain_get_str(c, NFTNL_CHAIN_TABLE);
+	chain_name = nftnl_chain_get_str(c, NFTNL_CHAIN_NAME);
+
+	r = nftnl_rule_list_iter_next(iter);
+	while (r != NULL) {
+		struct nftnl_expr_iter *ei;
+		const char *table_chain;
+		const char *rule_chain;
+		struct nftnl_expr *e;
+		bool zero_needed;
+
+		table_chain = nftnl_rule_get_str(r, NFTNL_RULE_TABLE);
+		if (strcmp(table_chain, table_name))
+			goto next;
+
+		rule_chain = nftnl_rule_get_str(r, NFTNL_RULE_CHAIN);
+		if (strcmp(rule_chain, chain_name))
+			goto next;
+
+		ei = nftnl_expr_iter_create(r);
+		if (!ei)
+			break;
+
+		e = nftnl_expr_iter_next(ei);
+	        zero_needed = false;
+		while (e != NULL) {
+			const char *en = nftnl_expr_get_str(e, NFTNL_EXPR_NAME);
+
+			if (strcmp(en, "counter") == 0 && (
+			    nftnl_expr_get_u64(e, NFTNL_EXPR_CTR_PACKETS) ||
+			    nftnl_expr_get_u64(e, NFTNL_EXPR_CTR_BYTES))) {
+				nftnl_expr_set_u64(e, NFTNL_EXPR_CTR_PACKETS, 0);
+				nftnl_expr_set_u64(e, NFTNL_EXPR_CTR_BYTES, 0);
+				zero_needed = true;
+			}
+
+			e = nftnl_expr_iter_next(ei);
+		}
+
+		nftnl_expr_iter_destroy(ei);
+
+		if (zero_needed) {
+			/*
+			 * Unset RULE_POSITION for older kernels, we want to replace
+			 * rule based on its handle only.
+			 */
+			nftnl_rule_unset(r, NFTNL_RULE_POSITION);
+			batch_rule_add(h, NFT_COMPAT_RULE_REPLACE, r);
+		}
+next:
+		r = nftnl_rule_list_iter_next(iter);
+	}
+
+	nftnl_rule_list_iter_destroy(iter);
+}
+
 int nft_chain_zero_counters(struct nft_handle *h, const char *chain,
 			    const char *table, bool verbose)
 {
@@ -3029,8 +3101,13 @@ int nft_chain_zero_counters(struct nft_handle *h, const char *chain,
 		if (verbose)
 			fprintf(stdout, "Zeroing chain `%s'\n", chain_name);
 
-		nftnl_chain_set_u64(c, NFTNL_CHAIN_PACKETS, 0);
-		nftnl_chain_set_u64(c, NFTNL_CHAIN_BYTES, 0);
+		if (nftnl_chain_is_set(c, NFTNL_CHAIN_HOOKNUM)) {
+			/* zero base chain counters. */
+			nftnl_chain_set_u64(c, NFTNL_CHAIN_PACKETS, 0);
+			nftnl_chain_set_u64(c, NFTNL_CHAIN_BYTES, 0);
+		}
+
+		nft_chain_zero_rule_counters(h, c);
 
 		nftnl_chain_unset(c, NFTNL_CHAIN_HANDLE);
 
