@@ -4,6 +4,7 @@
 -p IPv6 --ip6-dst f00:ba::;=;OK
 -p IPv6 --ip6-tclass 0xFF;=;OK
 -p IPv6 --ip6-proto tcp --ip6-dport 22;=;OK
+-p IPv6 --ip6-proto tcp --ip6-dport ! 22;=;OK
 -p IPv6 --ip6-proto udp --ip6-sport 1024:65535;=;OK
 -p IPv6 --ip6-proto 253;=;OK
 -p IPv6 --ip6-proto ipv6-icmp --ip6-icmp-type echo-request -j CONTINUE;=;OK

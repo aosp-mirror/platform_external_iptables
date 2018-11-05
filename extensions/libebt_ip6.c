@@ -353,7 +353,7 @@ brip6_parse(int c, char **argv, int invert, unsigned int *flags,
 		break;
 	case IP_DPORT:
 		if (invert)
-			info->invflags |= EBT_IP6_DEST;
+			info->invflags |= EBT_IP6_DPORT;
 		parse_port_range(NULL, optarg, info->dport);
 		info->bitmask |= EBT_IP6_DPORT;
 		break;
