@@ -637,7 +637,8 @@ static bool nft_arp_is_same(const void *data_a,
 
 	if (a->arp.src.s_addr != b->arp.src.s_addr
 	    || a->arp.tgt.s_addr != b->arp.tgt.s_addr
-	    || a->arp.smsk.s_addr != b->arp.tmsk.s_addr
+	    || a->arp.smsk.s_addr != b->arp.smsk.s_addr
+	    || a->arp.tmsk.s_addr != b->arp.tmsk.s_addr
 	    || a->arp.arpro != b->arp.arpro
 	    || a->arp.flags != b->arp.flags
 	    || a->arp.invflags != b->arp.invflags) {
