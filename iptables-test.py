@@ -17,10 +17,12 @@ import argparse
 
 IPTABLES = "iptables"
 IP6TABLES = "ip6tables"
+ARPTABLES = "arptables"
 EBTABLES = "ebtables"
 
 IPTABLES_SAVE = "iptables-save"
 IP6TABLES_SAVE = "ip6tables-save"
+ARPTABLES_SAVE = "arptables-save"
 EBTABLES_SAVE = "ebtables-save"
 #IPTABLES_SAVE = ['xtables-save','-4']
 #IP6TABLES_SAVE = ['xtables-save','-6']
@@ -111,6 +113,8 @@ def run_test(iptables, rule, rule_save, res, filename, lineno, netns):
             command = IPTABLES_SAVE
         elif splitted[0] == IP6TABLES:
             command = IP6TABLES_SAVE
+        elif splitted[0] == ARPTABLES:
+            command = ARPTABLES_SAVE
         elif splitted[0] == EBTABLES:
             command = EBTABLES_SAVE
 
@@ -159,7 +163,7 @@ def execute_cmd(cmd, filename, lineno):
     :param lineno: line number being tested (used for print_error purposes)
     '''
     global log_file
-    if cmd.startswith('iptables ') or cmd.startswith('ip6tables ') or cmd.startswith('ebtables '):
+    if cmd.startswith('iptables ') or cmd.startswith('ip6tables ') or cmd.startswith('ebtables ') or cmd.startswith('arptables '):
         cmd = os.path.abspath(os.path.curdir) + "/iptables/" + EXECUTEABLE + " " + cmd
 
     print >> log_file, "command: %s" % cmd
@@ -192,6 +196,11 @@ def run_test_file(filename, netns):
         iptables = IP6TABLES
     elif "libxt_"  in filename:
         iptables = IPTABLES
+    elif "libarpt_" in filename:
+        # only supported with nf_tables backend
+        if EXECUTEABLE != "xtables-nft-multi":
+           return 0, 0
+        iptables = ARPTABLES
     elif "libebt_" in filename:
         # only supported with nf_tables backend
         if EXECUTEABLE != "xtables-nft-multi":
