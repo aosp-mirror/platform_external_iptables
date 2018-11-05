@@ -424,14 +424,17 @@ brip_parse(int c, char **argv, int invert, unsigned int *flags,
 			       info->igmp_type, NULL);
 		info->bitmask |= EBT_IP_IGMP;
 		break;
-	case IP_EBT_TOS:
+	case IP_EBT_TOS: {
+		uintmax_t tosvalue;
+
 		if (invert)
 			info->invflags |= EBT_IP_TOS;
-		if (!xtables_strtoul(optarg, NULL, (uintmax_t *)&info->tos,
-				     0, 255))
+		if (!xtables_strtoul(optarg, NULL, &tosvalue, 0, 255))
 			xtables_error(PARAMETER_PROBLEM,
 				      "Problem with specified IP tos");
+		info->tos = tosvalue;
 		info->bitmask |= EBT_IP_TOS;
+	}
 		break;
 	case IP_PROTO:
 		if (invert)
