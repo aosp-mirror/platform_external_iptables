@@ -905,6 +905,8 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table,
 {
 	struct iptables_command_state cs = {
 		.jumpto = "",
+		.arp.arp.arhln = 6,
+		.arp.arp.arhrd = htons(ARPHRD_ETHER),
 	};
 	int invert = 0;
 	unsigned int nsaddrs = 0, ndaddrs = 0;

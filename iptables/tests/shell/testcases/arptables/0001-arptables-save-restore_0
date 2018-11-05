@@ -11,11 +11,12 @@ set -e
 $XT_MULTI arptables -F
 $XT_MULTI arptables -A INPUT -s 10.0.0.0/8 -j ACCEPT
 $XT_MULTI arptables -A INPUT -d 192.168.123.1 -j ACCEPT
-#$XT_MULTI arptables -A INPUT --source-mac fe:ed:ba:be:00:01 -j ACCEPT
-#$XT_MULTI arptables -A INPUT --destination-mac fe:ed:ba:be:00:01 -j ACCEPT
+$XT_MULTI arptables -A INPUT --source-mac fe:ed:ba:be:00:01 -j ACCEPT
+$XT_MULTI arptables -A INPUT --destination-mac fe:ed:ba:be:00:01 -j ACCEPT
 $XT_MULTI arptables -N foo
 $XT_MULTI arptables -A foo -i lo -j ACCEPT
 $XT_MULTI arptables -A foo -l 6 -j ACCEPT
+$XT_MULTI arptables -A foo -j MARK --set-mark 12345
 $XT_MULTI arptables -A foo --opcode Request -j ACCEPT
 $XT_MULTI arptables -A foo --h-type 1 --proto-type 0x800 -j ACCEPT
 $XT_MULTI arptables -A foo -l 6 --h-type 1 --proto-type 0x800 -i lo --opcode Request -j ACCEPT
@@ -34,18 +35,21 @@ DUMP='*filter
 :INPUT ACCEPT
 :OUTPUT DROP
 :foo -
--A INPUT -s 10.0.0.0/8 -j ACCEPT
--A INPUT -d 192.168.123.1 -j ACCEPT
--A INPUT -j foo
--A INPUT 
--A OUTPUT -o lo -j ACCEPT
--A OUTPUT -o eth134 -j mangle --mangle-ip-s 10.0.0.1
--A OUTPUT -o eth432 -j CLASSIFY --set-class feed:babe
--A OUTPUT -o eth432 --opcode 1 -j CLASSIFY --set-class feed:babe
--A foo -i lo -j ACCEPT
--A foo --h-length 6 -j ACCEPT
--A foo --opcode 1 -j ACCEPT
--A foo --h-type 1 --proto-type 0x800 -j ACCEPT
+-A INPUT -s 10.0.0.0/8 --h-length 6 --h-type 1 -j ACCEPT
+-A INPUT -d 192.168.123.1 --h-length 6 --h-type 1 -j ACCEPT
+-A INPUT --src-mac fe:ed:ba:be:00:01 --h-length 6 --h-type 1 -j ACCEPT
+-A INPUT --dst-mac fe:ed:ba:be:00:01 --h-length 6 --h-type 1 -j ACCEPT
+-A INPUT --h-length 6 --h-type 1 -j foo
+-A INPUT --h-length 6 --h-type 1 
+-A OUTPUT -o lo --h-length 6 --h-type 1 -j ACCEPT
+-A OUTPUT -o eth134 --h-length 6 --h-type 1 -j mangle --mangle-ip-s 10.0.0.1
+-A OUTPUT -o eth432 --h-length 6 --h-type 1 -j CLASSIFY --set-class feed:babe
+-A OUTPUT -o eth432 --h-length 6 --opcode 1 --h-type 1 -j CLASSIFY --set-class feed:babe
+-A foo -i lo --h-length 6 --h-type 1 -j ACCEPT
+-A foo --h-length 6 --h-type 1 -j ACCEPT
+-A foo --h-length 6 --h-type 1 -j MARK --set-xmark 0x3039/0xffffffff
+-A foo --h-length 6 --opcode 1 --h-type 1 -j ACCEPT
+-A foo --h-length 6 --h-type 1 --proto-type 0x800 -j ACCEPT
 -A foo -i lo --h-length 6 --opcode 1 --h-type 1 --proto-type 0x800 -j ACCEPT
 '
 
