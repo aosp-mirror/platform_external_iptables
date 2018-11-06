@@ -214,7 +214,7 @@ static int nft_arp_add(struct nftnl_rule *r, void *data)
 	    fw->arp.tmsk.s_addr != 0 ||
 	    fw->arp.invflags & ARPT_INV_TGTIP) {
 		op = nft_invflags2cmp(fw->arp.invflags, ARPT_INV_TGTIP);
-		add_addr(r, sizeof(struct arphdr) + fw->arp.arhln + sizeof(struct in_addr),
+		add_addr(r, sizeof(struct arphdr) + fw->arp.arhln + sizeof(struct in_addr) + fw->arp.arhln,
 			 &fw->arp.tgt.s_addr, &fw->arp.tmsk.s_addr,
 			 sizeof(struct in_addr), op);
 	}
@@ -346,7 +346,8 @@ static void nft_arp_parse_payload(struct nft_xt_ctx *ctx,
 				fw->arp.invflags |= ARPT_INV_SRCIP;
 		} else if (ctx->payload.offset == sizeof(struct arphdr) +
 						  fw->arp.arhln +
-						  sizeof(struct in_addr)) {
+						  sizeof(struct in_addr) +
+						  fw->arp.arhln) {
 			get_cmp_data(e, &addr, sizeof(addr), &inv);
 			fw->arp.tgt.s_addr = addr.s_addr;
 			if (ctx->flags & NFT_XT_CTX_BITWISE) {
