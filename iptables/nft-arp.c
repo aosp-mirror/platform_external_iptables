@@ -137,6 +137,18 @@ static void print_mac_and_mask(const unsigned char *mac, const unsigned char *ma
 	print_mac(mask, l);
 }
 
+static bool need_devaddr(struct arpt_devaddr_info *info)
+{
+	int i;
+
+	for (i = 0; i < ETH_ALEN; i++) {
+		if (info->addr[i] || info->mask[i])
+			return true;
+	}
+
+	return false;
+}
+
 static int nft_arp_add(struct nftnl_rule *r, void *data)
 {
 	struct iptables_command_state *cs = data;
@@ -187,11 +199,13 @@ static int nft_arp_add(struct nftnl_rule *r, void *data)
 		add_cmp_u16(r, fw->arp.arpop, op);
 	}
 
-	if (fw->arp.src_devaddr.addr[0] != '\0') {
+	if (need_devaddr(&fw->arp.src_devaddr)) {
 		op = nft_invflags2cmp(fw->arp.invflags, ARPT_INV_SRCDEVADDR);
-		add_payload(r, sizeof(struct arphdr), fw->arp.arhln,
-			    NFT_PAYLOAD_NETWORK_HEADER);
-		add_cmp_ptr(r, op, fw->arp.src_devaddr.addr, fw->arp.arhln);
+		add_addr(r, sizeof(struct arphdr),
+			 &fw->arp.src_devaddr.addr,
+			 &fw->arp.src_devaddr.mask,
+			 fw->arp.arhln, op);
+
 	}
 
 	if (fw->arp.src.s_addr != 0 ||
@@ -203,11 +217,13 @@ static int nft_arp_add(struct nftnl_rule *r, void *data)
 			 sizeof(struct in_addr), op);
 	}
 
-	if (fw->arp.tgt_devaddr.addr[0] != '\0') {
+
+	if (need_devaddr(&fw->arp.tgt_devaddr)) {
 		op = nft_invflags2cmp(fw->arp.invflags, ARPT_INV_TGTDEVADDR);
-		add_payload(r, sizeof(struct arphdr) + fw->arp.arhln + 4,
-			    fw->arp.arhln, NFT_PAYLOAD_NETWORK_HEADER);
-		add_cmp_ptr(r, op, fw->arp.tgt_devaddr.addr, fw->arp.arhln);
+		add_addr(r, sizeof(struct arphdr) + fw->arp.arhln + sizeof(struct in_addr),
+			 &fw->arp.tgt_devaddr.addr,
+			 &fw->arp.tgt_devaddr.mask,
+			 fw->arp.arhln, op);
 	}
 
 	if (fw->arp.tgt.s_addr != 0 ||
@@ -292,6 +308,30 @@ static void parse_mask_ipv4(struct nft_xt_ctx *ctx, struct in_addr *mask)
 	mask->s_addr = ctx->bitwise.mask[0];
 }
 
+static bool nft_arp_parse_devaddr(struct nft_xt_ctx *ctx,
+				  struct nftnl_expr *e,
+				  struct arpt_devaddr_info *info)
+{
+	uint32_t hlen;
+	bool inv;
+
+	nftnl_expr_get(e, NFTNL_EXPR_CMP_DATA, &hlen);
+
+	if (hlen != ETH_ALEN)
+		return false;
+
+	get_cmp_data(e, info->addr, ETH_ALEN, &inv);
+
+	if (ctx->flags & NFT_XT_CTX_BITWISE) {
+		memcpy(info->mask, ctx->bitwise.mask, ETH_ALEN);
+		ctx->flags &= ~NFT_XT_CTX_BITWISE;
+	} else {
+		memset(info->mask, 0xff, ETH_ALEN);
+	}
+
+	return inv;
+}
+
 static void nft_arp_parse_payload(struct nft_xt_ctx *ctx,
 				  struct nftnl_expr *e, void *data)
 {
@@ -331,7 +371,10 @@ static void nft_arp_parse_payload(struct nft_xt_ctx *ctx,
 			fw->arp.invflags |= ARPT_INV_ARPOP;
 		break;
 	default:
-		if (ctx->payload.offset == sizeof(struct arphdr) +
+		if (ctx->payload.offset == sizeof(struct arphdr)) {
+			if (nft_arp_parse_devaddr(ctx, e, &fw->arp.src_devaddr))
+				fw->arp.invflags |= ARPT_INV_SRCDEVADDR;
+		} else if (ctx->payload.offset == sizeof(struct arphdr) +
 					   fw->arp.arhln) {
 			get_cmp_data(e, &addr, sizeof(addr), &inv);
 			fw->arp.src.s_addr = addr.s_addr;
@@ -344,6 +387,11 @@ static void nft_arp_parse_payload(struct nft_xt_ctx *ctx,
 
 			if (inv)
 				fw->arp.invflags |= ARPT_INV_SRCIP;
+		} else if (ctx->payload.offset == sizeof(struct arphdr) +
+						  fw->arp.arhln +
+						  sizeof(struct in_addr)) {
+			if (nft_arp_parse_devaddr(ctx, e, &fw->arp.tgt_devaddr))
+				fw->arp.invflags |= ARPT_INV_TGTDEVADDR;
 		} else if (ctx->payload.offset == sizeof(struct arphdr) +
 						  fw->arp.arhln +
 						  sizeof(struct in_addr) +
