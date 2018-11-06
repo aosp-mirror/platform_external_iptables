@@ -233,12 +233,12 @@ struct pprot {
 /* ARPTABLES SPECIFIC NEW FUNCTIONS ADDED HERE */
 /***********************************************/
 
-unsigned char mac_type_unicast[ETH_ALEN] =   {0,0,0,0,0,0};
-unsigned char msk_type_unicast[ETH_ALEN] =   {1,0,0,0,0,0};
-unsigned char mac_type_multicast[ETH_ALEN] = {1,0,0,0,0,0};
-unsigned char msk_type_multicast[ETH_ALEN] = {1,0,0,0,0,0};
-unsigned char mac_type_broadcast[ETH_ALEN] = {255,255,255,255,255,255};
-unsigned char msk_type_broadcast[ETH_ALEN] = {255,255,255,255,255,255};
+static unsigned char mac_type_unicast[ETH_ALEN] =   {0,0,0,0,0,0};
+static unsigned char msk_type_unicast[ETH_ALEN] =   {1,0,0,0,0,0};
+static unsigned char mac_type_multicast[ETH_ALEN] = {1,0,0,0,0,0};
+static unsigned char msk_type_multicast[ETH_ALEN] = {1,0,0,0,0,0};
+static unsigned char mac_type_broadcast[ETH_ALEN] = {255,255,255,255,255,255};
+static unsigned char msk_type_broadcast[ETH_ALEN] = {255,255,255,255,255,255};
 
 /*
  * put the mac address into 6 (ETH_ALEN) bytes
