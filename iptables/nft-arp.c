@@ -571,9 +571,11 @@ after_devdst:
 }
 
 static void
-__nft_arp_save_rule(const void *data, unsigned int format)
+nft_arp_save_rule(const void *data, unsigned int format)
 {
 	const struct iptables_command_state *cs = data;
+
+	format |= FMT_NUMERIC;
 
 	nft_arp_print_rule_details(&cs->arp, format);
 
@@ -581,7 +583,8 @@ __nft_arp_save_rule(const void *data, unsigned int format)
 		printf("-j %s", cs->jumpto);
 	} else if (cs->target) {
 		printf("-j %s", cs->target->name);
-		cs->target->print(&cs->arp, cs->target->t, format & FMT_NUMERIC);
+		if (cs->target->save != NULL)
+			cs->target->save(&cs->arp, cs->target->t);
 	}
 
 	if (!(format & FMT_NOCOUNTS)) {
@@ -596,12 +599,6 @@ __nft_arp_save_rule(const void *data, unsigned int format)
 }
 
 static void
-nft_arp_save_rule(const void *data, unsigned int format)
-{
-	__nft_arp_save_rule(data, format | FMT_NUMERIC);
-}
-
-static void
 nft_arp_print_rule(struct nftnl_rule *r, unsigned int num, unsigned int format)
 {
 	struct iptables_command_state cs = {};
@@ -610,7 +607,25 @@ nft_arp_print_rule(struct nftnl_rule *r, unsigned int num, unsigned int format)
 		printf("%u ", num);
 
 	nft_arp_rule_to_cs(r, &cs);
-	__nft_arp_save_rule(&cs, format);
+
+	nft_arp_print_rule_details(&cs.arp, format);
+
+	if (cs.jumpto != NULL && strcmp(cs.jumpto, "") != 0) {
+		printf("-j %s", cs.jumpto);
+	} else if (cs.target) {
+		printf("-j %s", cs.target->name);
+		cs.target->print(&cs.arp, cs.target->t, format & FMT_NUMERIC);
+	}
+
+	if (!(format & FMT_NOCOUNTS)) {
+		printf(", pcnt=");
+		xtables_print_num(cs.arp.counters.pcnt, format);
+		printf("-- bcnt=");
+		xtables_print_num(cs.arp.counters.bcnt, format);
+	}
+
+	if (!(format & FMT_NONEWLINE))
+		fputc('\n', stdout);
 }
 
 static bool nft_arp_is_same(const void *data_a,
