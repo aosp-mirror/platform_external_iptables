@@ -1191,7 +1191,10 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table,
 			if (invert)
 				xtables_error(PARAMETER_PROBLEM,
 					      "unexpected ! flag before --table");
-			*table = argv[optind-1];
+			/* ignore this option.
+			 * arptables-legacy parses it, but libarptc doesn't use it.
+			 * arptables only has a 'filter' table anyway.
+			 */
 			break;
 
 		case 'V':
