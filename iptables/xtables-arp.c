@@ -208,9 +208,6 @@ static int inverse_for_options[NUMBER_OF_OPT] =
 /* -c */ 0,
 };
 
-const char *program_version = XTABLES_VERSION;
-const char *program_name = "arptables";
-
 /* A few hardcoded protocols for 'all' and in case the user has no
    /etc/protocols */
 struct pprot {
@@ -406,7 +403,8 @@ static void
 exit_tryhelp(int status)
 {
 	fprintf(stderr, "Try `%s -h' or '%s --help' for more information.\n",
-			program_name, program_name );
+		arptables_globals.program_name,
+		arptables_globals.program_version);
 	exit(status);
 }
 
@@ -425,10 +423,16 @@ exit_printhelp(void)
 "       %s -E old-chain-name new-chain-name\n"
 "       %s -P chain target [options]\n"
 "       %s -h (print this help information)\n\n",
-	       program_name, program_version, program_name, program_name,
-	       program_name, program_name, program_name, program_name,
-	       program_name, program_name);
-
+	       arptables_globals.program_name,
+	       arptables_globals.program_version,
+	       arptables_globals.program_name,
+	       arptables_globals.program_name,
+	       arptables_globals.program_name,
+	       arptables_globals.program_name,
+	       arptables_globals.program_name,
+	       arptables_globals.program_name,
+	       arptables_globals.program_name,
+	       arptables_globals.program_name);
 	printf(
 "Commands:\n"
 "Either long or short options are allowed.\n"
@@ -1199,10 +1203,11 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table,
 
 		case 'V':
 			if (invert)
-				printf("Not %s ;-)\n", program_version);
+				printf("Not %s ;-)\n", arptables_globals.program_version);
 			else
 				printf("%s v%s (nf_tables)\n",
-				       program_name, program_version);
+				       arptables_globals.program_name,
+				       arptables_globals.program_version);
 			exit(0);
 
 		case '0':
