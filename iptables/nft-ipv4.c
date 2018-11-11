@@ -64,7 +64,7 @@ static int nft_ipv4_add(struct nftnl_rule *r, void *data)
 		add_payload(r, offsetof(struct iphdr, frag_off), 2,
 			    NFT_PAYLOAD_NETWORK_HEADER);
 		/* get the 13 bits that contain the fragment offset */
-		add_bitwise_u16(r, 0x1fff, 0);
+		add_bitwise_u16(r, htons(0x1fff), 0);
 
 		/* if offset is non-zero, this is a fragment */
 		op = NFT_CMP_NEQ;
