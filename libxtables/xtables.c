@@ -2212,6 +2212,7 @@ struct xt_xlate *xt_xlate_alloc(int size)
 	if (xl->buf.data == NULL)
 		xtables_error(RESOURCE_PROBLEM, "OOM");
 
+	xl->buf.data[0] = '\0';
 	xl->buf.size = size;
 	xl->buf.rem = size;
 	xl->buf.off = 0;
