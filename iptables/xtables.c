@@ -1040,6 +1040,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 
 	if (p->command == CMD_APPEND ||
 	    p->command == CMD_DELETE ||
+	    p->command == CMD_DELETE_NUM ||
 	    p->command == CMD_CHECK ||
 	    p->command == CMD_INSERT ||
 	    p->command == CMD_REPLACE) {
