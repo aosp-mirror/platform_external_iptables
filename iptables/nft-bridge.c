@@ -21,6 +21,8 @@
 #include "nft-bridge.h"
 #include "nft.h"
 
+static bool ebt_legacy_counter_fmt;
+
 void ebt_cs_clean(struct iptables_command_state *cs)
 {
 	struct ebt_match *m, *nm;
@@ -410,6 +412,22 @@ static void print_protocol(uint16_t ethproto, bool invert, unsigned int bitmask)
 		printf("%s ", ent->e_name);
 }
 
+static void nft_bridge_save_counters(const void *data)
+{
+	const char *ctr;
+
+	if (ebt_legacy_counter_fmt)
+		return;
+
+	ctr = getenv("EBTABLES_SAVE_COUNTER");
+	if (ctr) {
+		ebt_legacy_counter_fmt = true;
+		return;
+	}
+
+	save_counters(data);
+}
+
 static void nft_bridge_save_rule(const void *data, unsigned int format)
 {
 	const struct iptables_command_state *cs = data;
@@ -446,18 +464,10 @@ static void nft_bridge_save_rule(const void *data, unsigned int format)
 		cs->target->print(&cs->fw, cs->target->t, format & FMT_NUMERIC);
 	}
 
-	if (!(format & FMT_NOCOUNTS)) {
-		const char *counter_fmt;
-
-		if (format & FMT_EBT_SAVE)
-			counter_fmt = " -c %"PRIu64" %"PRIu64"";
-		else
-			counter_fmt = " , pcnt = %"PRIu64" -- bcnt = %"PRIu64"";
-
-		printf(counter_fmt,
+	if (format & FMT_EBT_SAVE)
+		printf(" -c %"PRIu64" %"PRIu64"",
 		       (uint64_t)cs->counters.pcnt,
 		       (uint64_t)cs->counters.bcnt);
-	}
 
 	if (!(format & FMT_NONEWLINE))
 		fputc('\n', stdout);
@@ -472,7 +482,11 @@ static void nft_bridge_print_rule(struct nftnl_rule *r, unsigned int num,
 		printf("%d ", num);
 
 	nft_rule_to_ebtables_command_state(r, &cs);
-	nft_bridge_save_rule(&cs, format);
+	nft_bridge_save_rule(&cs, format & ~FMT_EBT_SAVE);
+	if (!(format & FMT_NOCOUNTS))
+		printf(" , pcnt = %"PRIu64" -- bcnt = %"PRIu64"",
+		       (uint64_t)cs.counters.pcnt,
+		       (uint64_t)cs.counters.bcnt);
 	ebt_cs_clean(&cs);
 }
 
@@ -734,7 +748,7 @@ struct nft_family_ops nft_family_ops_bridge = {
 	.print_header		= nft_bridge_print_header,
 	.print_rule		= nft_bridge_print_rule,
 	.save_rule		= nft_bridge_save_rule,
-	.save_counters		= NULL,
+	.save_counters		= nft_bridge_save_counters,
 	.save_chain		= nft_bridge_save_chain,
 	.post_parse		= NULL,
 	.rule_to_cs		= nft_rule_to_ebtables_command_state,
