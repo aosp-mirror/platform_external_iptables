@@ -5,12 +5,14 @@
 #include "nft-shared.h"
 #include <libiptc/linux_list.h>
 
-#define FILTER         0
-#define MANGLE         1
-#define RAW            2
-#define SECURITY       3
-#define NAT            4
-#define TABLES_MAX     5
+enum nft_table_type {
+	NFT_TABLE_FILTER	= 0,
+	NFT_TABLE_MANGLE,
+	NFT_TABLE_RAW,
+	NFT_TABLE_SECURITY,
+	NFT_TABLE_NAT,
+};
+#define NFT_TABLE_MAX	(NFT_TABLE_NAT + 1)
 
 struct builtin_chain {
 	const char *name;
@@ -47,9 +49,9 @@ struct nft_handle {
 	} error;
 };
 
-extern struct builtin_table xtables_ipv4[TABLES_MAX];
-extern struct builtin_table xtables_arp[TABLES_MAX];
-extern struct builtin_table xtables_bridge[TABLES_MAX];
+extern struct builtin_table xtables_ipv4[NFT_TABLE_MAX];
+extern struct builtin_table xtables_arp[NFT_TABLE_MAX];
+extern struct builtin_table xtables_bridge[NFT_TABLE_MAX];
 
 int mnl_talk(struct nft_handle *h, struct nlmsghdr *nlh,
 	     int (*cb)(const struct nlmsghdr *nlh, void *data),

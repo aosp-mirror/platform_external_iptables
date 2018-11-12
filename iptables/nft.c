@@ -376,8 +376,8 @@ static int batch_rule_add(struct nft_handle *h, enum obj_update_type type,
 	return batch_add(h, type, r);
 }
 
-struct builtin_table xtables_ipv4[TABLES_MAX] = {
-	[RAW] = {
+struct builtin_table xtables_ipv4[NFT_TABLE_MAX] = {
+	[NFT_TABLE_RAW] = {
 		.name	= "raw",
 		.chains = {
 			{
@@ -394,7 +394,7 @@ struct builtin_table xtables_ipv4[TABLES_MAX] = {
 			},
 		},
 	},
-	[MANGLE] = {
+	[NFT_TABLE_MANGLE] = {
 		.name	= "mangle",
 		.chains = {
 			{
@@ -429,7 +429,7 @@ struct builtin_table xtables_ipv4[TABLES_MAX] = {
 			},
 		},
 	},
-	[FILTER] = {
+	[NFT_TABLE_FILTER] = {
 		.name	= "filter",
 		.chains = {
 			{
@@ -452,7 +452,7 @@ struct builtin_table xtables_ipv4[TABLES_MAX] = {
 			},
 		},
 	},
-	[SECURITY] = {
+	[NFT_TABLE_SECURITY] = {
 		.name	= "security",
 		.chains = {
 			{
@@ -475,7 +475,7 @@ struct builtin_table xtables_ipv4[TABLES_MAX] = {
 			},
 		},
 	},
-	[NAT] = {
+	[NFT_TABLE_NAT] = {
 		.name	= "nat",
 		.chains = {
 			{
@@ -508,8 +508,8 @@ struct builtin_table xtables_ipv4[TABLES_MAX] = {
 
 #include <linux/netfilter_arp.h>
 
-struct builtin_table xtables_arp[TABLES_MAX] = {
-	[FILTER] = {
+struct builtin_table xtables_arp[NFT_TABLE_MAX] = {
+	[NFT_TABLE_FILTER] = {
 	.name   = "filter",
 	.chains = {
 			{
@@ -530,8 +530,8 @@ struct builtin_table xtables_arp[TABLES_MAX] = {
 
 #include <linux/netfilter_bridge.h>
 
-struct builtin_table xtables_bridge[TABLES_MAX] = {
-	[FILTER] = {
+struct builtin_table xtables_bridge[NFT_TABLE_MAX] = {
+	[NFT_TABLE_FILTER] = {
 		.name = "filter",
 		.chains = {
 			{
@@ -554,7 +554,7 @@ struct builtin_table xtables_bridge[TABLES_MAX] = {
 			},
 		},
 	},
-	[NAT] = {
+	[NFT_TABLE_NAT] = {
 		.name = "nat",
 		.chains = {
 			{
@@ -639,7 +639,7 @@ nft_table_builtin_find(struct nft_handle *h, const char *table)
 	int i;
 	bool found = false;
 
-	for (i=0; i<TABLES_MAX; i++) {
+	for (i = 0; i < NFT_TABLE_MAX; i++) {
 		if (h->tables[i].name == NULL)
 			continue;
 
@@ -3200,7 +3200,7 @@ static int nft_is_chain_compatible(const struct nft_handle *h,
 	prio = nftnl_chain_get_u32(chain, NFTNL_CHAIN_PRIO);
 	hook = nftnl_chain_get_u32(chain, NFTNL_CHAIN_HOOKNUM);
 
-	for (i = 0; i < TABLES_MAX; i++) {
+	for (i = 0; i < NFT_TABLE_MAX; i++) {
 		cur_table = h->tables[i].name;
 		chains = h->tables[i].chains;
 
