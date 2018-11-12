@@ -109,14 +109,14 @@ static int brmark_m_xlate(struct xt_xlate *xl,
 	xt_xlate_add(xl, "meta mark ");
 
 	if (info->bitmask == EBT_MARK_OR) {
-		xt_xlate_add(xl, "and 0x%x %s0 ", info->mask,
+		xt_xlate_add(xl, "and 0x%x %s0 ", (uint32_t)info->mask,
 			     info->invert ? "" : "!= ");
 	} else if (info->mask != 0xffffffffU) {
-		xt_xlate_add(xl, "and 0x%x %s0x%x ", info->mask,
-			   op == XT_OP_EQ ? "" : "!= ", info->mark);
+		xt_xlate_add(xl, "and 0x%x %s0x%x ", (uint32_t)info->mask,
+			   op == XT_OP_EQ ? "" : "!= ", (uint32_t)info->mark);
 	} else {
 		xt_xlate_add(xl, "%s0x%x ",
-			   op == XT_OP_EQ ? "" : "!= ", info->mark);
+			   op == XT_OP_EQ ? "" : "!= ", (uint32_t)info->mark);
 	}
 
 	return 1;

@@ -1271,9 +1271,9 @@ static int _conntrack3_mt_xlate(struct xt_xlate *xl,
 			     sinfo->invert_flags & XT_CONNTRACK_EXPIRES ?
 			     "!= " : "");
 		if (sinfo->expires_max == sinfo->expires_min)
-			xt_xlate_add(xl, "%lu", sinfo->expires_min);
+			xt_xlate_add(xl, "%u", sinfo->expires_min);
 		else
-			xt_xlate_add(xl, "%lu-%lu", sinfo->expires_min,
+			xt_xlate_add(xl, "%u-%u", sinfo->expires_min,
 				     sinfo->expires_max);
 		space = " ";
 	}
@@ -1365,7 +1365,7 @@ static int _conntrack3_mt_xlate(struct xt_xlate *xl,
 	if (sinfo->match_flags & XT_CONNTRACK_REPLDST_PORT) {
 		xt_xlate_add(xl, "%sct reply proto-dst %s", space,
 			     sinfo->invert_flags & XT_CONNTRACK_REPLDST_PORT ?
-			     "!= " : "", sinfo->repldst_port);
+			     "!= " : "");
 		if (sinfo->repldst_port == sinfo->repldst_port_high)
 			xt_xlate_add(xl, "%u", sinfo->repldst_port);
 		else

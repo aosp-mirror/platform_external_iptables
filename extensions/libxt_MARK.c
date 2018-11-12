@@ -277,13 +277,13 @@ static int MARK_xlate(struct xt_xlate *xl,
 
 	switch(markinfo->mode) {
 	case XT_MARK_SET:
-		xt_xlate_add(xl, "0x%x ", markinfo->mark);
+		xt_xlate_add(xl, "0x%x ", (uint32_t)markinfo->mark);
 		break;
 	case XT_MARK_AND:
-		xt_xlate_add(xl, "mark and 0x%x ", markinfo->mark);
+		xt_xlate_add(xl, "mark and 0x%x ", (uint32_t)markinfo->mark);
 		break;
 	case XT_MARK_OR:
-		xt_xlate_add(xl, "mark or 0x%x ", markinfo->mark);
+		xt_xlate_add(xl, "mark or 0x%x ", (uint32_t)markinfo->mark);
 		break;
 	}
 
