@@ -56,7 +56,7 @@ __do_output(struct nft_handle *h, const char *tablename, bool counters)
 		return 0;
 	}
 
-	chain_list = nft_chain_dump(h);
+	chain_list = nft_chain_list_get(h);
 
 	time_t now = time(NULL);
 
@@ -239,7 +239,7 @@ static int __ebt_save(struct nft_handle *h, const char *tablename, bool counters
 		return 0;
 	}
 
-	chain_list = nft_chain_dump(h);
+	chain_list = nft_chain_list_get(h);
 
 	if (first) {
 		now = time(NULL);
@@ -324,7 +324,7 @@ int xtables_arp_save_main(int argc, char **argv)
 	}
 
 	printf("*filter\n");
-	nft_chain_save(&h, nft_chain_dump(&h), "filter");
+	nft_chain_save(&h, nft_chain_list_get(&h), "filter");
 	nft_rule_save(&h, "filter", FMT_NOCOUNTS);
 	printf("\n");
 	nft_fini(&h);
