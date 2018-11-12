@@ -307,8 +307,9 @@ static void brstp_print(const void *ip, const struct xt_entry_match *match,
 	for (i = 0; i < STP_NUMOPS; i++) {
 		if (!(stpinfo->bitmask & (1 << i)))
 			continue;
-		printf("--%s %s", brstp_opts[i].name,
-		       (stpinfo->invflags & (1 << i)) ? "! " : "");
+		if (stpinfo->invflags & (1 << i))
+			printf("! ");
+		printf("--%s ", brstp_opts[i].name);
 		if (EBT_STP_TYPE == (1 << i)) {
 			if (stpinfo->type == BPDU_TYPE_CONFIG)
 				printf("%s", BPDU_TYPE_CONFIG_STRING);

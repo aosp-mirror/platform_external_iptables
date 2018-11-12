@@ -379,9 +379,9 @@ static void print_mac(char option, const unsigned char *mac,
 		      const unsigned char *mask,
 		      bool invert)
 {
-	printf("-%c ", option);
 	if (invert)
 		printf("! ");
+	printf("-%c ", option);
 	ebt_print_mac_and_mask(mac, mask);
 	printf(" ");
 }
@@ -396,9 +396,9 @@ static void print_protocol(uint16_t ethproto, bool invert, unsigned int bitmask)
 	if (bitmask & EBT_NOPROTO)
 		return;
 
-	printf("-p ");
 	if (invert)
 		printf("! ");
+	printf("-p ");
 
 	if (bitmask & EBT_802_3) {
 		printf("length ");

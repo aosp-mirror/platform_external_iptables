@@ -472,35 +472,35 @@ static void brip_print(const void *ip, const struct xt_entry_match *match,
 	struct in_addr *addrp, *maskp;
 
 	if (info->bitmask & EBT_IP_SOURCE) {
-		printf("--ip-src ");
 		if (info->invflags & EBT_IP_SOURCE)
 			printf("! ");
+		printf("--ip-src ");
 		addrp = (struct in_addr *)&info->saddr;
 		maskp = (struct in_addr *)&info->smsk;
 		printf("%s%s ", xtables_ipaddr_to_numeric(addrp),
 		       xtables_ipmask_to_numeric(maskp));
 	}
 	if (info->bitmask & EBT_IP_DEST) {
-		printf("--ip-dst ");
 		if (info->invflags & EBT_IP_DEST)
 			printf("! ");
+		printf("--ip-dst ");
 		addrp = (struct in_addr *)&info->daddr;
 		maskp = (struct in_addr *)&info->dmsk;
 		printf("%s%s ", xtables_ipaddr_to_numeric(addrp),
 		       xtables_ipmask_to_numeric(maskp));
 	}
 	if (info->bitmask & EBT_IP_TOS) {
-		printf("--ip-tos ");
 		if (info->invflags & EBT_IP_TOS)
 			printf("! ");
+		printf("--ip-tos ");
 		printf("0x%02X ", info->tos);
 	}
 	if (info->bitmask & EBT_IP_PROTO) {
 		struct protoent *pe;
 
-		printf("--ip-proto ");
 		if (info->invflags & EBT_IP_PROTO)
 			printf("! ");
+		printf("--ip-proto ");
 		pe = getprotobynumber(info->protocol);
 		if (pe == NULL) {
 			printf("%d ", info->protocol);
@@ -509,28 +509,28 @@ static void brip_print(const void *ip, const struct xt_entry_match *match,
 		}
 	}
 	if (info->bitmask & EBT_IP_SPORT) {
-		printf("--ip-sport ");
 		if (info->invflags & EBT_IP_SPORT)
 			printf("! ");
+		printf("--ip-sport ");
 		print_port_range(info->sport);
 	}
 	if (info->bitmask & EBT_IP_DPORT) {
-		printf("--ip-dport ");
 		if (info->invflags & EBT_IP_DPORT)
 			printf("! ");
+		printf("--ip-dport ");
 		print_port_range(info->dport);
 	}
 	if (info->bitmask & EBT_IP_ICMP) {
-		printf("--ip-icmp-type ");
 		if (info->invflags & EBT_IP_ICMP)
 			printf("! ");
+		printf("--ip-icmp-type ");
 		ebt_print_icmp_type(icmp_codes, ARRAY_SIZE(icmp_codes),
 				    info->icmp_type, info->icmp_code);
 	}
 	if (info->bitmask & EBT_IP_IGMP) {
-		printf("--ip-igmp-type ");
 		if (info->invflags & EBT_IP_IGMP)
 			printf("! ");
+		printf("--ip-igmp-type ");
 		ebt_print_icmp_type(igmp_types, ARRAY_SIZE(igmp_types),
 				    info->igmp_type, NULL);
 	}

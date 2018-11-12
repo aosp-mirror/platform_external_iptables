@@ -108,14 +108,19 @@ static void brvlan_print(const void *ip, const struct xt_entry_match *match,
 	struct ebt_vlan_info *vlaninfo = (struct ebt_vlan_info *) match->data;
 
 	if (vlaninfo->bitmask & EBT_VLAN_ID) {
-		printf("--vlan-id %s%d ", (vlaninfo->invflags & EBT_VLAN_ID) ? "! " : "", vlaninfo->id);
+		if (vlaninfo->invflags & EBT_VLAN_ID)
+			printf("! ");
+		printf("--vlan-id %d ", vlaninfo->id);
 	}
 	if (vlaninfo->bitmask & EBT_VLAN_PRIO) {
-		printf("--vlan-prio %s%d ", (vlaninfo->invflags & EBT_VLAN_PRIO) ? "! " : "", vlaninfo->prio);
+		if (vlaninfo->invflags & EBT_VLAN_PRIO)
+			printf("! ");
+		printf("--vlan-prio %d ", vlaninfo->prio);
 	}
 	if (vlaninfo->bitmask & EBT_VLAN_ENCAP) {
-		printf("--vlan-encap %s", (vlaninfo->invflags & EBT_VLAN_ENCAP) ? "! " : "");
-		printf("%4.4X ", ntohs(vlaninfo->encap));
+		if (vlaninfo->invflags & EBT_VLAN_ENCAP)
+			printf("! ");
+		printf("--vlan-encap %4.4X ", ntohs(vlaninfo->encap));
 	}
 }
 
