@@ -1750,14 +1750,14 @@ int nft_chain_user_rename(struct nft_handle *h,const char *chain,
 	c = nft_chain_find(h, table, chain);
 	if (c == NULL) {
 		errno = ENOENT;
-		return -1;
+		return 0;
 	}
 	handle = nftnl_chain_get_u64(c, NFTNL_CHAIN_HANDLE);
 
 	/* Now prepare the new name for the chain */
 	c = nftnl_chain_alloc();
 	if (c == NULL)
-		return -1;
+		return 0;
 
 	nftnl_chain_set(c, NFTNL_CHAIN_TABLE, (char *)table);
 	nftnl_chain_set(c, NFTNL_CHAIN_NAME, (char *)newname);
