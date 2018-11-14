@@ -236,7 +236,7 @@ static unsigned int type_xlate_print(struct xt_xlate *xl, unsigned int icmptype,
 			if (icmp_codes[i].type == icmptype &&
 			    icmp_codes[i].code_min == code_min &&
 			    icmp_codes[i].code_max == code_max) {
-				xt_xlate_add(xl, icmp_codes[i].name);
+				xt_xlate_add(xl, "%s", icmp_codes[i].name);
 				return 1;
 			}
 	}
