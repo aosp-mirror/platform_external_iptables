@@ -56,11 +56,12 @@ static void print_usage(const char *name, const char *version)
 			"	   [ --ipv6 ]\n", name);
 }
 
-static struct nftnl_chain_list *get_chain_list(struct nft_handle *h)
+static struct nftnl_chain_list *get_chain_list(struct nft_handle *h,
+					       const char *table)
 {
 	struct nftnl_chain_list *chain_list;
 
-	chain_list = nft_chain_list_get(h);
+	chain_list = nft_chain_list_get(h, table);
 	if (chain_list == NULL)
 		xtables_error(OTHER_PROBLEM, "cannot retrieve chain list\n");
 
@@ -72,7 +73,7 @@ static void chain_delete(struct nftnl_chain_list *clist, const char *curtable,
 {
 	struct nftnl_chain *chain_obj;
 
-	chain_obj = nft_chain_list_find(clist, curtable, chain);
+	chain_obj = nft_chain_list_find(clist, chain);
 	/* This chain has been found, delete from list. Later
 	 * on, unvisited chains will be purged out.
 	 */
@@ -111,9 +112,6 @@ void xtables_restore_parse(struct nft_handle *h,
 	struct nftnl_chain_list *chain_list = NULL;
 
 	line = 0;
-
-	if (cb->chain_list)
-		chain_list = cb->chain_list(h);
 
 	/* Grab standard input. */
 	while (fgets(buffer, sizeof(buffer), p->in)) {
@@ -165,6 +163,9 @@ void xtables_restore_parse(struct nft_handle *h,
 			if (p->tablename && (strcmp(p->tablename, table) != 0))
 				continue;
 
+			if (cb->chain_list)
+				chain_list = cb->chain_list(h, table);
+
 			if (noflush == 0) {
 				DEBUGP("Cleaning all chains of table '%s'\n",
 					table);
@@ -197,8 +198,7 @@ void xtables_restore_parse(struct nft_handle *h,
 				if (cb->chain_del)
 					cb->chain_del(chain_list, curtable->name,
 						      chain);
-			} else if (nft_chain_list_find(chain_list,
-						       curtable->name, chain)) {
+			} else if (nft_chain_list_find(chain_list, chain)) {
 				chain_exists = true;
 				/* Apparently -n still flushes existing user
 				 * defined chains that are redefined. Otherwise,
