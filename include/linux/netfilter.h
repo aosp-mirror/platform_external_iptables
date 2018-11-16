@@ -3,7 +3,9 @@
 
 #include <linux/types.h>
 
+#ifndef _NETINET_IN_H
 #include <linux/in.h>
+#endif
 #include <linux/in6.h>
 #include <limits.h>
 
