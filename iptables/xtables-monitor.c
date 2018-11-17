@@ -9,6 +9,7 @@
  * This software has been sponsored by Sophos Astaro <http://www.sophos.com>
  */
 
+#define _GNU_SOURCE
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
