@@ -1,0 +1,36 @@
+#!/bin/bash -e
+#
+# Generate init_extensions* functions to call all the _init functions from
+# filter_init
+#
+# Usage: gen_init <suffix> filename...
+#
+# Example output:
+#
+#   void libxt_tcp_init(void);
+#   void libxt_udp_init(void);
+#   void init_extensions(void);
+#   void init_extensions(void) {
+#     libxt_tcp_init();
+#     libxt_udp_init();
+#   }
+
+EXT=$1
+shift
+
+for i in "$@"; do
+  f=${i##*/}
+  f=${f%%.*}
+  echo "void ${f}_init(void);"
+done
+
+echo "void init_extensions${EXT}(void);"
+echo "void init_extensions${EXT}(void) {"
+
+for i in "$@"; do
+  f=${i##*/}
+  f=${f%%.*}
+  echo "  ${f}_init();"
+done
+
+echo "}"
