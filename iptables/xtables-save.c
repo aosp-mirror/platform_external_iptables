@@ -122,7 +122,7 @@ do_output(struct nft_handle *h, const char *tablename, bool counters)
 static int
 xtables_save_main(int family, const char *progname, int argc, char *argv[])
 {
-	struct builtin_table *tables;
+	const struct builtin_table *tables;
 	const char *tablename = NULL;
 	bool dump = false;
 	struct nft_handle h = {

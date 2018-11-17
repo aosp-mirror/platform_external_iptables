@@ -426,7 +426,7 @@ static int xtables_xlate_main_common(struct nft_handle *h,
 				     int family,
 				     const char *progname)
 {
-	struct builtin_table *tables;
+	const struct builtin_table *tables;
 	int ret;
 
 	xtables_globals.program_name = progname;

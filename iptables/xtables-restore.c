@@ -105,9 +105,9 @@ void xtables_restore_parse(struct nft_handle *h,
 			   struct nft_xt_restore_cb *cb,
 			   int argc, char *argv[])
 {
+	const struct builtin_table *curtable = NULL;
 	char buffer[10240];
 	int in_table = 0;
-	struct builtin_table *curtable = NULL;
 	const struct xtc_ops *ops = &xtc_ops;
 	struct nftnl_chain_list *chain_list = NULL;
 
@@ -359,7 +359,7 @@ void xtables_restore_parse(struct nft_handle *h,
 static int
 xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 {
-	struct builtin_table *tables;
+	const struct builtin_table *tables;
 	struct nft_handle h = {
 		.family = family,
 		.restore = true,

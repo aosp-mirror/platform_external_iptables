@@ -376,7 +376,7 @@ static int batch_rule_add(struct nft_handle *h, enum obj_update_type type,
 	return batch_add(h, type, r);
 }
 
-struct builtin_table xtables_ipv4[NFT_TABLE_MAX] = {
+const struct builtin_table xtables_ipv4[NFT_TABLE_MAX] = {
 	[NFT_TABLE_RAW] = {
 		.name	= "raw",
 		.type	= NFT_TABLE_RAW,
@@ -513,7 +513,7 @@ struct builtin_table xtables_ipv4[NFT_TABLE_MAX] = {
 
 #include <linux/netfilter_arp.h>
 
-struct builtin_table xtables_arp[NFT_TABLE_MAX] = {
+const struct builtin_table xtables_arp[NFT_TABLE_MAX] = {
 	[NFT_TABLE_FILTER] = {
 	.name   = "filter",
 	.type	= NFT_TABLE_FILTER,
@@ -536,7 +536,7 @@ struct builtin_table xtables_arp[NFT_TABLE_MAX] = {
 
 #include <linux/netfilter_bridge.h>
 
-struct builtin_table xtables_bridge[NFT_TABLE_MAX] = {
+const struct builtin_table xtables_bridge[NFT_TABLE_MAX] = {
 	[NFT_TABLE_FILTER] = {
 		.name = "filter",
 		.type	= NFT_TABLE_FILTER,
@@ -594,7 +594,7 @@ static bool nft_table_initialized(const struct nft_handle *h,
 }
 
 static int nft_table_builtin_add(struct nft_handle *h,
-				 struct builtin_table *_t)
+				 const struct builtin_table *_t)
 {
 	struct nftnl_table *t;
 	int ret;
@@ -614,8 +614,8 @@ static int nft_table_builtin_add(struct nft_handle *h,
 }
 
 static struct nftnl_chain *
-nft_chain_builtin_alloc(struct builtin_table *table,
-			struct builtin_chain *chain, int policy)
+nft_chain_builtin_alloc(const struct builtin_table *table,
+			const struct builtin_chain *chain, int policy)
 {
 	struct nftnl_chain *c;
 
@@ -634,8 +634,8 @@ nft_chain_builtin_alloc(struct builtin_table *table,
 }
 
 static void nft_chain_builtin_add(struct nft_handle *h,
-				  struct builtin_table *table,
-				  struct builtin_chain *chain)
+				  const struct builtin_table *table,
+				  const struct builtin_chain *chain)
 {
 	struct nftnl_chain *c;
 
@@ -647,7 +647,7 @@ static void nft_chain_builtin_add(struct nft_handle *h,
 }
 
 /* find if built-in table already exists */
-struct builtin_table *
+const struct builtin_table *
 nft_table_builtin_find(struct nft_handle *h, const char *table)
 {
 	int i;
@@ -668,8 +668,8 @@ nft_table_builtin_find(struct nft_handle *h, const char *table)
 }
 
 /* find if built-in chain already exists */
-struct builtin_chain *
-nft_chain_builtin_find(struct builtin_table *t, const char *chain)
+const struct builtin_chain *
+nft_chain_builtin_find(const struct builtin_table *t, const char *chain)
 {
 	int i;
 	bool found = false;
@@ -685,7 +685,7 @@ nft_chain_builtin_find(struct builtin_table *t, const char *chain)
 }
 
 static void nft_chain_builtin_init(struct nft_handle *h,
-				   struct builtin_table *table)
+				   const struct builtin_table *table)
 {
 	struct nftnl_chain_list *list = nft_chain_list_get(h, table->name);
 	struct nftnl_chain *c;
@@ -707,7 +707,7 @@ static void nft_chain_builtin_init(struct nft_handle *h,
 
 static int nft_xt_builtin_init(struct nft_handle *h, const char *table)
 {
-	struct builtin_table *t;
+	const struct builtin_table *t;
 
 	t = nft_table_builtin_find(h, table);
 	if (t == NULL)
@@ -750,7 +750,7 @@ static int nft_restart(struct nft_handle *h)
 	return 0;
 }
 
-int nft_init(struct nft_handle *h, struct builtin_table *t)
+int nft_init(struct nft_handle *h, const struct builtin_table *t)
 {
 	h->nl = mnl_socket_open(NETLINK_NETFILTER);
 	if (h->nl == NULL)
@@ -852,8 +852,8 @@ static struct nftnl_chain *nft_chain_new(struct nft_handle *h,
 				       const struct xt_counters *counters)
 {
 	struct nftnl_chain *c;
-	struct builtin_table *_t;
-	struct builtin_chain *_c;
+	const struct builtin_table *_t;
+	const struct builtin_chain *_c;
 
 	_t = nft_table_builtin_find(h, table);
 	if (!_t) {
@@ -1294,7 +1294,7 @@ nft_rule_print_save(const struct nftnl_rule *r, enum nft_rule_print type,
 static int nftnl_chain_list_cb(const struct nlmsghdr *nlh, void *data)
 {
 	struct nft_handle *h = data;
-	struct builtin_table *t;
+	const struct builtin_table *t;
 	struct nftnl_chain *c;
 
 	c = nftnl_chain_alloc();
@@ -1329,7 +1329,7 @@ struct nftnl_chain_list *nft_chain_list_get(struct nft_handle *h,
 {
 	char buf[16536];
 	struct nlmsghdr *nlh;
-	struct builtin_table *t;
+	const struct builtin_table *t;
 	int ret;
 
 	t = nft_table_builtin_find(h, table);
@@ -1730,7 +1730,7 @@ nft_chain_find(struct nft_handle *h, const char *table, const char *chain)
 bool nft_chain_exists(struct nft_handle *h,
 		      const char *table, const char *chain)
 {
-	struct builtin_table *t = nft_table_builtin_find(h, table);
+	const struct builtin_table *t = nft_table_builtin_find(h, table);
 
 	/* xtables does not support custom tables */
 	if (!t)
@@ -1895,7 +1895,7 @@ int nft_for_each_table(struct nft_handle *h,
 
 static int __nft_table_flush(struct nft_handle *h, const char *table)
 {
-	struct builtin_table *_t;
+	const struct builtin_table *_t;
 	struct nftnl_table *t;
 
 	t = nftnl_table_alloc();
@@ -3193,7 +3193,7 @@ static int nft_is_chain_compatible(const struct nft_handle *h,
 				   const struct nftnl_chain *chain)
 {
 	const char *table, *name, *type, *cur_table;
-	struct builtin_chain *chains;
+	const struct builtin_chain *chains;
 	int i, j, prio;
 	enum nf_inet_hooks hook;
 

@@ -37,7 +37,7 @@ struct nft_handle {
 	struct nftnl_batch	*batch;
 	struct list_head	err_list;
 	struct nft_family_ops	*ops;
-	struct builtin_table	*tables;
+	const struct builtin_table *tables;
 	struct {
 		struct nftnl_chain_list *chain_cache;
 		bool			initialized;
@@ -52,14 +52,14 @@ struct nft_handle {
 	} error;
 };
 
-extern struct builtin_table xtables_ipv4[NFT_TABLE_MAX];
-extern struct builtin_table xtables_arp[NFT_TABLE_MAX];
-extern struct builtin_table xtables_bridge[NFT_TABLE_MAX];
+extern const struct builtin_table xtables_ipv4[NFT_TABLE_MAX];
+extern const struct builtin_table xtables_arp[NFT_TABLE_MAX];
+extern const struct builtin_table xtables_bridge[NFT_TABLE_MAX];
 
 int mnl_talk(struct nft_handle *h, struct nlmsghdr *nlh,
 	     int (*cb)(const struct nlmsghdr *nlh, void *data),
 	     void *data);
-int nft_init(struct nft_handle *h, struct builtin_table *t);
+int nft_init(struct nft_handle *h, const struct builtin_table *t);
 void nft_fini(struct nft_handle *h);
 
 /*
@@ -73,7 +73,7 @@ bool nft_table_find(struct nft_handle *h, const char *tablename);
 int nft_table_purge_chains(struct nft_handle *h, const char *table, struct nftnl_chain_list *list);
 int nft_table_flush(struct nft_handle *h, const char *table);
 void nft_table_new(struct nft_handle *h, const char *table);
-struct builtin_table *nft_table_builtin_find(struct nft_handle *h, const char *table);
+const struct builtin_table *nft_table_builtin_find(struct nft_handle *h, const char *table);
 
 /*
  * Operations with chains.
@@ -92,7 +92,7 @@ int nft_chain_user_flush(struct nft_handle *h, struct nftnl_chain_list *list,
 			 const char *chain, const char *table);
 int nft_chain_user_rename(struct nft_handle *h, const char *chain, const char *table, const char *newname);
 int nft_chain_zero_counters(struct nft_handle *h, const char *chain, const char *table, bool verbose);
-struct builtin_chain *nft_chain_builtin_find(struct builtin_table *t, const char *chain);
+const struct builtin_chain *nft_chain_builtin_find(const struct builtin_table *t, const char *chain);
 bool nft_chain_exists(struct nft_handle *h, const char *table, const char *chain);
 
 /*
