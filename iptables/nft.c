@@ -809,14 +809,14 @@ static void flush_chain_cache(struct nft_handle *h, const char *tablename)
 		if (tablename && strcmp(h->tables[i].name, tablename))
 			continue;
 
-		if (h->tables[i].chain_cache) {
+		if (h->table[i].chain_cache) {
 			if (tablename) {
-				nftnl_chain_list_foreach(h->tables[i].chain_cache,
+				nftnl_chain_list_foreach(h->table[i].chain_cache,
 							 __flush_chain_cache, NULL);
 				break;
 			} else {
-				nftnl_chain_list_free(h->tables[i].chain_cache);
-				h->tables[i].chain_cache = NULL;
+				nftnl_chain_list_free(h->table[i].chain_cache);
+				h->table[i].chain_cache = NULL;
 			}
 		}
 	}
@@ -1303,13 +1303,13 @@ static int nftnl_chain_list_cb(const struct nlmsghdr *nlh, void *data)
 	if (!t)
 		goto out;
 
-	if (!t->chain_cache) {
-		t->chain_cache = nftnl_chain_list_alloc();
-		if (!t->chain_cache)
+	if (!h->table[t->type].chain_cache) {
+		h->table[t->type].chain_cache = nftnl_chain_list_alloc();
+		if (!h->table[t->type].chain_cache)
 			goto out;
 	}
 
-	nftnl_chain_list_add_tail(c, t->chain_cache);
+	nftnl_chain_list_add_tail(c, h->table[t->type].chain_cache);
 
 	return MNL_CB_OK;
 out:
@@ -1330,8 +1330,8 @@ struct nftnl_chain_list *nft_chain_list_get(struct nft_handle *h,
 	if (!t)
 		return NULL;
 
-	if (t->chain_cache)
-		return t->chain_cache;
+	if (h->table[t->type].chain_cache)
+		return h->table[t->type].chain_cache;
 retry:
 	nlh = nftnl_chain_nlmsg_build_hdr(buf, NFT_MSG_GETCHAIN, h->family,
 					NLM_F_DUMP, h->seq);
@@ -1342,10 +1342,10 @@ retry:
 		goto retry;
 	}
 
-	if (!t->chain_cache)
-		t->chain_cache = nftnl_chain_list_alloc();
+	if (!h->table[t->type].chain_cache)
+		h->table[t->type].chain_cache = nftnl_chain_list_alloc();
 
-	return t->chain_cache;
+	return h->table[t->type].chain_cache;
 }
 
 static const char *policy_name[NF_ACCEPT+1] = {

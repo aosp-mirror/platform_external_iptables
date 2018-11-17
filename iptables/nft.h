@@ -26,7 +26,6 @@ struct builtin_table {
 	enum nft_table_type type;
 	struct builtin_chain chains[NF_INET_NUMHOOKS];
 	bool initialized;
-	struct nftnl_chain_list *chain_cache;
 };
 
 struct nft_handle {
@@ -40,6 +39,9 @@ struct nft_handle {
 	struct list_head	err_list;
 	struct nft_family_ops	*ops;
 	struct builtin_table	*tables;
+	struct {
+		struct nftnl_chain_list *chain_cache;
+	} table[NFT_TABLE_MAX];
 	struct nftnl_rule_list	*rule_cache;
 	bool			restore;
 	int8_t			config_done;
