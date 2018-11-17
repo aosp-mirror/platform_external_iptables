@@ -23,6 +23,7 @@ struct builtin_chain {
 
 struct builtin_table {
 	const char *name;
+	enum nft_table_type type;
 	struct builtin_chain chains[NF_INET_NUMHOOKS];
 	bool initialized;
 	struct nftnl_chain_list *chain_cache;

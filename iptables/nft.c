@@ -379,6 +379,7 @@ static int batch_rule_add(struct nft_handle *h, enum obj_update_type type,
 struct builtin_table xtables_ipv4[NFT_TABLE_MAX] = {
 	[NFT_TABLE_RAW] = {
 		.name	= "raw",
+		.type	= NFT_TABLE_RAW,
 		.chains = {
 			{
 				.name	= "PREROUTING",
@@ -396,6 +397,7 @@ struct builtin_table xtables_ipv4[NFT_TABLE_MAX] = {
 	},
 	[NFT_TABLE_MANGLE] = {
 		.name	= "mangle",
+		.type	= NFT_TABLE_MANGLE,
 		.chains = {
 			{
 				.name	= "PREROUTING",
@@ -431,6 +433,7 @@ struct builtin_table xtables_ipv4[NFT_TABLE_MAX] = {
 	},
 	[NFT_TABLE_FILTER] = {
 		.name	= "filter",
+		.type	= NFT_TABLE_FILTER,
 		.chains = {
 			{
 				.name	= "INPUT",
@@ -454,6 +457,7 @@ struct builtin_table xtables_ipv4[NFT_TABLE_MAX] = {
 	},
 	[NFT_TABLE_SECURITY] = {
 		.name	= "security",
+		.type	= NFT_TABLE_SECURITY,
 		.chains = {
 			{
 				.name	= "INPUT",
@@ -477,6 +481,7 @@ struct builtin_table xtables_ipv4[NFT_TABLE_MAX] = {
 	},
 	[NFT_TABLE_NAT] = {
 		.name	= "nat",
+		.type	= NFT_TABLE_NAT,
 		.chains = {
 			{
 				.name	= "PREROUTING",
@@ -511,6 +516,7 @@ struct builtin_table xtables_ipv4[NFT_TABLE_MAX] = {
 struct builtin_table xtables_arp[NFT_TABLE_MAX] = {
 	[NFT_TABLE_FILTER] = {
 	.name   = "filter",
+	.type	= NFT_TABLE_FILTER,
 	.chains = {
 			{
 				.name   = "INPUT",
@@ -533,6 +539,7 @@ struct builtin_table xtables_arp[NFT_TABLE_MAX] = {
 struct builtin_table xtables_bridge[NFT_TABLE_MAX] = {
 	[NFT_TABLE_FILTER] = {
 		.name = "filter",
+		.type	= NFT_TABLE_FILTER,
 		.chains = {
 			{
 				.name   = "INPUT",
@@ -556,6 +563,7 @@ struct builtin_table xtables_bridge[NFT_TABLE_MAX] = {
 	},
 	[NFT_TABLE_NAT] = {
 		.name = "nat",
+		.type	= NFT_TABLE_NAT,
 		.chains = {
 			{
 				.name   = "PREROUTING",
