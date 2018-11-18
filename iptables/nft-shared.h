@@ -137,14 +137,6 @@ int parse_meta(struct nftnl_expr *e, uint8_t key, char *iniface,
 		unsigned char *outiface_mask, uint8_t *invflags);
 void print_proto(uint16_t proto, int invert);
 void get_cmp_data(struct nftnl_expr *e, void *data, size_t dlen, bool *inv);
-void nft_parse_bitwise(struct nft_xt_ctx *ctx, struct nftnl_expr *e);
-void nft_parse_cmp(struct nft_xt_ctx *ctx, struct nftnl_expr *e);
-void nft_parse_match(struct nft_xt_ctx *ctx, struct nftnl_expr *e);
-void nft_parse_target(struct nft_xt_ctx *ctx, struct nftnl_expr *e);
-void nft_parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e);
-void nft_parse_payload(struct nft_xt_ctx *ctx, struct nftnl_expr *e);
-void nft_parse_counter(struct nftnl_expr *e, struct xt_counters *counters);
-void nft_parse_immediate(struct nft_xt_ctx *ctx, struct nftnl_expr *e);
 void nft_rule_to_iptables_command_state(const struct nftnl_rule *r,
 					struct iptables_command_state *cs);
 void nft_clear_iptables_command_state(struct iptables_command_state *cs);

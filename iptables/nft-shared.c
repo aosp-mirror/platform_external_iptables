@@ -302,7 +302,7 @@ int parse_meta(struct nftnl_expr *e, uint8_t key, char *iniface,
 	return 0;
 }
 
-void nft_parse_target(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
+static void nft_parse_target(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 {
 	uint32_t tg_len;
 	const char *targname = nftnl_expr_get_str(e, NFTNL_EXPR_TG_NAME);
@@ -331,7 +331,7 @@ void nft_parse_target(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 	ops->parse_target(target, data);
 }
 
-void nft_parse_match(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
+static void nft_parse_match(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 {
 	uint32_t mt_len;
 	const char *mt_name = nftnl_expr_get_str(e, NFTNL_EXPR_MT_NAME);
@@ -433,7 +433,7 @@ static void nft_meta_set_to_target(struct nft_xt_ctx *ctx)
 	ops->parse_target(target, ctx->cs);
 }
 
-void nft_parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
+static void nft_parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 {
 	ctx->meta.key = nftnl_expr_get_u32(e, NFTNL_EXPR_META_KEY);
 
@@ -449,14 +449,14 @@ void nft_parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 	ctx->flags |= NFT_XT_CTX_META;
 }
 
-void nft_parse_payload(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
+static void nft_parse_payload(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 {
 	ctx->reg = nftnl_expr_get_u32(e, NFTNL_EXPR_META_DREG);
 	ctx->payload.offset = nftnl_expr_get_u32(e, NFTNL_EXPR_PAYLOAD_OFFSET);
 	ctx->flags |= NFT_XT_CTX_PAYLOAD;
 }
 
-void nft_parse_bitwise(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
+static void nft_parse_bitwise(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 {
 	uint32_t reg, len;
 	const void *data;
@@ -472,7 +472,7 @@ void nft_parse_bitwise(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 	ctx->flags |= NFT_XT_CTX_BITWISE;
 }
 
-void nft_parse_cmp(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
+static void nft_parse_cmp(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 {
 	struct nft_family_ops *ops = nft_family_ops_lookup(ctx->family);
 	void *data = ctx->cs;
@@ -493,13 +493,13 @@ void nft_parse_cmp(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 	}
 }
 
-void nft_parse_counter(struct nftnl_expr *e, struct xt_counters *counters)
+static void nft_parse_counter(struct nftnl_expr *e, struct xt_counters *counters)
 {
 	counters->pcnt = nftnl_expr_get_u64(e, NFTNL_EXPR_CTR_PACKETS);
 	counters->bcnt = nftnl_expr_get_u64(e, NFTNL_EXPR_CTR_BYTES);
 }
 
-void nft_parse_immediate(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
+static void nft_parse_immediate(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 {
 	const char *chain = nftnl_expr_get_str(e, NFTNL_EXPR_IMM_CHAIN);
 	struct nft_family_ops *ops;
