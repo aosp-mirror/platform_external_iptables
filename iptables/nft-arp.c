@@ -412,56 +412,6 @@ static void nft_arp_parse_payload(struct nft_xt_ctx *ctx,
 	}
 }
 
-static void nft_arp_rule_to_cs(const struct nftnl_rule *r,
-			       struct iptables_command_state *cs)
-{
-	struct nftnl_expr_iter *iter;
-	struct nftnl_expr *expr;
-	int family = nftnl_rule_get_u32(r, NFTNL_RULE_FAMILY);
-	struct nft_xt_ctx ctx = {
-		.cs = cs,
-		.family = family,
-	};
-
-	iter = nftnl_expr_iter_create(r);
-	if (iter == NULL)
-		return;
-
-	ctx.iter = iter;
-	expr = nftnl_expr_iter_next(iter);
-	while (expr != NULL) {
-		const char *name =
-			nftnl_expr_get_str(expr, NFTNL_EXPR_NAME);
-
-		if (strcmp(name, "counter") == 0)
-			nft_parse_counter(expr, &ctx.cs->arp.counters);
-		else if (strcmp(name, "payload") == 0)
-			nft_parse_payload(&ctx, expr);
-		else if (strcmp(name, "meta") == 0)
-			nft_parse_meta(&ctx, expr);
-		else if (strcmp(name, "bitwise") == 0)
-			nft_parse_bitwise(&ctx, expr);
-		else if (strcmp(name, "cmp") == 0)
-			nft_parse_cmp(&ctx, expr);
-		else if (strcmp(name, "immediate") == 0)
-			nft_parse_immediate(&ctx, expr);
-		else if (strcmp(name, "target") == 0)
-			nft_parse_target(&ctx, expr);
-
-		expr = nftnl_expr_iter_next(iter);
-	}
-
-	nftnl_expr_iter_destroy(iter);
-
-	if (cs->jumpto != NULL)
-		return;
-
-	if (cs->target != NULL && cs->target->name != NULL)
-		cs->target = xtables_find_target(cs->target->name, XTF_TRY_LOAD);
-	else
-		cs->jumpto = "";
-}
-
 static void nft_arp_print_header(unsigned int format, const char *chain,
 				 const char *pol,
 				 const struct xt_counters *counters,
@@ -627,14 +577,6 @@ after_devdst:
 	}
 }
 
-static void nft_arp_save_counters(const void *data)
-{
-	const struct iptables_command_state *cs = data;
-
-	printf("[%llu:%llu] ", (unsigned long long)cs->arp.counters.pcnt,
-			       (unsigned long long)cs->arp.counters.bcnt);
-}
-
 static void
 nft_arp_save_rule(const void *data, unsigned int format)
 {
@@ -643,17 +585,7 @@ nft_arp_save_rule(const void *data, unsigned int format)
 	format |= FMT_NUMERIC;
 
 	nft_arp_print_rule_details(&cs->arp, format);
-
-	if (cs->jumpto != NULL && strcmp(cs->jumpto, "") != 0) {
-		printf("-j %s", cs->jumpto);
-	} else if (cs->target) {
-		printf("-j %s", cs->target->name);
-		if (cs->target->save != NULL)
-			cs->target->save(&cs->arp, cs->target->t);
-	}
-
-	if (!(format & FMT_NONEWLINE))
-		fputc('\n', stdout);
+	save_matches_and_target(cs, false, &cs->arp, format);
 }
 
 static void
@@ -664,22 +596,18 @@ nft_arp_print_rule(struct nftnl_rule *r, unsigned int num, unsigned int format)
 	if (format & FMT_LINENUMBERS)
 		printf("%u ", num);
 
-	nft_arp_rule_to_cs(r, &cs);
+	nft_rule_to_iptables_command_state(r, &cs);
 
+	if (cs.jumpto)
+		printf("-j %s ", cs.jumpto);
 	nft_arp_print_rule_details(&cs.arp, format);
-
-	if (cs.jumpto != NULL && strcmp(cs.jumpto, "") != 0) {
-		printf("-j %s", cs.jumpto);
-	} else if (cs.target) {
-		printf("-j %s", cs.target->name);
-		cs.target->print(&cs.arp, cs.target->t, format & FMT_NUMERIC);
-	}
+	print_matches_and_target(&cs, format);
 
 	if (!(format & FMT_NOCOUNTS)) {
 		printf(", pcnt=");
-		xtables_print_num(cs.arp.counters.pcnt, format);
+		xtables_print_num(cs.counters.pcnt, format);
 		printf("-- bcnt=");
-		xtables_print_num(cs.arp.counters.bcnt, format);
+		xtables_print_num(cs.counters.bcnt, format);
 	}
 
 	if (!(format & FMT_NONEWLINE))
@@ -720,7 +648,7 @@ static bool nft_arp_rule_find(struct nft_family_ops *ops, struct nftnl_rule *r,
 	struct iptables_command_state this = {};
 
 	/* Delete by matching rule case */
-	nft_arp_rule_to_cs(r, &this);
+	nft_rule_to_iptables_command_state(r, &this);
 
 	if (!nft_arp_is_same(&cs->arp, &this.arp))
 		return false;
@@ -751,10 +679,10 @@ struct nft_family_ops nft_family_ops_arp = {
 	.print_header		= nft_arp_print_header,
 	.print_rule		= nft_arp_print_rule,
 	.save_rule		= nft_arp_save_rule,
-	.save_counters		= nft_arp_save_counters,
+	.save_counters		= save_counters,
 	.save_chain		= nft_arp_save_chain,
 	.post_parse		= NULL,
-	.rule_to_cs		= nft_arp_rule_to_cs,
+	.rule_to_cs		= nft_rule_to_iptables_command_state,
 	.clear_cs		= nft_clear_iptables_command_state,
 	.rule_find		= nft_arp_rule_find,
 	.parse_target		= nft_ipv46_parse_target,
