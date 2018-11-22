@@ -144,6 +144,7 @@ static struct option original_opts[] = {
 	{ "help", 2, 0, 'h' },
 	{ "line-numbers", 0, 0, '0' },
 	{ "modprobe", 1, 0, 'M' },
+	{ "set-counters", 1, 0, 'c' },
 	{ 0 }
 };
 
@@ -481,7 +482,7 @@ exit_printhelp(void)
 "  --line-numbers		print line numbers when listing\n"
 "  --exact	-x		expand numbers (display exact values)\n"
 "  --modprobe=<command>		try to insert modules using this command\n"
-"  --set-counters PKTS BYTES	set the counter during insert/append\n"
+"  --set-counters -c PKTS BYTES	set the counter during insert/append\n"
 "[!] --version	-V		print package version.\n");
 	printf(" opcode strings: \n");
         for (i = 0; i < NUMOPCODES; i++)
