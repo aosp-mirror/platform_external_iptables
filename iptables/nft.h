@@ -121,7 +121,6 @@ int add_match(struct nftnl_rule *r, struct xt_entry_match *m);
 int add_target(struct nftnl_rule *r, struct xt_entry_target *t);
 int add_jumpto(struct nftnl_rule *r, const char *name, int verdict);
 int add_action(struct nftnl_rule *r, struct iptables_command_state *cs, bool goto_set);
-int add_comment(struct nftnl_rule *r, const char *comment);
 char *get_comment(const void *data, uint32_t data_len);
 
 enum nft_rule_print {

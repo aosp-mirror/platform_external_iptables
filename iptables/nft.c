@@ -1129,33 +1129,6 @@ enum udata_type {
 };
 #define UDATA_TYPE_MAX (__UDATA_TYPE_MAX - 1)
 
-int add_comment(struct nftnl_rule *r, const char *comment)
-{
-	struct nftnl_udata_buf *udata;
-	uint32_t len;
-
-	if (nftnl_rule_get_data(r, NFTNL_RULE_USERDATA, &len))
-		return -EALREADY;
-
-	udata = nftnl_udata_buf_alloc(NFT_USERDATA_MAXLEN);
-	if (!udata)
-		return -ENOMEM;
-
-	if (strnlen(comment, 255) == 255)
-		return -ENOSPC;
-
-	if (!nftnl_udata_put_strz(udata, UDATA_TYPE_COMMENT, comment))
-		return -ENOMEM;
-
-	nftnl_rule_set_data(r, NFTNL_RULE_USERDATA,
-			    nftnl_udata_buf_data(udata),
-			    nftnl_udata_buf_len(udata));
-
-	nftnl_udata_buf_free(udata);
-
-	return 0;
-}
-
 static int parse_udata_cb(const struct nftnl_udata *attr, void *data)
 {
 	unsigned char *value = nftnl_udata_get(attr);
