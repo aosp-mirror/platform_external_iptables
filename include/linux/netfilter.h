@@ -5,8 +5,8 @@
 
 #ifndef _NETINET_IN_H
 #include <linux/in.h>
-#endif
 #include <linux/in6.h>
+#endif
 #include <limits.h>
 
 /* Responses from hook functions. */
