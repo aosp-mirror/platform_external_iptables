@@ -1,0 +1,93 @@
+cc_defaults {
+    name: "iptables_cmd_defaults",
+    defaults: ["iptables_defaults"],
+
+    cflags: [
+        "-Wno-missing-field-initializers",
+        "-Wno-parentheses-equality",
+
+        "-DNO_SHARED_LIBS=1",
+        "-DALL_INCLUSIVE",
+        "-DXTABLES_INTERNAL",
+    ],
+
+    header_libs: ["iptables_config_header"],
+
+    required: ["xtables.lock"],
+
+    srcs: [
+        "xtables-multi.c",
+        "iptables-xml.c",
+        "xshared.c",
+    ],
+
+    static_libs: [
+        "libext",
+        "libxtables",
+    ],
+}
+
+//----------------------------------------------------------------
+// The iptables lock file
+
+prebuilt_etc {
+    name: "xtables.lock",
+    src: "xtables.lock",
+}
+
+//----------------------------------------------------------------
+// iptables
+
+cc_binary {
+    name: "iptables",
+    defaults: ["iptables_cmd_defaults"],
+
+    // Undefine ENABLE_IPV6 (from defaults), since that's handled in ip6tables.
+    cflags: ["-UENABLE_IPV6"],
+
+    srcs: [
+        "iptables-save.c",
+        "iptables-restore.c",
+        "iptables-standalone.c",
+        "iptables.c",
+    ],
+
+    static_libs: [
+        "libext4",
+        "libip4tc",
+    ],
+
+    symlinks: [
+        "iptables-save",
+        "iptables-restore",
+    ],
+}
+
+//----------------------------------------------------------------
+// ip6tables
+cc_binary {
+    name: "ip6tables",
+    defaults: ["iptables_cmd_defaults"],
+
+    // Undefine ENABLE_IPV4 (from defaults), since that's handled in iptables.
+    cflags: ["-UENABLE_IPV4"],
+
+    srcs: [
+        "ip6tables-save.c",
+        "ip6tables-restore.c",
+        "ip6tables-standalone.c",
+        "ip6tables.c",
+    ],
+
+    static_libs: [
+        "libext6",
+        "libip6tc",
+    ],
+
+    symlinks: [
+        "ip6tables-save",
+        "ip6tables-restore",
+    ],
+}
+
+//----------------------------------------------------------------
