@@ -2991,7 +2991,9 @@ static int __nft_chain_zero_counters(struct nftnl_chain *c, void *data)
 			 * rule based on its handle only.
 			 */
 			nftnl_rule_unset(r, NFTNL_RULE_POSITION);
-			batch_rule_add(h, NFT_COMPAT_RULE_REPLACE, r);
+			ret = batch_rule_add(h, NFT_COMPAT_RULE_REPLACE, r);
+			if (ret)
+				return -1;
 		}
 		r = nftnl_rule_iter_next(iter);
 	}
