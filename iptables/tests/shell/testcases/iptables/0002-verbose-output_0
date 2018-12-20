@@ -29,23 +29,28 @@ Chain OUTPUT (policy ACCEPT 0 packets, 0 bytes)
 
 diff -u -Z <(echo -e "$EXPECT") <($XT_MULTI iptables -v -n -L)
 
+[[ -z $($XT_MULTI iptables -v -N foobar) ]] || exit 1
+
 diff -u -Z <(echo -e "$VOUT1") <($XT_MULTI iptables -v -D FORWARD $RULE1)
 diff -u -Z <(echo -e "$VOUT2") <($XT_MULTI iptables -v -D FORWARD $RULE2)
 
 EXPECT="Flushing chain \`INPUT'
 Flushing chain \`FORWARD'
-Flushing chain \`OUTPUT'"
+Flushing chain \`OUTPUT'
+Flushing chain \`foobar'"
 
 diff -u <(echo -e "$EXPECT") <($XT_MULTI iptables -v -F)
 
 EXPECT="Zeroing chain \`INPUT'
 Zeroing chain \`FORWARD'
-Zeroing chain \`OUTPUT'"
+Zeroing chain \`OUTPUT'
+Zeroing chain \`foobar'"
 
 diff -u <(echo -e "$EXPECT") <($XT_MULTI iptables -v -Z)
 
 diff -u <(echo "Flushing chain \`OUTPUT'") <($XT_MULTI iptables -v -F OUTPUT)
 diff -u <(echo "Zeroing chain \`OUTPUT'") <($XT_MULTI iptables -v -Z OUTPUT)
+diff -u <(echo "Flushing chain \`foobar'") <($XT_MULTI iptables -v -F foobar)
+diff -u <(echo "Zeroing chain \`foobar'") <($XT_MULTI iptables -v -Z foobar)
 
-$XT_MULTI iptables -N foo
-diff -u <(echo "Deleting chain \`foo'") <($XT_MULTI iptables -v -X foo)
+diff -u <(echo "Deleting chain \`foobar'") <($XT_MULTI iptables -v -X foobar)
