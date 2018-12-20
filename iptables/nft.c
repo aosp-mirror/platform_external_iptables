@@ -2247,6 +2247,24 @@ static int nft_rule_count(struct nft_handle *h, struct nftnl_chain *c)
 	return rule_ctr;
 }
 
+static void __nft_print_header(struct nft_handle *h,
+			       const struct nft_family_ops *ops,
+			       struct nftnl_chain *c, unsigned int format)
+{
+	const char *chain_name = nftnl_chain_get_str(c, NFTNL_CHAIN_NAME);
+	uint32_t policy = nftnl_chain_get_u32(c, NFTNL_CHAIN_POLICY);
+	bool basechain = !!nftnl_chain_get(c, NFTNL_CHAIN_HOOKNUM);
+	uint32_t refs = nftnl_chain_get_u32(c, NFTNL_CHAIN_USE);
+	uint32_t entries = nft_rule_count(h, c);
+	struct xt_counters ctrs = {
+		.pcnt = nftnl_chain_get_u64(c, NFTNL_CHAIN_PACKETS),
+		.bcnt = nftnl_chain_get_u64(c, NFTNL_CHAIN_BYTES),
+	};
+
+	ops->print_header(format, chain_name, policy_name[policy],
+			&ctrs, basechain, refs - entries, entries);
+}
+
 int nft_rule_list(struct nft_handle *h, const char *chain, const char *table,
 		  int rulenum, unsigned int format)
 {
@@ -2275,75 +2293,43 @@ int nft_rule_list(struct nft_handle *h, const char *chain, const char *table,
 		return 0;
 	}
 
-	if (chain && rulenum) {
-		c = nft_chain_find(h, table, chain);
-		if (!c)
-			return 0;
-
-		__nft_rule_list(h, c, rulenum, format, ops->print_rule);
-		return 1;
-	}
-
 	list = nft_chain_list_get(h, table);
 	if (!list)
 		return 0;
 
+	if (chain) {
+		c = nftnl_chain_list_lookup_byname(list, chain);
+		if (!c)
+			return 0;
+
+		if (!rulenum) {
+			if (ops->print_table_header)
+				ops->print_table_header(table);
+			__nft_print_header(h, ops, c, format);
+		}
+		__nft_rule_list(h, c, rulenum, format, ops->print_rule);
+		return 1;
+	}
+
 	iter = nftnl_chain_list_iter_create(list);
 	if (iter == NULL)
-		goto err;
+		return 0;
 
-	if (!chain && ops->print_table_header)
+	if (ops->print_table_header)
 		ops->print_table_header(table);
 
 	c = nftnl_chain_list_iter_next(iter);
 	while (c != NULL) {
-		const char *chain_name =
-			nftnl_chain_get_str(c, NFTNL_CHAIN_NAME);
-		uint32_t policy =
-			nftnl_chain_get_u32(c, NFTNL_CHAIN_POLICY);
-		uint32_t refs =
-			nftnl_chain_get_u32(c, NFTNL_CHAIN_USE);
-		struct xt_counters ctrs = {
-			.pcnt = nftnl_chain_get_u64(c, NFTNL_CHAIN_PACKETS),
-			.bcnt = nftnl_chain_get_u64(c, NFTNL_CHAIN_BYTES),
-		};
-		bool basechain = false;
-		uint32_t entries;
-
-		if (nftnl_chain_get(c, NFTNL_CHAIN_HOOKNUM))
-			basechain = true;
-
-		if (chain) {
-			if (strcmp(chain, chain_name) != 0)
-				goto next;
-			else if (ops->print_table_header)
-				ops->print_table_header(table);
-		}
-
 		if (found)
 			printf("\n");
 
-		entries = nft_rule_count(h, c);
-		ops->print_header(format, chain_name, policy_name[policy],
-				  &ctrs, basechain, refs - entries, entries);
-
+		__nft_print_header(h, ops, c, format);
 		__nft_rule_list(h, c, rulenum, format, ops->print_rule);
 
 		found = true;
-
-		/* we printed the chain we wanted, stop processing. */
-		if (chain)
-			break;
-
-next:
 		c = nftnl_chain_list_iter_next(iter);
 	}
-
 	nftnl_chain_list_iter_destroy(iter);
-err:
-	if (chain && !found)
-		return 0;
-
 	return 1;
 }
 
