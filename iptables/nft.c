@@ -2091,8 +2091,8 @@ nft_rule_add(struct nft_handle *h, const char *chain,
 int nft_rule_insert(struct nft_handle *h, const char *chain,
 		    const char *table, void *data, int rulenum, bool verbose)
 {
+	struct nftnl_rule_list *list = nft_rule_list_get(h);
 	struct nftnl_rule *r, *new_rule;
-	struct nftnl_rule_list *list;
 	uint64_t handle = 0;
 
 	/* If built-in chains don't exist for this table, create them */
@@ -2102,7 +2102,6 @@ int nft_rule_insert(struct nft_handle *h, const char *chain,
 	nft_fn = nft_rule_insert;
 
 	if (rulenum > 0) {
-		list = nft_rule_list_get(h);
 		if (list == NULL)
 			goto err;
 
@@ -2123,8 +2122,6 @@ int nft_rule_insert(struct nft_handle *h, const char *chain,
 
 		handle = nftnl_rule_get_u64(r, NFTNL_RULE_HANDLE);
 		DEBUGP("adding after rule handle %"PRIu64"\n", handle);
-	} else {
-		nft_rule_list_get(h);
 	}
 
 	new_rule = nft_rule_add(h, chain, table, data, handle, verbose);
