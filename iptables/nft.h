@@ -42,7 +42,7 @@ struct nft_handle {
 		struct nftnl_chain_list *chain_cache;
 		bool			initialized;
 	} table[NFT_TABLE_MAX];
-	struct nftnl_rule_list	*rule_cache;
+	bool			have_cache;
 	bool			restore;
 	int8_t			config_done;
 
