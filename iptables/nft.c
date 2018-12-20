@@ -1295,20 +1295,12 @@ err:
 	return MNL_CB_OK;
 }
 
-struct nftnl_chain_list *nft_chain_list_get(struct nft_handle *h,
-					    const char *table)
+static int fetch_chain_cache(struct nft_handle *h)
 {
 	char buf[16536];
 	struct nlmsghdr *nlh;
-	const struct builtin_table *t;
 	int i, ret;
 
-	t = nft_table_builtin_find(h, table);
-	if (!t)
-		return NULL;
-
-	if (h->table[t->type].chain_cache)
-		return h->table[t->type].chain_cache;
 retry:
 	for (i = 0; i < NFT_TABLE_MAX; i++) {
 		enum nft_table_type type = h->tables[i].type;
@@ -1318,7 +1310,7 @@ retry:
 
 		h->table[type].chain_cache = nftnl_chain_list_alloc();
 		if (!h->table[type].chain_cache)
-			return NULL;
+			return -1;
 	}
 
 	nlh = nftnl_chain_nlmsg_build_hdr(buf, NFT_MSG_GETCHAIN, h->family,
@@ -1330,6 +1322,21 @@ retry:
 		flush_chain_cache(h, NULL);
 		goto retry;
 	}
+
+	return ret;
+}
+
+struct nftnl_chain_list *nft_chain_list_get(struct nft_handle *h,
+					    const char *table)
+{
+	const struct builtin_table *t;
+
+	t = nft_table_builtin_find(h, table);
+	if (!t)
+		return NULL;
+
+	if (!h->table[t->type].chain_cache)
+		fetch_chain_cache(h);
 
 	return h->table[t->type].chain_cache;
 }
