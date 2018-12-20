@@ -2381,8 +2381,7 @@ list_save(struct nftnl_rule *r, unsigned int num, unsigned int format)
 
 static int
 nftnl_rule_list_chain_save(struct nft_handle *h, const char *chain,
-			 const char *table, struct nftnl_chain_list *list,
-			 int counters)
+			   struct nftnl_chain_list *list, int counters)
 {
 	struct nftnl_chain_list_iter *iter;
 	struct nftnl_chain *c;
@@ -2393,15 +2392,12 @@ nftnl_rule_list_chain_save(struct nft_handle *h, const char *chain,
 
 	c = nftnl_chain_list_iter_next(iter);
 	while (c != NULL) {
-		const char *chain_table =
-			nftnl_chain_get_str(c, NFTNL_CHAIN_TABLE);
 		const char *chain_name =
 			nftnl_chain_get_str(c, NFTNL_CHAIN_NAME);
 		uint32_t policy =
 			nftnl_chain_get_u32(c, NFTNL_CHAIN_POLICY);
 
-		if (strcmp(table, chain_table) != 0 ||
-		    (chain && strcmp(chain, chain_name) != 0))
+		if (chain && strcmp(chain, chain_name) != 0)
 			goto next;
 
 		/* this is a base chain */
@@ -2458,7 +2454,7 @@ int nft_rule_list_save(struct nft_handle *h, const char *chain,
 
 	/* Dump policies and custom chains first */
 	if (!rulenum)
-		nftnl_rule_list_chain_save(h, chain, table, list, counters);
+		nftnl_rule_list_chain_save(h, chain, list, counters);
 
 	/* Now dump out rules in this table */
 	iter = nftnl_chain_list_iter_create(list);
