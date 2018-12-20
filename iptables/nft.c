@@ -2311,7 +2311,7 @@ int nft_rule_list(struct nft_handle *h, const char *chain, const char *table,
 
 	list = nft_chain_list_get(h, table);
 	if (!list)
-		goto err; /* XXX: return 0 instead? */
+		return 0;
 
 	iter = nftnl_chain_list_iter_create(list);
 	if (iter == NULL)
@@ -2450,7 +2450,7 @@ int nft_rule_list_save(struct nft_handle *h, const char *chain,
 
 	list = nft_chain_list_get(h, table);
 	if (!list)
-		goto err; /* XXX: correct? */
+		goto err;
 
 	/* Dump policies and custom chains first */
 	if (!rulenum)
