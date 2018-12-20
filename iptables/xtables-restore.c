@@ -68,21 +68,6 @@ static struct nftnl_chain_list *get_chain_list(struct nft_handle *h,
 	return chain_list;
 }
 
-static void chain_delete(struct nftnl_chain_list *clist, const char *curtable,
-			 const char *chain)
-{
-	struct nftnl_chain *chain_obj;
-
-	chain_obj = nft_chain_list_find(clist, chain);
-	/* This chain has been found, delete from list. Later
-	 * on, unvisited chains will be purged out.
-	 */
-	if (chain_obj != NULL) {
-		nftnl_chain_list_del(chain_obj);
-		nftnl_chain_free(chain_obj);
-	}
-}
-
 struct nft_xt_restore_cb restore_cb = {
 	.chain_list	= get_chain_list,
 	.commit		= nft_commit,
@@ -90,7 +75,6 @@ struct nft_xt_restore_cb restore_cb = {
 	.table_new	= nft_table_new,
 	.table_flush	= nft_table_flush,
 	.chain_user_flush = nft_chain_user_flush,
-	.chain_del	= chain_delete,
 	.do_command	= do_commandx,
 	.chain_set	= nft_chain_set,
 	.chain_user_add	= nft_chain_user_add,
@@ -183,7 +167,6 @@ void xtables_restore_parse(struct nft_handle *h,
 			/* New chain. */
 			char *policy, *chain = NULL;
 			struct xt_counters count = {};
-			bool chain_exists = false;
 
 			chain = strtok(buffer+1, " \t\n");
 			DEBUGP("line %u, chain '%s'\n", line, chain);
@@ -192,21 +175,6 @@ void xtables_restore_parse(struct nft_handle *h,
 					   "%s: line %u chain name invalid\n",
 					   xt_params->program_name, line);
 				exit(1);
-			}
-
-			if (noflush == 0) {
-				if (cb->chain_del)
-					cb->chain_del(chain_list, curtable->name,
-						      chain);
-			} else if (nft_chain_list_find(chain_list, chain)) {
-				chain_exists = true;
-				/* Apparently -n still flushes existing user
-				 * defined chains that are redefined. Otherwise,
-				 * leave them as is.
-				 */
-				if (cb->chain_user_flush)
-					cb->chain_user_flush(h, chain_list,
-							     curtable->name, chain);
 			}
 
 			if (strlen(chain) >= XT_EXTENSION_MAXNAMELEN)
@@ -246,24 +214,28 @@ void xtables_restore_parse(struct nft_handle *h,
 				}
 				DEBUGP("Setting policy of chain %s to %s\n",
 				       chain, policy);
-				ret = 1;
 
-			} else {
-				if (!chain_exists &&
-				    cb->chain_user_add &&
-				    cb->chain_user_add(h, chain,
-						       curtable->name) < 0) {
-					if (errno == EEXIST)
-						continue;
+			} else if (noflush &&
+				   nftnl_chain_list_lookup_byname(chain_list, chain)) {
+				/* Apparently -n still flushes existing user
+				 * defined chains that are redefined. Otherwise,
+				 * leave them as is.
+				 */
+				if (cb->chain_user_flush)
+					cb->chain_user_flush(h, chain_list,
+							     curtable->name, chain);
+			} else if (cb->chain_user_add &&
+				   cb->chain_user_add(h, chain,
+						      curtable->name) < 0) {
+				if (errno == EEXIST)
+					continue;
 
-					xtables_error(PARAMETER_PROBLEM,
-						      "cannot create chain "
-						      "'%s' (%s)\n", chain,
-						      strerror(errno));
-				}
-				continue;
+				xtables_error(PARAMETER_PROBLEM,
+					      "cannot create chain "
+					      "'%s' (%s)\n", chain,
+					      strerror(errno));
 			}
-
+			ret = 1;
 		} else if (in_table) {
 			int a;
 			char *pcnt = NULL;
@@ -496,7 +468,6 @@ struct nft_xt_restore_cb ebt_restore_cb = {
 	.table_new	= nft_table_new,
 	.table_flush	= nft_table_flush,
 	.chain_user_flush = nft_chain_user_flush,
-	.chain_del	= chain_delete,
 	.do_command	= do_commandeb,
 	.chain_set	= nft_chain_set,
 	.chain_user_add	= nft_chain_user_add,
@@ -542,7 +513,6 @@ struct nft_xt_restore_cb arp_restore_cb = {
 	.table_new	= nft_table_new,
 	.table_flush	= nft_table_flush,
 	.chain_user_flush = nft_chain_user_flush,
-	.chain_del	= chain_delete,
 	.do_command	= do_commandarp,
 	.chain_set	= nft_chain_set,
 	.chain_user_add	= nft_chain_user_add,
