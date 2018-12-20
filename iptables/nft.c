@@ -1946,8 +1946,7 @@ void nft_table_new(struct nft_handle *h, const char *table)
 		nft_xt_builtin_init(h, table);
 }
 
-static int __nft_rule_del(struct nft_handle *h, struct nftnl_rule_list *list,
-			  struct nftnl_rule *r)
+static int __nft_rule_del(struct nft_handle *h, struct nftnl_rule *r)
 {
 	int ret;
 
@@ -2046,7 +2045,7 @@ int nft_rule_delete(struct nft_handle *h, const char *chain,
 
 	r = nft_rule_find(h, list, chain, table, data, -1);
 	if (r != NULL) {
-		ret =__nft_rule_del(h, list, r);
+		ret =__nft_rule_del(h, r);
 		if (ret < 0)
 			errno = ENOMEM;
 		if (verbose)
@@ -2151,7 +2150,7 @@ int nft_rule_delete_num(struct nft_handle *h, const char *chain,
 	r = nft_rule_find(h, list, chain, table, NULL, rulenum);
 	if (r != NULL) {
 		DEBUGP("deleting rule by number %d\n", rulenum);
-		ret = __nft_rule_del(h, list, r);
+		ret = __nft_rule_del(h, r);
 		if (ret < 0)
 			errno = ENOMEM;
 	} else
