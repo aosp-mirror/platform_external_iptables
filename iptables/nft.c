@@ -1976,8 +1976,11 @@ nft_rule_find(struct nft_handle *h, struct nftnl_chain *c, void *data, int rulen
 {
 	struct nftnl_rule *r;
 	struct nftnl_rule_iter *iter;
-	int rule_ctr = 0;
 	bool found = false;
+
+	if (rulenum >= 0)
+		/* Delete by rule number case */
+		return nftnl_rule_lookup_byindex(c, rulenum);
 
 	iter = nftnl_rule_iter_create(c);
 	if (iter == NULL)
@@ -1985,18 +1988,9 @@ nft_rule_find(struct nft_handle *h, struct nftnl_chain *c, void *data, int rulen
 
 	r = nftnl_rule_iter_next(iter);
 	while (r != NULL) {
-		if (rulenum >= 0) {
-			/* Delete by rule number case */
-			if (rule_ctr == rulenum) {
-			    found = true;
-			    break;
-			}
-		} else {
-			found = h->ops->rule_find(h->ops, r, data);
-			if (found)
-				break;
-		}
-		rule_ctr++;
+		found = h->ops->rule_find(h->ops, r, data);
+		if (found)
+			break;
 		r = nftnl_rule_iter_next(iter);
 	}
 
@@ -2201,6 +2195,17 @@ __nft_rule_list(struct nft_handle *h, struct nftnl_chain *c,
 	struct nftnl_rule_iter *iter;
 	struct nftnl_rule *r;
 	int rule_ctr = 0;
+
+	if (rulenum > 0) {
+		r = nftnl_rule_lookup_byindex(c, rulenum - 1);
+		if (!r)
+			/* iptables-legacy returns 0 when listing for
+			 * valid chain but invalid rule number
+			 */
+			return 1;
+		cb(r, rulenum, format);
+		return 1;
+	}
 
 	iter = nftnl_rule_iter_create(c);
 	if (iter == NULL)
