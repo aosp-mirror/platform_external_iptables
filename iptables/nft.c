@@ -2939,15 +2939,36 @@ int nft_xtables_config_load(struct nft_handle *h, const char *filename,
 	return h->config_done;
 }
 
-static void nft_chain_zero_rule_counters(struct nft_handle *h,
-					 struct nftnl_chain *c)
+struct chain_zero_data {
+	struct nft_handle	*handle;
+	bool			verbose;
+};
+
+static int __nft_chain_zero_counters(struct nftnl_chain *c, void *data)
 {
+	struct chain_zero_data *d = data;
+	struct nft_handle *h = d->handle;
 	struct nftnl_rule_iter *iter;
 	struct nftnl_rule *r;
+	int ret = 0;
+
+	if (d->verbose)
+		fprintf(stdout, "Zeroing chain `%s'\n",
+			nftnl_chain_get_str(c, NFTNL_CHAIN_NAME));
+
+	if (nftnl_chain_is_set(c, NFTNL_CHAIN_HOOKNUM)) {
+		/* zero base chain counters. */
+		nftnl_chain_set_u64(c, NFTNL_CHAIN_PACKETS, 0);
+		nftnl_chain_set_u64(c, NFTNL_CHAIN_BYTES, 0);
+		nftnl_chain_unset(c, NFTNL_CHAIN_HANDLE);
+		ret = batch_chain_add(h, NFT_COMPAT_CHAIN_ZERO, c);
+		if (ret)
+			return -1;
+	}
 
 	iter = nftnl_rule_iter_create(c);
 	if (iter == NULL)
-		return;
+		return -1;
 
 	r = nftnl_rule_iter_next(iter);
 	while (r != NULL) {
@@ -2989,13 +3010,17 @@ static void nft_chain_zero_rule_counters(struct nft_handle *h,
 	}
 
 	nftnl_rule_iter_destroy(iter);
+	return 0;
 }
 
 int nft_chain_zero_counters(struct nft_handle *h, const char *chain,
 			    const char *table, bool verbose)
 {
 	struct nftnl_chain_list *list;
-	struct nftnl_chain_list_iter *iter;
+	struct chain_zero_data d = {
+		.handle = h,
+		.verbose = verbose,
+	};
 	struct nftnl_chain *c;
 	int ret = 0;
 
@@ -3003,41 +3028,16 @@ int nft_chain_zero_counters(struct nft_handle *h, const char *chain,
 	if (list == NULL)
 		goto err;
 
-	iter = nftnl_chain_list_iter_create(list);
-	if (iter == NULL)
+	if (chain) {
+		c = nftnl_chain_list_lookup_byname(list, chain);
+		if (!c)
+			return 0;
+
+		ret = __nft_chain_zero_counters(c, &d);
 		goto err;
-
-	c = nftnl_chain_list_iter_next(iter);
-	while (c != NULL) {
-		const char *chain_name =
-			nftnl_chain_get(c, NFTNL_CHAIN_NAME);
-
-		if (chain != NULL && strcmp(chain, chain_name) != 0)
-			goto next;
-
-		if (verbose)
-			fprintf(stdout, "Zeroing chain `%s'\n", chain_name);
-
-		if (nftnl_chain_is_set(c, NFTNL_CHAIN_HOOKNUM)) {
-			/* zero base chain counters. */
-			nftnl_chain_set_u64(c, NFTNL_CHAIN_PACKETS, 0);
-			nftnl_chain_set_u64(c, NFTNL_CHAIN_BYTES, 0);
-		}
-
-		nft_chain_zero_rule_counters(h, c);
-
-		nftnl_chain_unset(c, NFTNL_CHAIN_HANDLE);
-
-		ret = batch_chain_add(h, NFT_COMPAT_CHAIN_ZERO, c);
-
-		if (chain != NULL)
-			break;
-next:
-		c = nftnl_chain_list_iter_next(iter);
 	}
 
-	nftnl_chain_list_iter_destroy(iter);
-
+	ret = nftnl_chain_list_foreach(list, __nft_chain_zero_counters, &d);
 err:
 	/* the core expects 1 for success and 0 for error */
 	return ret == 0 ? 1 : 0;
