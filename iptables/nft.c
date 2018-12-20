@@ -1642,63 +1642,66 @@ int nft_chain_user_add(struct nft_handle *h, const char *chain, const char *tabl
 #define NLM_F_NONREC	0x100	/* Do not delete recursively    */
 #endif
 
+struct chain_user_del_data {
+	struct nft_handle	*handle;
+	bool			verbose;
+	int			builtin_err;
+};
+
+static int __nft_chain_user_del(struct nftnl_chain *c, void *data)
+{
+	struct chain_user_del_data *d = data;
+	struct nft_handle *h = d->handle;
+	int ret;
+
+	/* don't delete built-in chain */
+	if (nft_chain_builtin(c))
+		return d->builtin_err;
+
+	if (d->verbose)
+		fprintf(stdout, "Deleting chain `%s'\n",
+			nftnl_chain_get_str(c, NFTNL_CHAIN_NAME));
+
+	ret = batch_chain_add(h, NFT_COMPAT_CHAIN_USER_DEL, c);
+	if (ret)
+		return -1;
+
+	nftnl_chain_list_del(c);
+	return 0;
+}
+
 int nft_chain_user_del(struct nft_handle *h, const char *chain,
 		       const char *table, bool verbose)
 {
+	struct chain_user_del_data d = {
+		.handle = h,
+		.verbose = verbose,
+	};
 	struct nftnl_chain_list *list;
-	struct nftnl_chain_list_iter *iter;
 	struct nftnl_chain *c;
 	int ret = 0;
-	int deleted_ctr = 0;
 
 	nft_fn = nft_chain_user_del;
 
 	list = nft_chain_list_get(h, table);
 	if (list == NULL)
-		goto err;
+		return 0;
 
-	iter = nftnl_chain_list_iter_create(list);
-	if (iter == NULL)
-		goto err;
-
-	c = nftnl_chain_list_iter_next(iter);
-	while (c != NULL) {
-		const char *chain_name =
-			nftnl_chain_get_str(c, NFTNL_CHAIN_NAME);
-
-		/* don't delete built-in chain */
-		if (nft_chain_builtin(c))
-			goto next;
-
-		if (chain != NULL && strcmp(chain, chain_name) != 0)
-			goto next;
-
-		if (verbose)
-			fprintf(stdout, "Deleting chain `%s'\n", chain);
-
-		ret = batch_chain_add(h, NFT_COMPAT_CHAIN_USER_DEL, c);
-
-		if (ret < 0)
-			break;
-
-		deleted_ctr++;
-		nftnl_chain_list_del(c);
-
-		if (chain != NULL)
-			break;
-next:
-		c = nftnl_chain_list_iter_next(iter);
+	if (chain) {
+		c = nftnl_chain_list_lookup_byname(list, chain);
+		if (!c) {
+			errno = ENOENT;
+			return 0;
+		}
+		d.builtin_err = -2;
+		ret = __nft_chain_user_del(c, &d);
+		if (ret == -2)
+			errno = EINVAL;
+		goto out;
 	}
 
-	nftnl_chain_list_iter_destroy(iter);
-err:
-
-	/* chain not found */
-	if (chain != NULL && deleted_ctr == 0) {
-		ret = -1;
-		errno = ENOENT;
-	}
-
+	ret = nftnl_chain_list_foreach(list, __nft_chain_user_del, &d);
+out:
 	/* the core expects 1 for success and 0 for error */
 	return ret == 0 ? 1 : 0;
 }
