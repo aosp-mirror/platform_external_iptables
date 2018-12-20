@@ -815,16 +815,20 @@ static void flush_chain_cache(struct nft_handle *h, const char *tablename)
 		if (tablename && strcmp(h->tables[i].name, tablename))
 			continue;
 
-		if (h->table[i].chain_cache) {
-			if (tablename) {
-				nftnl_chain_list_foreach(h->table[i].chain_cache,
-							 __flush_chain_cache, NULL);
-				break;
-			} else {
-				nftnl_chain_list_free(h->table[i].chain_cache);
-				h->table[i].chain_cache = NULL;
-			}
+		if (!h->table[i].chain_cache) {
+			if (tablename)
+				return;
+			continue;
 		}
+
+		if (tablename) {
+			nftnl_chain_list_foreach(h->table[i].chain_cache,
+						 __flush_chain_cache, NULL);
+			return;
+		}
+
+		nftnl_chain_list_free(h->table[i].chain_cache);
+		h->table[i].chain_cache = NULL;
 	}
 }
 
