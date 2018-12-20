@@ -83,8 +83,6 @@ struct nftnl_chain;
 int nft_chain_set(struct nft_handle *h, const char *table, const char *chain, const char *policy, const struct xt_counters *counters);
 struct nftnl_chain_list *nft_chain_list_get(struct nft_handle *h,
 					    const char *table);
-struct nftnl_chain *nft_chain_list_find(struct nftnl_chain_list *list,
-					const char *chain);
 int nft_chain_save(struct nft_handle *h, struct nftnl_chain_list *list);
 int nft_chain_user_add(struct nft_handle *h, const char *chain, const char *table);
 int nft_chain_user_del(struct nft_handle *h, const char *chain, const char *table, bool verbose);

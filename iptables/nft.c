@@ -697,7 +697,7 @@ static void nft_chain_builtin_init(struct nft_handle *h,
 	/* Initialize built-in chains if they don't exist yet */
 	for (i=0; i < NF_INET_NUMHOOKS && table->chains[i].name != NULL; i++) {
 
-		c = nft_chain_list_find(list, table->chains[i].name);
+		c = nftnl_chain_list_lookup_byname(list, table->chains[i].name);
 		if (c != NULL)
 			continue;
 
@@ -1699,33 +1699,6 @@ err:
 	return ret == 0 ? 1 : 0;
 }
 
-struct nftnl_chain *
-nft_chain_list_find(struct nftnl_chain_list *list, const char *chain)
-{
-	struct nftnl_chain_list_iter *iter;
-	struct nftnl_chain *c;
-
-	iter = nftnl_chain_list_iter_create(list);
-	if (iter == NULL)
-		return NULL;
-
-	c = nftnl_chain_list_iter_next(iter);
-	while (c != NULL) {
-		const char *chain_name =
-			nftnl_chain_get_str(c, NFTNL_CHAIN_NAME);
-
-		if (strcmp(chain, chain_name) != 0)
-			goto next;
-
-		nftnl_chain_list_iter_destroy(iter);
-		return c;
-next:
-		c = nftnl_chain_list_iter_next(iter);
-	}
-	nftnl_chain_list_iter_destroy(iter);
-	return NULL;
-}
-
 static struct nftnl_chain *
 nft_chain_find(struct nft_handle *h, const char *table, const char *chain)
 {
@@ -1735,7 +1708,7 @@ nft_chain_find(struct nft_handle *h, const char *table, const char *chain)
 	if (list == NULL)
 		return NULL;
 
-	return nft_chain_list_find(list, chain);
+	return nftnl_chain_list_lookup_byname(list, chain);
 }
 
 bool nft_chain_exists(struct nft_handle *h,
