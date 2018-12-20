@@ -2339,46 +2339,44 @@ list_save(struct nftnl_rule *r, unsigned int num, unsigned int format)
 	nft_rule_print_save(r, NFT_RULE_APPEND, format);
 }
 
+static int __nftnl_rule_list_chain_save(struct nftnl_chain *c, void *data)
+{
+	const char *chain_name = nftnl_chain_get_str(c, NFTNL_CHAIN_NAME);
+	uint32_t policy = nftnl_chain_get_u32(c, NFTNL_CHAIN_POLICY);
+	int *counters = data;
+
+	if (!nft_chain_builtin(c)) {
+		printf("-N %s\n", chain_name);
+		return 0;
+	}
+
+	/* this is a base chain */
+
+	printf("-P %s %s", chain_name, policy_name[policy]);
+	if (*counters)
+		printf(" -c %"PRIu64" %"PRIu64,
+		       nftnl_chain_get_u64(c, NFTNL_CHAIN_PACKETS),
+		       nftnl_chain_get_u64(c, NFTNL_CHAIN_BYTES));
+	printf("\n");
+	return 0;
+}
+
 static int
 nftnl_rule_list_chain_save(struct nft_handle *h, const char *chain,
 			   struct nftnl_chain_list *list, int counters)
 {
-	struct nftnl_chain_list_iter *iter;
 	struct nftnl_chain *c;
 
-	iter = nftnl_chain_list_iter_create(list);
-	if (iter == NULL)
-		return 0;
+	if (chain) {
+		c = nftnl_chain_list_lookup_byname(list, chain);
+		if (!c)
+			return 0;
 
-	c = nftnl_chain_list_iter_next(iter);
-	while (c != NULL) {
-		const char *chain_name =
-			nftnl_chain_get_str(c, NFTNL_CHAIN_NAME);
-		uint32_t policy =
-			nftnl_chain_get_u32(c, NFTNL_CHAIN_POLICY);
-
-		if (chain && strcmp(chain, chain_name) != 0)
-			goto next;
-
-		/* this is a base chain */
-		if (nft_chain_builtin(c)) {
-			printf("-P %s %s", chain_name, policy_name[policy]);
-
-			if (counters) {
-				printf(" -c %"PRIu64" %"PRIu64"\n",
-					nftnl_chain_get_u64(c, NFTNL_CHAIN_PACKETS),
-					nftnl_chain_get_u64(c, NFTNL_CHAIN_BYTES));
-			} else
-				printf("\n");
-		} else {
-			printf("-N %s\n", chain_name);
-		}
-next:
-		c = nftnl_chain_list_iter_next(iter);
+		__nftnl_rule_list_chain_save(c, &counters);
+		return 1;
 	}
 
-	nftnl_chain_list_iter_destroy(iter);
-
+	nftnl_chain_list_foreach(list, __nftnl_rule_list_chain_save, &counters);
 	return 1;
 }
 
@@ -2410,41 +2408,36 @@ int nft_rule_list_save(struct nft_handle *h, const char *chain,
 
 	list = nft_chain_list_get(h, table);
 	if (!list)
-		goto err;
+		return 0;
 
 	/* Dump policies and custom chains first */
 	if (!rulenum)
 		nftnl_rule_list_chain_save(h, chain, list, counters);
-
-	/* Now dump out rules in this table */
-	iter = nftnl_chain_list_iter_create(list);
-	if (iter == NULL)
-		goto err;
 
 	if (counters < 0)
 		format = FMT_C_COUNTS;
 	else if (counters == 0)
 		format = FMT_NOCOUNTS;
 
-	c = nftnl_chain_list_iter_next(iter);
-	while (c != NULL) {
-		const char *chain_name =
-			nftnl_chain_get_str(c, NFTNL_CHAIN_NAME);
+	if (chain) {
+		c = nftnl_chain_list_lookup_byname(list, chain);
+		if (!c)
+			return 0;
 
-		if (chain && strcmp(chain, chain_name) != 0)
-			goto next;
-
-		ret = __nft_rule_list(h, c, rulenum, format, list_save);
-
-		/* we printed the chain we wanted, stop processing. */
-		if (chain)
-			break;
-next:
-		c = nftnl_chain_list_iter_next(iter);
+		return __nft_rule_list(h, c, rulenum, format, list_save);
 	}
 
+	/* Now dump out rules in this table */
+	iter = nftnl_chain_list_iter_create(list);
+	if (iter == NULL)
+		return 0;
+
+	c = nftnl_chain_list_iter_next(iter);
+	while (c != NULL) {
+		ret = __nft_rule_list(h, c, rulenum, format, list_save);
+		c = nftnl_chain_list_iter_next(iter);
+	}
 	nftnl_chain_list_iter_destroy(iter);
-err:
 	return ret;
 }
 
