@@ -1496,9 +1496,13 @@ int nft_rule_save(struct nft_handle *h, const char *table, unsigned int format)
 }
 
 static void
-__nft_rule_flush(struct nft_handle *h, const char *table, const char *chain)
+__nft_rule_flush(struct nft_handle *h, const char *table,
+		 const char *chain, bool verbose)
 {
 	struct nftnl_rule *r;
+
+	if (verbose)
+		fprintf(stdout, "Flushing chain `%s'\n", chain);
 
 	r = nftnl_rule_alloc();
 	if (r == NULL)
@@ -1533,7 +1537,7 @@ static int __nft_chain_user_flush(struct nftnl_chain *c, void *data)
 		return 0;
 
 	if (!nftnl_chain_is_set(c, NFTNL_CHAIN_HOOKNUM))
-		__nft_rule_flush(h, table, chain);
+		__nft_rule_flush(h, table, chain, false);
 
 	return 0;
 }
@@ -1573,6 +1577,16 @@ int nft_rule_flush(struct nft_handle *h, const char *chain, const char *table,
 		goto err;
 	}
 
+	if (chain) {
+		c = nftnl_chain_list_lookup_byname(list, chain);
+		if (!c)
+			return 0;
+
+		__nft_rule_flush(h, table, chain, verbose);
+		flush_rule_cache(c);
+		return 1;
+	}
+
 	iter = nftnl_chain_list_iter_create(list);
 	if (iter == NULL) {
 		ret = 1;
@@ -1584,18 +1598,8 @@ int nft_rule_flush(struct nft_handle *h, const char *chain, const char *table,
 		const char *chain_name =
 			nftnl_chain_get_str(c, NFTNL_CHAIN_NAME);
 
-		if (chain != NULL && strcmp(chain, chain_name) != 0)
-			goto next;
-
-		if (verbose)
-			fprintf(stdout, "Flushing chain `%s'\n", chain_name);
-
-		__nft_rule_flush(h, table, chain_name);
+		__nft_rule_flush(h, table, chain_name, verbose);
 		flush_rule_cache(c);
-
-		if (chain != NULL)
-			break;
-next:
 		c = nftnl_chain_list_iter_next(iter);
 	}
 	nftnl_chain_list_iter_destroy(iter);
