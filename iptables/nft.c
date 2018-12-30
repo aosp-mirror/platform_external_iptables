@@ -3077,11 +3077,12 @@ static int nft_is_rule_compatible(struct nftnl_rule *rule, void *data)
 
 static int nft_is_chain_compatible(struct nftnl_chain *c, void *data)
 {
-	const struct builtin_chain *chains = NULL, *chain = NULL;
-	const char *table, *name, *type;
+	const struct builtin_table *table;
+	const struct builtin_chain *chain;
+	const char *tname, *cname, *type;
 	struct nft_handle *h = data;
 	enum nf_inet_hooks hook;
-	int i, prio;
+	int prio;
 
 	if (nftnl_rule_foreach(c, nft_is_rule_compatible, NULL))
 		return -1;
@@ -3089,33 +3090,16 @@ static int nft_is_chain_compatible(struct nftnl_chain *c, void *data)
 	if (!nft_chain_builtin(c))
 		return 0;
 
-	/* find chain's table in builtin tables */
-	table = nftnl_chain_get_str(c, NFTNL_CHAIN_TABLE);
-	for (i = 0; i < NFT_TABLE_MAX; i++) {
-		const char *cur_table = h->tables[i].name;
-
-		if (!cur_table || strcmp(cur_table, table))
-			continue;
-
-		chains = h->tables[i].chains;
-		break;
-	}
-	if (!chains)
+	tname = nftnl_chain_get_str(c, NFTNL_CHAIN_TABLE);
+	table = nft_table_builtin_find(h, tname);
+	if (!table)
 		return -1;
 
-	/* find chain in builtin chain list */
-	name = nftnl_chain_get_str(c, NFTNL_CHAIN_NAME);
-	for (i = 0; i < NF_INET_NUMHOOKS && chains[i].name; i++) {
-		if (strcmp(name, chains[i].name))
-			continue;
-
-		chain = &chains[i];
-		break;
-	}
+	cname = nftnl_chain_get_str(c, NFTNL_CHAIN_NAME);
+	chain = nft_chain_builtin_find(table, cname);
 	if (!chain)
 		return -1;
 
-	/* compare properties */
 	type = nftnl_chain_get_str(c, NFTNL_CHAIN_TYPE);
 	prio = nftnl_chain_get_u32(c, NFTNL_CHAIN_PRIO);
 	hook = nftnl_chain_get_u32(c, NFTNL_CHAIN_HOOKNUM);
