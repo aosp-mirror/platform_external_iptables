@@ -2007,17 +2007,19 @@ int nft_rule_check(struct nft_handle *h, const char *chain,
 
 	c = nft_chain_find(h, table, chain);
 	if (!c)
-		return 0;
+		goto fail_enoent;
 
 	r = nft_rule_find(h, c, data, -1);
-	if (r == NULL) {
-		errno = ENOENT;
-		return 0;
-	}
+	if (r == NULL)
+		goto fail_enoent;
+
 	if (verbose)
 		h->ops->print_rule(r, 0, FMT_PRINT_RULE);
 
 	return 1;
+fail_enoent:
+	errno = ENOENT;
+	return 0;
 }
 
 int nft_rule_delete(struct nft_handle *h, const char *chain,
