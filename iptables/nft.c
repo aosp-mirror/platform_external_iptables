@@ -793,26 +793,24 @@ static int __flush_chain_cache(struct nftnl_chain *c, void *data)
 
 static void flush_chain_cache(struct nft_handle *h, const char *tablename)
 {
+	const struct builtin_table *table;
 	int i;
+
+	if (tablename) {
+		table = nft_table_builtin_find(h, tablename);
+		if (!table || !h->table[table->type].chain_cache)
+			return;
+		nftnl_chain_list_foreach(h->table[table->type].chain_cache,
+					 __flush_chain_cache, NULL);
+		return;
+	}
 
 	for (i = 0; i < NFT_TABLE_MAX; i++) {
 		if (h->tables[i].name == NULL)
 			continue;
 
-		if (tablename && strcmp(h->tables[i].name, tablename))
+		if (!h->table[i].chain_cache)
 			continue;
-
-		if (!h->table[i].chain_cache) {
-			if (tablename)
-				return;
-			continue;
-		}
-
-		if (tablename) {
-			nftnl_chain_list_foreach(h->table[i].chain_cache,
-						 __flush_chain_cache, NULL);
-			return;
-		}
 
 		nftnl_chain_list_free(h->table[i].chain_cache);
 		h->table[i].chain_cache = NULL;
