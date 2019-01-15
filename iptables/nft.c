@@ -2063,16 +2063,30 @@ int nft_rule_delete(struct nft_handle *h, const char *chain,
 static struct nftnl_rule *
 nft_rule_add(struct nft_handle *h, const char *chain,
 	     const char *table, struct iptables_command_state *cs,
-	     uint64_t handle, bool verbose)
+	     struct nftnl_rule *ref, bool verbose)
 {
 	struct nftnl_rule *r;
+	uint64_t ref_id;
 
 	r = nft_rule_new(h, chain, table, cs);
 	if (r == NULL)
 		return NULL;
 
-	if (handle > 0)
-		nftnl_rule_set_u64(r, NFTNL_RULE_POSITION, handle);
+	if (ref) {
+		ref_id = nftnl_rule_get_u64(ref, NFTNL_RULE_HANDLE);
+		if (ref_id > 0) {
+			nftnl_rule_set_u64(r, NFTNL_RULE_POSITION, ref_id);
+			DEBUGP("adding after rule handle %"PRIu64"\n", ref_id);
+		} else {
+			ref_id = nftnl_rule_get_u32(ref, NFTNL_RULE_ID);
+			if (!ref_id) {
+				ref_id = ++h->rule_id;
+				nftnl_rule_set_u32(ref, NFTNL_RULE_ID, ref_id);
+			}
+			nftnl_rule_set_u32(r, NFTNL_RULE_POSITION_ID, ref_id);
+			DEBUGP("adding after rule ID %"PRIu64"\n", ref_id);
+		}
+	}
 
 	if (batch_rule_add(h, NFT_COMPAT_RULE_INSERT, r) < 0) {
 		nftnl_rule_free(r);
@@ -2088,9 +2102,8 @@ nft_rule_add(struct nft_handle *h, const char *chain,
 int nft_rule_insert(struct nft_handle *h, const char *chain,
 		    const char *table, void *data, int rulenum, bool verbose)
 {
-	struct nftnl_rule *r, *new_rule;
+	struct nftnl_rule *r = NULL, *new_rule;
 	struct nftnl_chain *c;
-	uint64_t handle = 0;
 
 	/* If built-in chains don't exist for this table, create them */
 	if (nft_xtables_config_load(h, XTABLES_CONFIG_DEFAULT, 0) < 0)
@@ -2118,16 +2131,13 @@ int nft_rule_insert(struct nft_handle *h, const char *chain,
 			errno = ENOENT;
 			goto err;
 		}
-
-		handle = nftnl_rule_get_u64(r, NFTNL_RULE_HANDLE);
-		DEBUGP("adding after rule handle %"PRIu64"\n", handle);
 	}
 
-	new_rule = nft_rule_add(h, chain, table, data, handle, verbose);
+	new_rule = nft_rule_add(h, chain, table, data, r, verbose);
 	if (!new_rule)
 		goto err;
 
-	if (handle)
+	if (r)
 		nftnl_chain_rule_insert_at(new_rule, r);
 	else
 		nftnl_chain_rule_add(new_rule, c);

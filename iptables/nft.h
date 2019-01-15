@@ -32,6 +32,7 @@ struct nft_handle {
 	struct mnl_socket	*nl;
 	uint32_t		portid;
 	uint32_t		seq;
+	uint32_t		rule_id;
 	struct list_head	obj_list;
 	int			obj_list_num;
 	struct nftnl_batch	*batch;
