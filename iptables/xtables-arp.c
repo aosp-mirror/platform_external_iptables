@@ -826,7 +826,7 @@ append_entry(struct nft_handle *h,
 		for (j = 0; j < ndaddrs; j++) {
 			cs->arp.arp.tgt.s_addr = daddrs[j].s_addr;
 			if (append) {
-				ret = nft_rule_append(h, chain, table, cs, 0,
+				ret = nft_rule_append(h, chain, table, cs, NULL,
 						      verbose);
 			} else {
 				ret = nft_rule_insert(h, chain, table, cs,

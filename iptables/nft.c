@@ -1186,7 +1186,7 @@ nft_chain_find(struct nft_handle *h, const char *table, const char *chain);
 
 int
 nft_rule_append(struct nft_handle *h, const char *chain, const char *table,
-		void *data, uint64_t handle, bool verbose)
+		void *data, struct nftnl_rule *ref, bool verbose)
 {
 	struct nftnl_chain *c;
 	struct nftnl_rule *r;
@@ -1202,8 +1202,9 @@ nft_rule_append(struct nft_handle *h, const char *chain, const char *table,
 	if (r == NULL)
 		return 0;
 
-	if (handle > 0) {
-		nftnl_rule_set(r, NFTNL_RULE_HANDLE, &handle);
+	if (ref) {
+		nftnl_rule_set_u64(r, NFTNL_RULE_HANDLE,
+				   nftnl_rule_get_u64(ref, NFTNL_RULE_HANDLE));
 		type = NFT_COMPAT_RULE_REPLACE;
 	} else
 		type = NFT_COMPAT_RULE_APPEND;
@@ -1216,12 +1217,17 @@ nft_rule_append(struct nft_handle *h, const char *chain, const char *table,
 	if (verbose)
 		h->ops->print_rule(r, 0, FMT_PRINT_RULE);
 
-	c = nft_chain_find(h, table, chain);
-	if (!c) {
-		errno = ENOENT;
-		return 0;
+	if (ref) {
+		nftnl_chain_rule_insert_at(r, ref);
+		nftnl_chain_rule_del(r);
+	} else {
+		c = nft_chain_find(h, table, chain);
+		if (!c) {
+			errno = ENOENT;
+			return 0;
+		}
+		nftnl_chain_rule_add_tail(r, c);
 	}
-	nftnl_chain_rule_add_tail(r, c);
 
 	return 1;
 }
@@ -2107,7 +2113,7 @@ int nft_rule_insert(struct nft_handle *h, const char *chain,
 			r = nft_rule_find(h, c, data, rulenum - 1);
 			if (r != NULL)
 				return nft_rule_append(h, chain, table, data,
-						       0, verbose);
+						       NULL, verbose);
 
 			errno = ENOENT;
 			goto err;
@@ -2179,11 +2185,7 @@ int nft_rule_replace(struct nft_handle *h, const char *chain,
 			(unsigned long long)
 			nftnl_rule_get_u64(r, NFTNL_RULE_HANDLE));
 
-		nftnl_rule_list_del(r);
-
-		ret = nft_rule_append(h, chain, table, data,
-				      nftnl_rule_get_u64(r, NFTNL_RULE_HANDLE),
-				      verbose);
+		ret = nft_rule_append(h, chain, table, data, r, verbose);
 	} else
 		errno = ENOENT;
 
@@ -2459,9 +2461,7 @@ int nft_rule_zero_counters(struct nft_handle *h, const char *chain,
 
 	cs.counters.pcnt = cs.counters.bcnt = 0;
 
-	ret =  nft_rule_append(h, chain, table, &cs,
-			       nftnl_rule_get_u64(r, NFTNL_RULE_HANDLE),
-			       false);
+	ret =  nft_rule_append(h, chain, table, &cs, r, false);
 
 error:
 	return ret;

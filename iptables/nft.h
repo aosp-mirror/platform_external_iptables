@@ -98,7 +98,7 @@ bool nft_chain_exists(struct nft_handle *h, const char *table, const char *chain
  */
 struct nftnl_rule;
 
-int nft_rule_append(struct nft_handle *h, const char *chain, const char *table, void *data, uint64_t handle, bool verbose);
+int nft_rule_append(struct nft_handle *h, const char *chain, const char *table, void *data, struct nftnl_rule *ref, bool verbose);
 int nft_rule_insert(struct nft_handle *h, const char *chain, const char *table, void *data, int rulenum, bool verbose);
 int nft_rule_check(struct nft_handle *h, const char *chain, const char *table, void *data, bool verbose);
 int nft_rule_delete(struct nft_handle *h, const char *chain, const char *table, void *data, bool verbose);
