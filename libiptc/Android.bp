@@ -1,0 +1,22 @@
+cc_defaults {
+    name: "libiptc_defaults",
+    defaults: ["iptables_defaults"],
+
+    cflags: ["-Wno-pointer-sign"],
+}
+
+cc_library_static {
+    name: "libip4tc",
+    defaults: ["libiptc_defaults"],
+
+    srcs: ["libip4tc.c"],
+}
+
+cc_library_static {
+    name: "libip6tc",
+    defaults: ["libiptc_defaults"],
+
+    cflags: ["-Wno-unused-function"],
+
+    srcs: ["libip6tc.c"],
+}

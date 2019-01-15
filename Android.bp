@@ -1,0 +1,36 @@
+cc_library_headers {
+    name: "iptables_headers",
+    export_include_dirs: ["include"],
+}
+
+cc_library_headers {
+    name: "iptables_config_header",
+    export_include_dirs: ["."],
+}
+
+cc_library_headers {
+    name: "iptables_iptables_headers",
+    export_include_dirs: ["iptables"],
+}
+
+cc_defaults {
+    name: "iptables_defaults",
+
+    cflags: [
+        "-D_LARGEFILE_SOURCE=1",
+        "-D_LARGE_FILES",
+        "-D_FILE_OFFSET_BITS=64",
+        "-D_REENTRANT",
+
+        "-DENABLE_IPV4",
+        "-DENABLE_IPV6",
+
+        "-Wall",
+        "-Werror",
+        "-Wno-pointer-arith",
+        "-Wno-sign-compare",
+        "-Wno-unused-parameter",
+    ],
+
+    header_libs: ["iptables_headers"],
+}
