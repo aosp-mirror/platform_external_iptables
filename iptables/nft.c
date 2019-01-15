@@ -644,6 +644,7 @@ static void nft_chain_builtin_add(struct nft_handle *h,
 		return;
 
 	batch_chain_add(h, NFT_COMPAT_CHAIN_ADD, c);
+	nftnl_chain_list_add_tail(c, h->table[table->type].chain_cache);
 }
 
 /* find if built-in table already exists */
@@ -1216,8 +1217,11 @@ nft_rule_append(struct nft_handle *h, const char *chain, const char *table,
 		h->ops->print_rule(r, 0, FMT_PRINT_RULE);
 
 	c = nft_chain_find(h, table, chain);
-	if (c)
-		nftnl_chain_rule_add_tail(r, c);
+	if (!c) {
+		errno = ENOENT;
+		return 0;
+	}
+	nftnl_chain_rule_add_tail(r, c);
 
 	return 1;
 }
@@ -2280,16 +2284,8 @@ int nft_rule_list(struct nft_handle *h, const char *chain, const char *table,
 	bool found = false;
 
 	/* If built-in chains don't exist for this table, create them */
-	if (nft_xtables_config_load(h, XTABLES_CONFIG_DEFAULT, 0) < 0) {
+	if (nft_xtables_config_load(h, XTABLES_CONFIG_DEFAULT, 0) < 0)
 		nft_xt_builtin_init(h, table);
-		/* Force table and chain creation, otherwise first iptables -L
-		 * lists no table/chains.
-		 */
-		if (!list_empty(&h->obj_list)) {
-			nft_commit(h);
-			flush_chain_cache(h, NULL);
-		}
-	}
 
 	ops = nft_family_ops_lookup(h->family);
 
@@ -2395,16 +2391,8 @@ int nft_rule_list_save(struct nft_handle *h, const char *chain,
 	int ret = 0;
 
 	/* If built-in chains don't exist for this table, create them */
-	if (nft_xtables_config_load(h, XTABLES_CONFIG_DEFAULT, 0) < 0) {
+	if (nft_xtables_config_load(h, XTABLES_CONFIG_DEFAULT, 0) < 0)
 		nft_xt_builtin_init(h, table);
-		/* Force table and chain creation, otherwise first iptables -L
-		 * lists no table/chains.
-		 */
-		if (!list_empty(&h->obj_list)) {
-			nft_commit(h);
-			flush_chain_cache(h, NULL);
-		}
-	}
 
 	if (!nft_is_table_compatible(h, table)) {
 		xtables_error(OTHER_PROBLEM, "table `%s' is incompatible, use 'nft' tool.\n", table);
@@ -2523,8 +2511,8 @@ static void batch_obj_del(struct nft_handle *h, struct obj_update *o)
 		break;
 	case NFT_COMPAT_CHAIN_ZERO:
 	case NFT_COMPAT_CHAIN_USER_ADD:
-		break;
 	case NFT_COMPAT_CHAIN_ADD:
+		break;
 	case NFT_COMPAT_CHAIN_USER_DEL:
 	case NFT_COMPAT_CHAIN_USER_FLUSH:
 	case NFT_COMPAT_CHAIN_UPDATE:
