@@ -252,7 +252,8 @@ AC_CONFIG_FILES([Makefile extensions/GNUmakefile include/Makefile
 	libxtables/Makefile utils/Makefile
 	include/xtables-version.h include/iptables/internal.h
 	iptables/xtables-monitor.8
-	utils/nfnl_osf.8])
+	utils/nfnl_osf.8
+	utils/nfbpf_compile.8])
 AC_OUTPUT
 
 
