@@ -469,6 +469,11 @@ static void nft_bridge_save_rule(const void *data, unsigned int format)
 		       (uint64_t)cs->counters.pcnt,
 		       (uint64_t)cs->counters.bcnt);
 
+	if (!(format & FMT_NOCOUNTS))
+		printf(" , pcnt = %"PRIu64" -- bcnt = %"PRIu64"",
+		       (uint64_t)cs->counters.pcnt,
+		       (uint64_t)cs->counters.bcnt);
+
 	if (!(format & FMT_NONEWLINE))
 		fputc('\n', stdout);
 }
@@ -482,11 +487,7 @@ static void nft_bridge_print_rule(struct nftnl_rule *r, unsigned int num,
 		printf("%d ", num);
 
 	nft_rule_to_ebtables_command_state(r, &cs);
-	nft_bridge_save_rule(&cs, format & ~FMT_EBT_SAVE);
-	if (!(format & FMT_NOCOUNTS))
-		printf(" , pcnt = %"PRIu64" -- bcnt = %"PRIu64"",
-		       (uint64_t)cs.counters.pcnt,
-		       (uint64_t)cs.counters.bcnt);
+	nft_bridge_save_rule(&cs, format);
 	ebt_cs_clean(&cs);
 }
 
