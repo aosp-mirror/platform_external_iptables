@@ -659,20 +659,24 @@ static bool nft_arp_rule_find(struct nft_family_ops *ops, struct nftnl_rule *r,
 {
 	const struct iptables_command_state *cs = data;
 	struct iptables_command_state this = {};
+	bool ret = false;
 
 	/* Delete by matching rule case */
 	nft_rule_to_iptables_command_state(r, &this);
 
 	if (!nft_arp_is_same(&cs->arp, &this.arp))
-		return false;
+		goto out;
 
 	if (!compare_targets(cs->target, this.target))
-		return false;
+		goto out;
 
 	if (this.jumpto && strcmp(cs->jumpto, this.jumpto) != 0)
-		return false;
+		goto out;
 
-	return true;
+	ret = true;
+out:
+	ops->clear_cs(&this);
+	return ret;
 }
 
 static void nft_arp_save_chain(const struct nftnl_chain *c, const char *policy)

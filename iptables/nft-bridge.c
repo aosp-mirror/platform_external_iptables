@@ -548,30 +548,34 @@ static bool nft_bridge_rule_find(struct nft_family_ops *ops, struct nftnl_rule *
 {
 	struct iptables_command_state *cs = data;
 	struct iptables_command_state this = {};
+	bool ret = false;
 
 	nft_rule_to_ebtables_command_state(r, &this);
 
 	DEBUGP("comparing with... ");
 
 	if (!nft_bridge_is_same(cs, &this))
-		return false;
+		goto out;
 
 	if (!compare_matches(cs->matches, this.matches)) {
 		DEBUGP("Different matches\n");
-		return false;
+		goto out;
 	}
 
 	if (!compare_targets(cs->target, this.target)) {
 		DEBUGP("Different target\n");
-		return false;
+		goto out;
 	}
 
 	if (cs->jumpto != NULL && strcmp(cs->jumpto, this.jumpto) != 0) {
 		DEBUGP("Different verdict\n");
-		return false;
+		goto out;
 	}
 
-	return true;
+	ret = true;
+out:
+	ops->clear_cs(&this);
+	return ret;
 }
 
 static int xlate_ebmatches(const struct iptables_command_state *cs, struct xt_xlate *xl)

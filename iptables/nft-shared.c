@@ -961,6 +961,7 @@ bool nft_ipv46_rule_find(struct nft_family_ops *ops,
 			 struct nftnl_rule *r, void *data)
 {
 	struct iptables_command_state *cs = data, this = {};
+	bool ret = false;
 
 	nft_rule_to_iptables_command_state(r, &this);
 
@@ -969,24 +970,27 @@ bool nft_ipv46_rule_find(struct nft_family_ops *ops,
 	nft_rule_print_save(r, NFT_RULE_APPEND, 0);
 #endif
 	if (!ops->is_same(cs, &this))
-		return false;
+		goto out;
 
 	if (!compare_matches(cs->matches, this.matches)) {
 		DEBUGP("Different matches\n");
-		return false;
+		goto out;
 	}
 
 	if (!compare_targets(cs->target, this.target)) {
 		DEBUGP("Different target\n");
-		return false;
+		goto out;
 	}
 
 	if (strcmp(cs->jumpto, this.jumpto) != 0) {
 		DEBUGP("Different verdict\n");
-		return false;
+		goto out;
 	}
 
-	return true;
+	ret = true;
+out:
+	ops->clear_cs(&this);
+	return ret;
 }
 
 void nft_check_xt_legacy(int family, bool is_ipt_save)
