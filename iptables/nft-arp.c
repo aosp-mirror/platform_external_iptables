@@ -434,13 +434,20 @@ static void nft_arp_print_header(unsigned int format, const char *chain,
 	}
 }
 
-static void nft_arp_print_rule_details(const struct arpt_entry *fw,
+static void nft_arp_print_rule_details(const struct iptables_command_state *cs,
 				       unsigned int format)
 {
+	const struct arpt_entry *fw = &cs->arp;
 	char buf[BUFSIZ];
 	char iface[IFNAMSIZ+2];
+	const char *sep = "";
 	int print_iface = 0;
 	int i;
+
+	if (strlen(cs->jumpto)) {
+		printf("%s-j %s", sep, cs->jumpto);
+		sep = " ";
+	}
 
 	iface[0] = '\0';
 
@@ -453,9 +460,11 @@ static void nft_arp_print_rule_details(const struct arpt_entry *fw,
 		if (format & FMT_NUMERIC) strcat(iface, "*");
 		else strcat(iface, "any");
 	}
-	if (print_iface)
-		printf("%s-i %s ", fw->arp.invflags & ARPT_INV_VIA_IN ?
+	if (print_iface) {
+		printf("%s%s-i %s", sep, fw->arp.invflags & ARPT_INV_VIA_IN ?
 				   "! " : "", iface);
+		sep = " ";
+	}
 
 	print_iface = 0;
 	iface[0] = '\0';
@@ -469,12 +478,14 @@ static void nft_arp_print_rule_details(const struct arpt_entry *fw,
 		if (format & FMT_NUMERIC) strcat(iface, "*");
 		else strcat(iface, "any");
 	}
-	if (print_iface)
-		printf("%s-o %s ", fw->arp.invflags & ARPT_INV_VIA_OUT ?
+	if (print_iface) {
+		printf("%s%s-o %s", sep, fw->arp.invflags & ARPT_INV_VIA_OUT ?
 				   "! " : "", iface);
+		sep = " ";
+	}
 
 	if (fw->arp.smsk.s_addr != 0L) {
-		printf("%s", fw->arp.invflags & ARPT_INV_SRCIP
+		printf("%s%s", sep, fw->arp.invflags & ARPT_INV_SRCIP
 			? "! " : "");
 		if (format & FMT_NUMERIC)
 			sprintf(buf, "%s", addr_to_dotted(&(fw->arp.src)));
@@ -482,7 +493,8 @@ static void nft_arp_print_rule_details(const struct arpt_entry *fw,
 			sprintf(buf, "%s", addr_to_anyname(&(fw->arp.src)));
 		strncat(buf, mask_to_dotted(&(fw->arp.smsk)),
 			sizeof(buf) - strlen(buf) - 1);
-		printf("-s %s ", buf);
+		printf("-s %s", buf);
+		sep = " ";
 	}
 
 	for (i = 0; i < ARPT_DEV_ADDR_LEN_MAX; i++)
@@ -490,16 +502,16 @@ static void nft_arp_print_rule_details(const struct arpt_entry *fw,
 			break;
 	if (i == ARPT_DEV_ADDR_LEN_MAX)
 		goto after_devsrc;
-	printf("%s", fw->arp.invflags & ARPT_INV_SRCDEVADDR
+	printf("%s%s", sep, fw->arp.invflags & ARPT_INV_SRCDEVADDR
 		? "! " : "");
 	printf("--src-mac ");
 	print_mac_and_mask((unsigned char *)fw->arp.src_devaddr.addr,
 		(unsigned char *)fw->arp.src_devaddr.mask, ETH_ALEN);
-	printf(" ");
+	sep = " ";
 after_devsrc:
 
 	if (fw->arp.tmsk.s_addr != 0L) {
-		printf("%s", fw->arp.invflags & ARPT_INV_TGTIP
+		printf("%s%s", sep, fw->arp.invflags & ARPT_INV_TGTIP
 			? "! " : "");
 		if (format & FMT_NUMERIC)
 			sprintf(buf, "%s", addr_to_dotted(&(fw->arp.tgt)));
@@ -507,7 +519,8 @@ after_devsrc:
 			sprintf(buf, "%s", addr_to_anyname(&(fw->arp.tgt)));
 		strncat(buf, mask_to_dotted(&(fw->arp.tmsk)),
 			sizeof(buf) - strlen(buf) - 1);
-		printf("-d %s ", buf);
+		printf("-d %s", buf);
+		sep = " ";
 	}
 
 	for (i = 0; i <ARPT_DEV_ADDR_LEN_MAX; i++)
@@ -515,28 +528,28 @@ after_devsrc:
 			break;
 	if (i == ARPT_DEV_ADDR_LEN_MAX)
 		goto after_devdst;
-	printf("%s", fw->arp.invflags & ARPT_INV_TGTDEVADDR
+	printf("%s%s", sep, fw->arp.invflags & ARPT_INV_TGTDEVADDR
 		? "! " : "");
 	printf("--dst-mac ");
 	print_mac_and_mask((unsigned char *)fw->arp.tgt_devaddr.addr,
 		(unsigned char *)fw->arp.tgt_devaddr.mask, ETH_ALEN);
-	printf(" ");
+	sep = " ";
 
 after_devdst:
 
 	if (fw->arp.arhln_mask != 0) {
-		printf("%s", fw->arp.invflags & ARPT_INV_ARPHLN
+		printf("%s%s", sep, fw->arp.invflags & ARPT_INV_ARPHLN
 			? "! " : "");
 		printf("--h-length %d", fw->arp.arhln);
 		if (fw->arp.arhln_mask != 255)
 			printf("/%d", fw->arp.arhln_mask);
-		printf(" ");
+		sep = " ";
 	}
 
 	if (fw->arp.arpop_mask != 0) {
 		int tmp = ntohs(fw->arp.arpop);
 
-		printf("%s", fw->arp.invflags & ARPT_INV_ARPOP
+		printf("%s%s", sep, fw->arp.invflags & ARPT_INV_ARPOP
 			? "! " : "");
 		if (tmp <= NUMOPCODES && !(format & FMT_NUMERIC))
 			printf("--opcode %s", arp_opcodes[tmp-1]);
@@ -545,13 +558,13 @@ after_devdst:
 
 		if (fw->arp.arpop_mask != 65535)
 			printf("/%d", ntohs(fw->arp.arpop_mask));
-		printf(" ");
+		sep = " ";
 	}
 
 	if (fw->arp.arhrd_mask != 0) {
 		uint16_t tmp = ntohs(fw->arp.arhrd);
 
-		printf("%s", fw->arp.invflags & ARPT_INV_ARPHRD
+		printf("%s%s", sep, fw->arp.invflags & ARPT_INV_ARPHRD
 			? "! " : "");
 		if (tmp == 1 && !(format & FMT_NUMERIC))
 			printf("--h-type %s", "Ethernet");
@@ -559,13 +572,13 @@ after_devdst:
 			printf("--h-type %u", tmp);
 		if (fw->arp.arhrd_mask != 65535)
 			printf("/%d", ntohs(fw->arp.arhrd_mask));
-		printf(" ");
+		sep = " ";
 	}
 
 	if (fw->arp.arpro_mask != 0) {
 		int tmp = ntohs(fw->arp.arpro);
 
-		printf("%s", fw->arp.invflags & ARPT_INV_ARPPRO
+		printf("%s%s", sep, fw->arp.invflags & ARPT_INV_ARPPRO
 			? "! " : "");
 		if (tmp == 0x0800 && !(format & FMT_NUMERIC))
 			printf("--proto-type %s", "IPv4");
@@ -573,7 +586,7 @@ after_devdst:
 			printf("--proto-type 0x%x", tmp);
 		if (fw->arp.arpro_mask != 65535)
 			printf("/%x", ntohs(fw->arp.arpro_mask));
-		printf(" ");
+		sep = " ";
 	}
 }
 
@@ -584,8 +597,10 @@ nft_arp_save_rule(const void *data, unsigned int format)
 
 	format |= FMT_NUMERIC;
 
-	nft_arp_print_rule_details(&cs->arp, format);
-	save_matches_and_target(cs, false, &cs->arp, format);
+	nft_arp_print_rule_details(cs, format);
+	if (cs->target && cs->target->save)
+		cs->target->save(&cs->fw, cs->target->t);
+	printf("\n");
 }
 
 static void
@@ -598,9 +613,7 @@ nft_arp_print_rule(struct nftnl_rule *r, unsigned int num, unsigned int format)
 
 	nft_rule_to_iptables_command_state(r, &cs);
 
-	if (strlen(cs.jumpto))
-		printf("-j %s ", cs.jumpto);
-	nft_arp_print_rule_details(&cs.arp, format);
+	nft_arp_print_rule_details(&cs, format);
 	print_matches_and_target(&cs, format);
 
 	if (!(format & FMT_NOCOUNTS)) {
