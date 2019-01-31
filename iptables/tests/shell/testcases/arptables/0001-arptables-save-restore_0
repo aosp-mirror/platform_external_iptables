@@ -35,22 +35,22 @@ DUMP='*filter
 :INPUT ACCEPT
 :OUTPUT DROP
 :foo -
--A INPUT -j ACCEPT -s 10.0.0.0/8 --h-length 6 --h-type 1
--A INPUT -j ACCEPT -d 192.168.123.1 --h-length 6 --h-type 1
--A INPUT -j ACCEPT --src-mac fe:ed:ba:be:00:01 --h-length 6 --h-type 1
--A INPUT -j ACCEPT --dst-mac fe:ed:ba:be:00:01 --h-length 6 --h-type 1
--A INPUT -j foo --h-length 6 --h-type 1
--A INPUT  --h-length 6 --h-type 1
--A OUTPUT -j ACCEPT -o lo --h-length 6 --h-type 1
--A OUTPUT -j mangle -o eth134 --h-length 6 --h-type 1 --mangle-ip-s 10.0.0.1
--A OUTPUT -j CLASSIFY -o eth432 --h-length 6 --h-type 1 --set-class feed:babe
--A OUTPUT -j CLASSIFY -o eth432 --h-length 6 --opcode 1 --h-type 1 --set-class feed:babe
--A foo -j ACCEPT -i lo --h-length 6 --h-type 1
--A foo -j ACCEPT --h-length 6 --h-type 1
--A foo -j MARK --h-length 6 --h-type 1 --set-mark 12345
--A foo -j ACCEPT --h-length 6 --opcode 1 --h-type 1
--A foo -j ACCEPT --h-length 6 --h-type 1 --proto-type 0x800
--A foo -j ACCEPT -i lo --h-length 6 --opcode 1 --h-type 1 --proto-type 0x800
+-A INPUT -j ACCEPT -s 10.0.0.0/8
+-A INPUT -j ACCEPT -d 192.168.123.1
+-A INPUT -j ACCEPT --src-mac fe:ed:ba:be:00:01
+-A INPUT -j ACCEPT --dst-mac fe:ed:ba:be:00:01
+-A INPUT -j foo
+-A INPUT 
+-A OUTPUT -j ACCEPT -o lo
+-A OUTPUT -j mangle -o eth134 --mangle-ip-s 10.0.0.1
+-A OUTPUT -j CLASSIFY -o eth432 --set-class feed:babe
+-A OUTPUT -j CLASSIFY -o eth432 --opcode 1 --set-class feed:babe
+-A foo -j ACCEPT -i lo
+-A foo -j ACCEPT
+-A foo -j MARK --set-mark 12345
+-A foo -j ACCEPT --opcode 1
+-A foo -j ACCEPT --proto-type 0x800
+-A foo -j ACCEPT -i lo --opcode 1 --proto-type 0x800
 '
 
 diff -u <(echo -e "$DUMP") <($XT_MULTI arptables-save)
