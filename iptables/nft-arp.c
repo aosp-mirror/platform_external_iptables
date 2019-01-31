@@ -598,7 +598,7 @@ nft_arp_print_rule(struct nftnl_rule *r, unsigned int num, unsigned int format)
 
 	nft_rule_to_iptables_command_state(r, &cs);
 
-	if (cs.jumpto)
+	if (strlen(cs.jumpto))
 		printf("-j %s ", cs.jumpto);
 	nft_arp_print_rule_details(&cs.arp, format);
 	print_matches_and_target(&cs, format);
