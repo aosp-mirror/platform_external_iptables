@@ -1,3 +1,4 @@
+#include <getopt.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <xtables.h>
@@ -245,6 +246,87 @@ static void mark_tg_save(const void *ip, const struct xt_entry_target *target)
 	printf(" --set-xmark 0x%x/0x%x", info->mark, info->mask);
 }
 
+static void mark_tg_arp_save(const void *ip, const struct xt_entry_target *target)
+{
+	const struct xt_mark_tginfo2 *info = (const void *)target->data;
+
+	if (info->mark == 0)
+		printf(" --and-mark %x", (unsigned int)(uint32_t)~info->mask);
+	else if (info->mark == info->mask)
+		printf(" --or-mark %x", info->mark);
+	else
+		printf(" --set-mark %x", info->mark);
+}
+
+static void mark_tg_arp_print(const void *ip,
+			      const struct xt_entry_target *target, int numeric)
+{
+	mark_tg_arp_save(ip, target);
+}
+
+#define MARK_OPT 1
+#define AND_MARK_OPT 2
+#define OR_MARK_OPT 3
+
+static struct option mark_tg_arp_opts[] = {
+	{ .name = "set-mark", .has_arg = required_argument, .flag = 0, .val = MARK_OPT },
+	{ .name = "and-mark", .has_arg = required_argument, .flag = 0, .val = AND_MARK_OPT },
+	{ .name = "or-mark", .has_arg = required_argument, .flag = 0, .val =  OR_MARK_OPT },
+	{ .name = NULL}
+};
+
+static int
+mark_tg_arp_parse(int c, char **argv, int invert, unsigned int *flags,
+		  const void *entry, struct xt_entry_target **target)
+{
+	struct xt_mark_tginfo2 *info =
+		(struct xt_mark_tginfo2 *)(*target)->data;
+	int i;
+
+	switch (c) {
+	case MARK_OPT:
+		if (sscanf(argv[optind-1], "%x", &i) != 1) {
+			xtables_error(PARAMETER_PROBLEM,
+				"Bad mark value `%s'", optarg);
+			return 0;
+		}
+		info->mark = i;
+		if (*flags)
+			xtables_error(PARAMETER_PROBLEM,
+				"MARK: Can't specify --set-mark twice");
+		*flags = 1;
+		break;
+	case AND_MARK_OPT:
+		if (sscanf(argv[optind-1], "%x", &i) != 1) {
+			xtables_error(PARAMETER_PROBLEM,
+				"Bad mark value `%s'", optarg);
+			return 0;
+		}
+		info->mark = 0;
+		info->mask = ~i;
+		if (*flags)
+			xtables_error(PARAMETER_PROBLEM,
+				"MARK: Can't specify --and-mark twice");
+		*flags = 1;
+		break;
+	case OR_MARK_OPT:
+		if (sscanf(argv[optind-1], "%x", &i) != 1) {
+			xtables_error(PARAMETER_PROBLEM,
+				"Bad mark value `%s'", optarg);
+			return 0;
+		}
+		info->mark = info->mask = i;
+		if (*flags)
+			xtables_error(PARAMETER_PROBLEM,
+				"MARK: Can't specify --or-mark twice");
+		*flags = 1;
+		break;
+	default:
+		return 0;
+	}
+	return 1;
+}
+
 static int mark_tg_xlate(struct xt_xlate *xl,
 			 const struct xt_xlate_tg_params *params)
 {
@@ -334,6 +416,19 @@ static struct xtables_target mark_tg_reg[] = {
 		.x6_fcheck     = mark_tg_check,
 		.x6_options    = mark_tg_opts,
 		.xlate	       = mark_tg_xlate,
+	},
+	{
+		.version       = XTABLES_VERSION,
+		.name          = "MARK",
+		.revision      = 2,
+		.family        = NFPROTO_ARP,
+		.size          = XT_ALIGN(sizeof(struct xt_mark_tginfo2)),
+		.userspacesize = XT_ALIGN(sizeof(struct xt_mark_tginfo2)),
+		.help          = mark_tg_help,
+		.print         = mark_tg_arp_print,
+		.save          = mark_tg_arp_save,
+		.parse         = mark_tg_arp_parse,
+		.extra_opts    = mark_tg_arp_opts,
 	},
 };
 

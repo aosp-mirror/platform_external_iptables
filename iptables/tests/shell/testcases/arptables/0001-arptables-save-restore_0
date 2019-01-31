@@ -47,7 +47,7 @@ DUMP='*filter
 -A OUTPUT -o eth432 --h-length 6 --opcode 1 --h-type 1 -j CLASSIFY --set-class feed:babe
 -A foo -i lo --h-length 6 --h-type 1 -j ACCEPT
 -A foo --h-length 6 --h-type 1 -j ACCEPT
--A foo --h-length 6 --h-type 1 -j MARK --set-xmark 0x3039/0xffffffff
+-A foo --h-length 6 --h-type 1 -j MARK --set-mark 12345
 -A foo --h-length 6 --opcode 1 --h-type 1 -j ACCEPT
 -A foo --h-length 6 --h-type 1 --proto-type 0x800 -j ACCEPT
 -A foo -i lo --h-length 6 --opcode 1 --h-type 1 --proto-type 0x800 -j ACCEPT
