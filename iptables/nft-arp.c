@@ -605,9 +605,9 @@ nft_arp_print_rule(struct nftnl_rule *r, unsigned int num, unsigned int format)
 
 	if (!(format & FMT_NOCOUNTS)) {
 		printf(", pcnt=");
-		xtables_print_num(cs.counters.pcnt, format);
+		xtables_print_num(cs.counters.pcnt, format | FMT_NOTABLE);
 		printf("-- bcnt=");
-		xtables_print_num(cs.counters.bcnt, format);
+		xtables_print_num(cs.counters.bcnt, format | FMT_NOTABLE);
 	}
 
 	if (!(format & FMT_NONEWLINE))
