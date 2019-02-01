@@ -1185,8 +1185,10 @@ int do_commandx(struct nft_handle *h, int argc, char *argv[], char **table,
 	*table = p.table;
 
 	xtables_rule_matches_free(&cs.matches);
-	if (cs.target)
+	if (cs.target) {
 		free(cs.target->t);
+		cs.target->t = NULL;
+	}
 
 	if (h->family == AF_INET) {
 		free(args.s.addr.v4);

@@ -660,19 +660,34 @@ void nft_rule_to_iptables_command_state(const struct nftnl_rule *r,
 		match->m = m;
 	}
 
-	if (cs->target != NULL)
+	if (cs->target != NULL) {
 		cs->jumpto = cs->target->name;
-	else if (cs->jumpto != NULL)
+	} else if (cs->jumpto != NULL) {
+		struct xt_entry_target *t;
+		uint32_t size;
+
 		cs->target = xtables_find_target(cs->jumpto, XTF_TRY_LOAD);
-	else
+		if (!cs->target)
+			return;
+
+		size = XT_ALIGN(sizeof(struct xt_entry_target)) + cs->target->size;
+		t = xtables_calloc(1, size);
+		t->u.target_size = size;
+		t->u.user.revision = cs->target->revision;
+		strcpy(t->u.user.name, cs->jumpto);
+		cs->target->t = t;
+	} else {
 		cs->jumpto = "";
+	}
 }
 
 void nft_clear_iptables_command_state(struct iptables_command_state *cs)
 {
 	xtables_rule_matches_free(&cs->matches);
-	if (cs->target)
+	if (cs->target) {
 		free(cs->target->t);
+		cs->target->t = NULL;
+	}
 }
 
 void print_header(unsigned int format, const char *chain, const char *pol,
