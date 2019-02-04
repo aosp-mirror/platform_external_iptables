@@ -687,6 +687,11 @@ void nft_clear_iptables_command_state(struct iptables_command_state *cs)
 	if (cs->target) {
 		free(cs->target->t);
 		cs->target->t = NULL;
+
+		if (cs->target == cs->target->next) {
+			free(cs->target);
+			cs->target = NULL;
+		}
 	}
 }
 

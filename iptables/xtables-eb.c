@@ -139,27 +139,6 @@ static int parse_rule_number(const char *rule)
 	return rule_nr;
 }
 
-static const char *
-parse_target(const char *targetname)
-{
-	const char *ptr;
-
-	if (strlen(targetname) < 1)
-		xtables_error(PARAMETER_PROBLEM,
-			      "Invalid target name (too short)");
-
-	if (strlen(targetname)+1 > EBT_CHAIN_MAXNAMELEN)
-		xtables_error(PARAMETER_PROBLEM,
-			      "Invalid target '%s' (%d chars max)",
-			      targetname, EBT_CHAIN_MAXNAMELEN);
-
-	for (ptr = targetname; *ptr; ptr++)
-		if (isspace(*ptr))
-			xtables_error(PARAMETER_PROBLEM,
-				      "Invalid target name `%s'", targetname);
-	return targetname;
-}
-
 static int
 append_entry(struct nft_handle *h,
 	     const char *chain,
@@ -363,29 +342,6 @@ static struct option *merge_options(struct option *oldopts,
 		free(oldopts);
 
 	return merge;
-}
-
-/*
- * More glue code.
- */
-struct xtables_target *ebt_command_jump(const char *jumpto)
-{
-	struct xtables_target *target;
-	unsigned int verdict;
-
-	/* Standard target? */
-	if (!ebt_fill_target(jumpto, &verdict))
-		jumpto = "standard";
-
-	/* For ebtables, all targets are preloaded. Hence it is either in
-	 * xtables_targets or a custom chain to jump to, in which case
-	 * returning NULL is fine. */
-	for (target = xtables_targets; target; target = target->next) {
-		if (!strcmp(target->name, jumpto))
-			break;
-	}
-
-	return target;
 }
 
 static void print_help(const struct xtables_target *t,
@@ -1055,8 +1011,7 @@ print_zero:
 			} else if (c == 'j') {
 				ebt_check_option2(&flags, OPT_JUMP);
 				if (strcmp(optarg, "CONTINUE") != 0) {
-					cs.jumpto = parse_target(optarg);
-					cs.target = ebt_command_jump(cs.jumpto);
+					command_jump(&cs);
 				}
 				break;
 			} else if (c == 's') {

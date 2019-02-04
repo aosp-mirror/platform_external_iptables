@@ -45,6 +45,16 @@ void ebt_cs_clean(struct iptables_command_state *cs)
 		free(m);
 		m = nm;
 	}
+
+	if (cs->target) {
+		free(cs->target->t);
+		cs->target->t = NULL;
+
+		if (cs->target == cs->target->next) {
+			free(cs->target);
+			cs->target = NULL;
+		}
+	}
 }
 
 static void ebt_print_mac(const unsigned char *mac)
