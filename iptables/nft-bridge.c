@@ -344,7 +344,7 @@ static void nft_rule_to_ebtables_command_state(const struct nftnl_rule *r,
 static void print_iface(const char *option, const char *name, bool invert)
 {
 	if (*name)
-		printf("%s%s %s ", invert ? "! " : "", option, name);
+		printf("%s%s %s ", option, invert ? " !" : "", name);
 }
 
 static void nft_bridge_print_table_header(const char *tablename)
@@ -389,9 +389,9 @@ static void print_mac(char option, const unsigned char *mac,
 		      const unsigned char *mask,
 		      bool invert)
 {
+	printf("-%c ", option);
 	if (invert)
 		printf("! ");
-	printf("-%c ", option);
 	ebt_print_mac_and_mask(mac, mask);
 	printf(" ");
 }
@@ -406,9 +406,9 @@ static void print_protocol(uint16_t ethproto, bool invert, unsigned int bitmask)
 	if (bitmask & EBT_NOPROTO)
 		return;
 
+	printf("-p ");
 	if (invert)
 		printf("! ");
-	printf("-p ");
 
 	if (bitmask & EBT_802_3) {
 		printf("length ");
