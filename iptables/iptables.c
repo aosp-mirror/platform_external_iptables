@@ -1421,7 +1421,7 @@ int do_command4(int argc, char *argv[], char **table,
 		case 'j':
 			set_option(&cs.options, OPT_JUMP, &cs.fw.ip.invflags,
 				   cs.invert);
-			command_jump(&cs);
+			command_jump(&cs, optarg);
 			break;
 
 

@@ -1161,7 +1161,7 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table,
 		case 'j':
 			set_option(&options, OPT_JUMP, &cs.arp.arp.invflags,
 				   invert);
-			command_jump(&cs);
+			command_jump(&cs, optarg);
 			break;
 
 		case 'i':

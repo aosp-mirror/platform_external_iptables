@@ -1011,7 +1011,7 @@ print_zero:
 			} else if (c == 'j') {
 				ebt_check_option2(&flags, OPT_JUMP);
 				if (strcmp(optarg, "CONTINUE") != 0) {
-					command_jump(&cs);
+					command_jump(&cs, optarg);
 				}
 				break;
 			} else if (c == 's') {

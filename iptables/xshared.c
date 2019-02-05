@@ -653,12 +653,12 @@ const char *xt_parse_target(const char *targetname)
 	return targetname;
 }
 
-void command_jump(struct iptables_command_state *cs)
+void command_jump(struct iptables_command_state *cs, const char *jumpto)
 {
 	struct option *opts = xt_params->opts;
 	size_t size;
 
-	cs->jumpto = xt_parse_target(optarg);
+	cs->jumpto = xt_parse_target(jumpto);
 	/* TRY_LOAD (may be chain name) */
 	cs->target = xtables_find_target(cs->jumpto, XTF_TRY_LOAD);
 

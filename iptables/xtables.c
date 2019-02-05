@@ -820,7 +820,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 		case 'j':
 			set_option(&cs->options, OPT_JUMP, &cs->fw.ip.invflags,
 				   cs->invert);
-			command_jump(cs);
+			command_jump(cs, optarg);
 			break;
 
 

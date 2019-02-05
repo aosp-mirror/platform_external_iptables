@@ -176,6 +176,6 @@ void print_ifaces(const char *iniface, const char *outiface, uint8_t invflags,
 
 void command_match(struct iptables_command_state *cs);
 const char *xt_parse_target(const char *targetname);
-void command_jump(struct iptables_command_state *cs);
+void command_jump(struct iptables_command_state *cs, const char *jumpto);
 
 #endif /* IPTABLES_XSHARED_H */

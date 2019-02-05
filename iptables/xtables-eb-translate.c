@@ -390,7 +390,7 @@ print_zero:
 				break;
 			} else if (c == 'j') {
 				ebt_check_option2(&flags, OPT_JUMP);
-				command_jump(&cs);
+				command_jump(&cs, optarg);
 				break;
 			} else if (c == 's') {
 				ebt_check_option2(&flags, OPT_SOURCE);

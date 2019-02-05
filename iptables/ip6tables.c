@@ -1441,7 +1441,7 @@ int do_command6(int argc, char *argv[], char **table,
 		case 'j':
 			set_option(&cs.options, OPT_JUMP, &cs.fw6.ipv6.invflags,
 					cs.invert);
-			command_jump(&cs);
+			command_jump(&cs, optarg);
 			break;
 
 
