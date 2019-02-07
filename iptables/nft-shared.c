@@ -639,25 +639,30 @@ void nft_rule_to_iptables_command_state(const struct nftnl_rule *r,
 	if (nftnl_rule_is_set(r, NFTNL_RULE_USERDATA)) {
 		const void *data;
 		uint32_t len, size;
-		struct xtables_match *match;
-		struct xt_entry_match *m;
+		const char *comment;
 
 		data = nftnl_rule_get_data(r, NFTNL_RULE_USERDATA, &len);
-		match = xtables_find_match("comment", XTF_TRY_LOAD,
-					   &cs->matches);
-		if (match == NULL)
-			return;
+		comment = get_comment(data, len);
+		if (comment) {
+			struct xtables_match *match;
+			struct xt_entry_match *m;
 
-		size = XT_ALIGN(sizeof(struct xt_entry_match)) + match->size;
-		m = xtables_calloc(1, size);
+			match = xtables_find_match("comment", XTF_TRY_LOAD,
+						   &cs->matches);
+			if (match == NULL)
+				return;
 
-		strncpy((char *)m->data, get_comment(data, len),
-			match->size - 1);
-		m->u.match_size = size;
-		m->u.user.revision = 0;
-		strcpy(m->u.user.name, match->name);
+			size = XT_ALIGN(sizeof(struct xt_entry_match))
+				+ match->size;
+			m = xtables_calloc(1, size);
 
-		match->m = m;
+			strncpy((char *)m->data, comment, match->size - 1);
+			m->u.match_size = size;
+			m->u.user.revision = 0;
+			strcpy(m->u.user.name, match->name);
+
+			match->m = m;
+		}
 	}
 
 	if (cs->target != NULL) {
