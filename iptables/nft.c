@@ -1115,6 +1115,7 @@ int add_counters(struct nftnl_rule *r, uint64_t packets, uint64_t bytes)
 
 enum udata_type {
 	UDATA_TYPE_COMMENT,
+	UDATA_TYPE_EBTABLES_POLICY,
 	__UDATA_TYPE_MAX,
 };
 #define UDATA_TYPE_MAX (__UDATA_TYPE_MAX - 1)
@@ -1130,6 +1131,8 @@ static int parse_udata_cb(const struct nftnl_udata *attr, void *data)
 	case UDATA_TYPE_COMMENT:
 		if (value[len - 1] != '\0')
 			return -1;
+		break;
+	case UDATA_TYPE_EBTABLES_POLICY:
 		break;
 	default:
 		return 0;
