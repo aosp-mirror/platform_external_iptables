@@ -226,14 +226,20 @@ void xtables_restore_parse(struct nft_handle *h,
 							     curtable->name, chain);
 			} else if (cb->chain_user_add &&
 				   cb->chain_user_add(h, chain,
-						      curtable->name) < 0) {
-				if (errno == EEXIST)
-					continue;
-
+						      curtable->name) < 0 &&
+				   errno != EEXIST) {
 				xtables_error(PARAMETER_PROBLEM,
 					      "cannot create chain "
 					      "'%s' (%s)\n", chain,
 					      strerror(errno));
+			} else if (h->family == NFPROTO_BRIDGE &&
+				   !ebt_set_user_chain_policy(h, curtable->name,
+							      chain, policy)) {
+				xtables_error(OTHER_PROBLEM,
+					      "Can't set policy `%s'"
+					      " on `%s' line %u: %s\n",
+					      policy, chain, line,
+					      ops->strerror(errno));
 			}
 			ret = 1;
 		} else if (in_table) {
@@ -462,11 +468,18 @@ int xtables_ip6_restore_main(int argc, char *argv[])
 				    argc, argv);
 }
 
+static int ebt_table_flush(struct nft_handle *h, const char *table)
+{
+	/* drop any pending policy rule add/removal jobs */
+	nft_abort_policy_rule(h, table);
+	return nft_table_flush(h, table);
+}
+
 struct nft_xt_restore_cb ebt_restore_cb = {
 	.chain_list	= get_chain_list,
 	.commit		= nft_commit,
 	.table_new	= nft_table_new,
-	.table_flush	= nft_table_flush,
+	.table_flush	= ebt_table_flush,
 	.chain_user_flush = nft_chain_user_flush,
 	.do_command	= do_commandeb,
 	.chain_set	= nft_chain_set,

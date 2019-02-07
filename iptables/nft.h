@@ -137,6 +137,7 @@ uint32_t nft_invflags2cmp(uint32_t invflags, uint32_t flag);
  */
 int nft_commit(struct nft_handle *h);
 int nft_abort(struct nft_handle *h);
+int nft_abort_policy_rule(struct nft_handle *h, const char *table);
 
 /*
  * revision compatibility.
@@ -202,5 +203,8 @@ int nft_arp_rule_insert(struct nft_handle *h, const char *chain,
 void nft_rule_to_arpt_entry(struct nftnl_rule *r, struct arpt_entry *fw);
 
 bool nft_is_table_compatible(struct nft_handle *h, const char *name);
+
+int ebt_set_user_chain_policy(struct nft_handle *h, const char *table,
+			      const char *chain, const char *policy);
 
 #endif

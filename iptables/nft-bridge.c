@@ -358,7 +358,7 @@ static void nft_bridge_print_header(unsigned int format, const char *chain,
 				    bool basechain, uint32_t refs, uint32_t entries)
 {
 	printf("Bridge chain: %s, entries: %u, policy: %s\n",
-	       chain, entries, basechain ? pol : "RETURN");
+	       chain, entries, pol ?: "RETURN");
 }
 
 static void print_matches_and_watchers(const struct iptables_command_state *cs,

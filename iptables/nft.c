@@ -55,6 +55,7 @@
 #include "nft.h"
 #include "xshared.h" /* proto_to_name */
 #include "nft-shared.h"
+#include "nft-bridge.h" /* EBT_NOPROTO */
 #include "xtables-config-parser.h"
 
 static void *nft_fn;
@@ -1325,6 +1326,87 @@ retry:
 	return ret;
 }
 
+static bool nft_rule_is_policy_rule(struct nftnl_rule *r)
+{
+	const struct nftnl_udata *tb[UDATA_TYPE_MAX + 1] = {};
+	const void *data;
+	uint32_t len;
+
+	if (!nftnl_rule_is_set(r, NFTNL_RULE_USERDATA))
+		return false;
+
+	data = nftnl_rule_get_data(r, NFTNL_RULE_USERDATA, &len);
+	if (nftnl_udata_parse(data, len, parse_udata_cb, tb) < 0)
+		return NULL;
+
+	if (!tb[UDATA_TYPE_EBTABLES_POLICY] ||
+	    nftnl_udata_get_u32(tb[UDATA_TYPE_EBTABLES_POLICY]) != 1)
+		return false;
+
+	return true;
+}
+
+static struct nftnl_rule *nft_chain_last_rule(struct nftnl_chain *c)
+{
+	struct nftnl_rule *r = NULL, *last;
+	struct nftnl_rule_iter *iter;
+
+	iter = nftnl_rule_iter_create(c);
+	if (!iter)
+		return NULL;
+
+	do {
+		last = r;
+		r = nftnl_rule_iter_next(iter);
+	} while (r);
+	nftnl_rule_iter_destroy(iter);
+
+	return last;
+}
+
+static void nft_bridge_chain_postprocess(struct nft_handle *h,
+					 struct nftnl_chain *c)
+{
+	struct nftnl_rule *last = nft_chain_last_rule(c);
+	struct nftnl_expr_iter *iter;
+	struct nftnl_expr *expr;
+	int verdict;
+
+	if (!last || !nft_rule_is_policy_rule(last))
+		return;
+
+	iter = nftnl_expr_iter_create(last);
+	if (!iter)
+		return;
+
+	expr = nftnl_expr_iter_next(iter);
+	if (!expr ||
+	    strcmp("counter", nftnl_expr_get_str(expr, NFTNL_EXPR_NAME)))
+		goto out_iter;
+
+	expr = nftnl_expr_iter_next(iter);
+	if (!expr ||
+	    strcmp("immediate", nftnl_expr_get_str(expr, NFTNL_EXPR_NAME)) ||
+	    !nftnl_expr_is_set(expr, NFTNL_EXPR_IMM_VERDICT))
+		goto out_iter;
+
+	verdict = nftnl_expr_get_u32(expr, NFTNL_EXPR_IMM_VERDICT);
+	switch (verdict) {
+	case NF_ACCEPT:
+	case NF_DROP:
+		break;
+	default:
+		goto out_iter;
+	}
+
+	nftnl_chain_set_u32(c, NFTNL_CHAIN_POLICY, verdict);
+	if (batch_rule_add(h, NFT_COMPAT_RULE_DELETE, last) < 0)
+		fprintf(stderr, "Failed to delete old policy rule\n");
+	nftnl_chain_rule_del(last);
+out_iter:
+	nftnl_expr_iter_destroy(iter);
+}
+
 static int nftnl_rule_list_cb(const struct nlmsghdr *nlh, void *data)
 {
 	struct nftnl_chain *c = data;
@@ -1378,6 +1460,10 @@ retry:
 	}
 
 	nftnl_rule_free(rule);
+
+	if (h->family == NFPROTO_BRIDGE)
+		nft_bridge_chain_postprocess(h, c);
+
 	return 0;
 }
 
@@ -1443,6 +1529,15 @@ int nft_chain_save(struct nft_handle *h, struct nftnl_chain_list *list)
 			if (nftnl_chain_get(c, NFTNL_CHAIN_POLICY))
 				pol = nftnl_chain_get_u32(c, NFTNL_CHAIN_POLICY);
 			policy = policy_name[pol];
+		} else if (h->family == NFPROTO_BRIDGE) {
+			if (nftnl_chain_is_set(c, NFTNL_CHAIN_POLICY)) {
+				uint32_t pol;
+
+				pol = nftnl_chain_get_u32(c, NFTNL_CHAIN_POLICY);
+				policy = policy_name[pol];
+			} else {
+				policy = "RETURN";
+			}
 		}
 
 		if (ops->save_chain)
@@ -1637,6 +1732,8 @@ int nft_chain_user_add(struct nft_handle *h, const char *chain, const char *tabl
 
 	nftnl_chain_set(c, NFTNL_CHAIN_TABLE, (char *)table);
 	nftnl_chain_set(c, NFTNL_CHAIN_NAME, (char *)chain);
+	if (h->family == NFPROTO_BRIDGE)
+		nftnl_chain_set_u32(c, NFTNL_CHAIN_POLICY, NF_ACCEPT);
 
 	ret = batch_chain_add(h, NFT_COMPAT_CHAIN_USER_ADD, c);
 
@@ -2278,7 +2375,6 @@ static void __nft_print_header(struct nft_handle *h,
 			       struct nftnl_chain *c, unsigned int format)
 {
 	const char *chain_name = nftnl_chain_get_str(c, NFTNL_CHAIN_NAME);
-	uint32_t policy = nftnl_chain_get_u32(c, NFTNL_CHAIN_POLICY);
 	bool basechain = !!nftnl_chain_get(c, NFTNL_CHAIN_HOOKNUM);
 	uint32_t refs = nftnl_chain_get_u32(c, NFTNL_CHAIN_USE);
 	uint32_t entries = nft_rule_count(h, c);
@@ -2286,8 +2382,12 @@ static void __nft_print_header(struct nft_handle *h,
 		.pcnt = nftnl_chain_get_u64(c, NFTNL_CHAIN_PACKETS),
 		.bcnt = nftnl_chain_get_u64(c, NFTNL_CHAIN_BYTES),
 	};
+	const char *pname = NULL;
 
-	ops->print_header(format, chain_name, policy_name[policy],
+	if (nftnl_chain_is_set(c, NFTNL_CHAIN_POLICY))
+		pname = policy_name[nftnl_chain_get_u32(c, NFTNL_CHAIN_POLICY)];
+
+	ops->print_header(format, chain_name, pname,
 			&ctrs, basechain, refs - entries, entries);
 }
 
@@ -2671,14 +2771,138 @@ static int nft_action(struct nft_handle *h, int action)
 	return ret == 0 ? 1 : 0;
 }
 
+static int ebt_add_policy_rule(struct nftnl_chain *c, void *data)
+{
+	uint32_t policy = nftnl_chain_get_u32(c, NFTNL_CHAIN_POLICY);
+	struct iptables_command_state cs = {
+		.eb.bitmask = EBT_NOPROTO,
+	};
+	struct nftnl_udata_buf *udata;
+	struct nft_handle *h = data;
+	struct nftnl_rule *r;
+	const char *pname;
+
+	if (nftnl_chain_get(c, NFTNL_CHAIN_HOOKNUM))
+		return 0; /* ignore base chains */
+
+	if (!nftnl_chain_is_set(c, NFTNL_CHAIN_POLICY))
+		return 0;
+
+	nftnl_chain_unset(c, NFTNL_CHAIN_POLICY);
+
+	switch (policy) {
+	case NFT_RETURN:
+		return 0; /* return policy is default for nft chains */
+	case NF_ACCEPT:
+		pname = "ACCEPT";
+		break;
+	case NF_DROP:
+		pname = "DROP";
+		break;
+	default:
+		return -1;
+	}
+
+	command_jump(&cs, pname);
+
+	r = nft_rule_new(h, nftnl_chain_get_str(c, NFTNL_CHAIN_NAME),
+			 nftnl_chain_get_str(c, NFTNL_CHAIN_TABLE), &cs);
+	if (!r)
+		return -1;
+
+	udata = nftnl_udata_buf_alloc(NFT_USERDATA_MAXLEN);
+	if (!udata)
+		return -1;
+
+	if (!nftnl_udata_put_u32(udata, UDATA_TYPE_EBTABLES_POLICY, 1))
+		return -1;
+
+	nftnl_rule_set_data(r, NFTNL_RULE_USERDATA,
+			    nftnl_udata_buf_data(udata),
+			    nftnl_udata_buf_len(udata));
+	nftnl_udata_buf_free(udata);
+
+	if (batch_rule_add(h, NFT_COMPAT_RULE_APPEND, r) < 0) {
+		nftnl_rule_free(r);
+		return -1;
+	}
+
+	return 0;
+}
+
+int ebt_set_user_chain_policy(struct nft_handle *h, const char *table,
+			      const char *chain, const char *policy)
+{
+	struct nftnl_chain *c = nft_chain_find(h, table, chain);
+	int pval;
+
+	if (!c)
+		return 0;
+
+	if (!strcmp(policy, "DROP"))
+		pval = NF_DROP;
+	else if (!strcmp(policy, "ACCEPT"))
+		pval = NF_ACCEPT;
+	else if (!strcmp(policy, "RETURN"))
+		pval = NFT_RETURN;
+	else
+		return 0;
+
+	nftnl_chain_set_u32(c, NFTNL_CHAIN_POLICY, pval);
+	return 1;
+}
+
+static void nft_bridge_commit_prepare(struct nft_handle *h)
+{
+	const struct builtin_table *t;
+	struct nftnl_chain_list *list;
+	int i;
+
+	for (i = 0; i < NFT_TABLE_MAX; i++) {
+		t = &h->tables[i];
+
+		if (!t->name)
+			continue;
+
+		list = h->table[t->type].chain_cache;
+		if (!list)
+			continue;
+
+		nftnl_chain_list_foreach(list, ebt_add_policy_rule, h);
+	}
+}
+
 int nft_commit(struct nft_handle *h)
 {
+	if (h->family == NFPROTO_BRIDGE)
+		nft_bridge_commit_prepare(h);
 	return nft_action(h, NFT_COMPAT_COMMIT);
 }
 
 int nft_abort(struct nft_handle *h)
 {
 	return nft_action(h, NFT_COMPAT_ABORT);
+}
+
+int nft_abort_policy_rule(struct nft_handle *h, const char *table)
+{
+	struct obj_update *n, *tmp;
+
+	list_for_each_entry_safe(n, tmp, &h->obj_list, head) {
+		if (n->type != NFT_COMPAT_RULE_APPEND &&
+		    n->type != NFT_COMPAT_RULE_DELETE)
+			continue;
+
+		if (strcmp(table,
+			   nftnl_rule_get_str(n->rule, NFTNL_RULE_TABLE)))
+			continue;
+
+		if (!nft_rule_is_policy_rule(n->rule))
+			continue;
+
+		batch_obj_del(h, n);
+	}
+	return 0;
 }
 
 int nft_compatible_revision(const char *name, uint8_t rev, int opt)

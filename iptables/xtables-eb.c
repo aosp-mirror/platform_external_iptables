@@ -800,7 +800,6 @@ int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table,
 		case 'E': /* Rename chain */
 		case 'X': /* Delete chain */
 			/* We allow -N chainname -P policy */
-			/* XXX: Not in ebtables-compat */
 			if (command == 'N' && c == 'P') {
 				command = c;
 				optind--; /* No table specified */
@@ -1225,17 +1224,16 @@ print_zero:
 
 	if (command == 'P') {
 		if (selected_chain < 0) {
-			xtables_error(PARAMETER_PROBLEM,
-				      "Policy %s not allowed for user defined chains",
-				      policy);
+			ret = ebt_set_user_chain_policy(h, *table, chain, policy);
+		} else {
+			if (strcmp(policy, "RETURN") == 0) {
+				xtables_error(PARAMETER_PROBLEM,
+					      "Policy RETURN only allowed for user defined chains");
+			}
+			ret = nft_chain_set(h, *table, chain, policy, NULL);
+			if (ret < 0)
+				xtables_error(PARAMETER_PROBLEM, "Wrong policy");
 		}
-		if (strcmp(policy, "RETURN") == 0) {
-			xtables_error(PARAMETER_PROBLEM,
-				      "Policy RETURN only allowed for user defined chains");
-		}
-		ret = nft_chain_set(h, *table, chain, policy, NULL);
-		if (ret < 0)
-			xtables_error(PARAMETER_PROBLEM, "Wrong policy");
 	} else if (command == 'L') {
 		ret = list_rules(h, chain, *table, rule_nr,
 				 0,
