@@ -2331,18 +2331,7 @@ __nft_rule_list(struct nft_handle *h, struct nftnl_chain *c,
 
 	r = nftnl_rule_iter_next(iter);
 	while (r != NULL) {
-		rule_ctr++;
-
-		if (rulenum > 0 && rule_ctr != rulenum) {
-			/* List by rule number case */
-			goto next;
-		}
-
-		cb(r, rule_ctr, format);
-		if (rulenum > 0)
-			break;
-
-next:
+		cb(r, ++rule_ctr, format);
 		r = nftnl_rule_iter_next(iter);
 	}
 
