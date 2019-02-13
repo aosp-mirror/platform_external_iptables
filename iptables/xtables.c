@@ -1069,9 +1069,6 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 			xtables_error(PARAMETER_PROBLEM,
 				      "Chain '%s' does not exist", cs->jumpto);
 	}
-	if (!p->xlate && p->command == CMD_NEW_CHAIN &&
-	    nft_chain_exists(h, p->table, p->chain))
-		xtables_error(OTHER_PROBLEM, "Chain already exists");
 }
 
 int do_commandx(struct nft_handle *h, int argc, char *argv[], char **table,

@@ -1726,6 +1726,11 @@ int nft_chain_user_add(struct nft_handle *h, const char *chain, const char *tabl
 	if (nft_xtables_config_load(h, XTABLES_CONFIG_DEFAULT, 0) < 0)
 		nft_xt_builtin_init(h, table);
 
+	if (nft_chain_exists(h, table, chain)) {
+		errno = EEXIST;
+		return 0;
+	}
+
 	c = nftnl_chain_alloc();
 	if (c == NULL)
 		return 0;
