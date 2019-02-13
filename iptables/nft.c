@@ -3235,8 +3235,10 @@ int nft_chain_zero_counters(struct nft_handle *h, const char *chain,
 
 	if (chain) {
 		c = nftnl_chain_list_lookup_byname(list, chain);
-		if (!c)
+		if (!c) {
+			errno = ENOENT;
 			return 0;
+		}
 
 		ret = __nft_chain_zero_counters(c, &d);
 		goto err;
