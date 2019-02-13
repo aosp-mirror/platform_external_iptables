@@ -1855,7 +1855,12 @@ int nft_chain_user_rename(struct nft_handle *h,const char *chain,
 	uint64_t handle;
 	int ret;
 
-	nft_fn = nft_chain_user_add;
+	nft_fn = nft_chain_user_rename;
+
+	if (nft_chain_exists(h, table, newname)) {
+		errno = EEXIST;
+		return 0;
+	}
 
 	/* If built-in chains don't exist for this table, create them */
 	if (nft_xtables_config_load(h, XTABLES_CONFIG_DEFAULT, 0) < 0)
@@ -2985,6 +2990,7 @@ const char *nft_strerror(int err)
 	    { nft_chain_user_del, EMLINK,
 	      "Can't delete chain with references left" },
 	    { nft_chain_user_add, EEXIST, "Chain already exists" },
+	    { nft_chain_user_rename, EEXIST, "File exists" },
 	    { nft_rule_insert, E2BIG, "Index of insertion too big" },
 	    { nft_rule_check, ENOENT, "Bad rule (does a matching rule exist in that chain?)" },
 	    { nft_rule_replace, E2BIG, "Index of replacement too big" },
