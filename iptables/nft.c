@@ -2235,7 +2235,7 @@ int nft_rule_insert(struct nft_handle *h, const char *chain,
 				return nft_rule_append(h, chain, table, data,
 						       NULL, verbose);
 
-			errno = ENOENT;
+			errno = E2BIG;
 			goto err;
 		}
 	}
@@ -2276,7 +2276,7 @@ int nft_rule_delete_num(struct nft_handle *h, const char *chain,
 		if (ret < 0)
 			errno = ENOMEM;
 	} else
-		errno = ENOENT;
+		errno = E2BIG;
 
 	return ret;
 }
@@ -2304,7 +2304,7 @@ int nft_rule_replace(struct nft_handle *h, const char *chain,
 
 		ret = nft_rule_append(h, chain, table, data, r, verbose);
 	} else
-		errno = ENOENT;
+		errno = E2BIG;
 
 	return ret;
 }
@@ -2985,10 +2985,10 @@ const char *nft_strerror(int err)
 	    { nft_chain_user_del, EMLINK,
 	      "Can't delete chain with references left" },
 	    { nft_chain_user_add, EEXIST, "Chain already exists" },
-	    { nft_rule_insert, ENOENT, "Index of insertion too big" },
+	    { nft_rule_insert, E2BIG, "Index of insertion too big" },
 	    { nft_rule_check, ENOENT, "Bad rule (does a matching rule exist in that chain?)" },
-	    { nft_rule_replace, ENOENT, "Index of replacement too big" },
-	    { nft_rule_delete_num, ENOENT, "Index of deletion too big" },
+	    { nft_rule_replace, E2BIG, "Index of replacement too big" },
+	    { nft_rule_delete_num, E2BIG, "Index of deletion too big" },
 /*	    { TC_READ_COUNTER, E2BIG, "Index of counter too big" },
 	    { TC_ZERO_COUNTER, E2BIG, "Index of counter too big" }, */
 	    /* ENOENT for DELETE probably means no matching rule */
