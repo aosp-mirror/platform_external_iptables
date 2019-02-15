@@ -36,16 +36,16 @@ diff -u -Z <(echo -e "$VOUT5") <($XT_MULTI arptables -v -A OUTPUT $RULE5)
 diff -u -Z <(echo -e "$VOUT6") <($XT_MULTI arptables -v -A foo $RULE6)
 
 EXPECT='Chain INPUT (policy ACCEPT 0 packets, 0 bytes)
--j ACCEPT -i eth23 -o *, pcnt=0 -- bcnt=0
--i eth23 -o *, pcnt=0 -- bcnt=0
--j MARK -i eth23 -o * --set-mark 42, pcnt=0 -- bcnt=0
+-j ACCEPT -i eth23 -o * , pcnt=0 -- bcnt=0
+-i eth23 -o * , pcnt=0 -- bcnt=0
+-j MARK -i eth23 -o * --set-mark 42 , pcnt=0 -- bcnt=0
 
 Chain OUTPUT (policy ACCEPT 0 packets, 0 bytes)
--j CLASSIFY -i * -o eth23 --set-class 23:42, pcnt=0 -- bcnt=0
--j foo -i * -o eth23, pcnt=0 -- bcnt=0
+-j CLASSIFY -i * -o eth23 --set-class 23:42 , pcnt=0 -- bcnt=0
+-j foo -i * -o eth23 , pcnt=0 -- bcnt=0
 
 Chain foo (1 references)
--j mangle -i * -o eth23 --mangle-ip-s 10.0.0.1, pcnt=0 -- bcnt=0'
+-j mangle -i * -o eth23 --mangle-ip-s 10.0.0.1 , pcnt=0 -- bcnt=0'
 
 diff -u -Z <(echo -e "$EXPECT") <($XT_MULTI arptables -v -n -L)
 
