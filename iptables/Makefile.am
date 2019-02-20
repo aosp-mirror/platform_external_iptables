@@ -60,8 +60,10 @@ man_MANS         = iptables.8 iptables-restore.8 iptables-save.8 \
                    iptables-xml.1 ip6tables.8 ip6tables-restore.8 \
                    ip6tables-save.8 iptables-extensions.8 \
                    xtables-nft.8 xtables-translate.8 xtables-legacy.8 \
+                   iptables-translate.8 ip6tables-translate.8 \
                    xtables-monitor.8
 CLEANFILES       = iptables.8 xtables-monitor.8 \
+		   iptables-translate.8 ip6tables-translate.8 \
 		   xtables-config-parser.c xtables-config-syntax.c
 
 vx_bin_links   = iptables-xml
@@ -91,6 +93,9 @@ iptables-extensions.8: iptables-extensions.8.tmpl ../extensions/matches.man ../e
 	${AM_VERBOSE_GEN} sed \
 		-e '/@MATCH@/ r ../extensions/matches.man' \
 		-e '/@TARGET@/ r ../extensions/targets.man' $< >$@;
+
+iptables-translate.8 ip6tables-translate.8:
+	${AM_VERBOSE_GEN} echo '.so man8/xtables-translate.8' >$@
 
 pkgconfig_DATA = xtables.pc
 
