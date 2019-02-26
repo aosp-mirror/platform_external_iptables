@@ -156,6 +156,61 @@ static void connbytes_save(const void *ip, const struct xt_entry_match *match)
 	print_direction(sinfo);
 }
 
+
+static int connbytes_xlate(struct xt_xlate *xl,
+			   const struct xt_xlate_mt_params *params)
+{
+	const struct xt_connbytes_info *info = (void *)params->match->data;
+	unsigned long long from, to;
+	bool invert = false;
+
+	xt_xlate_add(xl, "ct ");
+
+	switch (info->direction) {
+	case XT_CONNBYTES_DIR_ORIGINAL:
+		xt_xlate_add(xl, "original ");
+		break;
+	case XT_CONNBYTES_DIR_REPLY:
+		xt_xlate_add(xl, "reply ");
+		break;
+	case XT_CONNBYTES_DIR_BOTH:
+		break;
+	default:
+		return 0;
+	}
+
+	switch (info->what) {
+	case XT_CONNBYTES_PKTS:
+		xt_xlate_add(xl, "packets ");
+		break;
+	case XT_CONNBYTES_BYTES:
+		xt_xlate_add(xl, "bytes ");
+		break;
+	case XT_CONNBYTES_AVGPKT:
+		xt_xlate_add(xl, "avgpkt ");
+		break;
+	default:
+		return 0;
+	}
+
+	if (info->count.from > info->count.to) {
+		invert = true;
+		from = info->count.to;
+		to = info->count.from;
+	} else {
+		to = info->count.to;
+		from = info->count.from;
+	}
+
+	if (from == to)
+		xt_xlate_add(xl, "%llu", from);
+	else if (to == UINT64_MAX)
+		xt_xlate_add(xl, "%s %llu", invert ? "lt" : "ge", from);
+	else
+		xt_xlate_add(xl, "%s%llu-%llu", invert ? "!= " : "", from, to);
+	return 1;
+}
+
 static struct xtables_match connbytes_match = {
 	.family		= NFPROTO_UNSPEC,
 	.name 		= "connbytes",
@@ -167,6 +222,7 @@ static struct xtables_match connbytes_match = {
 	.save 		= connbytes_save,
 	.x6_parse	= connbytes_parse,
 	.x6_options	= connbytes_opts,
+	.xlate		= connbytes_xlate,
 };
 
 void _init(void)
