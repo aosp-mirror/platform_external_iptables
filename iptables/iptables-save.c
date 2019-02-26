@@ -33,10 +33,16 @@ static int for_each_table(int (*func)(const char *tablename))
 	int ret = 1;
 	FILE *procfile = NULL;
 	char tablename[XT_TABLE_MAXNAMELEN+1];
+	static const char filename[] = "/proc/net/ip_tables_names";
 
-	procfile = fopen("/proc/net/ip_tables_names", "re");
-	if (!procfile)
-		return ret;
+	procfile = fopen(filename, "re");
+	if (!procfile) {
+		if (errno == ENOENT)
+			return ret;
+		fprintf(stderr, "Failed to list table names in %s: %s\n",
+		        filename, strerror(errno));
+		exit(1);
+	}
 
 	while (fgets(tablename, sizeof(tablename), procfile)) {
 		if (tablename[strlen(tablename) - 1] != '\n')
