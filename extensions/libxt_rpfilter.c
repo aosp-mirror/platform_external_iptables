@@ -77,6 +77,31 @@ static void rpfilter_save(const void *ip, const struct xt_entry_match *match)
 	return rpfilter_print_prefix(ip, match->data, "--");
 }
 
+static int rpfilter_xlate(struct xt_xlate *xl,
+			  const struct xt_xlate_mt_params *params)
+{
+	const struct xt_rpfilter_info *info = (void *)params->match->data;
+	bool invert = info->flags & XT_RPFILTER_INVERT;
+
+	if (info->flags & XT_RPFILTER_ACCEPT_LOCAL) {
+		if (invert)
+			xt_xlate_add(xl, "fib saddr type != local ");
+		else
+			return 0;
+	}
+
+	xt_xlate_add(xl, "fib saddr ");
+
+	if (info->flags & XT_RPFILTER_VALID_MARK)
+		xt_xlate_add(xl, ". mark ");
+	if (!(info->flags & XT_RPFILTER_LOOSE))
+		xt_xlate_add(xl, ". iif ");
+
+	xt_xlate_add(xl, "oif %s0", invert ? "" : "!= ");
+
+	return 1;
+}
+
 static struct xtables_match rpfilter_match = {
 	.family		= NFPROTO_UNSPEC,
 	.name		= "rpfilter",
@@ -88,6 +113,7 @@ static struct xtables_match rpfilter_match = {
 	.save		= rpfilter_save,
 	.x6_parse	= rpfilter_parse,
 	.x6_options	= rpfilter_opts,
+	.xlate		= rpfilter_xlate,
 };
 
 void _init(void)
