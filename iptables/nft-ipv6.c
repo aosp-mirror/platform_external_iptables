@@ -438,12 +438,11 @@ static int nft_ipv6_xlate(const void *data, struct xt_xlate *xl)
 
 	/* Always add counters per rule, as in iptables */
 	xt_xlate_add(xl, "counter ");
+	ret = xlate_action(cs, !!(cs->fw6.ipv6.flags & IP6T_F_GOTO), xl);
 
 	comment = xt_xlate_get_comment(xl);
 	if (comment)
-		xt_xlate_add(xl, "comment %s", comment);
-
-	ret = xlate_action(cs, !!(cs->fw6.ipv6.flags & IP6T_F_GOTO), xl);
+		xt_xlate_add(xl, " comment %s", comment);
 
 	return ret;
 }
