@@ -1,8 +1,10 @@
+#define _GNU_SOURCE
 #include <errno.h>
 #include <stdbool.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <xtables.h>
 #include <linux/netfilter/xt_connlabel.h>
 #include <libnetfilter_conntrack/libnetfilter_conntrack.h>
@@ -32,40 +34,59 @@ static const struct xt_option_entry connlabel_mt_opts[] = {
 /* cannot do this via _init, else static builds might spew error message
  * for every iptables invocation.
  */
-static void connlabel_open(void)
+static int connlabel_open(void)
 {
 	const char *fname;
 
 	if (map)
-		return;
+		return 0;
 
 	map = nfct_labelmap_new(NULL);
 	if (map != NULL)
-		return;
+		return 0;
 
 	fname = nfct_labels_get_path();
 	if (errno) {
-		xtables_error(RESOURCE_PROBLEM,
-			"cannot open %s: %s", fname, strerror(errno));
+		fprintf(stderr, "Warning: cannot open %s: %s\n",
+			fname, strerror(errno));
 	} else {
 		xtables_error(RESOURCE_PROBLEM,
 			"cannot parse %s: no labels found", fname);
 	}
+	return 1;
+}
+
+static int connlabel_value_parse(const char *in)
+{
+	char *end;
+	unsigned long value = strtoul(in, &end, 0);
+
+	if (in[0] == '\0' || *end != '\0')
+		return -1;
+
+	return value;
 }
 
 static void connlabel_mt_parse(struct xt_option_call *cb)
 {
 	struct xt_connlabel_mtinfo *info = cb->data;
+	bool have_labelmap = !connlabel_open();
 	int tmp;
 
-	connlabel_open();
 	xtables_option_parse(cb);
 
 	switch (cb->entry->id) {
 	case O_LABEL:
-		tmp = nfct_labelmap_get_bit(map, cb->arg);
+		if (have_labelmap)
+			tmp = nfct_labelmap_get_bit(map, cb->arg);
+		else
+			tmp = connlabel_value_parse(cb->arg);
+
 		if (tmp < 0)
-			xtables_error(PARAMETER_PROBLEM, "label '%s' not found", cb->arg);
+			xtables_error(PARAMETER_PROBLEM,
+				      "label '%s' not found or invalid value",
+				      cb->arg);
+
 		info->bit = tmp;
 		if (cb->invert)
 			info->options |= XT_CONNLABEL_OP_INVERT;
@@ -81,7 +102,8 @@ static const char *connlabel_get_name(int b)
 {
 	const char *name;
 
-	connlabel_open();
+	if (connlabel_open())
+		return NULL;
 
 	name = nfct_labelmap_get_name(map, b);
 	if (name && strcmp(name, ""))
@@ -134,9 +156,13 @@ static int connlabel_mt_xlate(struct xt_xlate *xl,
 	const struct xt_connlabel_mtinfo *info =
 		(const void *)params->match->data;
 	const char *name = connlabel_get_name(info->bit);
+	char *valbuf = NULL;
 
-	if (name == NULL)
-		return 0;
+	if (name == NULL) {
+		if (asprintf(&valbuf, "%u", info->bit) < 0)
+			return 0;
+		name = valbuf;
+	}
 
 	if (info->options & XT_CONNLABEL_OP_SET)
 		xt_xlate_add(xl, "ct label set %s ", name);
@@ -146,6 +172,7 @@ static int connlabel_mt_xlate(struct xt_xlate *xl,
 		xt_xlate_add(xl, "and %s != ", name);
 	xt_xlate_add(xl, "%s", name);
 
+	free(valbuf);
 	return 1;
 }
 
