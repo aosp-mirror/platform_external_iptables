@@ -62,6 +62,9 @@ man_MANS         = iptables.8 iptables-restore.8 iptables-save.8 \
                    xtables-nft.8 xtables-translate.8 xtables-legacy.8 \
                    iptables-translate.8 ip6tables-translate.8 \
                    xtables-monitor.8
+if ENABLE_NFTABLES
+man_MANS	+= arptables-nft.8 arptables-nft-restore.8 arptables-nft-save.8
+endif
 CLEANFILES       = iptables.8 xtables-monitor.8 \
 		   iptables-translate.8 ip6tables-translate.8 \
 		   xtables-config-parser.c xtables-config-syntax.c
