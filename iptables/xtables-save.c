@@ -187,7 +187,8 @@ xtables_save_main(int family, const char *progname, int argc, char *argv[])
 			exit(0);
 		default:
 			fprintf(stderr,
-				"Look at manual page `xtables-save.8' for more information.\n");
+				"Look at manual page `%s.8' for more information.\n",
+				prog_name);
 			exit(1);
 		}
 	}
@@ -333,7 +334,8 @@ int xtables_eb_save_main(int argc_, char *argv_[])
 			exit(0);
 		default:
 			fprintf(stderr,
-				"Look at manual page `xtables-save.8' for more information.\n");
+				"Look at manual page `%s.8' for more information.\n",
+				prog_name);
 			exit(1);
 		}
 	}
@@ -380,7 +382,8 @@ int xtables_arp_save_main(int argc, char **argv)
 			exit(0);
 		default:
 			fprintf(stderr,
-				"Look at manual page `xtables-save.8' for more information.\n");
+				"Look at manual page `%s.8' for more information.\n",
+				prog_name);
 			exit(1);
 		}
 	}
