@@ -1,4 +1,4 @@
-.TH ARPTABLES-SAVE 8 "Nov 07, 2013" "" ""
+.TH ARPTABLES-SAVE 8 "March 2019" "" ""
 .\"
 .\" Man page written by Jesper Dangaard Brouer <brouer@redhat.com> based on a
 .\" Man page written by Harald Welte <laforge@gnumonks.org>
@@ -20,16 +20,26 @@
 .\"
 .\"
 .SH NAME
-arptables-save \(em dump arptables rules to stdout
+arptables-save \- dump arptables rules to stdout (nft-based)
 .SH SYNOPSIS
-\fBarptables\-save
+\fBarptables\-save\fP [\fB\-M\fP \fImodprobe\fP] [\fB\-c\fP]
+.P
+\fBarptables\-save\fP [\fB\-V\fP]
 .SH DESCRIPTION
 .PP
 .B arptables-save
 is used to dump the contents of an ARP Table in easily parseable format
 to STDOUT. Use I/O-redirection provided by your shell to write to a file.
-.SH BUGS
-None known as of arptables-0.0.4 release
+.TP
+\fB\-M\fR, \fB\-\-modprobe\fR \fImodprobe_program\fP
+Specify the path to the modprobe program. By default, arptables-save will
+inspect /proc/sys/kernel/modprobe to determine the executable's path.
+.TP
+\fB\-c\fR, \fB\-\-counters\fR
+Include the current values of all packet and byte counters in the output.
+.TP
+\fB\-V\fR, \fB\-\-version\fR
+Print version information and exit.
 .SH AUTHOR
 Jesper Dangaard Brouer <brouer@redhat.com>
 .SH SEE ALSO

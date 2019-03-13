@@ -1,4 +1,4 @@
-.TH ARPTABLES 8  "June 2018"
+.TH ARPTABLES 8  "March 2019"
 .\"
 .\" Man page originally written by Jochen Friedrich <jochen@scram.de>,
 .\" maintained by Bart De Schuymer.
@@ -22,7 +22,7 @@
 .\"
 .\"
 .SH NAME
-arptables \- ARP table administration (legacy)
+arptables \- ARP table administration (nft-based)
 .SH SYNOPSIS
 .BR "arptables " [ "-t table" ] " -" [ AD ] " chain rule-specification " [ options ]
 .br
@@ -37,17 +37,6 @@ arptables \- ARP table administration (legacy)
 .BR "arptables " [ "-t table" ] " -E old-chain-name new-chain-name"
 .br
 .BR "arptables " [ "-t table" ] " -P chain target " [ options ]
-
-.SH LEGACY
-This tool uses the old xtables/setsockopt framework, and is a legacy version
-of arptables. That means that a new, more modern tool exists with the same
-functionality using the nf_tables framework and you are encouraged to migrate now.
-The new binaries (formerly known as -compat) uses the same syntax and
-semantics than this legacy one.
-
-You can still use this legacy tool. You should probably get some specific
-information from your Linux distribution or vendor.
-More docs are available at https://wiki.nftables.org
 
 .SH DESCRIPTION
 .B arptables
@@ -106,15 +95,11 @@ first argument on the arptables command line, if used.
 .B "-t, --table"
 .br
 .BR filter ,
-is the only table and contains two (Linux kernels 2.4.X) or three (Linux kernels 2.6.0 and later) built-in chains:
+is the only table and contains two built-in chains:
 .B INPUT 
-(for frames destined for the host), 
+(for frames destined for the host) and
 .B OUTPUT 
-(for locally-generated frames) and
-.B FORWARD
-(for frames being forwarded by the bridge code). The
-.B FORWARD
-chain doesn't exist in Linux 2.4.X kernels.
+(for locally-generated frames).
 .br
 .br
 .SH ARPTABLES COMMAND LINE ARGUMENTS
@@ -258,15 +243,15 @@ numbers separated by colons.
 .TP 
 .BR "-i, --in-interface " "[!] \fIname\fP"
 The interface via which a frame is received (for the
-.BR INPUT " and " FORWARD
-chains). The flag
+.B INPUT
+chain). The flag
 .B --in-if
 is an alias for this option.
 .TP
 .BR "-o, --out-interface " "[!] \fIname\fP"
 The interface via which a frame is going to be sent (for the
-.BR OUTPUT " and " FORWARD
-chains). The flag
+.B OUTPUT
+chain). The flag
 .B --out-if
 is an alias for this option.
 .TP
@@ -344,9 +329,20 @@ Binary AND the mark with bits.
 .BR "--or-mark mark"
 Binary OR the mark with bits.
 
+.SH NOTES
+In this nft-based version of
+.BR arptables ,
+support for
+.B FORWARD
+chain has not been implemented. Since ARP packets are "forwarded" only by Linux
+bridges, the same may be achieved using
+.B FORWARD
+chain in
+.BR ebtables .
+
 .SH MAILINGLISTS
 .BR "" "See " http://netfilter.org/mailinglists.html
 .SH SEE ALSO
-.BR iptables "(8), " ebtables "(8), " arp "(8), " rarp "(8), " ifconfig "(8), " route (8)
+.BR xtables-nft "(8), " iptables "(8), " ebtables "(8), " ip (8)
 .PP
-.BR "" "See " http://ebtables.sf.net
+.BR "" "See " https://wiki.nftables.org
