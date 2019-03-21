@@ -41,5 +41,5 @@ To remove them again,
 .PP
 \fBnfnl_osf -f /usr/share/xtables/pf.os -d\fP
 .PP
-The fingerprint database can be downlaoded from
+The fingerprint database can be downloaded from
 http://www.openbsd.org/cgi-bin/cvsweb/src/etc/pf.os .
