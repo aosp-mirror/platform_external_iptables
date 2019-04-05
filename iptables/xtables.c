@@ -424,14 +424,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 			break;
 
 		case 'N':
-			if (optarg && (*optarg == '-' || *optarg == '!'))
-				xtables_error(PARAMETER_PROBLEM,
-					   "chain name not allowed to start "
-					   "with `%c'\n", *optarg);
-			if (xtables_find_target(optarg, XTF_TRY_LOAD))
-				xtables_error(PARAMETER_PROBLEM,
-					   "chain name may not clash "
-					   "with target name\n");
+			parse_chain(optarg);
 			add_command(&p->command, CMD_NEW_CHAIN, CMD_NONE,
 				    invert);
 			p->chain = optarg;

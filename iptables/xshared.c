@@ -892,3 +892,27 @@ set_option(unsigned int *options, unsigned int option, u_int16_t *invflg,
 		*invflg |= inverse_for_options[i];
 	}
 }
+
+void parse_chain(const char *chainname)
+{
+	const char *ptr;
+
+	if (strlen(chainname) >= XT_EXTENSION_MAXNAMELEN)
+		xtables_error(PARAMETER_PROBLEM,
+			      "chain name `%s' too long (must be under %u chars)",
+			      chainname, XT_EXTENSION_MAXNAMELEN);
+
+	if (*chainname == '-' || *chainname == '!')
+		xtables_error(PARAMETER_PROBLEM,
+			      "chain name not allowed to start with `%c'\n",
+			      *chainname);
+
+	if (xtables_find_target(chainname, XTF_TRY_LOAD))
+		xtables_error(PARAMETER_PROBLEM,
+			      "chain name may not clash with target name\n");
+
+	for (ptr = chainname; *ptr; ptr++)
+		if (isspace(*ptr))
+			xtables_error(PARAMETER_PROBLEM,
+				      "Invalid chain name `%s'", chainname);
+}

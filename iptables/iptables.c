@@ -223,31 +223,6 @@ iptables_exit_error(enum xtables_exittype status, const char *msg, ...)
 
 /* Christophe Burki wants `-p 6' to imply `-m tcp'.  */
 
-static void
-parse_chain(const char *chainname)
-{
-	const char *ptr;
-
-	if (strlen(chainname) >= XT_EXTENSION_MAXNAMELEN)
-		xtables_error(PARAMETER_PROBLEM,
-			   "chain name `%s' too long (must be under %u chars)",
-			   chainname, XT_EXTENSION_MAXNAMELEN);
-
-	if (*chainname == '-' || *chainname == '!')
-		xtables_error(PARAMETER_PROBLEM,
-			   "chain name not allowed to start "
-			   "with `%c'\n", *chainname);
-
-	if (xtables_find_target(chainname, XTF_TRY_LOAD))
-		xtables_error(PARAMETER_PROBLEM,
-			   "chain name may not clash "
-			   "with target name\n");
-
-	for (ptr = chainname; *ptr; ptr++)
-		if (isspace(*ptr))
-			xtables_error(PARAMETER_PROBLEM,
-				   "Invalid chain name `%s'", chainname);
-}
 
 static void
 print_header(unsigned int format, const char *chain, struct xtc_handle *handle)
