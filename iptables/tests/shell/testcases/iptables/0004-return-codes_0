@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # make sure error return codes are as expected useful cases
 # (e.g. commands to check ruleset state)
