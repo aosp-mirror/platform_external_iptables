@@ -1486,6 +1486,28 @@ static int fetch_rule_cache(struct nft_handle *h)
 	return 0;
 }
 
+static void __nft_build_cache(struct nft_handle *h)
+{
+	fetch_chain_cache(h);
+	fetch_rule_cache(h);
+	h->have_cache = true;
+}
+
+
+void nft_build_cache(struct nft_handle *h)
+{
+	if (!h->have_cache)
+		__nft_build_cache(h);
+}
+
+void nft_rebuild_cache(struct nft_handle *h)
+{
+	if (!h->have_cache)
+		flush_chain_cache(h, NULL);
+
+	__nft_build_cache(h);
+}
+
 struct nftnl_chain_list *nft_chain_list_get(struct nft_handle *h,
 					    const char *table)
 {
@@ -1495,11 +1517,7 @@ struct nftnl_chain_list *nft_chain_list_get(struct nft_handle *h,
 	if (!t)
 		return NULL;
 
-	if (!h->have_cache) {
-		fetch_chain_cache(h);
-		fetch_rule_cache(h);
-		h->have_cache = true;
-	}
+	nft_build_cache(h);
 
 	return h->table[t->type].chain_cache;
 }

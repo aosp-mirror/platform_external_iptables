@@ -145,10 +145,7 @@ void xtables_restore_parse(struct nft_handle *h,
 			if (p->tablename && (strcmp(p->tablename, table) != 0))
 				continue;
 
-			/* Fixme: Needed to init chain cache.
-			 * Should create explicit function to do this.
-			 */
-			nft_chain_list_get(h, table);
+			nft_build_cache(h);
 
 			if (h->noflush == 0) {
 				DEBUGP("Cleaning all chains of table '%s'\n",
