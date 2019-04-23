@@ -41,6 +41,7 @@
 #include <linux/netfilter/xt_limit.h>
 
 #include <libmnl/libmnl.h>
+#include <libnftnl/gen.h>
 #include <libnftnl/table.h>
 #include <libnftnl/chain.h>
 #include <libnftnl/rule.h>
@@ -59,6 +60,36 @@
 #include "xtables-config-parser.h"
 
 static void *nft_fn;
+
+static int genid_cb(const struct nlmsghdr *nlh, void *data)
+{
+	struct nft_handle *h = data;
+	struct nftnl_gen *gen;
+
+	gen = nftnl_gen_alloc();
+	if (!gen)
+		return MNL_CB_ERROR;
+
+	if (nftnl_gen_nlmsg_parse(nlh, gen) < 0)
+		goto out;
+
+	h->nft_genid = nftnl_gen_get_u32(gen, NFTNL_GEN_ID);
+
+	nftnl_gen_free(gen);
+	return MNL_CB_STOP;
+out:
+	nftnl_gen_free(gen);
+	return MNL_CB_ERROR;
+}
+
+static int mnl_genid_get(struct nft_handle *h)
+{
+	char buf[MNL_SOCKET_BUFFER_SIZE];
+	struct nlmsghdr *nlh;
+
+	nlh = nftnl_nlmsg_build_hdr(buf, NFT_MSG_GETGEN, 0, 0, h->seq);
+	return mnl_talk(h, nlh, genid_cb, h);
+}
 
 int mnl_talk(struct nft_handle *h, struct nlmsghdr *nlh,
 	     int (*cb)(const struct nlmsghdr *nlh, void *data),
@@ -109,9 +140,14 @@ static void mnl_nft_batch_continue(struct nftnl_batch *batch)
 	assert(nftnl_batch_update(batch) >= 0);
 }
 
-static uint32_t mnl_batch_begin(struct nftnl_batch *batch, uint32_t seqnum)
+static uint32_t mnl_batch_begin(struct nftnl_batch *batch, uint32_t genid, uint32_t seqnum)
 {
-	nftnl_batch_begin(nftnl_batch_buffer(batch), seqnum);
+	struct nlmsghdr *nlh;
+
+	nlh = nftnl_batch_begin(nftnl_batch_buffer(batch), seqnum);
+
+	mnl_attr_put_u32(nlh, NFTA_GEN_ID, htonl(genid));
+
 	mnl_nft_batch_continue(batch);
 
 	return seqnum;
@@ -1490,6 +1526,7 @@ static int fetch_rule_cache(struct nft_handle *h)
 
 static void __nft_build_cache(struct nft_handle *h)
 {
+	mnl_genid_get(h);
 	fetch_chain_cache(h);
 	fetch_rule_cache(h);
 	h->have_cache = true;
@@ -2678,6 +2715,76 @@ static void batch_obj_del(struct nft_handle *h, struct obj_update *o)
 	free(o);
 }
 
+static void nft_refresh_transaction(struct nft_handle *h)
+{
+	const char *tablename, *chainname;
+	const struct nftnl_chain *c;
+	struct obj_update *n, *tmp;
+	bool exists;
+
+	h->error.lineno = 0;
+
+	list_for_each_entry_safe(n, tmp, &h->obj_list, head) {
+		if (n->implicit) {
+			batch_obj_del(h, n);
+			continue;
+		}
+
+		switch (n->type) {
+		case NFT_COMPAT_TABLE_FLUSH:
+			tablename = nftnl_table_get_str(n->table, NFTNL_TABLE_NAME);
+			if (!tablename)
+				continue;
+			exists = nft_table_find(h, tablename);
+			if (n->skip && exists)
+				n->skip = 0;
+			else if (!n->skip && !exists)
+				n->skip = 1;
+			break;
+		case NFT_COMPAT_TABLE_ADD:
+			tablename = nftnl_table_get_str(n->table, NFTNL_TABLE_NAME);
+			if (!tablename)
+				continue;
+
+			exists = nft_table_find(h, tablename);
+			if (n->skip && !exists)
+				n->skip = 0;
+			break;
+		case NFT_COMPAT_CHAIN_USER_ADD:
+			tablename = nftnl_chain_get_str(n->chain, NFTNL_CHAIN_TABLE);
+			if (!tablename)
+				continue;
+
+			chainname = nftnl_chain_get_str(n->chain, NFTNL_CHAIN_NAME);
+			if (!chainname)
+				continue;
+
+			c = nft_chain_find(h, tablename, chainname);
+			if (c && !n->skip) {
+				/* -restore -n flushes existing rules from redefined user-chain */
+				if (h->noflush)
+					__nft_rule_flush(h, tablename,
+							 chainname, false, true);
+			} else if (!c && n->skip) {
+				n->skip = 0;
+			}
+			break;
+		case NFT_COMPAT_CHAIN_ADD:
+		case NFT_COMPAT_CHAIN_ZERO:
+		case NFT_COMPAT_CHAIN_USER_DEL:
+		case NFT_COMPAT_CHAIN_USER_FLUSH:
+		case NFT_COMPAT_CHAIN_UPDATE:
+		case NFT_COMPAT_CHAIN_RENAME:
+		case NFT_COMPAT_RULE_APPEND:
+		case NFT_COMPAT_RULE_INSERT:
+		case NFT_COMPAT_RULE_REPLACE:
+		case NFT_COMPAT_RULE_DELETE:
+		case NFT_COMPAT_RULE_FLUSH:
+			break;
+		}
+	}
+}
+
 static int nft_action(struct nft_handle *h, int action)
 {
 	struct obj_update *n, *tmp;
@@ -2685,12 +2792,15 @@ static int nft_action(struct nft_handle *h, int action)
 	unsigned int buflen, i, len;
 	bool show_errors = true;
 	char errmsg[1024];
-	uint32_t seq = 1;
+	uint32_t seq;
 	int ret = 0;
 
+retry:
+	seq = 1;
 	h->batch = mnl_batch_init();
 
-	mnl_batch_begin(h->batch, seq++);
+	mnl_batch_begin(h->batch, h->nft_genid, seq++);
+	h->nft_genid++;
 
 	list_for_each_entry(n, &h->obj_list, head) {
 
@@ -2773,7 +2883,20 @@ static int nft_action(struct nft_handle *h, int action)
 		break;
 	}
 
+	errno = 0;
 	ret = mnl_batch_talk(h->nl, h->batch, &h->err_list);
+	if (ret && errno == ERESTART) {
+		nft_rebuild_cache(h);
+
+		nft_refresh_transaction(h);
+
+		i=0;
+		list_for_each_entry_safe(err, ne, &h->err_list, head)
+			mnl_err_list_free(err);
+
+		mnl_batch_reset(h->batch);
+		goto retry;
+	}
 
 	i = 0;
 	buflen = sizeof(errmsg);
