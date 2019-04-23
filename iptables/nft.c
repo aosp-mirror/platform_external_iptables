@@ -1621,49 +1621,6 @@ __nft_rule_flush(struct nft_handle *h, const char *table,
 		nftnl_rule_free(r);
 }
 
-struct chain_user_flush_data {
-	struct nft_handle	*handle;
-	const char		*table;
-	const char		*chain;
-};
-
-static int __nft_chain_user_flush(struct nftnl_chain *c, void *data)
-{
-	const char *table_name = nftnl_chain_get_str(c, NFTNL_CHAIN_TABLE);
-	const char *chain_name = nftnl_chain_get_str(c, NFTNL_CHAIN_NAME);
-	struct chain_user_flush_data *d = data;
-	struct nft_handle *h = d->handle;
-	const char *table = d->table;
-	const char *chain = d->chain;
-
-	if (strcmp(table, table_name) != 0)
-		return 0;
-
-	if (strcmp(chain, chain_name) != 0)
-		return 0;
-
-	if (!nftnl_chain_is_set(c, NFTNL_CHAIN_HOOKNUM))
-		__nft_rule_flush(h, table, chain, false);
-
-	return 0;
-}
-
-int nft_chain_user_flush(struct nft_handle *h, struct nftnl_chain_list *list,
-			 const char *table, const char *chain)
-{
-	struct chain_user_flush_data d = {
-		.handle = h,
-		.table	= table,
-		.chain  = chain,
-	};
-
-	nft_fn = nft_chain_user_flush;
-
-	nftnl_chain_list_foreach(list, __nft_chain_user_flush, &d);
-
-	return 1;
-}
-
 int nft_rule_flush(struct nft_handle *h, const char *chain, const char *table,
 		   bool verbose)
 {
@@ -1748,6 +1705,45 @@ int nft_chain_user_add(struct nft_handle *h, const char *chain, const char *tabl
 
 	/* the core expects 1 for success and 0 for error */
 	return ret == 0 ? 1 : 0;
+}
+
+int nft_chain_restore(struct nft_handle *h, const char *chain, const char *table)
+{
+	struct nftnl_chain_list *list;
+	struct nftnl_chain *c;
+	bool created = false;
+	int ret;
+
+	c = nft_chain_find(h, table, chain);
+	if (c) {
+		/* Apparently -n still flushes existing user defined
+		 * chains that are redefined.
+		 */
+		if (h->noflush)
+			__nft_rule_flush(h, table, chain, false);
+	} else {
+		c = nftnl_chain_alloc();
+		if (!c)
+			return -1;
+
+		nftnl_chain_set(c, NFTNL_CHAIN_TABLE, (char *)table);
+		nftnl_chain_set(c, NFTNL_CHAIN_NAME, (char *)chain);
+		created = true;
+	}
+
+	if (h->family == NFPROTO_BRIDGE)
+		nftnl_chain_set_u32(c, NFTNL_CHAIN_POLICY, NF_ACCEPT);
+
+	if (!created)
+		return 0;
+
+	ret = batch_chain_add(h, NFT_COMPAT_CHAIN_USER_ADD, c);
+
+	list = nft_chain_list_get(h, table);
+	if (list)
+		nftnl_chain_list_add(c, list);
+
+	return ret;
 }
 
 /* From linux/netlink.h */

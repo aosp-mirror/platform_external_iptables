@@ -45,6 +45,7 @@ struct nft_handle {
 	} table[NFT_TABLE_MAX];
 	bool			have_cache;
 	bool			restore;
+	bool			noflush;
 	int8_t			config_done;
 
 	/* meta data, for error reporting */
@@ -87,8 +88,7 @@ struct nftnl_chain_list *nft_chain_list_get(struct nft_handle *h,
 int nft_chain_save(struct nft_handle *h, struct nftnl_chain_list *list);
 int nft_chain_user_add(struct nft_handle *h, const char *chain, const char *table);
 int nft_chain_user_del(struct nft_handle *h, const char *chain, const char *table, bool verbose);
-int nft_chain_user_flush(struct nft_handle *h, struct nftnl_chain_list *list,
-			 const char *chain, const char *table);
+int nft_chain_restore(struct nft_handle *h, const char *chain, const char *table);
 int nft_chain_user_rename(struct nft_handle *h, const char *chain, const char *table, const char *newname);
 int nft_chain_zero_counters(struct nft_handle *h, const char *chain, const char *table, bool verbose);
 const struct builtin_chain *nft_chain_builtin_find(const struct builtin_table *t, const char *chain);
