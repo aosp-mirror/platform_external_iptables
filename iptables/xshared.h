@@ -31,6 +31,26 @@ enum {
 	OPT_COUNTERS    = 1 << 10,
 };
 
+enum {
+	CMD_NONE		= 0,
+	CMD_INSERT		= 1 << 0,
+	CMD_DELETE		= 1 << 1,
+	CMD_DELETE_NUM		= 1 << 2,
+	CMD_REPLACE		= 1 << 3,
+	CMD_APPEND		= 1 << 4,
+	CMD_LIST		= 1 << 5,
+	CMD_FLUSH		= 1 << 6,
+	CMD_ZERO		= 1 << 7,
+	CMD_NEW_CHAIN		= 1 << 8,
+	CMD_DELETE_CHAIN	= 1 << 9,
+	CMD_SET_POLICY		= 1 << 10,
+	CMD_RENAME_CHAIN	= 1 << 11,
+	CMD_LIST_RULES		= 1 << 12,
+	CMD_ZERO_NUM		= 1 << 13,
+	CMD_CHECK		= 1 << 14,
+};
+#define NUMBER_OF_CMD		16
+
 struct xtables_globals;
 struct xtables_rule_match;
 struct xtables_target;

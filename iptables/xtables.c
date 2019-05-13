@@ -50,8 +50,6 @@
 #define FALSE 0
 #endif
 
-#define NUMBER_OF_CMD	16
-
 #define OPT_FRAGMENT	0x00800U
 #define NUMBER_OF_OPT	ARRAY_SIZE(optflags)
 static const char optflags[]

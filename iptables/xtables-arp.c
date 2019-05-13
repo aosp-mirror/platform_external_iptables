@@ -62,26 +62,6 @@ typedef char arpt_chainlabel[32];
 #define FALSE 0
 #endif
 
-/* XXX: command defined by nft-shared.h do not overlap with these two */
-#undef CMD_CHECK
-#undef CMD_RENAME_CHAIN
-
-#define CMD_NONE		0x0000U
-#define CMD_INSERT		0x0001U
-#define CMD_DELETE		0x0002U
-#define CMD_DELETE_NUM		0x0004U
-#define CMD_REPLACE		0x0008U
-#define CMD_APPEND		0x0010U
-#define CMD_LIST		0x0020U
-#define CMD_FLUSH		0x0040U
-#define CMD_ZERO		0x0080U
-#define CMD_NEW_CHAIN		0x0100U
-#define CMD_DELETE_CHAIN	0x0200U
-#define CMD_SET_POLICY		0x0400U
-#define CMD_CHECK		0x0800U
-#define CMD_RENAME_CHAIN	0x1000U
-#define NUMBER_OF_CMD	13
-
 #define OPTION_OFFSET 256
 
 #define OPT_NONE	0x00000U
