@@ -1,6 +1,5 @@
 #!/bin/bash
 
-export XTABLES_LIBDIR=$(pwd)/extensions
 have_nft=false
 nft -v > /dev/null && have_nft=true
 
@@ -77,12 +76,12 @@ dumpfile=$(mktemp) || exit 1
 
 make_dummy_rules > $dumpfile
 $XT_MULTI iptables-restore -w < $dumpfile
-LINES=$(wc -l < $dumpfile)
+LINES1=$(wc -l < $dumpfile)
 $XT_MULTI iptables-save | grep -v '^#' > $dumpfile
 LINES2=$(wc -l < $dumpfile)
 
-if [ $LINES -ne $LINES2 ]; then
-	echo "Original dump has $LINES, not $LINES2" 1>&2
+if [ $LINES1 -ne $LINES2 ]; then
+	echo "Original dump has $LINES1, not $LINES2" 1>&2
 	exit 111
 fi
 
