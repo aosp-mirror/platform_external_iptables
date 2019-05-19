@@ -840,31 +840,39 @@ static int __flush_chain_cache(struct nftnl_chain *c, void *data)
 	return 0;
 }
 
-static void flush_chain_cache(struct nft_handle *h, const char *tablename)
+static int flush_cache(struct nft_cache *c, const struct builtin_table *tables,
+		       const char *tablename)
 {
 	const struct builtin_table *table;
 	int i;
 
 	if (tablename) {
-		table = nft_table_builtin_find(h, tablename);
-		if (!table || !h->cache->table[table->type].chains)
-			return;
-		nftnl_chain_list_foreach(h->cache->table[table->type].chains,
+		table = __nft_table_builtin_find(tables, tablename);
+		if (!table || !c->table[table->type].chains)
+			return 0;
+		nftnl_chain_list_foreach(c->table[table->type].chains,
 					 __flush_chain_cache, NULL);
-		return;
+		return 0;
 	}
 
 	for (i = 0; i < NFT_TABLE_MAX; i++) {
-		if (h->tables[i].name == NULL)
+		if (tables[i].name == NULL)
 			continue;
 
-		if (!h->cache->table[i].chains)
+		if (!c->table[i].chains)
 			continue;
 
-		nftnl_chain_list_free(h->cache->table[i].chains);
-		h->cache->table[i].chains = NULL;
+		nftnl_chain_list_free(c->table[i].chains);
+		c->table[i].chains = NULL;
 	}
-	h->have_cache = false;
+
+	return 1;
+}
+
+static void flush_chain_cache(struct nft_handle *h, const char *tablename)
+{
+	if (flush_cache(h->cache, h->tables, tablename))
+		h->have_cache = false;
 }
 
 void nft_fini(struct nft_handle *h)
