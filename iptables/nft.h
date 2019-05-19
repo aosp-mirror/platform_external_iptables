@@ -48,7 +48,8 @@ struct nft_handle {
 	struct list_head	err_list;
 	struct nft_family_ops	*ops;
 	const struct builtin_table *tables;
-	struct nft_cache	__cache;
+	unsigned int		cache_index;
+	struct nft_cache	__cache[2];
 	struct nft_cache	*cache;
 	bool			have_cache;
 	bool			restore;

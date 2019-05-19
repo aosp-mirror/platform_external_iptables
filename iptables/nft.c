@@ -811,7 +811,7 @@ int nft_init(struct nft_handle *h, const struct builtin_table *t)
 
 	h->portid = mnl_socket_get_portid(h->nl);
 	h->tables = t;
-	h->cache = &h->__cache;
+	h->cache = &h->__cache[0];
 
 	INIT_LIST_HEAD(&h->obj_list);
 	INIT_LIST_HEAD(&h->err_list);
@@ -1618,12 +1618,28 @@ void nft_build_cache(struct nft_handle *h)
 		__nft_build_cache(h);
 }
 
+static void __nft_flush_cache(struct nft_handle *h)
+{
+	if (!h->cache_index) {
+		h->cache_index++;
+		h->cache = &h->__cache[h->cache_index];
+	} else {
+		flush_chain_cache(h, NULL);
+	}
+}
+
 static void nft_rebuild_cache(struct nft_handle *h)
 {
-	if (!h->have_cache)
-		flush_chain_cache(h, NULL);
+	if (h->have_cache)
+		__nft_flush_cache(h);
 
 	__nft_build_cache(h);
+}
+
+static void nft_release_cache(struct nft_handle *h)
+{
+	if (h->cache_index)
+		flush_cache(&h->__cache[0], h->tables, NULL);
 }
 
 struct nftnl_chain_list *nft_chain_list_get(struct nft_handle *h,
@@ -2957,6 +2973,7 @@ retry:
 		batch_obj_del(h, n);
 	}
 
+	nft_release_cache(h);
 	mnl_batch_reset(h->batch);
 
 	if (i)
