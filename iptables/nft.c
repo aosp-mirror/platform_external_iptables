@@ -1540,7 +1540,7 @@ void nft_build_cache(struct nft_handle *h)
 		__nft_build_cache(h);
 }
 
-void nft_rebuild_cache(struct nft_handle *h)
+static void nft_rebuild_cache(struct nft_handle *h)
 {
 	if (!h->have_cache)
 		flush_chain_cache(h, NULL);

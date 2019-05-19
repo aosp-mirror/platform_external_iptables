@@ -70,7 +70,6 @@ int mnl_talk(struct nft_handle *h, struct nlmsghdr *nlh,
 int nft_init(struct nft_handle *h, const struct builtin_table *t);
 void nft_fini(struct nft_handle *h);
 void nft_build_cache(struct nft_handle *h);
-void nft_rebuild_cache(struct nft_handle *h);
 
 /*
  * Operations with tables.
