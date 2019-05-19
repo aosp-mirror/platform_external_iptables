@@ -688,25 +688,31 @@ static void nft_chain_builtin_add(struct nft_handle *h,
 	nftnl_chain_list_add_tail(c, h->cache->table[table->type].chains);
 }
 
-/* find if built-in table already exists */
-const struct builtin_table *
-nft_table_builtin_find(struct nft_handle *h, const char *table)
+static const struct builtin_table *
+__nft_table_builtin_find(const struct builtin_table *tables, const char *table)
 {
 	int i;
 	bool found = false;
 
 	for (i = 0; i < NFT_TABLE_MAX; i++) {
-		if (h->tables[i].name == NULL)
+		if (tables[i].name == NULL)
 			continue;
 
-		if (strcmp(h->tables[i].name, table) != 0)
+		if (strcmp(tables[i].name, table) != 0)
 			continue;
 
 		found = true;
 		break;
 	}
 
-	return found ? &h->tables[i] : NULL;
+	return found ? &tables[i] : NULL;
+}
+
+/* find if built-in table already exists */
+const struct builtin_table *
+nft_table_builtin_find(struct nft_handle *h, const char *table)
+{
+	return __nft_table_builtin_find(h->tables, table);
 }
 
 /* find if built-in chain already exists */
