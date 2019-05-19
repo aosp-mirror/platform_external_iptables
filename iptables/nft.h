@@ -27,6 +27,13 @@ struct builtin_table {
 	struct builtin_chain chains[NF_INET_NUMHOOKS];
 };
 
+struct nft_cache {
+	struct {
+		struct nftnl_chain_list *chains;
+		bool			initialized;
+	} table[NFT_TABLE_MAX];
+};
+
 struct nft_handle {
 	int			family;
 	struct mnl_socket	*nl;
@@ -40,10 +47,8 @@ struct nft_handle {
 	struct list_head	err_list;
 	struct nft_family_ops	*ops;
 	const struct builtin_table *tables;
-	struct {
-		struct nftnl_chain_list *chain_cache;
-		bool			initialized;
-	} table[NFT_TABLE_MAX];
+	struct nft_cache	__cache;
+	struct nft_cache	*cache;
 	bool			have_cache;
 	bool			restore;
 	bool			noflush;

@@ -631,7 +631,7 @@ const struct builtin_table xtables_bridge[NFT_TABLE_MAX] = {
 static bool nft_table_initialized(const struct nft_handle *h,
 				  enum nft_table_type type)
 {
-	return h->table[type].initialized;
+	return h->cache->table[type].initialized;
 }
 
 static int nft_table_builtin_add(struct nft_handle *h,
@@ -685,7 +685,7 @@ static void nft_chain_builtin_add(struct nft_handle *h,
 		return;
 
 	batch_chain_add(h, NFT_COMPAT_CHAIN_ADD, c);
-	nftnl_chain_list_add_tail(c, h->table[table->type].chain_cache);
+	nftnl_chain_list_add_tail(c, h->cache->table[table->type].chains);
 }
 
 /* find if built-in table already exists */
@@ -763,7 +763,7 @@ static int nft_xt_builtin_init(struct nft_handle *h, const char *table)
 
 	nft_chain_builtin_init(h, t);
 
-	h->table[t->type].initialized = true;
+	h->cache->table[t->type].initialized = true;
 
 	return 0;
 }
@@ -805,6 +805,7 @@ int nft_init(struct nft_handle *h, const struct builtin_table *t)
 
 	h->portid = mnl_socket_get_portid(h->nl);
 	h->tables = t;
+	h->cache = &h->__cache;
 
 	INIT_LIST_HEAD(&h->obj_list);
 	INIT_LIST_HEAD(&h->err_list);
@@ -840,9 +841,9 @@ static void flush_chain_cache(struct nft_handle *h, const char *tablename)
 
 	if (tablename) {
 		table = nft_table_builtin_find(h, tablename);
-		if (!table || !h->table[table->type].chain_cache)
+		if (!table || !h->cache->table[table->type].chains)
 			return;
-		nftnl_chain_list_foreach(h->table[table->type].chain_cache,
+		nftnl_chain_list_foreach(h->cache->table[table->type].chains,
 					 __flush_chain_cache, NULL);
 		return;
 	}
@@ -851,11 +852,11 @@ static void flush_chain_cache(struct nft_handle *h, const char *tablename)
 		if (h->tables[i].name == NULL)
 			continue;
 
-		if (!h->table[i].chain_cache)
+		if (!h->cache->table[i].chains)
 			continue;
 
-		nftnl_chain_list_free(h->table[i].chain_cache);
-		h->table[i].chain_cache = NULL;
+		nftnl_chain_list_free(h->cache->table[i].chains);
+		h->cache->table[i].chains = NULL;
 	}
 	h->have_cache = false;
 }
@@ -1326,7 +1327,7 @@ static int nftnl_chain_list_cb(const struct nlmsghdr *nlh, void *data)
 	if (!t)
 		goto out;
 
-	nftnl_chain_list_add_tail(c, h->table[t->type].chain_cache);
+	nftnl_chain_list_add_tail(c, h->cache->table[t->type].chains);
 
 	return MNL_CB_OK;
 out:
@@ -1348,8 +1349,8 @@ retry:
 		if (!h->tables[i].name)
 			continue;
 
-		h->table[type].chain_cache = nftnl_chain_list_alloc();
-		if (!h->table[type].chain_cache)
+		h->cache->table[type].chains = nftnl_chain_list_alloc();
+		if (!h->cache->table[type].chains)
 			return -1;
 	}
 
@@ -1517,7 +1518,7 @@ static int fetch_rule_cache(struct nft_handle *h)
 		if (!h->tables[i].name)
 			continue;
 
-		if (nftnl_chain_list_foreach(h->table[type].chain_cache,
+		if (nftnl_chain_list_foreach(h->cache->table[type].chains,
 					     nft_rule_list_update, h))
 			return -1;
 	}
@@ -1558,7 +1559,7 @@ struct nftnl_chain_list *nft_chain_list_get(struct nft_handle *h,
 
 	nft_build_cache(h);
 
-	return h->table[t->type].chain_cache;
+	return h->cache->table[t->type].chains;
 }
 
 static const char *policy_name[NF_ACCEPT+1] = {
@@ -2088,7 +2089,7 @@ static int __nft_table_flush(struct nft_handle *h, const char *table, bool exist
 
 	_t = nft_table_builtin_find(h, table);
 	assert(_t);
-	h->table[_t->type].initialized = false;
+	h->cache->table[_t->type].initialized = false;
 
 	flush_chain_cache(h, table);
 
@@ -3021,7 +3022,7 @@ static void nft_bridge_commit_prepare(struct nft_handle *h)
 		if (!t->name)
 			continue;
 
-		list = h->table[t->type].chain_cache;
+		list = h->cache->table[t->type].chains;
 		if (!list)
 			continue;
 
