@@ -63,7 +63,7 @@ static void *nft_fn;
 
 static int genid_cb(const struct nlmsghdr *nlh, void *data)
 {
-	struct nft_handle *h = data;
+	uint32_t *genid = data;
 	struct nftnl_gen *gen;
 
 	gen = nftnl_gen_alloc();
@@ -73,7 +73,7 @@ static int genid_cb(const struct nlmsghdr *nlh, void *data)
 	if (nftnl_gen_nlmsg_parse(nlh, gen) < 0)
 		goto out;
 
-	h->nft_genid = nftnl_gen_get_u32(gen, NFTNL_GEN_ID);
+	*genid = nftnl_gen_get_u32(gen, NFTNL_GEN_ID);
 
 	nftnl_gen_free(gen);
 	return MNL_CB_STOP;
@@ -82,13 +82,13 @@ out:
 	return MNL_CB_ERROR;
 }
 
-static int mnl_genid_get(struct nft_handle *h)
+static int mnl_genid_get(struct nft_handle *h, uint32_t *genid)
 {
 	char buf[MNL_SOCKET_BUFFER_SIZE];
 	struct nlmsghdr *nlh;
 
 	nlh = nftnl_nlmsg_build_hdr(buf, NFT_MSG_GETGEN, 0, 0, h->seq);
-	return mnl_talk(h, nlh, genid_cb, h);
+	return mnl_talk(h, nlh, genid_cb, genid);
 }
 
 int mnl_talk(struct nft_handle *h, struct nlmsghdr *nlh,
@@ -1595,12 +1595,22 @@ static int fetch_rule_cache(struct nft_handle *h)
 
 static void __nft_build_cache(struct nft_handle *h)
 {
-	mnl_genid_get(h);
+	uint32_t genid_start, genid_stop;
+
+retry:
+	mnl_genid_get(h, &genid_start);
 	fetch_chain_cache(h);
 	fetch_rule_cache(h);
 	h->have_cache = true;
-}
+	mnl_genid_get(h, &genid_stop);
 
+	if (genid_start != genid_stop) {
+		flush_chain_cache(h, NULL);
+		goto retry;
+	}
+
+	h->nft_genid = genid_start;
+}
 
 void nft_build_cache(struct nft_handle *h)
 {
