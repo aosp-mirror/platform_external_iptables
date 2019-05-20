@@ -794,6 +794,7 @@ static int nft_restart(struct nft_handle *h)
 		return -1;
 
 	h->portid = mnl_socket_get_portid(h->nl);
+	nlbuffsiz = 0;
 
 	return 0;
 }
