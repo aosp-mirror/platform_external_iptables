@@ -1383,7 +1383,6 @@ static int fetch_table_cache(struct nft_handle *h)
 	struct nftnl_table_list *list;
 	int ret;
 
-retry:
 	list = nftnl_table_list_alloc();
 	if (list == NULL)
 		return 0;
@@ -1392,11 +1391,9 @@ retry:
 					NLM_F_DUMP, h->seq);
 
 	ret = mnl_talk(h, nlh, nftnl_table_list_cb, list);
-	if (ret < 0 && errno == EINTR) {
+	if (ret < 0 && errno == EINTR)
 		assert(nft_restart(h) >= 0);
-		nftnl_table_list_free(list);
-		goto retry;
-	}
+
 	h->cache->tables = list;
 
 	return 1;
@@ -1408,7 +1405,6 @@ static int fetch_chain_cache(struct nft_handle *h)
 	struct nlmsghdr *nlh;
 	int i, ret;
 
-retry:
 	fetch_table_cache(h);
 
 	for (i = 0; i < NFT_TABLE_MAX; i++) {
@@ -1426,11 +1422,8 @@ retry:
 					NLM_F_DUMP, h->seq);
 
 	ret = mnl_talk(h, nlh, nftnl_chain_list_cb, h);
-	if (ret < 0 && errno == EINTR) {
+	if (ret < 0 && errno == EINTR)
 		assert(nft_restart(h) >= 0);
-		flush_chain_cache(h, NULL);
-		goto retry;
-	}
 
 	return ret;
 }
@@ -1551,22 +1544,13 @@ static int nft_rule_list_update(struct nftnl_chain *c, void *data)
 	nftnl_rule_set_str(rule, NFTNL_RULE_CHAIN,
 			   nftnl_chain_get_str(c, NFTNL_CHAIN_NAME));
 
-retry:
 	nlh = nftnl_rule_nlmsg_build_hdr(buf, NFT_MSG_GETRULE, h->family,
 					NLM_F_DUMP, h->seq);
 	nftnl_rule_nlmsg_build_payload(nlh, rule);
 
 	ret = mnl_talk(h, nlh, nftnl_rule_list_cb, c);
-	if (ret < 0) {
-		flush_rule_cache(c);
-
-		if (errno == EINTR) {
-			assert(nft_restart(h) >= 0);
-			goto retry;
-		}
-		nftnl_rule_free(rule);
-		return -1;
-	}
+	if (ret < 0 && errno == EINTR)
+		assert(nft_restart(h) >= 0);
 
 	nftnl_rule_free(rule);
 
