@@ -2794,15 +2794,6 @@ static void nft_refresh_transaction(struct nft_handle *h)
 			else if (!n->skip && !exists)
 				n->skip = 1;
 			break;
-		case NFT_COMPAT_TABLE_ADD:
-			tablename = nftnl_table_get_str(n->table, NFTNL_TABLE_NAME);
-			if (!tablename)
-				continue;
-
-			exists = nft_table_find(h, tablename);
-			if (n->skip && !exists)
-				n->skip = 0;
-			break;
 		case NFT_COMPAT_CHAIN_USER_ADD:
 			tablename = nftnl_chain_get_str(n->chain, NFTNL_CHAIN_TABLE);
 			if (!tablename)
@@ -2822,6 +2813,7 @@ static void nft_refresh_transaction(struct nft_handle *h)
 				n->skip = 0;
 			}
 			break;
+		case NFT_COMPAT_TABLE_ADD:
 		case NFT_COMPAT_CHAIN_ADD:
 		case NFT_COMPAT_CHAIN_ZERO:
 		case NFT_COMPAT_CHAIN_USER_DEL:
