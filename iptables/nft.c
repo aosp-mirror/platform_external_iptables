@@ -2789,9 +2789,9 @@ static void nft_refresh_transaction(struct nft_handle *h)
 			if (!tablename)
 				continue;
 			exists = nft_table_find(h, tablename);
-			if (n->skip && exists)
+			if (exists)
 				n->skip = 0;
-			else if (!n->skip && !exists)
+			else
 				n->skip = 1;
 			break;
 		case NFT_COMPAT_CHAIN_USER_ADD:
@@ -2803,13 +2803,16 @@ static void nft_refresh_transaction(struct nft_handle *h)
 			if (!chainname)
 				continue;
 
+			if (!h->noflush)
+				break;
+
 			c = nft_chain_find(h, tablename, chainname);
-			if (c && !n->skip) {
+			if (c) {
 				/* -restore -n flushes existing rules from redefined user-chain */
-				if (h->noflush)
-					__nft_rule_flush(h, tablename,
-							 chainname, false, true);
-			} else if (!c && n->skip) {
+				__nft_rule_flush(h, tablename,
+						 chainname, false, true);
+				n->skip = 1;
+			} else if (!c) {
 				n->skip = 0;
 			}
 			break;
