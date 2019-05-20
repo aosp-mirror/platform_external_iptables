@@ -28,6 +28,7 @@ struct builtin_table {
 };
 
 struct nft_cache {
+	struct nftnl_table_list		*tables;
 	struct {
 		struct nftnl_chain_list *chains;
 		bool			initialized;

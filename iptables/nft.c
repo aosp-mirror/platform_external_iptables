@@ -865,12 +865,17 @@ static int flush_cache(struct nft_cache *c, const struct builtin_table *tables,
 		nftnl_chain_list_free(c->table[i].chains);
 		c->table[i].chains = NULL;
 	}
+	nftnl_table_list_free(c->tables);
+	c->tables = NULL;
 
 	return 1;
 }
 
 static void flush_chain_cache(struct nft_handle *h, const char *tablename)
 {
+	if (!h->have_cache)
+		return;
+
 	if (flush_cache(h->cache, h->tables, tablename))
 		h->have_cache = false;
 }
@@ -1350,6 +1355,53 @@ err:
 	return MNL_CB_OK;
 }
 
+static int nftnl_table_list_cb(const struct nlmsghdr *nlh, void *data)
+{
+	struct nftnl_table *t;
+	struct nftnl_table_list *list = data;
+
+	t = nftnl_table_alloc();
+	if (t == NULL)
+		goto err;
+
+	if (nftnl_table_nlmsg_parse(nlh, t) < 0)
+		goto out;
+
+	nftnl_table_list_add_tail(t, list);
+
+	return MNL_CB_OK;
+out:
+	nftnl_table_free(t);
+err:
+	return MNL_CB_OK;
+}
+
+static int fetch_table_cache(struct nft_handle *h)
+{
+	char buf[16536];
+	struct nlmsghdr *nlh;
+	struct nftnl_table_list *list;
+	int ret;
+
+retry:
+	list = nftnl_table_list_alloc();
+	if (list == NULL)
+		return 0;
+
+	nlh = nftnl_rule_nlmsg_build_hdr(buf, NFT_MSG_GETTABLE, h->family,
+					NLM_F_DUMP, h->seq);
+
+	ret = mnl_talk(h, nlh, nftnl_table_list_cb, list);
+	if (ret < 0 && errno == EINTR) {
+		assert(nft_restart(h) >= 0);
+		nftnl_table_list_free(list);
+		goto retry;
+	}
+	h->cache->tables = list;
+
+	return 1;
+}
+
 static int fetch_chain_cache(struct nft_handle *h)
 {
 	char buf[16536];
@@ -1357,6 +1409,8 @@ static int fetch_chain_cache(struct nft_handle *h)
 	int i, ret;
 
 retry:
+	fetch_table_cache(h);
+
 	for (i = 0; i < NFT_TABLE_MAX; i++) {
 		enum nft_table_type type = h->tables[i].type;
 
@@ -1968,56 +2022,17 @@ int nft_chain_user_rename(struct nft_handle *h,const char *chain,
 	return ret == 0 ? 1 : 0;
 }
 
-static int nftnl_table_list_cb(const struct nlmsghdr *nlh, void *data)
-{
-	struct nftnl_table *t;
-	struct nftnl_table_list *list = data;
-
-	t = nftnl_table_alloc();
-	if (t == NULL)
-		goto err;
-
-	if (nftnl_table_nlmsg_parse(nlh, t) < 0)
-		goto out;
-
-	nftnl_table_list_add_tail(t, list);
-
-	return MNL_CB_OK;
-out:
-	nftnl_table_free(t);
-err:
-	return MNL_CB_OK;
-}
-
 static struct nftnl_table_list *nftnl_table_list_get(struct nft_handle *h)
 {
-	char buf[16536];
-	struct nlmsghdr *nlh;
-	struct nftnl_table_list *list;
-	int ret;
+	nft_build_cache(h);
 
-retry:
-	list = nftnl_table_list_alloc();
-	if (list == NULL)
-		return 0;
-
-	nlh = nftnl_rule_nlmsg_build_hdr(buf, NFT_MSG_GETTABLE, h->family,
-					NLM_F_DUMP, h->seq);
-
-	ret = mnl_talk(h, nlh, nftnl_table_list_cb, list);
-	if (ret < 0 && errno == EINTR) {
-		assert(nft_restart(h) >= 0);
-		nftnl_table_list_free(list);
-		goto retry;
-	}
-
-	return list;
+	return h->cache->tables;
 }
 
 bool nft_table_find(struct nft_handle *h, const char *tablename)
 {
-	struct nftnl_table_list *list;
 	struct nftnl_table_list_iter *iter;
+	struct nftnl_table_list *list;
 	struct nftnl_table *t;
 	bool ret = false;
 
@@ -2043,7 +2058,6 @@ bool nft_table_find(struct nft_handle *h, const char *tablename)
 	}
 
 	nftnl_table_list_iter_destroy(iter);
-	nftnl_table_list_free(list);
 
 err:
 	return ret;
@@ -2076,7 +2090,6 @@ int nft_for_each_table(struct nft_handle *h,
 	}
 
 	nftnl_table_list_iter_destroy(iter);
-	nftnl_table_list_free(list);
 	return 0;
 }
 
@@ -2148,7 +2161,6 @@ int nft_table_flush(struct nft_handle *h, const char *table)
 	ret = __nft_table_flush(h, table, exists);
 	nftnl_table_list_iter_destroy(iter);
 err_table_list:
-	nftnl_table_list_free(list);
 err_out:
 	/* the core expects 1 for success and 0 for error */
 	return ret == 0 ? 1 : 0;
