@@ -73,11 +73,6 @@ AC_ARG_WITH([xt-lock-name], AS_HELP_STRING([--with-xt-lock-name=PATH],
 	[xt_lock_name="$withval"],
 	[xt_lock_name="/run/xtables.lock"])
 
-libiptc_LDFLAGS2="";
-AX_CHECK_LINKER_FLAGS([-Wl,--no-as-needed],
-	[libiptc_LDFLAGS2="-Wl,--no-as-needed"])
-AC_SUBST([libiptc_LDFLAGS2])
-
 AC_MSG_CHECKING([whether $LD knows -Wl,--no-undefined])
 saved_LDFLAGS="$LDFLAGS";
 LDFLAGS="-Wl,--no-undefined";
