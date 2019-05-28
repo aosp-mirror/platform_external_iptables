@@ -5,7 +5,7 @@
  *
  * This code is distributed under the terms of GNU GPL v2
  */
-
+#include "config.h"
 #include <getopt.h>
 #include <errno.h>
 #include <string.h>
@@ -20,7 +20,7 @@
 
 struct xtables_globals iptables_xml_globals = {
 	.option_offset = 0,
-	.program_version = IPTABLES_VERSION,
+	.program_version = PACKAGE_VERSION,
 	.program_name = "iptables-xml",
 };
 #define prog_name iptables_xml_globals.program_name
@@ -557,7 +557,7 @@ iptables_xml_main(int argc, char *argv[])
 			verbose = 1;
 			break;
 		case 'h':
-			print_usage("iptables-xml", IPTABLES_VERSION);
+			print_usage("iptables-xml", PACKAGE_VERSION);
 			break;
 		}
 	}

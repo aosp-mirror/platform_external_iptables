@@ -10,7 +10,6 @@ Makefile
 Makefile.in
 
 /include/xtables-version.h
-/include/iptables/internal.h
 
 /aclocal.m4
 /autom4te.cache/

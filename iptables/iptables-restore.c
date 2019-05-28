@@ -4,7 +4,7 @@
  *
  * This code is distributed under the terms of GNU GPL v2
  */
-
+#include "config.h"
 #include <getopt.h>
 #include <errno.h>
 #include <stdbool.h>
@@ -125,7 +125,7 @@ ip46tables_restore_main(struct iptables_restore_cb *cb, int argc, char *argv[])
 				break;
 			case 'h':
 				print_usage(xt_params->program_name,
-					    IPTABLES_VERSION);
+					    PACKAGE_VERSION);
 				exit(0);
 			case 'n':
 				noflush = 1;

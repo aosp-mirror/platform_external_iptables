@@ -4,7 +4,7 @@
  *
  * This code is distributed under the terms of GNU GPL v2
  */
-
+#include "config.h"
 #include <getopt.h>
 #include <errno.h>
 #include <stdbool.h>
@@ -362,7 +362,7 @@ xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 				break;
 			case 'h':
 				print_usage("xtables-restore",
-					    IPTABLES_VERSION);
+					    PACKAGE_VERSION);
 				exit(0);
 			case 'n':
 				h.noflush = 1;

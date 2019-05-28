@@ -6,7 +6,7 @@
  * by the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  */
-
+#include "config.h"
 #include <time.h>
 #include "xtables-multi.h"
 #include "nft.h"
@@ -510,20 +510,20 @@ static int xtables_restore_xlate_main(int family, const char *progname,
 	while ((c = getopt_long(argc, argv, "hf:V", options, NULL)) != -1) {
 		switch (c) {
 		case 'h':
-			print_usage(argv[0], IPTABLES_VERSION);
+			print_usage(argv[0], PACKAGE_VERSION);
 			exit(0);
 		case 'f':
 			file = optarg;
 			break;
 		case 'V':
-			printf("%s v%s\n", argv[0], IPTABLES_VERSION);
+			printf("%s v%s\n", argv[0], PACKAGE_VERSION);
 			exit(0);
 		}
 	}
 
 	if (file == NULL) {
 		fprintf(stderr, "ERROR: missing file name\n");
-		print_usage(argv[0], IPTABLES_VERSION);
+		print_usage(argv[0], PACKAGE_VERSION);
 		exit(0);
 	}
 
@@ -534,7 +534,7 @@ static int xtables_restore_xlate_main(int family, const char *progname,
 	}
 
 	printf("# Translated by %s v%s on %s",
-	       argv[0], IPTABLES_VERSION, ctime(&now));
+	       argv[0], PACKAGE_VERSION, ctime(&now));
 	xtables_restore_parse(&h, &p, &cb_xlate, argc, argv);
 	printf("# Completed on %s", ctime(&now));
 

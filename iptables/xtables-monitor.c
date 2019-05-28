@@ -10,6 +10,7 @@
  */
 
 #define _GNU_SOURCE
+#include "config.h"
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
@@ -631,10 +632,10 @@ int xtables_monitor_main(int argc, char *argv[])
 			cb_arg.nfproto = NFPROTO_IPV6;
 			break;
 		case 'V':
-			printf("xtables-monitor %s\n", IPTABLES_VERSION);
+			printf("xtables-monitor %s\n", PACKAGE_VERSION);
 			exit(0);
 		default:
-			fprintf(stderr, "xtables-monitor %s: Bad argument.\n", IPTABLES_VERSION);
+			fprintf(stderr, "xtables-monitor %s: Bad argument.\n", PACKAGE_VERSION);
 			fprintf(stderr, "Try `xtables-monitor -h' for more information.\n");
 			exit(PARAMETER_PROBLEM);
 		}
