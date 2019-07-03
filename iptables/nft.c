@@ -186,13 +186,11 @@ static void mnl_err_list_free(struct mnl_err *err)
 	free(err);
 }
 
-static int nlbuffsiz;
-
 static void mnl_set_sndbuffer(struct nft_handle *h)
 {
 	int newbuffsiz = nftnl_batch_iovec_len(h->batch) * BATCH_PAGE_SIZE;
 
-	if (newbuffsiz <= nlbuffsiz)
+	if (newbuffsiz <= h->nlsndbuffsiz)
 		return;
 
 	/* Rise sender buffer length to avoid hitting -EMSGSIZE */
@@ -200,23 +198,22 @@ static void mnl_set_sndbuffer(struct nft_handle *h)
 		       &newbuffsiz, sizeof(socklen_t)) < 0)
 		return;
 
-	nlbuffsiz = newbuffsiz;
+	h->nlsndbuffsiz = newbuffsiz;
 }
-
-static int nlrcvbuffsiz;
 
 static void mnl_set_rcvbuffer(struct nft_handle *h, int numcmds)
 {
 	int newbuffsiz = getpagesize() * numcmds;
 
-	if (newbuffsiz <= nlrcvbuffsiz)
+	if (newbuffsiz <= h->nlrcvbuffsiz)
 		return;
 
+	/* Rise receiver buffer length to avoid hitting -ENOBUFS */
 	if (setsockopt(mnl_socket_get_fd(h->nl), SOL_SOCKET, SO_RCVBUFFORCE,
 		       &newbuffsiz, sizeof(socklen_t)) < 0)
 		return;
 
-	nlrcvbuffsiz = newbuffsiz;
+	h->nlrcvbuffsiz = newbuffsiz;
 }
 
 static ssize_t mnl_nft_socket_sendmsg(struct nft_handle *h, int numcmds)
@@ -807,8 +804,8 @@ static int nft_restart(struct nft_handle *h)
 		return -1;
 
 	h->portid = mnl_socket_get_portid(h->nl);
-	nlbuffsiz = 0;
-	nlrcvbuffsiz = 0;
+	h->nlsndbuffsiz = 0;
+	h->nlrcvbuffsiz = 0;
 
 	return 0;
 }

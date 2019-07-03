@@ -38,6 +38,8 @@ struct nft_cache {
 struct nft_handle {
 	int			family;
 	struct mnl_socket	*nl;
+	int			nlsndbuffsiz;
+	int			nlrcvbuffsiz;
 	uint32_t		portid;
 	uint32_t		seq;
 	uint32_t		nft_genid;
