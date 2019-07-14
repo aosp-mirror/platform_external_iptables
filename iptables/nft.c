@@ -82,13 +82,19 @@ out:
 	return MNL_CB_ERROR;
 }
 
-static int mnl_genid_get(struct nft_handle *h, uint32_t *genid)
+static void mnl_genid_get(struct nft_handle *h, uint32_t *genid)
 {
 	char buf[MNL_SOCKET_BUFFER_SIZE];
 	struct nlmsghdr *nlh;
+	int ret;
 
 	nlh = nftnl_nlmsg_build_hdr(buf, NFT_MSG_GETGEN, 0, 0, h->seq);
-	return mnl_talk(h, nlh, genid_cb, genid);
+	ret = mnl_talk(h, nlh, genid_cb, genid);
+	if (ret == 0)
+		return;
+
+	xtables_error(RESOURCE_PROBLEM,
+		      "Could not fetch rule set generation id: %s\n", nft_strerror(errno));
 }
 
 int mnl_talk(struct nft_handle *h, struct nlmsghdr *nlh,
