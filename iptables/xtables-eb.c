@@ -410,7 +410,7 @@ static int list_rules(struct nft_handle *h, const char *chain, const char *table
 {
 	unsigned int format;
 
-	format = FMT_OPTIONS;
+	format = FMT_OPTIONS | FMT_C_COUNTS;
 	if (verbose)
 		format |= FMT_VIA;
 

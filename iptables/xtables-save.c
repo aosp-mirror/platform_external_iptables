@@ -274,7 +274,8 @@ static int __ebt_save(struct nft_handle *h, const char *tablename, bool counters
 	printf("*%s\n", tablename);
 
 	if (counters)
-		format = ebt_legacy_counter_format ? FMT_EBT_SAVE : 0;
+		format = FMT_EBT_SAVE |
+			(ebt_legacy_counter_format ? FMT_C_COUNTS : 0);
 
 	/* Dump out chain names first,
 	 * thereby preventing dependency conflicts */
