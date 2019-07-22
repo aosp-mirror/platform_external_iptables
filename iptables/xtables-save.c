@@ -67,11 +67,12 @@ __do_output(struct nft_handle *h, const char *tablename, bool counters)
 {
 	struct nftnl_chain_list *chain_list;
 
+	if (!nft_table_builtin_find(h, tablename))
+		return 0;
 
 	if (!nft_is_table_compatible(h, tablename)) {
-		if (!nft_table_builtin_find(h, tablename))
-			printf("# Table `%s' is incompatible, use 'nft' tool.\n",
-			       tablename);
+		printf("# Table `%s' is incompatible, use 'nft' tool.\n",
+		       tablename);
 		return 0;
 	}
 
