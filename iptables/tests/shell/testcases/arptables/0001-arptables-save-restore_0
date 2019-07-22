@@ -50,13 +50,12 @@ DUMP='*filter
 -A foo -j MARK --set-mark 12345
 -A foo -j ACCEPT --opcode 1
 -A foo -j ACCEPT --proto-type 0x800
--A foo -j ACCEPT -i lo --opcode 1 --proto-type 0x800
-'
+-A foo -j ACCEPT -i lo --opcode 1 --proto-type 0x800'
 
-diff -u <(echo -e "$DUMP") <($XT_MULTI arptables-save)
+diff -u <(echo -e "$DUMP") <($XT_MULTI arptables-save | grep -v "^#")
 
 # make sure dump can be restored and check it didn't change
 
 $XT_MULTI arptables -F
 $XT_MULTI arptables-restore <<<$DUMP
-diff -u <(echo -e "$DUMP") <($XT_MULTI arptables-save)
+diff -u <(echo -e "$DUMP") <($XT_MULTI arptables-save | grep -v "^#")

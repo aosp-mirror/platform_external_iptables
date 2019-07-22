@@ -32,8 +32,7 @@ EXPECT='*filter
 :FORWARD ACCEPT
 :OUTPUT ACCEPT
 -A FORWARD -i nodev123 -o nodev432 -j ACCEPT
--A FORWARD -i nodev432 -o nodev123 -j ACCEPT
-'
+-A FORWARD -i nodev432 -o nodev123 -j ACCEPT'
 
 echo "ebtables-save"
 diff -u <(echo -e "$EXPECT") <($XT_MULTI ebtables-save | grep -v '^#')
@@ -43,8 +42,7 @@ EXPECT='*filter
 :FORWARD ACCEPT
 :OUTPUT ACCEPT
 [0:0] -A FORWARD -i nodev123 -o nodev432 -j ACCEPT
-[0:0] -A FORWARD -i nodev432 -o nodev123 -j ACCEPT
-'
+[0:0] -A FORWARD -i nodev432 -o nodev123 -j ACCEPT'
 
 echo "ebtables-save -c"
 diff -u <(echo -e "$EXPECT") <($XT_MULTI ebtables-save -c | grep -v '^#')
@@ -60,8 +58,7 @@ EXPECT='*filter
 :FORWARD ACCEPT
 :OUTPUT ACCEPT
 -A FORWARD -i nodev123 -o nodev432 -j ACCEPT -c 0 0
--A FORWARD -i nodev432 -o nodev123 -j ACCEPT -c 0 0
-'
+-A FORWARD -i nodev432 -o nodev123 -j ACCEPT -c 0 0'
 
 echo "EBTABLES_SAVE_COUNTER=yes ebtables-save"
 diff -u <(echo -e "$EXPECT") <($XT_MULTI ebtables-save | grep -v '^#')

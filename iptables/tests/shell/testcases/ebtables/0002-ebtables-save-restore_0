@@ -99,7 +99,6 @@ DUMP='*filter
 -A foo --802_3-sap 0x23 --limit 100/sec --limit-burst 5 -j ACCEPT
 -A foo --pkttype-type multicast --log-level notice --log-prefix "" -j CONTINUE
 -A foo --pkttype-type multicast --limit 100/sec --limit-burst 5 -j ACCEPT
-
 *nat
 :PREROUTING ACCEPT
 :OUTPUT DROP
@@ -107,8 +106,7 @@ DUMP='*filter
 :nat_foo DROP
 -A PREROUTING -j redirect 
 -A OUTPUT -j ACCEPT
--A POSTROUTING -j ACCEPT
-'
+-A POSTROUTING -j ACCEPT'
 
 diff -u <(echo -e "$DUMP") <($XT_MULTI ebtables-save | grep -v '^#')
 
