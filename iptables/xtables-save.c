@@ -67,6 +67,7 @@ static bool ebt_legacy_counter_format;
 
 struct do_output_data {
 	bool counters;
+	bool commit;
 };
 
 static int
@@ -98,7 +99,8 @@ __do_output(struct nft_handle *h, const char *tablename, void *data)
 	 * thereby preventing dependency conflicts */
 	nft_chain_save(h, chain_list);
 	nft_rule_save(h, tablename, d->counters ? 0 : FMT_NOCOUNTS);
-	printf("COMMIT\n");
+	if (d->commit)
+		printf("COMMIT\n");
 
 	now = time(NULL);
 	printf("# Completed on %s", ctime(&now));
@@ -219,6 +221,7 @@ xtables_save_main(int family, int argc, char *argv[],
 		init_extensions4();
 #endif
 		tables = xtables_ipv4;
+		d.commit = true;
 		break;
 	case NFPROTO_ARP:
 		tables = xtables_arp;
