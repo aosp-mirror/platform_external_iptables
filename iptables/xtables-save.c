@@ -66,7 +66,7 @@ static const struct option ebt_save_options[] = {
 static bool ebt_legacy_counter_format;
 
 struct do_output_data {
-	bool counters;
+	unsigned int format;
 	bool commit;
 };
 
@@ -98,7 +98,7 @@ __do_output(struct nft_handle *h, const char *tablename, void *data)
 	/* Dump out chain names first,
 	 * thereby preventing dependency conflicts */
 	nft_chain_save(h, chain_list);
-	nft_rule_save(h, tablename, d->counters ? 0 : FMT_NOCOUNTS);
+	nft_rule_save(h, tablename, d->format);
 	if (d->commit)
 		printf("COMMIT\n");
 
@@ -139,7 +139,9 @@ xtables_save_main(int family, int argc, char *argv[],
 {
 	const struct builtin_table *tables;
 	const char *tablename = NULL;
-	struct do_output_data d = {};
+	struct do_output_data d = {
+		.format = FMT_NOCOUNTS,
+	};
 	bool dump = false;
 	struct nft_handle h = {
 		.family	= family,
@@ -162,7 +164,7 @@ xtables_save_main(int family, int argc, char *argv[],
 			fprintf(stderr, "-b/--binary option is not implemented\n");
 			break;
 		case 'c':
-			d.counters = true;
+			d.format &= ~FMT_NOCOUNTS;
 			break;
 
 		case 't':
