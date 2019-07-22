@@ -62,10 +62,15 @@ static const struct option ebt_save_options[] = {
 
 static bool ebt_legacy_counter_format;
 
+struct do_output_data {
+	bool counters;
+};
+
 static int
-__do_output(struct nft_handle *h, const char *tablename, bool counters)
+__do_output(struct nft_handle *h, const char *tablename, void *data)
 {
 	struct nftnl_chain_list *chain_list;
+	struct do_output_data *d = data;
 
 	if (!nft_table_builtin_find(h, tablename))
 		return 0;
@@ -89,7 +94,7 @@ __do_output(struct nft_handle *h, const char *tablename, bool counters)
 	/* Dump out chain names first,
 	 * thereby preventing dependency conflicts */
 	nft_chain_save(h, chain_list);
-	nft_rule_save(h, tablename, counters ? 0 : FMT_NOCOUNTS);
+	nft_rule_save(h, tablename, d->counters ? 0 : FMT_NOCOUNTS);
 
 	now = time(NULL);
 	printf("COMMIT\n");
@@ -98,12 +103,12 @@ __do_output(struct nft_handle *h, const char *tablename, bool counters)
 }
 
 static int
-do_output(struct nft_handle *h, const char *tablename, bool counters)
+do_output(struct nft_handle *h, const char *tablename, struct do_output_data *d)
 {
 	int ret;
 
 	if (!tablename) {
-		ret = nft_for_each_table(h, __do_output, counters);
+		ret = nft_for_each_table(h, __do_output, d);
 		nft_check_xt_legacy(h->family, true);
 		return !!ret;
 	}
@@ -114,7 +119,7 @@ do_output(struct nft_handle *h, const char *tablename, bool counters)
 		return 1;
 	}
 
-	ret = __do_output(h, tablename, counters);
+	ret = __do_output(h, tablename, d);
 	nft_check_xt_legacy(h->family, true);
 	return ret;
 }
@@ -128,6 +133,7 @@ xtables_save_main(int family, int argc, char *argv[])
 {
 	const struct builtin_table *tables;
 	const char *tablename = NULL;
+	struct do_output_data d = {};
 	bool dump = false;
 	struct nft_handle h = {
 		.family	= family,
@@ -150,7 +156,7 @@ xtables_save_main(int family, int argc, char *argv[])
 			fprintf(stderr, "-b/--binary option is not implemented\n");
 			break;
 		case 'c':
-			show_counters = true;
+			d.counters = true;
 			break;
 
 		case 't':
@@ -229,7 +235,7 @@ xtables_save_main(int family, int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 
-	ret = do_output(&h, tablename, show_counters);
+	ret = do_output(&h, tablename, &d);
 	nft_fini(&h);
 	if (dump)
 		exit(0);
@@ -247,10 +253,11 @@ int xtables_ip6_save_main(int argc, char *argv[])
 	return xtables_save_main(NFPROTO_IPV6, argc, argv);
 }
 
-static int __ebt_save(struct nft_handle *h, const char *tablename, bool counters)
+static int __ebt_save(struct nft_handle *h, const char *tablename, void *data)
 {
 	struct nftnl_chain_list *chain_list;
 	unsigned int format = FMT_NOCOUNTS;
+	bool *counters = data;
 	time_t now;
 
 	if (!nft_table_find(h, tablename)) {
@@ -286,9 +293,9 @@ static int __ebt_save(struct nft_handle *h, const char *tablename, bool counters
 static int ebt_save(struct nft_handle *h, const char *tablename, bool counters)
 {
 	if (!tablename)
-		return nft_for_each_table(h, __ebt_save, counters);
+		return nft_for_each_table(h, __ebt_save, &counters);
 
-	return __ebt_save(h, tablename, counters);
+	return __ebt_save(h, tablename, &counters);
 }
 
 int xtables_eb_save_main(int argc_, char *argv_[])

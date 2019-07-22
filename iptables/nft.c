@@ -2092,8 +2092,8 @@ err:
 }
 
 int nft_for_each_table(struct nft_handle *h,
-		       int (*func)(struct nft_handle *h, const char *tablename, bool counters),
-		       bool counters)
+		       int (*func)(struct nft_handle *h, const char *tablename, void *data),
+		       void *data)
 {
 	struct nftnl_table_list *list;
 	struct nftnl_table_list_iter *iter;
@@ -2112,7 +2112,7 @@ int nft_for_each_table(struct nft_handle *h,
 		const char *tablename =
 			nftnl_table_get(t, NFTNL_TABLE_NAME);
 
-		func(h, tablename, counters);
+		func(h, tablename, data);
 
 		t = nftnl_table_list_iter_next(iter);
 	}
