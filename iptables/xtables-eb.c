@@ -1180,7 +1180,7 @@ print_zero:
 			if (ebt_command_default(&cs))
 				xtables_error(PARAMETER_PROBLEM,
 					      "Unknown argument: '%s'",
-					      argv[optind - 1]);
+					      argv[optind]);
 
 			if (command != 'A' && command != 'I' &&
 			    command != 'D' && command != 'C')
