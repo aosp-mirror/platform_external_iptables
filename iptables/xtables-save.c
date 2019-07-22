@@ -33,7 +33,8 @@
 
 static bool show_counters = false;
 
-static const struct option options[] = {
+static const char *ipt_save_optstring = "bcdt:M:f:46V";
+static const struct option ipt_save_options[] = {
 	{.name = "counters", .has_arg = false, .val = 'c'},
 	{.name = "version",  .has_arg = false, .val = 'V'},
 	{.name = "dump",     .has_arg = false, .val = 'd'},
@@ -45,6 +46,7 @@ static const struct option options[] = {
 	{NULL},
 };
 
+static const char *arp_save_optstring = "cM:V";
 static const struct option arp_save_options[] = {
 	{.name = "counters", .has_arg = false, .val = 'c'},
 	{.name = "version",  .has_arg = false, .val = 'V'},
@@ -52,6 +54,7 @@ static const struct option arp_save_options[] = {
 	{NULL},
 };
 
+static const char *ebt_save_optstring = "ct:M:V";
 static const struct option ebt_save_options[] = {
 	{.name = "counters", .has_arg = false, .val = 'c'},
 	{.name = "version",  .has_arg = false, .val = 'V'},
@@ -129,7 +132,8 @@ do_output(struct nft_handle *h, const char *tablename, struct do_output_data *d)
  * rule
  */
 static int
-xtables_save_main(int family, int argc, char *argv[])
+xtables_save_main(int family, int argc, char *argv[],
+		  const char *optstring, const struct option *longopts)
 {
 	const struct builtin_table *tables;
 	const char *tablename = NULL;
@@ -150,7 +154,7 @@ xtables_save_main(int family, int argc, char *argv[])
 		exit(1);
 	}
 
-	while ((c = getopt_long(argc, argv, "bcdt:M:f:46V", options, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, optstring, longopts, NULL)) != -1) {
 		switch (c) {
 		case 'b':
 			fprintf(stderr, "-b/--binary option is not implemented\n");
@@ -245,12 +249,14 @@ xtables_save_main(int family, int argc, char *argv[])
 
 int xtables_ip4_save_main(int argc, char *argv[])
 {
-	return xtables_save_main(NFPROTO_IPV4, argc, argv);
+	return xtables_save_main(NFPROTO_IPV4, argc, argv,
+				 ipt_save_optstring, ipt_save_options);
 }
 
 int xtables_ip6_save_main(int argc, char *argv[])
 {
-	return xtables_save_main(NFPROTO_IPV6, argc, argv);
+	return xtables_save_main(NFPROTO_IPV6, argc, argv,
+				 ipt_save_optstring, ipt_save_options);
 }
 
 static int __ebt_save(struct nft_handle *h, const char *tablename, void *data)
@@ -323,7 +329,7 @@ int xtables_eb_save_main(int argc_, char *argv_[])
 		exit(1);
 	}
 
-	while ((c = getopt_long(argc_, argv_, "ct:M:V", ebt_save_options, NULL)) != -1) {
+	while ((c = getopt_long(argc_, argv_, ebt_save_optstring, ebt_save_options, NULL)) != -1) {
 		switch (c) {
 		case 'c':
 			unsetenv("EBTABLES_SAVE_COUNTER");
@@ -378,7 +384,7 @@ int xtables_arp_save_main(int argc, char **argv)
 		exit(1);
 	}
 
-	while ((c = getopt_long(argc, argv, "cM:V", arp_save_options, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, arp_save_optstring, arp_save_options, NULL)) != -1) {
 		switch (c) {
 		case 'c':
 			show_counters = true;
