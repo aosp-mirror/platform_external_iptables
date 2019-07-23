@@ -53,13 +53,13 @@ sbin_PROGRAMS	+= xtables-nft-multi
 endif
 man_MANS         = iptables.8 iptables-restore.8 iptables-save.8 \
                    iptables-xml.1 ip6tables.8 ip6tables-restore.8 \
-                   ip6tables-save.8 iptables-extensions.8 \
-                   xtables-nft.8 xtables-translate.8 xtables-legacy.8 \
-                   iptables-translate.8 ip6tables-translate.8 \
-                   xtables-monitor.8
+                   ip6tables-save.8 iptables-extensions.8
 if ENABLE_NFTABLES
-man_MANS	+= arptables-nft.8 arptables-nft-restore.8 arptables-nft-save.8 \
-		   ebtables-nft.8
+man_MANS	+= xtables-nft.8 xtables-translate.8 xtables-legacy.8 \
+                   iptables-translate.8 ip6tables-translate.8 \
+                   xtables-monitor.8 \
+                   arptables-nft.8 arptables-nft-restore.8 arptables-nft-save.8 \
+                   ebtables-nft.8
 endif
 CLEANFILES       = iptables.8 xtables-monitor.8 \
 		   iptables-translate.8 ip6tables-translate.8
