@@ -57,6 +57,7 @@ man_MANS         = iptables.8 iptables-restore.8 iptables-save.8 \
 if ENABLE_NFTABLES
 man_MANS	+= xtables-nft.8 xtables-translate.8 xtables-legacy.8 \
                    iptables-translate.8 ip6tables-translate.8 \
+		   iptables-restore-translate.8 ip6tables-restore-translate.8 \
                    xtables-monitor.8 \
                    arptables-nft.8 arptables-nft-restore.8 arptables-nft-save.8 \
                    ebtables-nft.8
@@ -92,7 +93,7 @@ iptables-extensions.8: iptables-extensions.8.tmpl ../extensions/matches.man ../e
 		-e '/@MATCH@/ r ../extensions/matches.man' \
 		-e '/@TARGET@/ r ../extensions/targets.man' $< >$@;
 
-iptables-translate.8 ip6tables-translate.8:
+iptables-translate.8 ip6tables-translate.8 iptables-restore-translate.8 ip6tables-restore-translate.8:
 	${AM_VERBOSE_GEN} echo '.so man8/xtables-translate.8' >$@
 
 pkgconfig_DATA = xtables.pc

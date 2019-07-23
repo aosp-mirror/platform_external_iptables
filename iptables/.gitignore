@@ -3,6 +3,7 @@
 /ip6tables-restore
 /ip6tables-static
 /ip6tables-translate.8
+/ip6tables-restore-translate.8
 /iptables
 /iptables.8
 /iptables-extensions.8
@@ -13,6 +14,7 @@
 /iptables-restore.8
 /iptables-static
 /iptables-translate.8
+/iptables-restore-translate.8
 /iptables-xml
 /iptables-xml.1
 /xtables-multi
