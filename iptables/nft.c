@@ -1804,8 +1804,10 @@ int nft_rule_flush(struct nft_handle *h, const char *chain, const char *table,
 
 	if (chain) {
 		c = nftnl_chain_list_lookup_byname(list, chain);
-		if (!c)
+		if (!c) {
+			errno = ENOENT;
 			return 0;
+		}
 
 		__nft_rule_flush(h, table, chain, verbose, false);
 		flush_rule_cache(c);
