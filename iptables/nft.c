@@ -1274,9 +1274,7 @@ nft_rule_append(struct nft_handle *h, const char *chain, const char *table,
 	struct nftnl_rule *r;
 	int type;
 
-	/* If built-in chains don't exist for this table, create them */
-	if (nft_xtables_config_load(h, XTABLES_CONFIG_DEFAULT, 0) < 0)
-		nft_xt_builtin_init(h, table);
+	nft_xt_builtin_init(h, table);
 
 	nft_fn = nft_rule_append;
 
@@ -1791,8 +1789,7 @@ int nft_rule_flush(struct nft_handle *h, const char *chain, const char *table,
 	struct nftnl_chain_list_iter *iter;
 	struct nftnl_chain *c;
 
-	if (nft_xtables_config_load(h, XTABLES_CONFIG_DEFAULT, 0) < 0)
-		nft_xt_builtin_init(h, table);
+	nft_xt_builtin_init(h, table);
 
 	nft_fn = nft_rule_flush;
 
@@ -1843,9 +1840,7 @@ int nft_chain_user_add(struct nft_handle *h, const char *chain, const char *tabl
 
 	nft_fn = nft_chain_user_add;
 
-	/* If built-in chains don't exist for this table, create them */
-	if (nft_xtables_config_load(h, XTABLES_CONFIG_DEFAULT, 0) < 0)
-		nft_xt_builtin_init(h, table);
+	nft_xt_builtin_init(h, table);
 
 	if (nft_chain_exists(h, table, chain)) {
 		errno = EEXIST;
@@ -2022,9 +2017,7 @@ int nft_chain_user_rename(struct nft_handle *h,const char *chain,
 		return 0;
 	}
 
-	/* If built-in chains don't exist for this table, create them */
-	if (nft_xtables_config_load(h, XTABLES_CONFIG_DEFAULT, 0) < 0)
-		nft_xt_builtin_init(h, table);
+	nft_xt_builtin_init(h, table);
 
 	/* Config load changed errno. Ensure genuine info for our callers. */
 	errno = 0;
@@ -2198,8 +2191,7 @@ err_out:
 
 void nft_table_new(struct nft_handle *h, const char *table)
 {
-	if (nft_xtables_config_load(h, XTABLES_CONFIG_DEFAULT, 0) < 0)
-		nft_xt_builtin_init(h, table);
+	nft_xt_builtin_init(h, table);
 }
 
 static int __nft_rule_del(struct nft_handle *h, struct nftnl_rule *r)
@@ -2342,9 +2334,7 @@ int nft_rule_insert(struct nft_handle *h, const char *chain,
 	struct nftnl_rule *r = NULL, *new_rule;
 	struct nftnl_chain *c;
 
-	/* If built-in chains don't exist for this table, create them */
-	if (nft_xtables_config_load(h, XTABLES_CONFIG_DEFAULT, 0) < 0)
-		nft_xt_builtin_init(h, table);
+	nft_xt_builtin_init(h, table);
 
 	nft_fn = nft_rule_insert;
 
@@ -2524,9 +2514,7 @@ int nft_rule_list(struct nft_handle *h, const char *chain, const char *table,
 	struct nftnl_chain *c;
 	bool found = false;
 
-	/* If built-in chains don't exist for this table, create them */
-	if (nft_xtables_config_load(h, XTABLES_CONFIG_DEFAULT, 0) < 0)
-		nft_xt_builtin_init(h, table);
+	nft_xt_builtin_init(h, table);
 
 	ops = nft_family_ops_lookup(h->family);
 
@@ -2631,9 +2619,7 @@ int nft_rule_list_save(struct nft_handle *h, const char *chain,
 	struct nftnl_chain *c;
 	int ret = 0;
 
-	/* If built-in chains don't exist for this table, create them */
-	if (nft_xtables_config_load(h, XTABLES_CONFIG_DEFAULT, 0) < 0)
-		nft_xt_builtin_init(h, table);
+	nft_xt_builtin_init(h, table);
 
 	if (!nft_is_table_compatible(h, table)) {
 		xtables_error(OTHER_PROBLEM, "table `%s' is incompatible, use 'nft' tool.\n", table);
@@ -3230,138 +3216,6 @@ const char *nft_strerror(int err)
 	}
 
 	return strerror(err);
-}
-
-static void xtables_config_perror(uint32_t flags, const char *fmt, ...)
-{
-	va_list args;
-
-	va_start(args, fmt);
-
-	if (flags & NFT_LOAD_VERBOSE)
-		vfprintf(stderr, fmt, args);
-
-	va_end(args);
-}
-
-static int __nft_xtables_config_load(struct nft_handle *h, const char *filename,
-				     uint32_t flags)
-{
-	struct nftnl_table_list *table_list = NULL;
-	struct nftnl_chain_list *chain_list = NULL;
-	struct nftnl_table_list_iter *titer = NULL;
-	struct nftnl_chain_list_iter *citer = NULL;
-	struct nftnl_table *table;
-	struct nftnl_chain *chain;
-	uint32_t table_family, chain_family;
-	bool found = false;
-
-	table_list = nftnl_table_list_alloc();
-	chain_list = nftnl_chain_list_alloc();
-
-	if (xtables_config_parse(filename, table_list, chain_list) < 0) {
-		if (errno == ENOENT) {
-			xtables_config_perror(flags,
-				"configuration file `%s' does not exists\n",
-				filename);
-		} else {
-			xtables_config_perror(flags,
-				"Fatal error parsing config file: %s\n",
-				 strerror(errno));
-		}
-		goto err;
-	}
-
-	/* Stage 1) create tables */
-	titer = nftnl_table_list_iter_create(table_list);
-	while ((table = nftnl_table_list_iter_next(titer)) != NULL) {
-		table_family = nftnl_table_get_u32(table,
-						      NFTNL_TABLE_FAMILY);
-		if (h->family != table_family)
-			continue;
-
-		found = true;
-
-		if (batch_table_add(h, NFT_COMPAT_TABLE_ADD, table) < 0) {
-			if (errno == EEXIST) {
-				xtables_config_perror(flags,
-					"table `%s' already exists, skipping\n",
-					(char *)nftnl_table_get(table, NFTNL_TABLE_NAME));
-			} else {
-				xtables_config_perror(flags,
-					"table `%s' cannot be create, reason `%s'. Exitting\n",
-					(char *)nftnl_table_get(table, NFTNL_TABLE_NAME),
-					strerror(errno));
-				goto err;
-			}
-			continue;
-		}
-		xtables_config_perror(flags, "table `%s' has been created\n",
-			(char *)nftnl_table_get(table, NFTNL_TABLE_NAME));
-	}
-	nftnl_table_list_iter_destroy(titer);
-	nftnl_table_list_free(table_list);
-
-	if (!found)
-		goto err;
-
-	/* Stage 2) create chains */
-	citer = nftnl_chain_list_iter_create(chain_list);
-	while ((chain = nftnl_chain_list_iter_next(citer)) != NULL) {
-		chain_family = nftnl_chain_get_u32(chain,
-						      NFTNL_CHAIN_TABLE);
-		if (h->family != chain_family)
-			continue;
-
-		if (batch_chain_add(h, NFT_COMPAT_CHAIN_ADD, chain) < 0) {
-			if (errno == EEXIST) {
-				xtables_config_perror(flags,
-					"chain `%s' already exists in table `%s', skipping\n",
-					(char *)nftnl_chain_get(chain, NFTNL_CHAIN_NAME),
-					(char *)nftnl_chain_get(chain, NFTNL_CHAIN_TABLE));
-			} else {
-				xtables_config_perror(flags,
-					"chain `%s' cannot be create, reason `%s'. Exitting\n",
-					(char *)nftnl_chain_get(chain, NFTNL_CHAIN_NAME),
-					strerror(errno));
-				goto err;
-			}
-			continue;
-		}
-
-		xtables_config_perror(flags,
-			"chain `%s' in table `%s' has been created\n",
-			(char *)nftnl_chain_get(chain, NFTNL_CHAIN_NAME),
-			(char *)nftnl_chain_get(chain, NFTNL_CHAIN_TABLE));
-	}
-	nftnl_chain_list_iter_destroy(citer);
-	nftnl_chain_list_free(chain_list);
-
-	h->config_done = 1;
-
-	return 0;
-
-err:
-	nftnl_table_list_free(table_list);
-	nftnl_chain_list_free(chain_list);
-
-	if (titer != NULL)
-		nftnl_table_list_iter_destroy(titer);
-	if (citer != NULL)
-		nftnl_chain_list_iter_destroy(citer);
-
-	h->config_done = -1;
-
-	return -1;
-}
-
-int nft_xtables_config_load(struct nft_handle *h, const char *filename,
-			    uint32_t flags)
-{
-	if (!h->config_done)
-		return __nft_xtables_config_load(h, filename, flags);
-
-	return h->config_done;
 }
 
 struct chain_zero_data {

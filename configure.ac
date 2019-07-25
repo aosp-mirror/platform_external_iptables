@@ -141,22 +141,6 @@ if test "x$enable_nftables" = "xyes"; then
 		echo "    iptables-compat over nftables support."
 		exit 1
 	fi
-
-	AM_PROG_LEX
-	AC_PROG_YACC
-
-	if test -z "$ac_cv_prog_YACC"
-	then
-		echo "*** Error: No suitable bison/yacc found. ***"
-		echo "    Please install the 'bison' package."
-		exit 1
-	fi
-	if test -z "$ac_cv_prog_LEX"
-	then
-	        echo "*** Error: No suitable flex/lex found. ***"
-	        echo "    Please install the 'flex' package."
-	        exit 1
-	fi
 fi
 
 AM_CONDITIONAL([HAVE_LIBMNL], [test "$mnl" = 1])

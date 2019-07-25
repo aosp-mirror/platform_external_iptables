@@ -171,22 +171,6 @@ int ebt_get_current_chain(const char *chain);
 int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table, bool restore);
 
 /*
- * Parse config for tables and chain helper functions
- */
-#define XTABLES_CONFIG_DEFAULT  "/etc/xtables.conf"
-
-struct nftnl_table_list;
-struct nftnl_chain_list;
-
-extern int xtables_config_parse(const char *filename, struct nftnl_table_list *table_list, struct nftnl_chain_list *chain_list);
-
-enum {
-	NFT_LOAD_VERBOSE = (1 << 0),
-};
-
-int nft_xtables_config_load(struct nft_handle *h, const char *filename, uint32_t flags);
-
-/*
  * Translation from iptables to nft
  */
 struct xt_buf;
