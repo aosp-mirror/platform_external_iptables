@@ -955,6 +955,9 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 			break;
 
 		case '4':
+			if (p->restore && args->family == AF_INET6)
+				return;
+
 			if (args->family != AF_INET)
 				exit_tryhelp(2);
 
@@ -962,6 +965,9 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 			break;
 
 		case '6':
+			if (p->restore && args->family == AF_INET)
+				return;
+
 			args->family = AF_INET6;
 			xtables_set_nfproto(AF_INET6);
 
@@ -1173,6 +1179,9 @@ int do_commandx(struct nft_handle *h, int argc, char *argv[], char **table,
 		break;
 	case CMD_SET_POLICY:
 		ret = nft_chain_set(h, p.table, p.chain, p.policy, NULL);
+		break;
+	case CMD_NONE:
+	/* do_parse ignored the line (eg: -4 with ip6tables-restore) */
 		break;
 	default:
 		/* We should never reach this... */
