@@ -57,7 +57,6 @@
 #include "xshared.h" /* proto_to_name */
 #include "nft-shared.h"
 #include "nft-bridge.h" /* EBT_NOPROTO */
-#include "xtables-config-parser.h"
 
 static void *nft_fn;
 
