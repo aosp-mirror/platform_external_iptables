@@ -982,8 +982,7 @@ void nft_ipv46_parse_target(struct xtables_target *t, void *data)
 	cs->target = t;
 }
 
-bool nft_ipv46_rule_find(struct nft_family_ops *ops,
-			 struct nftnl_rule *r, void *data)
+bool nft_ipv46_rule_find(struct nft_handle *h, struct nftnl_rule *r, void *data)
 {
 	struct iptables_command_state *cs = data, this = {};
 	bool ret = false;
@@ -994,7 +993,7 @@ bool nft_ipv46_rule_find(struct nft_family_ops *ops,
 #ifdef DEBUG_DEL
 	nft_rule_print_save(r, NFT_RULE_APPEND, 0);
 #endif
-	if (!ops->is_same(cs, &this))
+	if (!h->ops->is_same(cs, &this))
 		goto out;
 
 	if (!compare_matches(cs->matches, this.matches)) {
@@ -1014,7 +1013,7 @@ bool nft_ipv46_rule_find(struct nft_family_ops *ops,
 
 	ret = true;
 out:
-	ops->clear_cs(&this);
+	h->ops->clear_cs(&this);
 	return ret;
 }
 

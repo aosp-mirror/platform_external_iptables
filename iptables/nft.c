@@ -1907,7 +1907,7 @@ nft_rule_find(struct nft_handle *h, struct nftnl_chain *c, void *data, int rulen
 
 	r = nftnl_rule_iter_next(iter);
 	while (r != NULL) {
-		found = h->ops->rule_find(h->ops, r, data);
+		found = h->ops->rule_find(h, r, data);
 		if (found)
 			break;
 		r = nftnl_rule_iter_next(iter);

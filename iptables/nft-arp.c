@@ -632,7 +632,7 @@ static bool nft_arp_is_same(const void *data_a,
 				  (unsigned char *)b->arp.outiface_mask);
 }
 
-static bool nft_arp_rule_find(struct nft_family_ops *ops, struct nftnl_rule *r,
+static bool nft_arp_rule_find(struct nft_handle *h, struct nftnl_rule *r,
 			      void *data)
 {
 	const struct iptables_command_state *cs = data;
@@ -653,7 +653,7 @@ static bool nft_arp_rule_find(struct nft_family_ops *ops, struct nftnl_rule *r,
 
 	ret = true;
 out:
-	ops->clear_cs(&this);
+	h->ops->clear_cs(&this);
 	return ret;
 }
 
