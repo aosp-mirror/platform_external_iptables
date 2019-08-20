@@ -944,6 +944,153 @@ static int add_nft_limit(struct nftnl_rule *r, struct xt_entry_match *m)
 	return 0;
 }
 
+static struct nftnl_set *add_anon_set(struct nft_handle *h, const char *table,
+				      uint32_t flags, uint32_t key_type,
+				      uint32_t key_len, uint32_t size)
+{
+	static uint32_t set_id = 0;
+	struct nftnl_set *s;
+
+	s = nftnl_set_alloc();
+	if (!s)
+		return NULL;
+
+	nftnl_set_set_u32(s, NFTNL_SET_FAMILY, h->family);
+	nftnl_set_set_str(s, NFTNL_SET_TABLE, table);
+	nftnl_set_set_str(s, NFTNL_SET_NAME, "__set%d");
+	nftnl_set_set_u32(s, NFTNL_SET_ID, ++set_id);
+	nftnl_set_set_u32(s, NFTNL_SET_FLAGS,
+			  NFT_SET_ANONYMOUS | NFT_SET_CONSTANT | flags);
+	nftnl_set_set_u32(s, NFTNL_SET_KEY_TYPE, key_type);
+	nftnl_set_set_u32(s, NFTNL_SET_KEY_LEN, key_len);
+	nftnl_set_set_u32(s, NFTNL_SET_DESC_SIZE, size);
+
+	return batch_set_add(h, NFT_COMPAT_SET_ADD, s) ? s : NULL;
+}
+
+static struct nftnl_expr *
+gen_payload(uint32_t base, uint32_t offset, uint32_t len, uint32_t dreg)
+{
+	struct nftnl_expr *e = nftnl_expr_alloc("payload");
+
+	if (!e)
+		return NULL;
+	nftnl_expr_set_u32(e, NFTNL_EXPR_PAYLOAD_BASE, base);
+	nftnl_expr_set_u32(e, NFTNL_EXPR_PAYLOAD_OFFSET, offset);
+	nftnl_expr_set_u32(e, NFTNL_EXPR_PAYLOAD_LEN, len);
+	nftnl_expr_set_u32(e, NFTNL_EXPR_PAYLOAD_DREG, dreg);
+	return e;
+}
+
+static struct nftnl_expr *
+gen_lookup(uint32_t sreg, const char *set_name, uint32_t set_id, uint32_t flags)
+{
+	struct nftnl_expr *e = nftnl_expr_alloc("lookup");
+
+	if (!e)
+		return NULL;
+	nftnl_expr_set_u32(e, NFTNL_EXPR_LOOKUP_SREG, sreg);
+	nftnl_expr_set_str(e, NFTNL_EXPR_LOOKUP_SET, set_name);
+	nftnl_expr_set_u32(e, NFTNL_EXPR_LOOKUP_SET_ID, set_id);
+	nftnl_expr_set_u32(e, NFTNL_EXPR_LOOKUP_FLAGS, flags);
+	return e;
+}
+
+/* simplified nftables:include/netlink.h, netlink_padded_len() */
+#define NETLINK_ALIGN		4
+
+/* from nftables:include/datatype.h, TYPE_BITS */
+#define CONCAT_TYPE_BITS	6
+
+/* from nftables:include/datatype.h, enum datatypes */
+#define NFT_DATATYPE_IPADDR	7
+#define NFT_DATATYPE_ETHERADDR	9
+
+static int __add_nft_among(struct nft_handle *h, const char *table,
+			   struct nftnl_rule *r, struct nft_among_pair *pairs,
+			   int cnt, bool dst, bool inv, bool ip)
+{
+	uint32_t set_id, type = NFT_DATATYPE_ETHERADDR, len = ETH_ALEN;
+	/* { !dst, dst } */
+	static const int eth_addr_off[] = {
+		offsetof(struct ether_header, ether_shost),
+		offsetof(struct ether_header, ether_dhost)
+	};
+	static const int ip_addr_off[] = {
+		offsetof(struct iphdr, saddr),
+		offsetof(struct iphdr, daddr)
+	};
+	struct nftnl_expr *e;
+	struct nftnl_set *s;
+	int idx = 0;
+
+	if (ip) {
+		type = type << CONCAT_TYPE_BITS | NFT_DATATYPE_IPADDR;
+		len += sizeof(struct in_addr) + NETLINK_ALIGN - 1;
+		len &= ~(NETLINK_ALIGN - 1);
+	}
+
+	s = add_anon_set(h, table, 0, type, len, cnt);
+	if (!s)
+		return -ENOMEM;
+	set_id = nftnl_set_get_u32(s, NFTNL_SET_ID);
+
+	for (idx = 0; idx < cnt; idx++) {
+		struct nftnl_set_elem *elem = nftnl_set_elem_alloc();
+
+		if (!elem)
+			return -ENOMEM;
+		nftnl_set_elem_set(elem, NFTNL_SET_ELEM_KEY,
+				   &pairs[idx], len);
+		nftnl_set_elem_add(s, elem);
+	}
+
+	e = gen_payload(NFT_PAYLOAD_LL_HEADER,
+			eth_addr_off[dst], ETH_ALEN, NFT_REG_1);
+	if (!e)
+		return -ENOMEM;
+	nftnl_rule_add_expr(r, e);
+
+	if (ip) {
+		e = gen_payload(NFT_PAYLOAD_NETWORK_HEADER, ip_addr_off[dst],
+				sizeof(struct in_addr), NFT_REG32_02);
+		if (!e)
+			return -ENOMEM;
+		nftnl_rule_add_expr(r, e);
+	}
+
+	e = gen_lookup(NFT_REG_1, "__set%d", set_id, inv);
+	if (!e)
+		return -ENOMEM;
+	nftnl_rule_add_expr(r, e);
+
+	return 0;
+}
+
+static int add_nft_among(struct nft_handle *h,
+			 struct nftnl_rule *r, struct xt_entry_match *m)
+{
+	struct nft_among_data *data = (struct nft_among_data *)m->data;
+	const char *table = nftnl_rule_get(r, NFTNL_RULE_TABLE);
+
+	if ((data->src.cnt && data->src.ip) ||
+	    (data->dst.cnt && data->dst.ip)) {
+		uint16_t eth_p_ip = htons(ETH_P_IP);
+
+		add_meta(r, NFT_META_PROTOCOL);
+		add_cmp_ptr(r, NFT_CMP_EQ, &eth_p_ip, 2);
+	}
+
+	if (data->src.cnt)
+		__add_nft_among(h, table, r, data->pairs, data->src.cnt,
+				false, data->src.inv, data->src.ip);
+	if (data->dst.cnt)
+		__add_nft_among(h, table, r, data->pairs + data->src.cnt,
+				data->dst.cnt, true, data->dst.inv,
+				data->dst.ip);
+	return 0;
+}
+
 int add_match(struct nft_handle *h,
 	      struct nftnl_rule *r, struct xt_entry_match *m)
 {
@@ -952,6 +1099,8 @@ int add_match(struct nft_handle *h,
 
 	if (!strcmp(m->u.user.name, "limit"))
 		return add_nft_limit(r, m);
+	else if (!strcmp(m->u.user.name, "among"))
+		return add_nft_among(h, r, m);
 
 	expr = nftnl_expr_alloc("match");
 	if (expr == NULL)

@@ -522,35 +522,39 @@ If the 802.3 DSAP and SSAP values are 0xaa then the SNAP type field must
 be consulted to determine the payload protocol.  This is a two byte
 (hexadecimal) argument.  Only 802.3 frames with DSAP/SSAP 0xaa are
 checked for type.
-.\" .SS among
-.\" Match a MAC address or MAC/IP address pair versus a list of MAC addresses
-.\" and MAC/IP address pairs.
-.\" A list entry has the following format:
-.\" .IR xx:xx:xx:xx:xx:xx[=ip.ip.ip.ip][,] ". Multiple"
-.\" list entries are separated by a comma, specifying an IP address corresponding to
-.\" the MAC address is optional. Multiple MAC/IP address pairs with the same MAC address
-.\" but different IP address (and vice versa) can be specified. If the MAC address doesn't
-.\" match any entry from the list, the frame doesn't match the rule (unless "!" was used).
-.\" .TP
-.\" .BR "--among-dst " "[!] \fIlist\fP"
-.\" Compare the MAC destination to the given list. If the Ethernet frame has type
-.\" .IR IPv4 " or " ARP ,
-.\" then comparison with MAC/IP destination address pairs from the
-.\" list is possible.
-.\" .TP
-.\" .BR "--among-src " "[!] \fIlist\fP"
-.\" Compare the MAC source to the given list. If the Ethernet frame has type
-.\" .IR IPv4 " or " ARP ,
-.\" then comparison with MAC/IP source address pairs from the list
-.\" is possible.
-.\" .TP
-.\" .BR "--among-dst-file " "[!] \fIfile\fP"
-.\" Same as
-.\" .BR --among-dst " but the list is read in from the specified file."
-.\" .TP
-.\" .BR "--among-src-file " "[!] \fIfile\fP"
-.\" Same as
-.\" .BR --among-src " but the list is read in from the specified file."
+.SS among
+Match a MAC address or MAC/IP address pair versus a list of MAC addresses
+and MAC/IP address pairs.
+A list entry has the following format:
+.IR xx:xx:xx:xx:xx:xx[=ip.ip.ip.ip][,] ". Multiple"
+list entries are separated by a comma, specifying an IP address corresponding to
+the MAC address is optional. Multiple MAC/IP address pairs with the same MAC address
+but different IP address (and vice versa) can be specified. If the MAC address doesn't
+match any entry from the list, the frame doesn't match the rule (unless "!" was used).
+.TP
+.BR "--among-dst " "[!] \fIlist\fP"
+Compare the MAC destination to the given list. If the Ethernet frame has type
+.IR IPv4 " or " ARP ,
+then comparison with MAC/IP destination address pairs from the
+list is possible.
+.TP
+.BR "--among-src " "[!] \fIlist\fP"
+Compare the MAC source to the given list. If the Ethernet frame has type
+.IR IPv4 " or " ARP ,
+then comparison with MAC/IP source address pairs from the list
+is possible.
+.TP
+.BR "--among-dst-file " "[!] \fIfile\fP"
+Same as
+.BR --among-dst " but the list is read in from the specified file."
+.TP
+.BR "--among-src-file " "[!] \fIfile\fP"
+Same as
+.BR --among-src " but the list is read in from the specified file."
+.PP
+Note that in this implementation of ebtables, among lists uses must be
+internally homogeneous regarding whether IP addresses are present or not. Mixed
+use of MAC addresses and MAC/IP address pairs is not supported yet.
 .SS arp
 Specify (R)ARP fields. The protocol must be specified as
 .IR ARP " or " RARP .
@@ -1108,8 +1112,8 @@ arp message and the hardware address length in the arp header is 6 bytes.
 The version of ebtables this man page ships with does not support the
 .B broute
 table. Also there is no support for
-.BR among " and " string
-matches. And finally, this list is probably not complete.
+.B string
+match. And finally, this list is probably not complete.
 .SH SEE ALSO
 .BR xtables-nft "(8), " iptables "(8), " ip (8)
 .PP

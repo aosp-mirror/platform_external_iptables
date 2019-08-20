@@ -122,4 +122,60 @@ void ebt_add_watcher(struct xtables_target *watcher,
                      struct iptables_command_state *cs);
 int ebt_command_default(struct iptables_command_state *cs);
 
+struct nft_among_pair {
+	struct ether_addr ether;
+	struct in_addr in __attribute__((aligned (4)));
+};
+
+struct nft_among_data {
+	struct {
+		size_t cnt;
+		bool inv;
+		bool ip;
+	} src, dst;
+	/* first source, then dest pairs */
+	struct nft_among_pair pairs[0];
+};
+
+/* initialize fields, return offset into pairs array to write pairs to */
+static inline size_t
+nft_among_prepare_data(struct nft_among_data *data, bool dst,
+		       size_t cnt, bool inv, bool ip)
+{
+	size_t poff;
+
+	if (dst) {
+		data->dst.cnt = cnt;
+		data->dst.inv = inv;
+		data->dst.ip = ip;
+		poff = data->src.cnt;
+	} else {
+		data->src.cnt = cnt;
+		data->src.inv = inv;
+		data->src.ip = ip;
+		poff = 0;
+		memmove(data->pairs + cnt, data->pairs,
+			data->dst.cnt * sizeof(*data->pairs));
+	}
+	return poff;
+}
+
+static inline void
+nft_among_insert_pair(struct nft_among_pair *pairs,
+		      size_t *pcount, const struct nft_among_pair *new)
+{
+	int i;
+
+	/* nftables automatically sorts set elements from smallest to largest,
+	 * insert sorted so extension comparison works */
+
+	for (i = 0; i < *pcount; i++) {
+		if (memcmp(new, &pairs[i], sizeof(*new)) < 0)
+			break;
+	}
+	memmove(&pairs[i + 1], &pairs[i], sizeof(*pairs) * (*pcount - i));
+	memcpy(&pairs[i], new, sizeof(*new));
+	(*pcount)++;
+}
+
 #endif

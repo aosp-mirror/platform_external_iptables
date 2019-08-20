@@ -17,8 +17,11 @@
 #include <libiptc/libxtc.h>
 #include <linux/netfilter/nf_tables.h>
 
+#include <libnftnl/set.h>
+
 #include "nft-shared.h"
 #include "nft-bridge.h"
+#include "nft-cache.h"
 #include "nft.h"
 
 void ebt_cs_clean(struct iptables_command_state *cs)
@@ -289,6 +292,212 @@ static void nft_bridge_parse_immediate(const char *jumpto, bool nft_goto,
 	struct iptables_command_state *cs = data;
 
 	cs->jumpto = jumpto;
+}
+
+/* return 0 if saddr, 1 if daddr, -1 on error */
+static int
+lookup_check_ether_payload(uint32_t base, uint32_t offset, uint32_t len)
+{
+	if (base != 0 || len != ETH_ALEN)
+		return -1;
+
+	switch (offset) {
+	case offsetof(struct ether_header, ether_dhost):
+		return 1;
+	case offsetof(struct ether_header, ether_shost):
+		return 0;
+	default:
+		return -1;
+	}
+}
+
+/* return 0 if saddr, 1 if daddr, -1 on error */
+static int
+lookup_check_iphdr_payload(uint32_t base, uint32_t offset, uint32_t len)
+{
+	if (base != 1 || len != 4)
+		return -1;
+
+	switch (offset) {
+	case offsetof(struct iphdr, daddr):
+		return 1;
+	case offsetof(struct iphdr, saddr):
+		return 0;
+	default:
+		return -1;
+	}
+}
+
+/* Make sure previous payload expression(s) is/are consistent and extract if
+ * matching on source or destination address and if matching on MAC and IP or
+ * only MAC address. */
+static int lookup_analyze_payloads(const struct nft_xt_ctx *ctx,
+				   bool *dst, bool *ip)
+{
+	int val, val2 = -1;
+
+	if (ctx->flags & NFT_XT_CTX_PREV_PAYLOAD) {
+		val = lookup_check_ether_payload(ctx->prev_payload.base,
+						 ctx->prev_payload.offset,
+						 ctx->prev_payload.len);
+		if (val < 0) {
+			DEBUGP("unknown payload base/offset/len %d/%d/%d\n",
+			       ctx->prev_payload.base, ctx->prev_payload.offset,
+			       ctx->prev_payload.len);
+			return -1;
+		}
+		if (!(ctx->flags & NFT_XT_CTX_PAYLOAD)) {
+			DEBUGP("Previous but no current payload?\n");
+			return -1;
+		}
+		val2 = lookup_check_iphdr_payload(ctx->payload.base,
+						  ctx->payload.offset,
+						  ctx->payload.len);
+		if (val2 < 0) {
+			DEBUGP("unknown payload base/offset/len %d/%d/%d\n",
+			       ctx->payload.base, ctx->payload.offset,
+			       ctx->payload.len);
+			return -1;
+		} else if (val != val2) {
+			DEBUGP("mismatching payload match offsets\n");
+			return -1;
+		}
+	} else if (ctx->flags & NFT_XT_CTX_PAYLOAD) {
+		val = lookup_check_ether_payload(ctx->payload.base,
+						 ctx->payload.offset,
+						 ctx->payload.len);
+		if (val < 0) {
+			DEBUGP("unknown payload base/offset/len %d/%d/%d\n",
+			       ctx->payload.base, ctx->payload.offset,
+			       ctx->payload.len);
+			return -1;
+		}
+	} else {
+		DEBUGP("unknown LHS of lookup expression\n");
+		return -1;
+	}
+
+	if (dst)
+		*dst = (val == 1);
+	if (ip)
+		*ip = (val2 != -1);
+	return 0;
+}
+
+static int set_elems_to_among_pairs(struct nft_among_pair *pairs,
+				    const struct nftnl_set *s, int cnt)
+{
+	struct nftnl_set_elems_iter *iter = nftnl_set_elems_iter_create(s);
+	struct nftnl_set_elem *elem;
+	size_t tmpcnt = 0;
+	const void *data;
+	uint32_t datalen;
+	int ret = -1;
+
+	if (!iter) {
+		fprintf(stderr, "BUG: set elems iter allocation failed\n");
+		return ret;
+	}
+
+	while ((elem = nftnl_set_elems_iter_next(iter))) {
+		data = nftnl_set_elem_get(elem, NFTNL_SET_ELEM_KEY, &datalen);
+		if (!data) {
+			fprintf(stderr, "BUG: set elem without key\n");
+			goto err;
+		}
+		if (datalen > sizeof(*pairs)) {
+			fprintf(stderr, "BUG: overlong set elem\n");
+			goto err;
+		}
+		nft_among_insert_pair(pairs, &tmpcnt, data);
+	}
+	ret = 0;
+err:
+	nftnl_set_elems_iter_destroy(iter);
+	return ret;
+}
+
+static struct nftnl_set *set_from_lookup_expr(struct nft_xt_ctx *ctx,
+					      const struct nftnl_expr *e)
+{
+	const char *set_name = nftnl_expr_get_str(e, NFTNL_EXPR_LOOKUP_SET);
+	struct nftnl_set_list *slist;
+
+	slist = nft_set_list_get(ctx->h, ctx->table, set_name);
+	if (slist)
+		return nftnl_set_list_lookup_byname(slist, set_name);
+
+	return NULL;
+}
+
+static void nft_bridge_parse_lookup(struct nft_xt_ctx *ctx,
+				    struct nftnl_expr *e, void *data)
+{
+	struct xtables_match *match = NULL;
+	struct nft_among_data *among_data;
+	bool is_dst, have_ip, inv;
+	struct ebt_match *ematch;
+	struct nftnl_set *s;
+	size_t poff, size;
+	uint32_t cnt;
+
+	if (lookup_analyze_payloads(ctx, &is_dst, &have_ip))
+		return;
+
+	s = set_from_lookup_expr(ctx, e);
+	if (!s)
+		xtables_error(OTHER_PROBLEM,
+			      "BUG: lookup expression references unknown set");
+
+	cnt = nftnl_set_get_u32(s, NFTNL_SET_DESC_SIZE);
+
+	for (ematch = ctx->cs->match_list; ematch; ematch = ematch->next) {
+		if (!ematch->ismatch || strcmp(ematch->u.match->name, "among"))
+			continue;
+
+		match = ematch->u.match;
+		among_data = (struct nft_among_data *)match->m->data;
+
+		size = cnt + among_data->src.cnt + among_data->dst.cnt;
+		size *= sizeof(struct nft_among_pair);
+
+		size += XT_ALIGN(sizeof(struct xt_entry_match)) +
+			sizeof(struct nft_among_data);
+
+		match->m = xtables_realloc(match->m, size);
+		break;
+	}
+	if (!match) {
+		match = xtables_find_match("among", XTF_TRY_LOAD,
+					   &ctx->cs->matches);
+
+		size = cnt * sizeof(struct nft_among_pair);
+		size += XT_ALIGN(sizeof(struct xt_entry_match)) +
+			sizeof(struct nft_among_data);
+
+		match->m = xtables_calloc(1, size);
+		strcpy(match->m->u.user.name, match->name);
+		match->m->u.user.revision = match->revision;
+		xs_init_match(match);
+
+		if (ctx->h->ops->parse_match != NULL)
+			ctx->h->ops->parse_match(match, ctx->cs);
+	}
+	if (!match)
+		return;
+
+	match->m->u.match_size = size;
+
+	inv = !!(nftnl_expr_get_u32(e, NFTNL_EXPR_LOOKUP_FLAGS) &
+				    NFT_LOOKUP_F_INV);
+
+	among_data = (struct nft_among_data *)match->m->data;
+	poff = nft_among_prepare_data(among_data, is_dst, cnt, inv, have_ip);
+	if (set_elems_to_among_pairs(among_data->pairs + poff, s, cnt))
+		xtables_error(OTHER_PROBLEM,
+			      "ebtables among pair parsing failed");
+
+	ctx->flags &= ~(NFT_XT_CTX_PAYLOAD | NFT_XT_CTX_PREV_PAYLOAD);
 }
 
 static void parse_watcher(void *object, struct ebt_match **match_list,
@@ -742,6 +951,7 @@ struct nft_family_ops nft_family_ops_bridge = {
 	.parse_meta		= nft_bridge_parse_meta,
 	.parse_payload		= nft_bridge_parse_payload,
 	.parse_immediate	= nft_bridge_parse_immediate,
+	.parse_lookup		= nft_bridge_parse_lookup,
 	.parse_match		= nft_bridge_parse_match,
 	.parse_target		= nft_bridge_parse_target,
 	.print_table_header	= nft_bridge_print_table_header,
