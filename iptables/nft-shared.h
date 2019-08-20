@@ -35,6 +35,7 @@
 #define FMT(tab,notab) ((format) & FMT_NOTABLE ? (notab) : (tab))
 
 struct xtables_args;
+struct nft_handle;
 struct xt_xlate;
 
 enum {
@@ -69,7 +70,7 @@ struct nft_xt_ctx {
 };
 
 struct nft_family_ops {
-	int (*add)(struct nftnl_rule *r, void *data);
+	int (*add)(struct nft_handle *h, struct nftnl_rule *r, void *data);
 	bool (*is_same)(const void *data_a,
 			const void *data_b);
 	void (*print_payload)(struct nftnl_expr *e,
@@ -163,7 +164,6 @@ void save_matches_and_target(const struct iptables_command_state *cs,
 
 struct nft_family_ops *nft_family_ops_lookup(int family);
 
-struct nft_handle;
 void nft_ipv46_parse_target(struct xtables_target *t, void *data);
 bool nft_ipv46_rule_find(struct nft_family_ops *ops, struct nftnl_rule *r,
 			 void *data);

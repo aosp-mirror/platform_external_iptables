@@ -126,7 +126,8 @@ static int _add_action(struct nftnl_rule *r, struct iptables_command_state *cs)
 	return add_action(r, cs, false);
 }
 
-static int nft_bridge_add(struct nftnl_rule *r, void *data)
+static int nft_bridge_add(struct nft_handle *h,
+			  struct nftnl_rule *r, void *data)
 {
 	struct iptables_command_state *cs = data;
 	struct ebt_match *iter;
@@ -182,7 +183,7 @@ static int nft_bridge_add(struct nftnl_rule *r, void *data)
 
 	for (iter = cs->match_list; iter; iter = iter->next) {
 		if (iter->ismatch) {
-			if (add_match(r, iter->u.match->m))
+			if (add_match(h, r, iter->u.match->m))
 				break;
 		} else {
 			if (add_target(r, iter->u.watcher->t))
