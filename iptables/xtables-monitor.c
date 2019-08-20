@@ -11,6 +11,7 @@
 
 #define _GNU_SOURCE
 #include "config.h"
+#include <errno.h>
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
@@ -41,6 +42,7 @@
 struct cb_arg {
 	uint32_t nfproto;
 	bool is_event;
+	struct nft_handle *h;
 };
 
 static int table_cb(const struct nlmsghdr *nlh, void *data)
@@ -106,7 +108,7 @@ static int rule_cb(const struct nlmsghdr *nlh, void *data)
 	}
 
 	printf("-t %s ", nftnl_rule_get_str(r, NFTNL_RULE_TABLE));
-	nft_rule_print_save(r, type == NFT_MSG_NEWRULE ? NFT_RULE_APPEND :
+	nft_rule_print_save(arg->h, r, type == NFT_MSG_NEWRULE ? NFT_RULE_APPEND :
 							   NFT_RULE_DEL,
 			    counters ? 0 : FMT_NOCOUNTS);
 err_free:
@@ -593,7 +595,10 @@ int xtables_monitor_main(int argc, char *argv[])
 	struct mnl_socket *nl;
 	char buf[MNL_SOCKET_BUFFER_SIZE];
 	uint32_t nfgroup = 0;
-	struct cb_arg cb_arg = {};
+	struct nft_handle h = {};
+	struct cb_arg cb_arg = {
+		.h = &h,
+	};
 	int ret, c;
 
 	xtables_globals.program_name = "xtables-monitor";
@@ -609,6 +614,14 @@ int xtables_monitor_main(int argc, char *argv[])
 	init_extensions();
 	init_extensions4();
 #endif
+
+	if (nft_init(&h, xtables_ipv4)) {
+		fprintf(stderr, "%s/%s Failed to initialize nft: %s\n",
+			xtables_globals.program_name,
+			xtables_globals.program_version,
+			strerror(errno));
+		exit(EXIT_FAILURE);
+	}
 
 	opterr = 0;
 	while ((c = getopt_long(argc, argv, "ceht46V", options, NULL)) != -1) {

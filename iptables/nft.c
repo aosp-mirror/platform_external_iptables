@@ -351,7 +351,7 @@ static int mnl_append_error(const struct nft_handle *h,
 			 nftnl_rule_get_str(o->rule, NFTNL_RULE_CHAIN));
 #if 0
 		{
-			nft_rule_print_save(o->rule, NFT_RULE_APPEND, FMT_NOCOUNTS);
+			nft_rule_print_save(h, o->rule, NFT_RULE_APPEND, FMT_NOCOUNTS);
 		}
 #endif
 		break;
@@ -1220,16 +1220,14 @@ nft_rule_append(struct nft_handle *h, const char *chain, const char *table,
 }
 
 void
-nft_rule_print_save(const struct nftnl_rule *r, enum nft_rule_print type,
-		    unsigned int format)
+nft_rule_print_save(struct nft_handle *h, const struct nftnl_rule *r,
+		    enum nft_rule_print type, unsigned int format)
 {
 	const char *chain = nftnl_rule_get_str(r, NFTNL_RULE_CHAIN);
-	int family = nftnl_rule_get_u32(r, NFTNL_RULE_FAMILY);
 	struct iptables_command_state cs = {};
-	struct nft_family_ops *ops;
+	struct nft_family_ops *ops = h->ops;
 
-	ops = nft_family_ops_lookup(family);
-	ops->rule_to_cs(r, &cs);
+	ops->rule_to_cs(h, r, &cs);
 
 	if (!(format & (FMT_NOCOUNTS | FMT_C_COUNTS)) && ops->save_counters)
 		ops->save_counters(&cs);
@@ -1392,7 +1390,7 @@ static int nft_chain_save_rules(struct nft_handle *h,
 
 	r = nftnl_rule_iter_next(iter);
 	while (r != NULL) {
-		nft_rule_print_save(r, NFT_RULE_APPEND, format);
+		nft_rule_print_save(h, r, NFT_RULE_APPEND, format);
 		r = nftnl_rule_iter_next(iter);
 	}
 
@@ -2245,7 +2243,7 @@ static void
 list_save(struct nft_handle *h, struct nftnl_rule *r,
 	  unsigned int num, unsigned int format)
 {
-	nft_rule_print_save(r, NFT_RULE_APPEND, format);
+	nft_rule_print_save(h, r, NFT_RULE_APPEND, format);
 }
 
 static int __nftnl_rule_list_chain_save(struct nftnl_chain *c, void *data)
@@ -2357,7 +2355,7 @@ int nft_rule_zero_counters(struct nft_handle *h, const char *chain,
 		goto error;
 	}
 
-	nft_rule_to_iptables_command_state(r, &cs);
+	nft_rule_to_iptables_command_state(h, r, &cs);
 
 	cs.counters.pcnt = cs.counters.bcnt = 0;
 

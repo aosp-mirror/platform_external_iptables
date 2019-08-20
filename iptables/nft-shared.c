@@ -591,7 +591,8 @@ static void nft_parse_limit(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 		ops->parse_match(match, ctx->cs);
 }
 
-void nft_rule_to_iptables_command_state(const struct nftnl_rule *r,
+void nft_rule_to_iptables_command_state(struct nft_handle *h,
+					const struct nftnl_rule *r,
 					struct iptables_command_state *cs)
 {
 	struct nftnl_expr_iter *iter;
@@ -987,7 +988,7 @@ bool nft_ipv46_rule_find(struct nft_handle *h, struct nftnl_rule *r, void *data)
 	struct iptables_command_state *cs = data, this = {};
 	bool ret = false;
 
-	nft_rule_to_iptables_command_state(r, &this);
+	nft_rule_to_iptables_command_state(h, r, &this);
 
 	DEBUGP("comparing with... ");
 #ifdef DEBUG_DEL

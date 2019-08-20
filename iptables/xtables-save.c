@@ -249,6 +249,9 @@ xtables_save_main(int family, int argc, char *argv[],
 				strerror(errno));
 		exit(EXIT_FAILURE);
 	}
+	h.ops = nft_family_ops_lookup(h.family);
+	if (!h.ops)
+		xtables_error(PARAMETER_PROBLEM, "Unknown family");
 
 	ret = do_output(&h, tablename, &d);
 	nft_fini(&h);

@@ -192,7 +192,7 @@ static void nft_ipv6_print_rule(struct nft_handle *h, struct nftnl_rule *r,
 {
 	struct iptables_command_state cs = {};
 
-	nft_rule_to_iptables_command_state(r, &cs);
+	nft_rule_to_iptables_command_state(h, r, &cs);
 
 	print_rule_details(&cs, cs.jumpto, cs.fw6.ipv6.flags,
 			   cs.fw6.ipv6.invflags, cs.fw6.ipv6.proto,

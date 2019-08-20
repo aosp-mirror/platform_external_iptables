@@ -333,11 +333,12 @@ static void nft_bridge_parse_target(struct xtables_target *t, void *data)
 	cs->target = t;
 }
 
-static void nft_rule_to_ebtables_command_state(const struct nftnl_rule *r,
+static void nft_rule_to_ebtables_command_state(struct nft_handle *h,
+					       const struct nftnl_rule *r,
 					       struct iptables_command_state *cs)
 {
 	cs->eb.bitmask = EBT_NOPROTO;
-	nft_rule_to_iptables_command_state(r, cs);
+	nft_rule_to_iptables_command_state(h, r, cs);
 }
 
 static void print_iface(const char *option, const char *name, bool invert)
@@ -480,7 +481,7 @@ static void nft_bridge_print_rule(struct nft_handle *h, struct nftnl_rule *r,
 	if (format & FMT_LINENUMBERS)
 		printf("%d ", num);
 
-	nft_rule_to_ebtables_command_state(r, &cs);
+	nft_rule_to_ebtables_command_state(h, r, &cs);
 	nft_bridge_save_rule(&cs, format);
 	ebt_cs_clean(&cs);
 }
@@ -544,7 +545,7 @@ static bool nft_bridge_rule_find(struct nft_handle *h, struct nftnl_rule *r,
 	struct iptables_command_state this = {};
 	bool ret = false;
 
-	nft_rule_to_ebtables_command_state(r, &this);
+	nft_rule_to_ebtables_command_state(h, r, &this);
 
 	DEBUGP("comparing with... ");
 

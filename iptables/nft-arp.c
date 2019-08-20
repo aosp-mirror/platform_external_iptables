@@ -590,7 +590,7 @@ nft_arp_print_rule(struct nft_handle *h, struct nftnl_rule *r,
 	if (format & FMT_LINENUMBERS)
 		printf("%u ", num);
 
-	nft_rule_to_iptables_command_state(r, &cs);
+	nft_rule_to_iptables_command_state(h, r, &cs);
 
 	nft_arp_print_rule_details(&cs, format);
 	print_matches_and_target(&cs, format);
@@ -641,7 +641,7 @@ static bool nft_arp_rule_find(struct nft_handle *h, struct nftnl_rule *r,
 	bool ret = false;
 
 	/* Delete by matching rule case */
-	nft_rule_to_iptables_command_state(r, &this);
+	nft_rule_to_iptables_command_state(h, r, &this);
 
 	if (!nft_arp_is_same(&cs->arp, &this.arp))
 		goto out;
