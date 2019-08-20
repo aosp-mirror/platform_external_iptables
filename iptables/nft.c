@@ -3332,9 +3332,7 @@ uint32_t nft_invflags2cmp(uint32_t invflags, uint32_t flag)
 	return NFT_CMP_EQ;
 }
 
-#define NFT_COMPAT_EXPR_MAX     8
-
-static const char *supported_exprs[NFT_COMPAT_EXPR_MAX] = {
+static const char *supported_exprs[] = {
 	"match",
 	"target",
 	"payload",
@@ -3351,7 +3349,7 @@ static int nft_is_expr_compatible(struct nftnl_expr *expr, void *data)
 	const char *name = nftnl_expr_get_str(expr, NFTNL_EXPR_NAME);
 	int i;
 
-	for (i = 0; i < NFT_COMPAT_EXPR_MAX; i++) {
+	for (i = 0; i < ARRAY_SIZE(supported_exprs); i++) {
 		if (strcmp(supported_exprs[i], name) == 0)
 			return 0;
 	}
