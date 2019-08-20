@@ -3114,7 +3114,8 @@ static const char *supported_exprs[] = {
 	"cmp",
 	"bitwise",
 	"counter",
-	"immediate"
+	"immediate",
+	"lookup",
 };
 
 

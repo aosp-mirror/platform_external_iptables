@@ -86,6 +86,8 @@ struct nft_family_ops {
 			      void *data);
 	void (*parse_cmp)(struct nft_xt_ctx *ctx, struct nftnl_expr *e,
 			  void *data);
+	void (*parse_lookup)(struct nft_xt_ctx *ctx, struct nftnl_expr *e,
+			     void *data);
 	void (*parse_immediate)(const char *jumpto, bool nft_goto, void *data);
 
 	void (*print_table_header)(const char *tablename);
