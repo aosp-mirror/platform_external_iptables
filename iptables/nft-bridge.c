@@ -472,8 +472,8 @@ static void nft_bridge_save_rule(const void *data, unsigned int format)
 		fputc('\n', stdout);
 }
 
-static void nft_bridge_print_rule(struct nftnl_rule *r, unsigned int num,
-				  unsigned int format)
+static void nft_bridge_print_rule(struct nft_handle *h, struct nftnl_rule *r,
+				  unsigned int num, unsigned int format)
 {
 	struct iptables_command_state cs = {};
 

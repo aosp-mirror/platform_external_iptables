@@ -582,7 +582,8 @@ nft_arp_save_rule(const void *data, unsigned int format)
 }
 
 static void
-nft_arp_print_rule(struct nftnl_rule *r, unsigned int num, unsigned int format)
+nft_arp_print_rule(struct nft_handle *h, struct nftnl_rule *r,
+		   unsigned int num, unsigned int format)
 {
 	struct iptables_command_state cs = {};
 
