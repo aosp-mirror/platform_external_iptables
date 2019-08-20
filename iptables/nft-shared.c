@@ -566,7 +566,7 @@ static void nft_parse_limit(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 		matches = &ctx->cs->matches;
 		break;
 	default:
-		fprintf(stderr, "BUG: nft_parse_match() unknown family %d\n",
+		fprintf(stderr, "BUG: nft_parse_limit() unknown family %d\n",
 			ctx->family);
 		exit(EXIT_FAILURE);
 	}
