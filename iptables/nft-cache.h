@@ -13,6 +13,8 @@ int flush_rule_cache(struct nft_handle *h, const char *table,
 
 struct nftnl_chain_list *
 nft_chain_list_get(struct nft_handle *h, const char *table, const char *chain);
+struct nftnl_set_list *
+nft_set_list_get(struct nft_handle *h, const char *table, const char *set);
 struct nftnl_table_list *nftnl_table_list_get(struct nft_handle *h);
 
 #endif /* _NFT_CACHE_H_ */

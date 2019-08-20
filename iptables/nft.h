@@ -31,6 +31,7 @@ enum nft_cache_level {
 	NFT_CL_NONE,
 	NFT_CL_TABLES,
 	NFT_CL_CHAINS,
+	NFT_CL_SETS,
 	NFT_CL_RULES
 };
 
@@ -38,6 +39,7 @@ struct nft_cache {
 	struct nftnl_table_list		*tables;
 	struct {
 		struct nftnl_chain_list *chains;
+		struct nftnl_set_list	*sets;
 		bool			initialized;
 	} table[NFT_TABLE_MAX];
 };
