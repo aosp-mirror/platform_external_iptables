@@ -1336,11 +1336,9 @@ static const char *policy_name[NF_ACCEPT+1] = {
 
 int nft_chain_save(struct nft_handle *h, struct nftnl_chain_list *list)
 {
+	struct nft_family_ops *ops = h->ops;
 	struct nftnl_chain_list_iter *iter;
-	struct nft_family_ops *ops;
 	struct nftnl_chain *c;
-
-	ops = nft_family_ops_lookup(h->family);
 
 	iter = nftnl_chain_list_iter_create(list);
 	if (iter == NULL)
@@ -2165,7 +2163,6 @@ static int nft_rule_count(struct nft_handle *h, struct nftnl_chain *c)
 }
 
 static void __nft_print_header(struct nft_handle *h,
-			       const struct nft_family_ops *ops,
 			       struct nftnl_chain *c, unsigned int format)
 {
 	const char *chain_name = nftnl_chain_get_str(c, NFTNL_CHAIN_NAME);
@@ -2181,14 +2178,14 @@ static void __nft_print_header(struct nft_handle *h,
 	if (nftnl_chain_is_set(c, NFTNL_CHAIN_POLICY))
 		pname = policy_name[nftnl_chain_get_u32(c, NFTNL_CHAIN_POLICY)];
 
-	ops->print_header(format, chain_name, pname,
+	h->ops->print_header(format, chain_name, pname,
 			&ctrs, basechain, refs - entries, entries);
 }
 
 int nft_rule_list(struct nft_handle *h, const char *chain, const char *table,
 		  int rulenum, unsigned int format)
 {
-	const struct nft_family_ops *ops;
+	const struct nft_family_ops *ops = h->ops;
 	struct nftnl_chain_list *list;
 	struct nftnl_chain_list_iter *iter;
 	struct nftnl_chain *c;
@@ -2196,8 +2193,6 @@ int nft_rule_list(struct nft_handle *h, const char *chain, const char *table,
 
 	nft_xt_builtin_init(h, table);
 	nft_assert_table_compatible(h, table, chain);
-
-	ops = nft_family_ops_lookup(h->family);
 
 	list = nft_chain_list_get(h, table, chain);
 	if (!list)
@@ -2211,7 +2206,7 @@ int nft_rule_list(struct nft_handle *h, const char *chain, const char *table,
 		if (!rulenum) {
 			if (ops->print_table_header)
 				ops->print_table_header(table);
-			__nft_print_header(h, ops, c, format);
+			__nft_print_header(h, c, format);
 		}
 		__nft_rule_list(h, c, rulenum, format, ops->print_rule);
 		return 1;
@@ -2229,7 +2224,7 @@ int nft_rule_list(struct nft_handle *h, const char *chain, const char *table,
 		if (found)
 			printf("\n");
 
-		__nft_print_header(h, ops, c, format);
+		__nft_print_header(h, c, format);
 		__nft_rule_list(h, c, rulenum, format, ops->print_rule);
 
 		found = true;
