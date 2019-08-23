@@ -11,7 +11,7 @@
 #include <linux/netfilter_ipv6/ip6_tables.h>
 
 #ifdef DEBUG
-#define DEBUGP(x, args...) fprintf(stdout, x, ## args)
+#define DEBUGP(x, args...) fprintf(stderr, x, ## args)
 #else
 #define DEBUGP(x, args...)
 #endif
