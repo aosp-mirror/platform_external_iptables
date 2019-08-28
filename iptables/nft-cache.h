@@ -8,7 +8,8 @@ void nft_build_cache(struct nft_handle *h, struct nftnl_chain *c);
 void nft_rebuild_cache(struct nft_handle *h);
 void nft_release_cache(struct nft_handle *h);
 void flush_chain_cache(struct nft_handle *h, const char *tablename);
-void flush_rule_cache(struct nftnl_chain *c);
+int flush_rule_cache(struct nft_handle *h, const char *table,
+		     struct nftnl_chain *c);
 
 struct nftnl_chain_list *
 nft_chain_list_get(struct nft_handle *h, const char *table, const char *chain);

@@ -384,7 +384,7 @@ static void __nft_flush_cache(struct nft_handle *h)
 	}
 }
 
-static int __flush_rule_cache(struct nftnl_rule *r, void *data)
+static int ____flush_rule_cache(struct nftnl_rule *r, void *data)
 {
 	nftnl_rule_list_del(r);
 	nftnl_rule_free(r);
@@ -392,9 +392,25 @@ static int __flush_rule_cache(struct nftnl_rule *r, void *data)
 	return 0;
 }
 
-void flush_rule_cache(struct nftnl_chain *c)
+static int __flush_rule_cache(struct nftnl_chain *c, void *data)
 {
-	nftnl_rule_foreach(c, __flush_rule_cache, NULL);
+	return nftnl_rule_foreach(c, ____flush_rule_cache, NULL);
+}
+
+int flush_rule_cache(struct nft_handle *h, const char *table,
+		     struct nftnl_chain *c)
+{
+	const struct builtin_table *t;
+
+	if (c)
+		return __flush_rule_cache(c, NULL);
+
+	t = nft_table_builtin_find(h, table);
+	if (!t || !h->cache->table[t->type].chains)
+		return 0;
+
+	return nftnl_chain_list_foreach(h->cache->table[t->type].chains,
+					__flush_rule_cache, NULL);
 }
 
 static int __flush_chain_cache(struct nftnl_chain *c, void *data)

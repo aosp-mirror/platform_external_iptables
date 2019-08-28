@@ -1437,7 +1437,7 @@ __nft_rule_flush(struct nft_handle *h, const char *table,
 	struct obj_update *obj;
 	struct nftnl_rule *r;
 
-	if (verbose)
+	if (verbose && chain)
 		fprintf(stdout, "Flushing chain `%s'\n", chain);
 
 	r = nftnl_rule_alloc();
@@ -1445,7 +1445,8 @@ __nft_rule_flush(struct nft_handle *h, const char *table,
 		return;
 
 	nftnl_rule_set_str(r, NFTNL_RULE_TABLE, table);
-	nftnl_rule_set_str(r, NFTNL_RULE_CHAIN, chain);
+	if (chain)
+		nftnl_rule_set_str(r, NFTNL_RULE_CHAIN, chain);
 
 	obj = batch_rule_add(h, NFT_COMPAT_RULE_FLUSH, r);
 	if (!obj) {
@@ -1459,19 +1460,21 @@ __nft_rule_flush(struct nft_handle *h, const char *table,
 int nft_rule_flush(struct nft_handle *h, const char *chain, const char *table,
 		   bool verbose)
 {
-	int ret = 0;
-	struct nftnl_chain_list *list;
 	struct nftnl_chain_list_iter *iter;
-	struct nftnl_chain *c;
+	struct nftnl_chain_list *list;
+	struct nftnl_chain *c = NULL;
+	int ret = 0;
 
 	nft_xt_builtin_init(h, table);
 
 	nft_fn = nft_rule_flush;
 
-	list = nft_chain_list_get(h, table, chain);
-	if (list == NULL) {
-		ret = 1;
-		goto err;
+	if (chain || verbose) {
+		list = nft_chain_list_get(h, table, chain);
+		if (list == NULL) {
+			ret = 1;
+			goto err;
+		}
 	}
 
 	if (chain) {
@@ -1480,9 +1483,11 @@ int nft_rule_flush(struct nft_handle *h, const char *chain, const char *table,
 			errno = ENOENT;
 			return 0;
 		}
+	}
 
+	if (chain || !verbose) {
 		__nft_rule_flush(h, table, chain, verbose, false);
-		flush_rule_cache(c);
+		flush_rule_cache(h, table, c);
 		return 1;
 	}
 
@@ -1494,11 +1499,10 @@ int nft_rule_flush(struct nft_handle *h, const char *chain, const char *table,
 
 	c = nftnl_chain_list_iter_next(iter);
 	while (c != NULL) {
-		const char *chain_name =
-			nftnl_chain_get_str(c, NFTNL_CHAIN_NAME);
+		chain = nftnl_chain_get_str(c, NFTNL_CHAIN_NAME);
 
-		__nft_rule_flush(h, table, chain_name, verbose, false);
-		flush_rule_cache(c);
+		__nft_rule_flush(h, table, chain, verbose, false);
+		flush_rule_cache(h, table, c);
 		c = nftnl_chain_list_iter_next(iter);
 	}
 	nftnl_chain_list_iter_destroy(iter);
