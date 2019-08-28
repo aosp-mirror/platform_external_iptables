@@ -101,7 +101,7 @@ int mnl_talk(struct nft_handle *h, struct nlmsghdr *nlh,
 	     void *data)
 {
 	int ret;
-	char buf[16536];
+	char buf[32768];
 
 	if (mnl_socket_sendto(h->nl, nlh, nlh->nlmsg_len) < 0)
 		return -1;
