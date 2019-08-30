@@ -3069,9 +3069,13 @@ static void nft_bridge_commit_prepare(struct nft_handle *h)
 
 int nft_commit(struct nft_handle *h)
 {
-	if (h->family == NFPROTO_BRIDGE)
-		nft_bridge_commit_prepare(h);
 	return nft_action(h, NFT_COMPAT_COMMIT);
+}
+
+int nft_bridge_commit(struct nft_handle *h)
+{
+	nft_bridge_commit_prepare(h);
+	return nft_commit(h);
 }
 
 int nft_abort(struct nft_handle *h)

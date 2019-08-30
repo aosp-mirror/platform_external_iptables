@@ -463,7 +463,7 @@ static int ebt_table_flush(struct nft_handle *h, const char *table)
 
 struct nft_xt_restore_cb ebt_restore_cb = {
 	.chain_list	= get_chain_list,
-	.commit		= nft_commit,
+	.commit		= nft_bridge_commit,
 	.table_new	= nft_table_new,
 	.table_flush	= ebt_table_flush,
 	.do_command	= do_commandeb,
