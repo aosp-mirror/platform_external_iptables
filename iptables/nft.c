@@ -662,7 +662,7 @@ static int nft_table_builtin_add(struct nft_handle *h,
 	if (t == NULL)
 		return -1;
 
-	nftnl_table_set(t, NFTNL_TABLE_NAME, (char *)_t->name);
+	nftnl_table_set_str(t, NFTNL_TABLE_NAME, _t->name);
 
 	ret = batch_table_add(h, NFT_COMPAT_TABLE_ADD, t) ? 0 : - 1;
 
@@ -679,12 +679,12 @@ nft_chain_builtin_alloc(const struct builtin_table *table,
 	if (c == NULL)
 		return NULL;
 
-	nftnl_chain_set(c, NFTNL_CHAIN_TABLE, (char *)table->name);
-	nftnl_chain_set(c, NFTNL_CHAIN_NAME, (char *)chain->name);
+	nftnl_chain_set_str(c, NFTNL_CHAIN_TABLE, table->name);
+	nftnl_chain_set_str(c, NFTNL_CHAIN_NAME, chain->name);
 	nftnl_chain_set_u32(c, NFTNL_CHAIN_HOOKNUM, chain->hook);
 	nftnl_chain_set_u32(c, NFTNL_CHAIN_PRIO, chain->prio);
 	nftnl_chain_set_u32(c, NFTNL_CHAIN_POLICY, policy);
-	nftnl_chain_set(c, NFTNL_CHAIN_TYPE, (char *)chain->type);
+	nftnl_chain_set_str(c, NFTNL_CHAIN_TYPE, chain->type);
 
 	return c;
 }
@@ -1250,8 +1250,8 @@ nft_rule_new(struct nft_handle *h, const char *chain, const char *table,
 		return NULL;
 
 	nftnl_rule_set_u32(r, NFTNL_RULE_FAMILY, h->family);
-	nftnl_rule_set(r, NFTNL_RULE_TABLE, (char *)table);
-	nftnl_rule_set(r, NFTNL_RULE_CHAIN, (char *)chain);
+	nftnl_rule_set_str(r, NFTNL_RULE_TABLE, table);
+	nftnl_rule_set_str(r, NFTNL_RULE_CHAIN, chain);
 
 	if (h->ops->add(r, data) < 0)
 		goto err;
@@ -1768,8 +1768,8 @@ __nft_rule_flush(struct nft_handle *h, const char *table,
 	if (r == NULL)
 		return;
 
-	nftnl_rule_set(r, NFTNL_RULE_TABLE, (char *)table);
-	nftnl_rule_set(r, NFTNL_RULE_CHAIN, (char *)chain);
+	nftnl_rule_set_str(r, NFTNL_RULE_TABLE, table);
+	nftnl_rule_set_str(r, NFTNL_RULE_CHAIN, chain);
 
 	obj = batch_rule_add(h, NFT_COMPAT_RULE_FLUSH, r);
 	if (!obj) {
@@ -1850,8 +1850,8 @@ int nft_chain_user_add(struct nft_handle *h, const char *chain, const char *tabl
 	if (c == NULL)
 		return 0;
 
-	nftnl_chain_set(c, NFTNL_CHAIN_TABLE, (char *)table);
-	nftnl_chain_set(c, NFTNL_CHAIN_NAME, (char *)chain);
+	nftnl_chain_set_str(c, NFTNL_CHAIN_TABLE, table);
+	nftnl_chain_set_str(c, NFTNL_CHAIN_NAME, chain);
 	if (h->family == NFPROTO_BRIDGE)
 		nftnl_chain_set_u32(c, NFTNL_CHAIN_POLICY, NF_ACCEPT);
 
@@ -1884,8 +1884,8 @@ int nft_chain_restore(struct nft_handle *h, const char *chain, const char *table
 		if (!c)
 			return -1;
 
-		nftnl_chain_set(c, NFTNL_CHAIN_TABLE, (char *)table);
-		nftnl_chain_set(c, NFTNL_CHAIN_NAME, (char *)chain);
+		nftnl_chain_set_str(c, NFTNL_CHAIN_TABLE, table);
+		nftnl_chain_set_str(c, NFTNL_CHAIN_NAME, chain);
 		created = true;
 	}
 
@@ -2034,8 +2034,8 @@ int nft_chain_user_rename(struct nft_handle *h,const char *chain,
 	if (c == NULL)
 		return 0;
 
-	nftnl_chain_set(c, NFTNL_CHAIN_TABLE, (char *)table);
-	nftnl_chain_set(c, NFTNL_CHAIN_NAME, (char *)newname);
+	nftnl_chain_set_str(c, NFTNL_CHAIN_TABLE, table);
+	nftnl_chain_set_str(c, NFTNL_CHAIN_NAME, newname);
 	nftnl_chain_set_u64(c, NFTNL_CHAIN_HANDLE, handle);
 
 	ret = batch_chain_add(h, NFT_COMPAT_CHAIN_RENAME, c);
