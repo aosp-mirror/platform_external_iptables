@@ -197,7 +197,8 @@ int ebt_get_current_chain(const char *chain)
 	else if (strcmp(chain, "POSTROUTING") == 0)
 		return NF_BR_POST_ROUTING;
 
-	return -1;
+	/* placeholder for user defined chain */
+	return NF_BR_NUMHOOKS;
 }
 
 /*
@@ -1223,7 +1224,7 @@ print_zero:
 	cs.eb.ethproto = htons(cs.eb.ethproto);
 
 	if (command == 'P') {
-		if (selected_chain < 0) {
+		if (selected_chain >= NF_BR_NUMHOOKS) {
 			ret = ebt_set_user_chain_policy(h, *table, chain, policy);
 		} else {
 			if (strcmp(policy, "RETURN") == 0) {
