@@ -314,6 +314,8 @@ def main():
     parser.add_argument('filename', nargs='?',
                         metavar='path/to/file.t',
                         help='Run only this test')
+    parser.add_argument('-H', '--host', action='store_true',
+                        help='Run tests against installed binaries')
     parser.add_argument('-l', '--legacy', action='store_true',
                         help='Test iptables-legacy')
     parser.add_argument('-m', '--missing', action='store_true',
@@ -340,8 +342,10 @@ def main():
         print("You need to be root to run this, sorry")
         return
 
-    os.putenv("XTABLES_LIBDIR", os.path.abspath(EXTENSIONS_PATH))
-    os.putenv("PATH", "%s/iptables:%s" % (os.path.abspath(os.path.curdir), os.getenv("PATH")))
+    if not args.host:
+        os.putenv("XTABLES_LIBDIR", os.path.abspath(EXTENSIONS_PATH))
+        os.putenv("PATH", "%s/iptables:%s" % (os.path.abspath(os.path.curdir),
+                                              os.getenv("PATH")))
 
     test_files = 0
     tests = 0
