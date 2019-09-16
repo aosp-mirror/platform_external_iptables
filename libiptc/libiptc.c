@@ -160,7 +160,7 @@ static struct chain_head *iptcc_alloc_chain_head(const char *name, int hooknum)
 		return NULL;
 	memset(c, 0, sizeof(*c));
 
-	strncpy(c->name, name, TABLE_MAXNAMELEN);
+	strncpy(c->name, name, TABLE_MAXNAMELEN - 1);
 	c->hooknum = hooknum;
 	INIT_LIST_HEAD(&c->rules);
 
@@ -2385,7 +2385,7 @@ int TC_RENAME_CHAIN(const IPT_CHAINLABEL oldname,
 	iptcc_chain_index_delete_chain(c, handle);
 
 	/* Change the name of the chain */
-	strncpy(c->name, newname, sizeof(IPT_CHAINLABEL));
+	strncpy(c->name, newname, sizeof(IPT_CHAINLABEL) - 1);
 
 	/* Insert sorted into to list again */
 	iptc_insert_chain(handle, c);
