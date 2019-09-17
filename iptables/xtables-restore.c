@@ -131,12 +131,11 @@ void xtables_restore_parse(struct nft_handle *h,
 
 			table = strtok(buffer+1, " \t\n");
 			DEBUGP("line %u, table '%s'\n", line, table);
-			if (!table) {
+			if (!table)
 				xtables_error(PARAMETER_PROBLEM,
 					"%s: line %u table name invalid\n",
 					xt_params->program_name, line);
-				exit(1);
-			}
+
 			curtable = nft_table_builtin_find(h, table);
 			if (!curtable)
 				xtables_error(PARAMETER_PROBLEM,
@@ -168,12 +167,10 @@ void xtables_restore_parse(struct nft_handle *h,
 
 			chain = strtok(buffer+1, " \t\n");
 			DEBUGP("line %u, chain '%s'\n", line, chain);
-			if (!chain) {
+			if (!chain)
 				xtables_error(PARAMETER_PROBLEM,
 					   "%s: line %u chain name invalid\n",
 					   xt_params->program_name, line);
-				exit(1);
-			}
 
 			if (strlen(chain) >= XT_EXTENSION_MAXNAMELEN)
 				xtables_error(PARAMETER_PROBLEM,
@@ -183,12 +180,10 @@ void xtables_restore_parse(struct nft_handle *h,
 
 			policy = strtok(NULL, " \t\n");
 			DEBUGP("line %u, policy '%s'\n", line, policy);
-			if (!policy) {
+			if (!policy)
 				xtables_error(PARAMETER_PROBLEM,
 					   "%s: line %u policy invalid\n",
 					   xt_params->program_name, line);
-				exit(1);
-			}
 
 			if (nft_chain_builtin_find(curtable, chain)) {
 				if (counters) {

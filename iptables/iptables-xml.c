@@ -208,12 +208,11 @@ needChain(char *chain)
 static void
 saveChain(char *chain, char *policy, struct xt_counters *ctr)
 {
-	if (nextChain >= maxChains) {
+	if (nextChain >= maxChains)
 		xtables_error(PARAMETER_PROBLEM,
 			   "%s: line %u chain name invalid\n",
 			   prog_name, line);
-		exit(1);
-	};
+
 	chains[nextChain].chain = strdup(chain);
 	chains[nextChain].policy = strdup(policy);
 	chains[nextChain].count = *ctr;
@@ -606,12 +605,11 @@ iptables_xml_main(int argc, char *argv[])
 
 			table = strtok(buffer + 1, " \t\n");
 			DEBUGP("line %u, table '%s'\n", line, table);
-			if (!table) {
+			if (!table)
 				xtables_error(PARAMETER_PROBLEM,
 					   "%s: line %u table name invalid\n",
 					   prog_name, line);
-				exit(1);
-			}
+
 			openTable(table);
 
 			ret = 1;
@@ -623,23 +621,19 @@ iptables_xml_main(int argc, char *argv[])
 
 			chain = strtok(buffer + 1, " \t\n");
 			DEBUGP("line %u, chain '%s'\n", line, chain);
-			if (!chain) {
+			if (!chain)
 				xtables_error(PARAMETER_PROBLEM,
 					   "%s: line %u chain name invalid\n",
 					   prog_name, line);
-				exit(1);
-			}
 
 			DEBUGP("Creating new chain '%s'\n", chain);
 
 			policy = strtok(NULL, " \t\n");
 			DEBUGP("line %u, policy '%s'\n", line, policy);
-			if (!policy) {
+			if (!policy)
 				xtables_error(PARAMETER_PROBLEM,
 					   "%s: line %u policy invalid\n",
 					   prog_name, line);
-				exit(1);
-			}
 
 			ctrs = strtok(NULL, " \t\n");
 			parse_counters(ctrs, &count);
@@ -735,13 +729,11 @@ iptables_xml_main(int argc, char *argv[])
 					     param_buffer[1] != '-' &&
 					     strchr(param_buffer, 't')) ||
 					    (!strncmp(param_buffer, "--t", 3) &&
-					     !strncmp(param_buffer, "--table", strlen(param_buffer)))) {
+					     !strncmp(param_buffer, "--table", strlen(param_buffer))))
 						xtables_error(PARAMETER_PROBLEM,
 							   "Line %u seems to have a "
 							   "-t table option.\n",
 							   line);
-						exit(1);
-					}
 
 					add_argv(param_buffer, quoted);
 					if (newargc >= 2

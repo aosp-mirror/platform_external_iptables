@@ -2517,10 +2517,8 @@ int nft_rule_list(struct nft_handle *h, const char *chain, const char *table,
 
 	ops = nft_family_ops_lookup(h->family);
 
-	if (!nft_is_table_compatible(h, table)) {
+	if (!nft_is_table_compatible(h, table))
 		xtables_error(OTHER_PROBLEM, "table `%s' is incompatible, use 'nft' tool.\n", table);
-		return 0;
-	}
 
 	list = nft_chain_list_get(h, table);
 	if (!list)
@@ -2620,10 +2618,8 @@ int nft_rule_list_save(struct nft_handle *h, const char *chain,
 
 	nft_xt_builtin_init(h, table);
 
-	if (!nft_is_table_compatible(h, table)) {
+	if (!nft_is_table_compatible(h, table))
 		xtables_error(OTHER_PROBLEM, "table `%s' is incompatible, use 'nft' tool.\n", table);
-		return 0;
-	}
 
 	list = nft_chain_list_get(h, table);
 	if (!list)

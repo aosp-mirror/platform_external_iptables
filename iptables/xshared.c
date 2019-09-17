@@ -181,7 +181,6 @@ int command_default(struct iptables_command_state *cs,
 		xtables_error(PARAMETER_PROBLEM, "unknown option "
 			      "\"%s\"", cs->argv[optind-1]);
 	xtables_error(PARAMETER_PROBLEM, "Unknown arg \"%s\"", optarg);
-	return 0;
 }
 
 static mainfunc_t subcmd_get(const char *cmd, const struct subcommand *cb)

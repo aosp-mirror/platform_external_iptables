@@ -82,11 +82,10 @@ create_handle(struct iptables_restore_cb *cb, const char *tablename)
 		handle = cb->ops->init(tablename);
 	}
 
-	if (!handle) {
+	if (!handle)
 		xtables_error(PARAMETER_PROBLEM, "%s: unable to initialize "
 			"table '%s'\n", xt_params->program_name, tablename);
-		exit(1);
-	}
+
 	return handle;
 }
 
@@ -207,12 +206,11 @@ ip46tables_restore_main(struct iptables_restore_cb *cb, int argc, char *argv[])
 
 			table = strtok(buffer+1, " \t\n");
 			DEBUGP("line %u, table '%s'\n", line, table);
-			if (!table) {
+			if (!table)
 				xtables_error(PARAMETER_PROBLEM,
 					"%s: line %u table name invalid\n",
 					xt_params->program_name, line);
-				exit(1);
-			}
+
 			strncpy(curtable, table, XT_TABLE_MAXNAMELEN);
 			curtable[XT_TABLE_MAXNAMELEN] = '\0';
 
@@ -248,12 +246,10 @@ ip46tables_restore_main(struct iptables_restore_cb *cb, int argc, char *argv[])
 
 			chain = strtok(buffer+1, " \t\n");
 			DEBUGP("line %u, chain '%s'\n", line, chain);
-			if (!chain) {
+			if (!chain)
 				xtables_error(PARAMETER_PROBLEM,
 					   "%s: line %u chain name invalid\n",
 					   xt_params->program_name, line);
-				exit(1);
-			}
 
 			if (strlen(chain) >= XT_EXTENSION_MAXNAMELEN)
 				xtables_error(PARAMETER_PROBLEM,
@@ -281,12 +277,10 @@ ip46tables_restore_main(struct iptables_restore_cb *cb, int argc, char *argv[])
 
 			policy = strtok(NULL, " \t\n");
 			DEBUGP("line %u, policy '%s'\n", line, policy);
-			if (!policy) {
+			if (!policy)
 				xtables_error(PARAMETER_PROBLEM,
 					   "%s: line %u policy invalid\n",
 					   xt_params->program_name, line);
-				exit(1);
-			}
 
 			if (strcmp(policy, "-") != 0) {
 				struct xt_counters count = {};
