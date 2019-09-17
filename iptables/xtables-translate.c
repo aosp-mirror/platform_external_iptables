@@ -535,7 +535,7 @@ static int xtables_restore_xlate_main(int family, const char *progname,
 
 	printf("# Translated by %s v%s on %s",
 	       argv[0], PACKAGE_VERSION, ctime(&now));
-	xtables_restore_parse(&h, &p, &cb_xlate, argc, argv);
+	xtables_restore_parse(&h, &p, &cb_xlate);
 	printf("# Completed on %s", ctime(&now));
 
 	nft_fini(&h);
