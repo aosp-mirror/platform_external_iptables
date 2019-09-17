@@ -151,6 +151,7 @@ extern int xtables_lock_or_exit(int wait, struct timeval *tv);
 int parse_wait_time(int argc, char *argv[]);
 void parse_wait_interval(int argc, char *argv[], struct timeval *wait_interval);
 int parse_counters(const char *string, struct xt_counters *ctr);
+bool tokenize_rule_counters(char **bufferp, char **pcnt, char **bcnt, int line);
 bool xs_has_arg(int argc, char *argv[]);
 
 extern const struct xtables_afinfo *afinfo;

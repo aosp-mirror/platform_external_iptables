@@ -313,44 +313,17 @@ ip46tables_restore_main(struct iptables_restore_cb *cb, int argc, char *argv[])
 			int a;
 			char *pcnt = NULL;
 			char *bcnt = NULL;
-			char *parsestart;
-
-			if (buffer[0] == '[') {
-				/* we have counters in our input */
-				char *ptr = strchr(buffer, ']');
-
-				if (!ptr)
-					xtables_error(PARAMETER_PROBLEM,
-						   "Bad line %u: need ]\n",
-						   line);
-
-				pcnt = strtok(buffer+1, ":");
-				if (!pcnt)
-					xtables_error(PARAMETER_PROBLEM,
-						   "Bad line %u: need :\n",
-						   line);
-
-				bcnt = strtok(NULL, "]");
-				if (!bcnt)
-					xtables_error(PARAMETER_PROBLEM,
-						   "Bad line %u: need ]\n",
-						   line);
-
-				/* start command parsing after counter */
-				parsestart = ptr + 1;
-			} else {
-				/* start command parsing at start of line */
-				parsestart = buffer;
-			}
+			char *parsestart = buffer;
 
 			add_argv(argv[0], 0);
 			add_argv("-t", 0);
 			add_argv(curtable, 0);
 
+			tokenize_rule_counters(&parsestart, &pcnt, &bcnt, line);
 			if (counters && pcnt && bcnt) {
 				add_argv("--set-counters", 0);
-				add_argv((char *) pcnt, 0);
-				add_argv((char *) bcnt, 0);
+				add_argv(pcnt, 0);
+				add_argv(bcnt, 0);
 			}
 
 			add_param_to_argv(parsestart, line);

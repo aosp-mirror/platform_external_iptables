@@ -644,7 +644,7 @@ iptables_xml_main(int argc, char *argv[])
 			unsigned int a;
 			char *pcnt = NULL;
 			char *bcnt = NULL;
-			char *parsestart;
+			char *parsestart = buffer;
 			char *chain = NULL;
 
 			/* the parser */
@@ -652,34 +652,7 @@ iptables_xml_main(int argc, char *argv[])
 			int quote_open, quoted;
 			char param_buffer[1024];
 
-			if (buffer[0] == '[') {
-				/* we have counters in our input */
-				char *ptr = strchr(buffer, ']');
-
-				if (!ptr)
-					xtables_error(PARAMETER_PROBLEM,
-						   "Bad line %u: need ]\n",
-						   line);
-
-				pcnt = strtok(buffer + 1, ":");
-				if (!pcnt)
-					xtables_error(PARAMETER_PROBLEM,
-						   "Bad line %u: need :\n",
-						   line);
-
-				bcnt = strtok(NULL, "]");
-				if (!bcnt)
-					xtables_error(PARAMETER_PROBLEM,
-						   "Bad line %u: need ]\n",
-						   line);
-
-				/* start command parsing after counter */
-				parsestart = ptr + 1;
-			} else {
-				/* start command parsing at start of line */
-				parsestart = buffer;
-			}
-
+			tokenize_rule_counters(&parsestart, &pcnt, &bcnt, line);
 
 			/* This is a 'real' parser crafted in artist mode
 			 * not hacker mode. If the author can live with that

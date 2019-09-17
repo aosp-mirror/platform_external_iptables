@@ -373,6 +373,43 @@ int parse_counters(const char *string, struct xt_counters *ctr)
 	return ret == 2;
 }
 
+/* Tokenize counters argument of typical iptables-restore format rule.
+ *
+ * If *bufferp contains counters, update *pcntp and *bcntp to point at them,
+ * change bytes after counters in *bufferp to nul-bytes, update *bufferp to
+ * point to after the counters and return true.
+ * If *bufferp does not contain counters, return false.
+ * If syntax is wrong in *bufferp, call xtables_error() and hence exit().
+ * */
+bool tokenize_rule_counters(char **bufferp, char **pcntp, char **bcntp, int line)
+{
+	char *ptr, *buffer = *bufferp, *pcnt, *bcnt;
+
+	if (buffer[0] != '[')
+		return false;
+
+	/* we have counters in our input */
+
+	ptr = strchr(buffer, ']');
+	if (!ptr)
+		xtables_error(PARAMETER_PROBLEM, "Bad line %u: need ]\n", line);
+
+	pcnt = strtok(buffer+1, ":");
+	if (!pcnt)
+		xtables_error(PARAMETER_PROBLEM, "Bad line %u: need :\n", line);
+
+	bcnt = strtok(NULL, "]");
+	if (!bcnt)
+		xtables_error(PARAMETER_PROBLEM, "Bad line %u: need ]\n", line);
+
+	*pcntp = pcnt;
+	*bcntp = bcnt;
+	/* start command parsing after counter */
+	*bufferp = ptr + 1;
+
+	return true;
+}
+
 inline bool xs_has_arg(int argc, char *argv[])
 {
 	return optind < argc &&
