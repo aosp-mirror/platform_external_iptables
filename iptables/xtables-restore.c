@@ -74,10 +74,186 @@ struct nft_xt_restore_state {
 	bool in_table;
 };
 
+static void xtables_restore_parse_line(struct nft_handle *h,
+				       const struct nft_xt_restore_parse *p,
+				       struct nft_xt_restore_state *state,
+				       char *buffer)
+{
+	const struct nft_xt_restore_cb *cb = p->cb;
+	int ret = 0;
+
+	if (buffer[0] == '\n')
+		return;
+	else if (buffer[0] == '#') {
+		if (verbose)
+			fputs(buffer, stdout);
+		return;
+	} else if ((strcmp(buffer, "COMMIT\n") == 0) && state->in_table) {
+		if (!p->testing) {
+			/* Commit per table, although we support
+			 * global commit at once, stick by now to
+			 * the existing behaviour.
+			 */
+			DEBUGP("Calling commit\n");
+			if (cb->commit)
+				ret = cb->commit(h);
+		} else {
+			DEBUGP("Not calling commit, testing\n");
+			if (cb->abort)
+				ret = cb->abort(h);
+		}
+		state->in_table = false;
+
+	} else if ((buffer[0] == '*') && (!state->in_table || !p->commit)) {
+		/* New table */
+		char *table;
+
+		table = strtok(buffer+1, " \t\n");
+		DEBUGP("line %u, table '%s'\n", line, table);
+		if (!table)
+			xtables_error(PARAMETER_PROBLEM,
+				"%s: line %u table name invalid\n",
+				xt_params->program_name, line);
+
+		state->curtable = nft_table_builtin_find(h, table);
+		if (!state->curtable)
+			xtables_error(PARAMETER_PROBLEM,
+				"%s: line %u table name '%s' invalid\n",
+				xt_params->program_name, line, table);
+
+		if (p->tablename && (strcmp(p->tablename, table) != 0))
+			return;
+
+		if (h->noflush == 0) {
+			DEBUGP("Cleaning all chains of table '%s'\n",
+				table);
+			if (cb->table_flush)
+				cb->table_flush(h, table);
+		}
+
+		ret = 1;
+		state->in_table = true;
+
+		if (cb->table_new)
+			cb->table_new(h, table);
+
+	} else if ((buffer[0] == ':') && state->in_table) {
+		/* New chain. */
+		char *policy, *chain = NULL;
+		struct xt_counters count = {};
+
+		chain = strtok(buffer+1, " \t\n");
+		DEBUGP("line %u, chain '%s'\n", line, chain);
+		if (!chain)
+			xtables_error(PARAMETER_PROBLEM,
+				   "%s: line %u chain name invalid\n",
+				   xt_params->program_name, line);
+
+		if (strlen(chain) >= XT_EXTENSION_MAXNAMELEN)
+			xtables_error(PARAMETER_PROBLEM,
+				   "Invalid chain name `%s' "
+				   "(%u chars max)",
+				   chain, XT_EXTENSION_MAXNAMELEN - 1);
+
+		policy = strtok(NULL, " \t\n");
+		DEBUGP("line %u, policy '%s'\n", line, policy);
+		if (!policy)
+			xtables_error(PARAMETER_PROBLEM,
+				   "%s: line %u policy invalid\n",
+				   xt_params->program_name, line);
+
+		if (nft_chain_builtin_find(state->curtable, chain)) {
+			if (counters) {
+				char *ctrs;
+				ctrs = strtok(NULL, " \t\n");
+
+				if (!ctrs || !parse_counters(ctrs, &count))
+					xtables_error(PARAMETER_PROBLEM,
+						   "invalid policy counters "
+						   "for chain '%s'\n", chain);
+
+			}
+			if (cb->chain_set &&
+			    cb->chain_set(h, state->curtable->name,
+					  chain, policy, &count) < 0) {
+				xtables_error(OTHER_PROBLEM,
+					      "Can't set policy `%s'"
+					      " on `%s' line %u: %s\n",
+					      policy, chain, line,
+					      strerror(errno));
+			}
+			DEBUGP("Setting policy of chain %s to %s\n",
+			       chain, policy);
+		} else if (cb->chain_restore(h, chain, state->curtable->name) < 0 &&
+			   errno != EEXIST) {
+			xtables_error(PARAMETER_PROBLEM,
+				      "cannot create chain "
+				      "'%s' (%s)\n", chain,
+				      strerror(errno));
+		} else if (h->family == NFPROTO_BRIDGE &&
+			   !ebt_set_user_chain_policy(h, state->curtable->name,
+						      chain, policy)) {
+			xtables_error(OTHER_PROBLEM,
+				      "Can't set policy `%s'"
+				      " on `%s' line %u: %s\n",
+				      policy, chain, line,
+				      strerror(errno));
+		}
+		ret = 1;
+	} else if (state->in_table) {
+		char *pcnt = NULL;
+		char *bcnt = NULL;
+		char *parsestart = buffer;
+
+		add_argv(&state->av_store, xt_params->program_name, 0);
+		add_argv(&state->av_store, "-t", 0);
+		add_argv(&state->av_store, state->curtable->name, 0);
+
+		tokenize_rule_counters(&parsestart, &pcnt, &bcnt, line);
+		if (counters && pcnt && bcnt) {
+			add_argv(&state->av_store, "--set-counters", 0);
+			add_argv(&state->av_store, pcnt, 0);
+			add_argv(&state->av_store, bcnt, 0);
+		}
+
+		add_param_to_argv(&state->av_store, parsestart, line);
+
+		DEBUGP("calling do_command4(%u, argv, &%s, handle):\n",
+		       state->av_store.argc, state->curtable->name);
+		debug_print_argv(&state->av_store);
+
+		ret = cb->do_command(h, state->av_store.argc,
+				     state->av_store.argv,
+				     &state->av_store.argv[2], true);
+		if (ret < 0) {
+			if (cb->abort)
+				ret = cb->abort(h);
+			else
+				ret = 0;
+
+			if (ret < 0) {
+				fprintf(stderr, "failed to abort "
+						"commit operation\n");
+			}
+			exit(1);
+		}
+
+		free_argv(&state->av_store);
+		fflush(stdout);
+	}
+	if (p->tablename && state->curtable &&
+	    (strcmp(p->tablename, state->curtable->name) != 0))
+		return;
+	if (!ret) {
+		fprintf(stderr, "%s: line %u failed\n",
+				xt_params->program_name, line);
+		exit(1);
+	}
+}
+
 void xtables_restore_parse(struct nft_handle *h,
 			   const struct nft_xt_restore_parse *p)
 {
-	const struct nft_xt_restore_cb *cb = p->cb;
 	struct nft_xt_restore_state state = {};
 	char buffer[10240];
 
@@ -90,183 +266,14 @@ void xtables_restore_parse(struct nft_handle *h,
 
 	/* Grab standard input. */
 	while (fgets(buffer, sizeof(buffer), p->in)) {
-		int ret = 0;
-
-		line++;
-		h->error.lineno = line;
-
-		if (buffer[0] == '\n')
-			continue;
-		else if (buffer[0] == '#') {
-			if (verbose)
-				fputs(buffer, stdout);
-			continue;
-		} else if ((strcmp(buffer, "COMMIT\n") == 0) && state.in_table) {
-			if (!p->testing) {
-				/* Commit per table, although we support
-				 * global commit at once, stick by now to
-				 * the existing behaviour.
-				 */
-				DEBUGP("Calling commit\n");
-				if (cb->commit)
-					ret = cb->commit(h);
-			} else {
-				DEBUGP("Not calling commit, testing\n");
-				if (cb->abort)
-					ret = cb->abort(h);
-			}
-			state.in_table = false;
-
-		} else if ((buffer[0] == '*') && (!state.in_table || !p->commit)) {
-			/* New table */
-			char *table;
-
-			table = strtok(buffer+1, " \t\n");
-			DEBUGP("line %u, table '%s'\n", line, table);
-			if (!table)
-				xtables_error(PARAMETER_PROBLEM,
-					"%s: line %u table name invalid\n",
-					xt_params->program_name, line);
-
-			state.curtable = nft_table_builtin_find(h, table);
-			if (!state.curtable)
-				xtables_error(PARAMETER_PROBLEM,
-					"%s: line %u table name '%s' invalid\n",
-					xt_params->program_name, line, table);
-
-			if (p->tablename && (strcmp(p->tablename, table) != 0))
-				continue;
-
-			if (h->noflush == 0) {
-				DEBUGP("Cleaning all chains of table '%s'\n",
-					table);
-				if (cb->table_flush)
-					cb->table_flush(h, table);
-			}
-
-			ret = 1;
-			state.in_table = true;
-
-			if (cb->table_new)
-				cb->table_new(h, table);
-
-		} else if ((buffer[0] == ':') && state.in_table) {
-			/* New chain. */
-			char *policy, *chain = NULL;
-			struct xt_counters count = {};
-
-			chain = strtok(buffer+1, " \t\n");
-			DEBUGP("line %u, chain '%s'\n", line, chain);
-			if (!chain)
-				xtables_error(PARAMETER_PROBLEM,
-					   "%s: line %u chain name invalid\n",
-					   xt_params->program_name, line);
-
-			if (strlen(chain) >= XT_EXTENSION_MAXNAMELEN)
-				xtables_error(PARAMETER_PROBLEM,
-					   "Invalid chain name `%s' "
-					   "(%u chars max)",
-					   chain, XT_EXTENSION_MAXNAMELEN - 1);
-
-			policy = strtok(NULL, " \t\n");
-			DEBUGP("line %u, policy '%s'\n", line, policy);
-			if (!policy)
-				xtables_error(PARAMETER_PROBLEM,
-					   "%s: line %u policy invalid\n",
-					   xt_params->program_name, line);
-
-			if (nft_chain_builtin_find(state.curtable, chain)) {
-				if (counters) {
-					char *ctrs;
-					ctrs = strtok(NULL, " \t\n");
-
-					if (!ctrs || !parse_counters(ctrs, &count))
-						xtables_error(PARAMETER_PROBLEM,
-							   "invalid policy counters "
-							   "for chain '%s'\n", chain);
-
-				}
-				if (cb->chain_set &&
-				    cb->chain_set(h, state.curtable->name,
-					          chain, policy, &count) < 0) {
-					xtables_error(OTHER_PROBLEM,
-						      "Can't set policy `%s'"
-						      " on `%s' line %u: %s\n",
-						      policy, chain, line,
-						      strerror(errno));
-				}
-				DEBUGP("Setting policy of chain %s to %s\n",
-				       chain, policy);
-			} else if (cb->chain_restore(h, chain, state.curtable->name) < 0 &&
-				   errno != EEXIST) {
-				xtables_error(PARAMETER_PROBLEM,
-					      "cannot create chain "
-					      "'%s' (%s)\n", chain,
-					      strerror(errno));
-			} else if (h->family == NFPROTO_BRIDGE &&
-				   !ebt_set_user_chain_policy(h, state.curtable->name,
-							      chain, policy)) {
-				xtables_error(OTHER_PROBLEM,
-					      "Can't set policy `%s'"
-					      " on `%s' line %u: %s\n",
-					      policy, chain, line,
-					      strerror(errno));
-			}
-			ret = 1;
-		} else if (state.in_table) {
-			char *pcnt = NULL;
-			char *bcnt = NULL;
-			char *parsestart = buffer;
-
-			add_argv(&state.av_store, xt_params->program_name, 0);
-			add_argv(&state.av_store, "-t", 0);
-			add_argv(&state.av_store, state.curtable->name, 0);
-
-			tokenize_rule_counters(&parsestart, &pcnt, &bcnt, line);
-			if (counters && pcnt && bcnt) {
-				add_argv(&state.av_store, "--set-counters", 0);
-				add_argv(&state.av_store, pcnt, 0);
-				add_argv(&state.av_store, bcnt, 0);
-			}
-
-			add_param_to_argv(&state.av_store, parsestart, line);
-
-			DEBUGP("calling do_command4(%u, argv, &%s, handle):\n",
-			       state.av_store.argc, state.curtable->name);
-			debug_print_argv(&state.av_store);
-
-			ret = cb->do_command(h, state.av_store.argc, state.av_store.argv,
-					    &state.av_store.argv[2], true);
-			if (ret < 0) {
-				if (cb->abort)
-					ret = cb->abort(h);
-				else
-					ret = 0;
-
-				if (ret < 0) {
-					fprintf(stderr, "failed to abort "
-							"commit operation\n");
-				}
-				exit(1);
-			}
-
-			free_argv(&state.av_store);
-			fflush(stdout);
-		}
-		if (p->tablename && state.curtable &&
-		    (strcmp(p->tablename, state.curtable->name) != 0))
-			continue;
-		if (!ret) {
-			fprintf(stderr, "%s: line %u failed\n",
-					xt_params->program_name, line);
-			exit(1);
-		}
+		h->error.lineno = ++line;
+		xtables_restore_parse_line(h, p, &state, buffer);
 	}
 	if (state.in_table && p->commit) {
 		fprintf(stderr, "%s: COMMIT expected at line %u\n",
 				xt_params->program_name, line + 1);
 		exit(1);
-	} else if (state.in_table && cb->commit && !cb->commit(h)) {
+	} else if (state.in_table && p->cb->commit && !p->cb->commit(h)) {
 		xtables_error(OTHER_PROBLEM, "%s: final implicit COMMIT failed",
 			      xt_params->program_name);
 	}
