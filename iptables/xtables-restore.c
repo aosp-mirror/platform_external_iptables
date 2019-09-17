@@ -248,22 +248,97 @@ static void xtables_restore_parse_line(struct nft_handle *h,
 	}
 }
 
+/* Return true if given iptables-restore line will require a full cache.
+ * Typically these are commands referring to an existing rule
+ * (either by number or content) or commands listing the ruleset. */
+static bool cmd_needs_full_cache(char *cmd)
+{
+	char c, chain[32];
+	int rulenum, mcount;
+
+	mcount = sscanf(cmd, "-%c %31s %d", &c, chain, &rulenum);
+
+	if (mcount == 3)
+		return true;
+	if (mcount < 1)
+		return false;
+
+	switch (c) {
+	case 'D':
+	case 'C':
+	case 'S':
+	case 'L':
+		return true;
+	}
+
+	return false;
+}
+
+#define PREBUFSIZ	65536
+
 void xtables_restore_parse(struct nft_handle *h,
 			   const struct nft_xt_restore_parse *p)
 {
 	struct nft_xt_restore_state state = {};
-	char buffer[10240];
+	char preload_buffer[PREBUFSIZ] = {}, buffer[10240], *ptr;
+
+	if (!h->noflush) {
+		nft_fake_cache(h);
+	} else {
+		ssize_t pblen = sizeof(preload_buffer);
+		bool do_cache = false;
+
+		ptr = preload_buffer;
+		while (fgets(buffer, sizeof(buffer), p->in)) {
+			size_t blen = strlen(buffer);
+
+			/* drop trailing newline; xtables_restore_parse_line()
+			 * uses strtok() which replaces them by nul-characters,
+			 * causing unpredictable string delimiting in
+			 * preload_buffer */
+			if (buffer[blen - 1] == '\n')
+				buffer[blen - 1] = '\0';
+			else
+				blen++;
+
+			pblen -= blen;
+			if (pblen <= 0) {
+				/* buffer exhausted */
+				do_cache = true;
+				break;
+			}
+
+			if (cmd_needs_full_cache(buffer)) {
+				do_cache = true;
+				break;
+			}
+
+			/* copy string including terminating nul-char */
+			memcpy(ptr, buffer, blen);
+			ptr += blen;
+			buffer[0] = '\0';
+		}
+
+		if (do_cache)
+			nft_build_cache(h, NULL);
+	}
 
 	line = 0;
-
-	if (!h->noflush)
-		nft_fake_cache(h);
-	else
-		nft_build_cache(h, NULL);
-
-	/* Grab standard input. */
+	ptr = preload_buffer;
+	while (*ptr) {
+		h->error.lineno = ++line;
+		DEBUGP("%s: buffered line %d: '%s'\n", __func__, line, ptr);
+		xtables_restore_parse_line(h, p, &state, ptr);
+		ptr += strlen(ptr) + 1;
+	}
+	if (*buffer) {
+		h->error.lineno = ++line;
+		DEBUGP("%s: overrun line %d: '%s'\n", __func__, line, buffer);
+		xtables_restore_parse_line(h, p, &state, buffer);
+	}
 	while (fgets(buffer, sizeof(buffer), p->in)) {
 		h->error.lineno = ++line;
+		DEBUGP("%s: input line %d: '%s'\n", __func__, line, buffer);
 		xtables_restore_parse_line(h, p, &state, buffer);
 	}
 	if (state.in_table && p->commit) {
