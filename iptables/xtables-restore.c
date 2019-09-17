@@ -125,8 +125,7 @@ static void xtables_restore_parse_line(struct nft_handle *h,
 			return;
 
 		if (h->noflush == 0) {
-			DEBUGP("Cleaning all chains of table '%s'\n",
-				table);
+			DEBUGP("Cleaning all chains of table '%s'\n", table);
 			if (cb->table_flush)
 				cb->table_flush(h, table);
 		}
@@ -151,8 +150,7 @@ static void xtables_restore_parse_line(struct nft_handle *h,
 
 		if (strlen(chain) >= XT_EXTENSION_MAXNAMELEN)
 			xtables_error(PARAMETER_PROBLEM,
-				   "Invalid chain name `%s' "
-				   "(%u chars max)",
+				   "Invalid chain name `%s' (%u chars max)",
 				   chain, XT_EXTENSION_MAXNAMELEN - 1);
 
 		policy = strtok(NULL, " \t\n");
@@ -169,16 +167,15 @@ static void xtables_restore_parse_line(struct nft_handle *h,
 
 				if (!ctrs || !parse_counters(ctrs, &count))
 					xtables_error(PARAMETER_PROBLEM,
-						   "invalid policy counters "
-						   "for chain '%s'\n", chain);
+						   "invalid policy counters for chain '%s'\n",
+						   chain);
 
 			}
 			if (cb->chain_set &&
 			    cb->chain_set(h, state->curtable->name,
 					  chain, policy, &count) < 0) {
 				xtables_error(OTHER_PROBLEM,
-					      "Can't set policy `%s'"
-					      " on `%s' line %u: %s\n",
+					      "Can't set policy `%s' on `%s' line %u: %s\n",
 					      policy, chain, line,
 					      strerror(errno));
 			}
@@ -187,15 +184,13 @@ static void xtables_restore_parse_line(struct nft_handle *h,
 		} else if (cb->chain_restore(h, chain, state->curtable->name) < 0 &&
 			   errno != EEXIST) {
 			xtables_error(PARAMETER_PROBLEM,
-				      "cannot create chain "
-				      "'%s' (%s)\n", chain,
-				      strerror(errno));
+				      "cannot create chain '%s' (%s)\n",
+				      chain, strerror(errno));
 		} else if (h->family == NFPROTO_BRIDGE &&
 			   !ebt_set_user_chain_policy(h, state->curtable->name,
 						      chain, policy)) {
 			xtables_error(OTHER_PROBLEM,
-				      "Can't set policy `%s'"
-				      " on `%s' line %u: %s\n",
+				      "Can't set policy `%s' on `%s' line %u: %s\n",
 				      policy, chain, line,
 				      strerror(errno));
 		}
@@ -232,8 +227,8 @@ static void xtables_restore_parse_line(struct nft_handle *h,
 				ret = 0;
 
 			if (ret < 0) {
-				fprintf(stderr, "failed to abort "
-						"commit operation\n");
+				fprintf(stderr,
+					"failed to abort commit operation\n");
 			}
 			exit(1);
 		}
