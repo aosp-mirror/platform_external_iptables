@@ -530,6 +530,10 @@ void add_param_to_argv(struct argv_store *store, char *parsestart, int line)
 		param.len = 0;
 		quoted = 0;
 	}
+	if (param.len) {
+		param.buffer[param.len] = '\0';
+		add_argv(store, param.buffer, 0);
+	}
 }
 
 #ifdef DEBUG

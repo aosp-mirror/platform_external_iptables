@@ -88,7 +88,9 @@ static void xtables_restore_parse_line(struct nft_handle *h,
 		if (verbose)
 			fputs(buffer, stdout);
 		return;
-	} else if ((strcmp(buffer, "COMMIT\n") == 0) && state->in_table) {
+	} else if (state->in_table &&
+		   (strncmp(buffer, "COMMIT", 6) == 0) &&
+		   (buffer[6] == '\0' || buffer[6] == '\n')) {
 		if (!p->testing) {
 			/* Commit per table, although we support
 			 * global commit at once, stick by now to
