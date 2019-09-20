@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# when restoring a ruleset, *tables-restore prefixes each rule with
+# '-t <tablename>' so standard rule parsing routines may be used. This means
+# that it has to detect and reject rules which already contain a table option.
+
+$XT_MULTI iptables-restore <<EOF
+*filter
+-t nat -A FORWARD -j ACCEPT
+COMMIT
+EOF
+
+[[ $? != 0 ]] || exit 1
