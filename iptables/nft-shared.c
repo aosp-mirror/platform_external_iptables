@@ -69,7 +69,7 @@ void add_payload(struct nftnl_rule *r, int offset, int len, uint32_t base)
 }
 
 /* bitwise operation is = sreg & mask ^ xor */
-void add_bitwise_u16(struct nftnl_rule *r, int mask, int xor)
+void add_bitwise_u16(struct nftnl_rule *r, uint16_t mask, uint16_t xor)
 {
 	struct nftnl_expr *expr;
 
