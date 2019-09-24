@@ -2046,7 +2046,8 @@ int nft_chain_user_rename(struct nft_handle *h,const char *chain,
 
 static struct nftnl_table_list *nftnl_table_list_get(struct nft_handle *h)
 {
-	nft_build_cache(h);
+	if (!h->cache->tables)
+		fetch_table_cache(h);
 
 	return h->cache->tables;
 }
