@@ -96,6 +96,11 @@ void xtables_restore_parse(struct nft_handle *h,
 
 	line = 0;
 
+	if (!h->noflush)
+		nft_fake_cache(h);
+	else
+		nft_build_cache(h);
+
 	/* Grab standard input. */
 	while (fgets(buffer, sizeof(buffer), p->in)) {
 		int ret = 0;
@@ -144,8 +149,6 @@ void xtables_restore_parse(struct nft_handle *h,
 
 			if (p->tablename && (strcmp(p->tablename, table) != 0))
 				continue;
-
-			nft_build_cache(h);
 
 			if (h->noflush == 0) {
 				DEBUGP("Cleaning all chains of table '%s'\n",

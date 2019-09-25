@@ -1611,6 +1611,23 @@ retry:
 	h->nft_genid = genid_start;
 }
 
+void nft_fake_cache(struct nft_handle *h)
+{
+	int i;
+
+	fetch_table_cache(h);
+	for (i = 0; i < NFT_TABLE_MAX; i++) {
+		enum nft_table_type type = h->tables[i].type;
+
+		if (!h->tables[i].name)
+			continue;
+
+		h->cache->table[type].chains = nftnl_chain_list_alloc();
+	}
+	h->have_cache = true;
+	mnl_genid_get(h, &h->nft_genid);
+}
+
 void nft_build_cache(struct nft_handle *h)
 {
 	if (!h->have_cache)
