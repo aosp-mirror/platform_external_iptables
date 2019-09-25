@@ -2192,11 +2192,9 @@ int nft_rule_list(struct nft_handle *h, const char *chain, const char *table,
 	bool found = false;
 
 	nft_xt_builtin_init(h, table);
+	nft_assert_table_compatible(h, table, chain);
 
 	ops = nft_family_ops_lookup(h->family);
-
-	if (!nft_is_table_compatible(h, table))
-		xtables_error(OTHER_PROBLEM, "table `%s' is incompatible, use 'nft' tool.\n", table);
 
 	list = nft_chain_list_get(h, table, chain);
 	if (!list)
@@ -2295,9 +2293,7 @@ int nft_rule_list_save(struct nft_handle *h, const char *chain,
 	int ret = 0;
 
 	nft_xt_builtin_init(h, table);
-
-	if (!nft_is_table_compatible(h, table))
-		xtables_error(OTHER_PROBLEM, "table `%s' is incompatible, use 'nft' tool.\n", table);
+	nft_assert_table_compatible(h, table, chain);
 
 	list = nft_chain_list_get(h, table, chain);
 	if (!list)
@@ -3085,11 +3081,12 @@ static int nft_is_chain_compatible(struct nftnl_chain *c, void *data)
 	return 0;
 }
 
-bool nft_is_table_compatible(struct nft_handle *h, const char *tablename)
+bool nft_is_table_compatible(struct nft_handle *h,
+			     const char *table, const char *chain)
 {
 	struct nftnl_chain_list *clist;
 
-	clist = nft_chain_list_get(h, tablename, NULL);
+	clist = nft_chain_list_get(h, table, chain);
 	if (clist == NULL)
 		return false;
 
@@ -3097,4 +3094,23 @@ bool nft_is_table_compatible(struct nft_handle *h, const char *tablename)
 		return false;
 
 	return true;
+}
+
+void nft_assert_table_compatible(struct nft_handle *h,
+				 const char *table, const char *chain)
+{
+	const char *pfx = "", *sfx = "";
+
+	if (nft_is_table_compatible(h, table, chain))
+		return;
+
+	if (chain) {
+		pfx = "chain `";
+		sfx = "' in ";
+	} else {
+		chain = "";
+	}
+	xtables_error(OTHER_PROBLEM,
+		      "%s%s%stable `%s' is incompatible, use 'nft' tool.\n",
+		      pfx, chain, sfx, table);
 }
