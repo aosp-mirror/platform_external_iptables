@@ -38,6 +38,14 @@ while [ -n "$1" ]; do
 		HOST=y
 		shift
 		;;
+	-l|--legacy)
+		LEGACY_ONLY=y
+		shift
+		;;
+	-n|--nft)
+		NFT_ONLY=y
+		shift
+		;;
 	*${RETURNCODE_SEPARATOR}+([0-9]))
 		SINGLE+=" $1"
 		VERBOSE=y
@@ -98,19 +106,23 @@ do_test() {
 }
 
 echo ""
-for testfile in $(find_tests);do
-	do_test "$testfile" "$XTABLES_LEGACY_MULTI"
-done
-msg_info "legacy results: [OK] $ok [FAILED] $failed [TOTAL] $((ok+failed))"
+if [ "$NFT_ONLY" != "y" ]; then
+	for testfile in $(find_tests);do
+		do_test "$testfile" "$XTABLES_LEGACY_MULTI"
+	done
+	msg_info "legacy results: [OK] $ok [FAILED] $failed [TOTAL] $((ok+failed))"
 
+fi
 legacy_ok=$ok
 legacy_fail=$failed
 ok=0
 failed=0
-for testfile in $(find_tests);do
-	do_test "$testfile" "$XTABLES_NFT_MULTI"
-done
-msg_info "nft results: [OK] $ok [FAILED] $failed [TOTAL] $((ok+failed))"
+if [ "$LEGACY_ONLY" != "y" ]; then
+	for testfile in $(find_tests);do
+		do_test "$testfile" "$XTABLES_NFT_MULTI"
+	done
+	msg_info "nft results: [OK] $ok [FAILED] $failed [TOTAL] $((ok+failed))"
+fi
 
 ok=$((legacy_ok+ok))
 failed=$((legacy_fail+failed))
