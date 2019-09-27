@@ -359,10 +359,14 @@ def main():
         print("Couldn't open log file %s" % LOGFILE)
         return
 
-    file_list = [os.path.join(EXTENSIONS_PATH, i)
-                 for i in os.listdir(EXTENSIONS_PATH)]
     if args.filename:
         file_list = [args.filename]
+    else:
+        file_list = [os.path.join(EXTENSIONS_PATH, i)
+                     for i in os.listdir(EXTENSIONS_PATH)
+                     if i.endswith('.t')]
+        file_list.sort()
+
     for filename in file_list:
         file_tests, file_passed = run_test_file(filename, args.netns)
         if file_tests:
