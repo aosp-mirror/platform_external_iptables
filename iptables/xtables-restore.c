@@ -18,6 +18,7 @@
 #include "xtables-multi.h"
 #include "nft.h"
 #include "nft-bridge.h"
+#include "nft-cache.h"
 #include <libnftnl/chain.h>
 
 static int counters, verbose;

@@ -21,6 +21,7 @@
 #include "iptables.h"
 #include "xtables-multi.h"
 #include "nft.h"
+#include "nft-cache.h"
 
 #include <libnftnl/chain.h>
 
