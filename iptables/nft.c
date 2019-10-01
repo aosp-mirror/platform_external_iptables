@@ -703,31 +703,25 @@ static void nft_chain_builtin_add(struct nft_handle *h,
 	nftnl_chain_list_add_tail(c, h->cache->table[table->type].chains);
 }
 
-static const struct builtin_table *
-__nft_table_builtin_find(const struct builtin_table *tables, const char *table)
+/* find if built-in table already exists */
+const struct builtin_table *
+nft_table_builtin_find(struct nft_handle *h, const char *table)
 {
 	int i;
 	bool found = false;
 
 	for (i = 0; i < NFT_TABLE_MAX; i++) {
-		if (tables[i].name == NULL)
+		if (h->tables[i].name == NULL)
 			continue;
 
-		if (strcmp(tables[i].name, table) != 0)
+		if (strcmp(h->tables[i].name, table) != 0)
 			continue;
 
 		found = true;
 		break;
 	}
 
-	return found ? &tables[i] : NULL;
-}
-
-/* find if built-in table already exists */
-const struct builtin_table *
-nft_table_builtin_find(struct nft_handle *h, const char *table)
-{
-	return __nft_table_builtin_find(h->tables, table);
+	return found ? &h->tables[i] : NULL;
 }
 
 /* find if built-in chain already exists */
@@ -857,14 +851,14 @@ static int __flush_chain_cache(struct nftnl_chain *c, void *data)
 	return 0;
 }
 
-static int flush_cache(struct nft_cache *c, const struct builtin_table *tables,
+static int flush_cache(struct nft_handle *h, struct nft_cache *c,
 		       const char *tablename)
 {
 	const struct builtin_table *table;
 	int i;
 
 	if (tablename) {
-		table = __nft_table_builtin_find(tables, tablename);
+		table = nft_table_builtin_find(h, tablename);
 		if (!table || !c->table[table->type].chains)
 			return 0;
 		nftnl_chain_list_foreach(c->table[table->type].chains,
@@ -873,7 +867,7 @@ static int flush_cache(struct nft_cache *c, const struct builtin_table *tables,
 	}
 
 	for (i = 0; i < NFT_TABLE_MAX; i++) {
-		if (tables[i].name == NULL)
+		if (h->tables[i].name == NULL)
 			continue;
 
 		if (!c->table[i].chains)
@@ -893,7 +887,7 @@ static void flush_chain_cache(struct nft_handle *h, const char *tablename)
 	if (!h->have_cache)
 		return;
 
-	if (flush_cache(h->cache, h->tables, tablename))
+	if (flush_cache(h, h->cache, tablename))
 		h->have_cache = false;
 }
 
@@ -1655,7 +1649,7 @@ static void nft_rebuild_cache(struct nft_handle *h)
 static void nft_release_cache(struct nft_handle *h)
 {
 	if (h->cache_index)
-		flush_cache(&h->__cache[0], h->tables, NULL);
+		flush_cache(h, &h->__cache[0], NULL);
 }
 
 struct nftnl_chain_list *nft_chain_list_get(struct nft_handle *h,
