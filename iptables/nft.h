@@ -27,6 +27,13 @@ struct builtin_table {
 	struct builtin_chain chains[NF_INET_NUMHOOKS];
 };
 
+enum nft_cache_level {
+	NFT_CL_NONE,
+	NFT_CL_TABLES,
+	NFT_CL_CHAINS,
+	NFT_CL_RULES
+};
+
 struct nft_cache {
 	struct nftnl_table_list		*tables;
 	struct {
@@ -53,7 +60,7 @@ struct nft_handle {
 	unsigned int		cache_index;
 	struct nft_cache	__cache[2];
 	struct nft_cache	*cache;
-	bool			have_cache;
+	enum nft_cache_level	cache_level;
 	bool			restore;
 	bool			noflush;
 	int8_t			config_done;
