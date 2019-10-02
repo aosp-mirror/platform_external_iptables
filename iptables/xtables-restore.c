@@ -63,7 +63,7 @@ static struct nftnl_chain_list *get_chain_list(struct nft_handle *h,
 {
 	struct nftnl_chain_list *chain_list;
 
-	chain_list = nft_chain_list_get(h, table);
+	chain_list = nft_chain_list_get(h, table, NULL);
 	if (chain_list == NULL)
 		xtables_error(OTHER_PROBLEM, "cannot retrieve chain list\n");
 
@@ -100,7 +100,7 @@ void xtables_restore_parse(struct nft_handle *h,
 	if (!h->noflush)
 		nft_fake_cache(h);
 	else
-		nft_build_cache(h);
+		nft_build_cache(h, NULL);
 
 	/* Grab standard input. */
 	while (fgets(buffer, sizeof(buffer), p->in)) {

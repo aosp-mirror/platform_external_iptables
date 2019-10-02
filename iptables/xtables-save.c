@@ -83,7 +83,7 @@ __do_output(struct nft_handle *h, const char *tablename, void *data)
 		return 0;
 	}
 
-	chain_list = nft_chain_list_get(h, tablename);
+	chain_list = nft_chain_list_get(h, tablename, NULL);
 	if (!chain_list)
 		return 0;
 

@@ -709,7 +709,7 @@ nft_chain_builtin_find(const struct builtin_table *t, const char *chain)
 static void nft_chain_builtin_init(struct nft_handle *h,
 				   const struct builtin_table *table)
 {
-	struct nftnl_chain_list *list = nft_chain_list_get(h, table->name);
+	struct nftnl_chain_list *list = nft_chain_list_get(h, table->name, NULL);
 	struct nftnl_chain *c;
 	int i;
 
@@ -1178,7 +1178,7 @@ nft_rule_append(struct nft_handle *h, const char *chain, const char *table,
 	if (h->family == NFPROTO_BRIDGE) {
 		c = nft_chain_find(h, table, chain);
 		if (c && !nft_chain_builtin(c))
-			nft_build_cache(h);
+			nft_build_cache(h, c);
 	}
 
 	nft_fn = nft_rule_append;
@@ -1405,9 +1405,7 @@ int nft_rule_save(struct nft_handle *h, const char *table, unsigned int format)
 	struct nftnl_chain *c;
 	int ret = 0;
 
-	nft_build_cache(h);
-
-	list = nft_chain_list_get(h, table);
+	list = nft_chain_list_get(h, table, NULL);
 	if (!list)
 		return 0;
 
@@ -1417,6 +1415,7 @@ int nft_rule_save(struct nft_handle *h, const char *table, unsigned int format)
 
 	c = nftnl_chain_list_iter_next(iter);
 	while (c) {
+		nft_build_cache(h, c);
 		ret = nft_chain_save_rules(h, c, format);
 		if (ret != 0)
 			break;
@@ -1468,7 +1467,7 @@ int nft_rule_flush(struct nft_handle *h, const char *chain, const char *table,
 
 	nft_fn = nft_rule_flush;
 
-	list = nft_chain_list_get(h, table);
+	list = nft_chain_list_get(h, table, chain);
 	if (list == NULL) {
 		ret = 1;
 		goto err;
@@ -1533,7 +1532,7 @@ int nft_chain_user_add(struct nft_handle *h, const char *chain, const char *tabl
 
 	ret = batch_chain_add(h, NFT_COMPAT_CHAIN_USER_ADD, c);
 
-	list = nft_chain_list_get(h, table);
+	list = nft_chain_list_get(h, table, chain);
 	if (list)
 		nftnl_chain_list_add(c, list);
 
@@ -1573,7 +1572,7 @@ int nft_chain_restore(struct nft_handle *h, const char *chain, const char *table
 
 	ret = batch_chain_add(h, NFT_COMPAT_CHAIN_USER_ADD, c);
 
-	list = nft_chain_list_get(h, table);
+	list = nft_chain_list_get(h, table, chain);
 	if (list)
 		nftnl_chain_list_add(c, list);
 
@@ -1607,7 +1606,7 @@ static int __nft_chain_user_del(struct nftnl_chain *c, void *data)
 
 	/* This triggers required policy rule deletion. */
 	if (h->family == NFPROTO_BRIDGE)
-		nft_build_cache(h);
+		nft_build_cache(h, c);
 
 	/* XXX This triggers a fast lookup from the kernel. */
 	nftnl_chain_unset(c, NFTNL_CHAIN_HANDLE);
@@ -1632,7 +1631,7 @@ int nft_chain_user_del(struct nft_handle *h, const char *chain,
 
 	nft_fn = nft_chain_user_del;
 
-	list = nft_chain_list_get(h, table);
+	list = nft_chain_list_get(h, table, chain);
 	if (list == NULL)
 		return 0;
 
@@ -1660,7 +1659,7 @@ nft_chain_find(struct nft_handle *h, const char *table, const char *chain)
 {
 	struct nftnl_chain_list *list;
 
-	list = nft_chain_list_get(h, table);
+	list = nft_chain_list_get(h, table, chain);
 	if (list == NULL)
 		return NULL;
 
@@ -1890,7 +1889,7 @@ nft_rule_find(struct nft_handle *h, struct nftnl_chain *c, void *data, int rulen
 	struct nftnl_rule_iter *iter;
 	bool found = false;
 
-	nft_build_cache(h);
+	nft_build_cache(h, c);
 
 	if (rulenum >= 0)
 		/* Delete by rule number case */
@@ -2198,7 +2197,7 @@ int nft_rule_list(struct nft_handle *h, const char *chain, const char *table,
 	if (!nft_is_table_compatible(h, table))
 		xtables_error(OTHER_PROBLEM, "table `%s' is incompatible, use 'nft' tool.\n", table);
 
-	list = nft_chain_list_get(h, table);
+	list = nft_chain_list_get(h, table, chain);
 	if (!list)
 		return 0;
 
@@ -2299,7 +2298,7 @@ int nft_rule_list_save(struct nft_handle *h, const char *chain,
 	if (!nft_is_table_compatible(h, table))
 		xtables_error(OTHER_PROBLEM, "table `%s' is incompatible, use 'nft' tool.\n", table);
 
-	list = nft_chain_list_get(h, table);
+	list = nft_chain_list_get(h, table, chain);
 	if (!list)
 		return 0;
 
@@ -2717,7 +2716,7 @@ int ebt_set_user_chain_policy(struct nft_handle *h, const char *table,
 	else
 		return 0;
 
-	nft_build_cache(h);
+	nft_build_cache(h, c);
 
 	nftnl_chain_set_u32(c, NFTNL_CHAIN_POLICY, pval);
 	return 1;
@@ -2983,7 +2982,7 @@ int nft_chain_zero_counters(struct nft_handle *h, const char *chain,
 	struct nftnl_chain *c;
 	int ret = 0;
 
-	list = nft_chain_list_get(h, table);
+	list = nft_chain_list_get(h, table, chain);
 	if (list == NULL)
 		goto err;
 
@@ -3056,7 +3055,7 @@ static int nft_is_chain_compatible(struct nftnl_chain *c, void *data)
 	enum nf_inet_hooks hook;
 	int prio;
 
-	nft_build_cache(h);
+	nft_build_cache(h, c);
 
 	if (nftnl_rule_foreach(c, nft_is_rule_compatible, NULL))
 		return -1;
@@ -3089,7 +3088,7 @@ bool nft_is_table_compatible(struct nft_handle *h, const char *tablename)
 {
 	struct nftnl_chain_list *clist;
 
-	clist = nft_chain_list_get(h, tablename);
+	clist = nft_chain_list_get(h, tablename, NULL);
 	if (clist == NULL)
 		return false;
 
