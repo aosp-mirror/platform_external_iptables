@@ -393,7 +393,7 @@ struct nftnl_chain_list *nft_chain_list_get(struct nft_handle *h,
 	if (!t)
 		return NULL;
 
-	nft_build_cache(h);
+	__nft_build_cache(h, NFT_CL_CHAINS);
 
 	return h->cache->table[t->type].chains;
 }

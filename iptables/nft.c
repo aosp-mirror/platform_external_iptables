@@ -1173,6 +1173,14 @@ nft_rule_append(struct nft_handle *h, const char *chain, const char *table,
 
 	nft_xt_builtin_init(h, table);
 
+	/* Since ebtables user-defined chain policies are implemented as last
+	 * rule in nftables, rule cache is required here to treat them right. */
+	if (h->family == NFPROTO_BRIDGE) {
+		c = nft_chain_find(h, table, chain);
+		if (c && !nft_chain_builtin(c))
+			nft_build_cache(h);
+	}
+
 	nft_fn = nft_rule_append;
 
 	r = nft_rule_new(h, chain, table, data);
@@ -1397,6 +1405,8 @@ int nft_rule_save(struct nft_handle *h, const char *table, unsigned int format)
 	struct nftnl_chain *c;
 	int ret = 0;
 
+	nft_build_cache(h);
+
 	list = nft_chain_list_get(h, table);
 	if (!list)
 		return 0;
@@ -1594,6 +1604,10 @@ static int __nft_chain_user_del(struct nftnl_chain *c, void *data)
 	if (d->verbose)
 		fprintf(stdout, "Deleting chain `%s'\n",
 			nftnl_chain_get_str(c, NFTNL_CHAIN_NAME));
+
+	/* This triggers required policy rule deletion. */
+	if (h->family == NFPROTO_BRIDGE)
+		nft_build_cache(h);
 
 	/* XXX This triggers a fast lookup from the kernel. */
 	nftnl_chain_unset(c, NFTNL_CHAIN_HANDLE);
@@ -1875,6 +1889,8 @@ nft_rule_find(struct nft_handle *h, struct nftnl_chain *c, void *data, int rulen
 	struct nftnl_rule *r;
 	struct nftnl_rule_iter *iter;
 	bool found = false;
+
+	nft_build_cache(h);
 
 	if (rulenum >= 0)
 		/* Delete by rule number case */
@@ -2701,6 +2717,8 @@ int ebt_set_user_chain_policy(struct nft_handle *h, const char *table,
 	else
 		return 0;
 
+	nft_build_cache(h);
+
 	nftnl_chain_set_u32(c, NFTNL_CHAIN_POLICY, pval);
 	return 1;
 }
@@ -3037,6 +3055,8 @@ static int nft_is_chain_compatible(struct nftnl_chain *c, void *data)
 	struct nft_handle *h = data;
 	enum nf_inet_hooks hook;
 	int prio;
+
+	nft_build_cache(h);
 
 	if (nftnl_rule_foreach(c, nft_is_rule_compatible, NULL))
 		return -1;
