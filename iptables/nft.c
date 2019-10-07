@@ -1414,8 +1414,6 @@ static int fetch_chain_cache(struct nft_handle *h)
 	struct nlmsghdr *nlh;
 	int i, ret;
 
-	fetch_table_cache(h);
-
 	for (i = 0; i < NFT_TABLE_MAX; i++) {
 		enum nft_table_type type = h->tables[i].type;
 
@@ -1592,6 +1590,7 @@ static void __nft_build_cache(struct nft_handle *h)
 
 retry:
 	mnl_genid_get(h, &genid_start);
+	fetch_table_cache(h);
 	fetch_chain_cache(h);
 	fetch_rule_cache(h);
 	h->have_cache = true;
