@@ -86,6 +86,9 @@ static int fetch_table_cache(struct nft_handle *h)
 	struct nftnl_table_list *list;
 	int ret;
 
+	if (h->cache->tables)
+		return 0;
+
 	list = nftnl_table_list_alloc();
 	if (list == NULL)
 		return 0;
@@ -106,7 +109,9 @@ static int nftnl_chain_list_cb(const struct nlmsghdr *nlh, void *data)
 {
 	struct nft_handle *h = data;
 	const struct builtin_table *t;
+	struct nftnl_chain_list *list;
 	struct nftnl_chain *c;
+	const char *cname;
 
 	c = nftnl_chain_alloc();
 	if (c == NULL)
@@ -120,7 +125,13 @@ static int nftnl_chain_list_cb(const struct nlmsghdr *nlh, void *data)
 	if (!t)
 		goto out;
 
-	nftnl_chain_list_add_tail(c, h->cache->table[t->type].chains);
+	list = h->cache->table[t->type].chains;
+	cname = nftnl_chain_get_str(c, NFTNL_CHAIN_NAME);
+
+	if (nftnl_chain_list_lookup_byname(list, cname))
+		goto out;
+
+	nftnl_chain_list_add_tail(c, list);
 
 	return MNL_CB_OK;
 out:
@@ -139,6 +150,9 @@ static int fetch_chain_cache(struct nft_handle *h)
 		enum nft_table_type type = h->tables[i].type;
 
 		if (!h->tables[i].name)
+			continue;
+
+		if (h->cache->table[type].chains)
 			continue;
 
 		h->cache->table[type].chains = nftnl_chain_list_alloc();
@@ -181,6 +195,9 @@ static int nft_rule_list_update(struct nftnl_chain *c, void *data)
 	struct nlmsghdr *nlh;
 	struct nftnl_rule *rule;
 	int ret;
+
+	if (nftnl_rule_lookup_byindex(c, 0))
+		return 0;
 
 	rule = nftnl_rule_alloc();
 	if (!rule)
