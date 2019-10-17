@@ -647,78 +647,8 @@ iptables_xml_main(int argc, char *argv[])
 			char *parsestart = buffer;
 			char *chain = NULL;
 
-			/* the parser */
-			char *param_start, *curchar;
-			int quote_open, quoted;
-			char param_buffer[1024];
-
 			tokenize_rule_counters(&parsestart, &pcnt, &bcnt, line);
-
-			/* This is a 'real' parser crafted in artist mode
-			 * not hacker mode. If the author can live with that
-			 * then so can everyone else */
-
-			quote_open = 0;
-			/* We need to know which args were quoted so we 
-			   can preserve quote */
-			quoted = 0;
-			param_start = parsestart;
-
-			for (curchar = parsestart; *curchar; curchar++) {
-				if (*curchar == '"') {
-					/* quote_open cannot be true if there
-					 * was no previous character.  Thus, 
-					 * curchar-1 has to be within bounds */
-					if (quote_open &&
-					    *(curchar - 1) != '\\') {
-						quote_open = 0;
-						*curchar = ' ';
-					} else {
-						quote_open = 1;
-						quoted = 1;
-						param_start++;
-					}
-				}
-				if (*curchar == ' '
-				    || *curchar == '\t' || *curchar == '\n') {
-					int param_len = curchar - param_start;
-
-					if (quote_open)
-						continue;
-
-					if (!param_len) {
-						/* two spaces? */
-						param_start++;
-						continue;
-					}
-
-					/* end of one parameter */
-					strncpy(param_buffer, param_start,
-						param_len);
-					*(param_buffer + param_len) = '\0';
-
-					/* check if table name specified */
-					if ((param_buffer[0] == '-' &&
-					     param_buffer[1] != '-' &&
-					     strchr(param_buffer, 't')) ||
-					    (!strncmp(param_buffer, "--t", 3) &&
-					     !strncmp(param_buffer, "--table", strlen(param_buffer))))
-						xtables_error(PARAMETER_PROBLEM,
-							   "Line %u seems to have a "
-							   "-t table option.\n",
-							   line);
-
-					add_argv(param_buffer, quoted);
-					if (newargc >= 2
-					    && 0 ==
-					    strcmp(newargv[newargc - 2], "-A"))
-						chain = newargv[newargc - 1];
-					quoted = 0;
-					param_start += param_len + 1;
-				} else {
-					/* regular character, skip */
-				}
-			}
+			add_param_to_argv(parsestart, line);
 
 			DEBUGP("calling do_command4(%u, argv, &%s, handle):\n",
 			       newargc, curTable);
@@ -726,6 +656,12 @@ iptables_xml_main(int argc, char *argv[])
 			for (a = 0; a < newargc; a++)
 				DEBUGP("argv[%u]: %s\n", a, newargv[a]);
 
+			for (a = 1; a < newargc; a++) {
+				if (strcmp(newargv[a - 1], "-A"))
+					continue;
+				chain = newargv[a];
+				break;
+			}
 			if (!chain) {
 				fprintf(stderr, "%s: line %u failed - no chain found\n",
 					prog_name, line);

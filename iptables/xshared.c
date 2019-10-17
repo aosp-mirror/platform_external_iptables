@@ -484,7 +484,7 @@ static void add_param(struct xt_param_buf *param, const char *curchar)
 
 void add_param_to_argv(char *parsestart, int line)
 {
-	int quote_open = 0, escaped = 0;
+	int quote_open = 0, escaped = 0, quoted = 0;
 	struct xt_param_buf param = {};
 	char *curchar;
 
@@ -511,6 +511,7 @@ void add_param_to_argv(char *parsestart, int line)
 		} else {
 			if (*curchar == '"') {
 				quote_open = 1;
+				quoted = 1;
 				continue;
 			}
 		}
@@ -533,8 +534,9 @@ void add_param_to_argv(char *parsestart, int line)
 		}
 
 		param.buffer[param.len] = '\0';
-		add_argv(param.buffer, 0);
+		add_argv(param.buffer, quoted);
 		param.len = 0;
+		quoted = 0;
 	}
 }
 
