@@ -2888,7 +2888,7 @@ const char *nft_strerror(int err)
 	    { NULL, ENOENT, "No chain/target/match by that name" },
 	  };
 
-	for (i = 0; i < sizeof(table)/sizeof(struct table_struct); i++) {
+	for (i = 0; i < ARRAY_SIZE(table); i++) {
 		if ((!table[i].fn || table[i].fn == nft_fn)
 		    && table[i].err == err)
 			return table[i].message;
