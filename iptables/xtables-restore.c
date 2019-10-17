@@ -69,10 +69,10 @@ static const struct nft_xt_restore_cb restore_cb = {
 };
 
 void xtables_restore_parse(struct nft_handle *h,
-			   const struct nft_xt_restore_parse *p,
-			   const struct nft_xt_restore_cb *cb)
+			   const struct nft_xt_restore_parse *p)
 {
 	const struct builtin_table *curtable = NULL;
+	const struct nft_xt_restore_cb *cb = p->cb;
 	struct argv_store av_store = {};
 	char buffer[10240];
 	int in_table = 0;
@@ -279,6 +279,7 @@ xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 	int c;
 	struct nft_xt_restore_parse p = {
 		.commit = true,
+		.cb = &restore_cb,
 	};
 
 	line = 0;
@@ -383,7 +384,7 @@ xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 
-	xtables_restore_parse(&h, &p, &restore_cb);
+	xtables_restore_parse(&h, &p);
 
 	nft_fini(&h);
 	fclose(p.in);
@@ -427,6 +428,7 @@ int xtables_eb_restore_main(int argc, char *argv[])
 {
 	struct nft_xt_restore_parse p = {
 		.in = stdin,
+		.cb = &ebt_restore_cb,
 	};
 	bool noflush = false;
 	struct nft_handle h;
@@ -448,7 +450,7 @@ int xtables_eb_restore_main(int argc, char *argv[])
 
 	nft_init_eb(&h, "ebtables-restore");
 	h.noflush = noflush;
-	xtables_restore_parse(&h, &p, &ebt_restore_cb);
+	xtables_restore_parse(&h, &p);
 	nft_fini(&h);
 
 	return 0;
@@ -467,11 +469,12 @@ int xtables_arp_restore_main(int argc, char *argv[])
 {
 	struct nft_xt_restore_parse p = {
 		.in = stdin,
+		.cb = &arp_restore_cb,
 	};
 	struct nft_handle h;
 
 	nft_init_arp(&h, "arptables-restore");
-	xtables_restore_parse(&h, &p, &arp_restore_cb);
+	xtables_restore_parse(&h, &p);
 	nft_fini(&h);
 
 	return 0;

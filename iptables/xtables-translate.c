@@ -498,7 +498,9 @@ static int xtables_restore_xlate_main(int family, const char *progname,
 		.family = family,
 	};
 	const char *file = NULL;
-	struct nft_xt_restore_parse p = {};
+	struct nft_xt_restore_parse p = {
+		.cb = &cb_xlate,
+	};
 	time_t now = time(NULL);
 	int c;
 
@@ -535,7 +537,7 @@ static int xtables_restore_xlate_main(int family, const char *progname,
 
 	printf("# Translated by %s v%s on %s",
 	       argv[0], PACKAGE_VERSION, ctime(&now));
-	xtables_restore_parse(&h, &p, &cb_xlate);
+	xtables_restore_parse(&h, &p);
 	printf("# Completed on %s", ctime(&now));
 
 	nft_fini(&h);

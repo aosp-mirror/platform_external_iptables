@@ -215,13 +215,6 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 	      struct nft_xt_cmd_parse *p, struct iptables_command_state *cs,
 	      struct xtables_args *args);
 
-struct nft_xt_restore_parse {
-	FILE		*in;
-	int		testing;
-	const char	*tablename;
-	bool		commit;
-};
-
 struct nftnl_chain_list;
 
 struct nft_xt_restore_cb {
@@ -241,9 +234,16 @@ struct nft_xt_restore_cb {
 	int (*abort)(struct nft_handle *h);
 };
 
+struct nft_xt_restore_parse {
+	FILE				*in;
+	int				testing;
+	const char			*tablename;
+	bool				commit;
+	const struct nft_xt_restore_cb	*cb;
+};
+
 void xtables_restore_parse(struct nft_handle *h,
-			   const struct nft_xt_restore_parse *p,
-			   const struct nft_xt_restore_cb *cb);
+			   const struct nft_xt_restore_parse *p);
 
 void nft_check_xt_legacy(int family, bool is_ipt_save);
 #endif
