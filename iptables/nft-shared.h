@@ -262,7 +262,7 @@ struct nft_xt_restore_cb {
 
 void xtables_restore_parse(struct nft_handle *h,
 			   const struct nft_xt_restore_parse *p,
-			   struct nft_xt_restore_cb *cb);
+			   const struct nft_xt_restore_cb *cb);
 
 void nft_check_xt_legacy(int family, bool is_ipt_save);
 #endif

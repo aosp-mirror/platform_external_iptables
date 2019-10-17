@@ -413,7 +413,7 @@ static int dummy_compat_rev(const char *name, uint8_t rev, int opt)
 	return 1;
 }
 
-static struct nft_xt_restore_cb cb_xlate = {
+static const struct nft_xt_restore_cb cb_xlate = {
 	.table_new	= xlate_table_new,
 	.chain_set	= xlate_chain_set,
 	.chain_restore	= xlate_chain_user_restore,

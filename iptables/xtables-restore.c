@@ -70,7 +70,7 @@ static struct nftnl_chain_list *get_chain_list(struct nft_handle *h,
 	return chain_list;
 }
 
-struct nft_xt_restore_cb restore_cb = {
+static const struct nft_xt_restore_cb restore_cb = {
 	.chain_list	= get_chain_list,
 	.commit		= nft_commit,
 	.abort		= nft_abort,
@@ -87,7 +87,7 @@ static const struct xtc_ops xtc_ops = {
 
 void xtables_restore_parse(struct nft_handle *h,
 			   const struct nft_xt_restore_parse *p,
-			   struct nft_xt_restore_cb *cb)
+			   const struct nft_xt_restore_cb *cb)
 {
 	const struct builtin_table *curtable = NULL;
 	char buffer[10240];
@@ -432,7 +432,7 @@ static int ebt_table_flush(struct nft_handle *h, const char *table)
 	return nft_table_flush(h, table);
 }
 
-struct nft_xt_restore_cb ebt_restore_cb = {
+static const struct nft_xt_restore_cb ebt_restore_cb = {
 	.chain_list	= get_chain_list,
 	.commit		= nft_bridge_commit,
 	.table_new	= nft_table_new,
@@ -478,7 +478,7 @@ int xtables_eb_restore_main(int argc, char *argv[])
 	return 0;
 }
 
-struct nft_xt_restore_cb arp_restore_cb = {
+static const struct nft_xt_restore_cb arp_restore_cb = {
 	.chain_list	= get_chain_list,
 	.commit		= nft_commit,
 	.table_new	= nft_table_new,
