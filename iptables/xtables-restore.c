@@ -86,7 +86,7 @@ static const struct xtc_ops xtc_ops = {
 };
 
 void xtables_restore_parse(struct nft_handle *h,
-			   struct nft_xt_restore_parse *p,
+			   const struct nft_xt_restore_parse *p,
 			   struct nft_xt_restore_cb *cb,
 			   int argc, char *argv[])
 {
