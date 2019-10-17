@@ -58,20 +58,7 @@ static void print_usage(const char *name, const char *version)
 			"	   [ --ipv6 ]\n", name);
 }
 
-static struct nftnl_chain_list *get_chain_list(struct nft_handle *h,
-					       const char *table)
-{
-	struct nftnl_chain_list *chain_list;
-
-	chain_list = nft_chain_list_get(h, table, NULL);
-	if (chain_list == NULL)
-		xtables_error(OTHER_PROBLEM, "cannot retrieve chain list\n");
-
-	return chain_list;
-}
-
 static const struct nft_xt_restore_cb restore_cb = {
-	.chain_list	= get_chain_list,
 	.commit		= nft_commit,
 	.abort		= nft_abort,
 	.table_new	= nft_table_new,
@@ -428,7 +415,6 @@ static int ebt_table_flush(struct nft_handle *h, const char *table)
 }
 
 static const struct nft_xt_restore_cb ebt_restore_cb = {
-	.chain_list	= get_chain_list,
 	.commit		= nft_bridge_commit,
 	.table_new	= nft_table_new,
 	.table_flush	= ebt_table_flush,
@@ -474,7 +460,6 @@ int xtables_eb_restore_main(int argc, char *argv[])
 }
 
 static const struct nft_xt_restore_cb arp_restore_cb = {
-	.chain_list	= get_chain_list,
 	.commit		= nft_commit,
 	.table_new	= nft_table_new,
 	.table_flush	= nft_table_flush,
