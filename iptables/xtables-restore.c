@@ -81,10 +81,6 @@ static const struct nft_xt_restore_cb restore_cb = {
 	.chain_restore  = nft_chain_restore,
 };
 
-static const struct xtc_ops xtc_ops = {
-	.strerror	= nft_strerror,
-};
-
 void xtables_restore_parse(struct nft_handle *h,
 			   const struct nft_xt_restore_parse *p,
 			   const struct nft_xt_restore_cb *cb)
@@ -92,7 +88,6 @@ void xtables_restore_parse(struct nft_handle *h,
 	const struct builtin_table *curtable = NULL;
 	char buffer[10240];
 	int in_table = 0;
-	const struct xtc_ops *ops = &xtc_ops;
 
 	line = 0;
 
@@ -206,7 +201,7 @@ void xtables_restore_parse(struct nft_handle *h,
 						      "Can't set policy `%s'"
 						      " on `%s' line %u: %s\n",
 						      policy, chain, line,
-						      ops->strerror(errno));
+						      strerror(errno));
 				}
 				DEBUGP("Setting policy of chain %s to %s\n",
 				       chain, policy);
@@ -223,7 +218,7 @@ void xtables_restore_parse(struct nft_handle *h,
 					      "Can't set policy `%s'"
 					      " on `%s' line %u: %s\n",
 					      policy, chain, line,
-					      ops->strerror(errno));
+					      strerror(errno));
 			}
 			ret = 1;
 		} else if (in_table) {
