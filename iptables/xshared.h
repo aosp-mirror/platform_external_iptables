@@ -156,18 +156,22 @@ bool xs_has_arg(int argc, char *argv[]);
 
 extern const struct xtables_afinfo *afinfo;
 
-extern char *newargv[];
-extern int newargc;
+#define MAX_ARGC	255
+struct argv_store {
+	int argc;
+	char *argv[MAX_ARGC];
+	int argvattr[MAX_ARGC];
+};
 
-extern char *oldargv[];
-extern int oldargc;
-
-extern int newargvattr[];
-
-int add_argv(const char *what, int quoted);
-void free_argv(void);
-void save_argv(void);
-void add_param_to_argv(char *parsestart, int line);
+void add_argv(struct argv_store *store, const char *what, int quoted);
+void free_argv(struct argv_store *store);
+void save_argv(struct argv_store *dst, struct argv_store *src);
+void add_param_to_argv(struct argv_store *store, char *parsestart, int line);
+#ifdef DEBUG
+void debug_print_argv(struct argv_store *store);
+#else
+#  define debug_print_argv(...) /* nothing */
+#endif
 
 void print_ipv4_addresses(const struct ipt_entry *fw, unsigned int format);
 void print_ipv6_addresses(const struct ip6t_entry *fw6, unsigned int format);

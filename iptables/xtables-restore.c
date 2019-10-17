@@ -73,6 +73,7 @@ void xtables_restore_parse(struct nft_handle *h,
 			   const struct nft_xt_restore_cb *cb)
 {
 	const struct builtin_table *curtable = NULL;
+	struct argv_store av_store = {};
 	char buffer[10240];
 	int in_table = 0;
 
@@ -209,35 +210,29 @@ void xtables_restore_parse(struct nft_handle *h,
 			}
 			ret = 1;
 		} else if (in_table) {
-			int a;
 			char *pcnt = NULL;
 			char *bcnt = NULL;
 			char *parsestart = buffer;
 
-			/* reset the newargv */
-			newargc = 0;
-
-			add_argv(xt_params->program_name, 0);
-			add_argv("-t", 0);
-			add_argv(curtable->name, 0);
+			add_argv(&av_store, xt_params->program_name, 0);
+			add_argv(&av_store, "-t", 0);
+			add_argv(&av_store, curtable->name, 0);
 
 			tokenize_rule_counters(&parsestart, &pcnt, &bcnt, line);
 			if (counters && pcnt && bcnt) {
-				add_argv("--set-counters", 0);
-				add_argv(pcnt, 0);
-				add_argv(bcnt, 0);
+				add_argv(&av_store, "--set-counters", 0);
+				add_argv(&av_store, pcnt, 0);
+				add_argv(&av_store, bcnt, 0);
 			}
 
-			add_param_to_argv(parsestart, line);
+			add_param_to_argv(&av_store, parsestart, line);
 
 			DEBUGP("calling do_command4(%u, argv, &%s, handle):\n",
-				newargc, curtable->name);
+			       av_store.argc, curtable->name);
+			debug_print_argv(&av_store);
 
-			for (a = 0; a < newargc; a++)
-				DEBUGP("argv[%u]: %s\n", a, newargv[a]);
-
-			ret = cb->do_command(h, newargc, newargv,
-					    &newargv[2], true);
+			ret = cb->do_command(h, av_store.argc, av_store.argv,
+					    &av_store.argv[2], true);
 			if (ret < 0) {
 				if (cb->abort)
 					ret = cb->abort(h);
@@ -251,7 +246,7 @@ void xtables_restore_parse(struct nft_handle *h,
 				exit(1);
 			}
 
-			free_argv();
+			free_argv(&av_store);
 			fflush(stdout);
 		}
 		if (p->tablename && curtable &&

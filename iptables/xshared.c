@@ -417,56 +417,48 @@ inline bool xs_has_arg(int argc, char *argv[])
 	       argv[optind][0] != '!';
 }
 
-/* global new argv and argc */
-char *newargv[255];
-int newargc = 0;
-
-/* saved newargv and newargc from save_argv() */
-char *oldargv[255];
-int oldargc = 0;
-
-/* arg meta data, were they quoted, frinstance */
-int newargvattr[255];
-
-/* function adding one argument to newargv, updating newargc
- * returns true if argument added, false otherwise */
-int add_argv(const char *what, int quoted)
+/* function adding one argument to store, updating argc
+ * returns if argument added, does not return otherwise */
+void add_argv(struct argv_store *store, const char *what, int quoted)
 {
 	DEBUGP("add_argv: %s\n", what);
-	if (what && newargc + 1 < ARRAY_SIZE(newargv)) {
-		newargv[newargc] = strdup(what);
-		newargvattr[newargc] = quoted;
-		newargv[++newargc] = NULL;
-		return 1;
-	} else {
+
+	if (store->argc + 1 >= MAX_ARGC)
 		xtables_error(PARAMETER_PROBLEM,
 			      "Parser cannot handle more arguments\n");
-	}
+	if (!what)
+		xtables_error(PARAMETER_PROBLEM,
+			      "Trying to store NULL argument\n");
+
+	store->argv[store->argc] = strdup(what);
+	store->argvattr[store->argc] = quoted;
+	store->argv[++store->argc] = NULL;
 }
 
-void free_argv(void)
+void free_argv(struct argv_store *store)
 {
-	while (newargc)
-		free(newargv[--newargc]);
-	while (oldargc)
-		free(oldargv[--oldargc]);
+	while (store->argc) {
+		store->argc--;
+		free(store->argv[store->argc]);
+		store->argvattr[store->argc] = 0;
+	}
 }
 
 /* Save parsed rule for comparison with next rule to perform action aggregation
  * on duplicate conditions.
  */
-void save_argv(void)
+void save_argv(struct argv_store *dst, struct argv_store *src)
 {
-	unsigned int i;
+	int i;
 
-	while (oldargc)
-		free(oldargv[--oldargc]);
-
-	oldargc = newargc;
-	newargc = 0;
-	for (i = 0; i < oldargc; i++) {
-		oldargv[i] = newargv[i];
+	free_argv(dst);
+	for (i = 0; i < src->argc; i++) {
+		dst->argvattr[i] = src->argvattr[i];
+		dst->argv[i] = src->argv[i];
+		src->argv[i] = NULL;
 	}
+	dst->argc = src->argc;
+	src->argc = 0;
 }
 
 struct xt_param_buf {
@@ -482,7 +474,7 @@ static void add_param(struct xt_param_buf *param, const char *curchar)
 			      "Parameter too long!");
 }
 
-void add_param_to_argv(char *parsestart, int line)
+void add_param_to_argv(struct argv_store *store, char *parsestart, int line)
 {
 	int quote_open = 0, escaped = 0, quoted = 0;
 	struct xt_param_buf param = {};
@@ -534,11 +526,21 @@ void add_param_to_argv(char *parsestart, int line)
 		}
 
 		param.buffer[param.len] = '\0';
-		add_argv(param.buffer, quoted);
+		add_argv(store, param.buffer, quoted);
 		param.len = 0;
 		quoted = 0;
 	}
 }
+
+#ifdef DEBUG
+void debug_print_argv(struct argv_store *store)
+{
+	int i;
+
+	for (i = 0; i < store->argc; i++)
+		fprintf(stderr, "argv[%d]: %s\n", i, store->argv[i]);
+}
+#endif
 
 static const char *ipv4_addr_to_string(const struct in_addr *addr,
 				       const struct in_addr *mask,

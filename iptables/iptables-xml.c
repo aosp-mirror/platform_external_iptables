@@ -440,7 +440,7 @@ do_rule_part(char *leveltag1, char *leveltag2, int part, int argc,
 }
 
 static int
-compareRules(void)
+compareRules(int newargc, char *newargv[], int oldargc, char *oldargv[])
 {
 	/* Compare arguments up to -j or -g for match.
 	 * NOTE: We don't want to combine actions if there were no criteria
@@ -489,11 +489,13 @@ compareRules(void)
 
 /* has a nice parsed rule starting with -A */
 static void
-do_rule(char *pcnt, char *bcnt, int argc, char *argv[], int argvattr[])
+do_rule(char *pcnt, char *bcnt, int argc, char *argv[], int argvattr[],
+	int oldargc, char *oldargv[])
 {
 	/* are these conditions the same as the previous rule?
 	 * If so, skip arg straight to -j or -g */
-	if (combine && argc > 2 && !isTarget(argv[2]) && compareRules()) {
+	if (combine && argc > 2 && !isTarget(argv[2]) &&
+	    compareRules(argc, argv, oldargc, oldargv)) {
 		xmlComment("Combine action from next rule");
 	} else {
 
@@ -539,6 +541,7 @@ do_rule(char *pcnt, char *bcnt, int argc, char *argv[], int argvattr[])
 int
 iptables_xml_main(int argc, char *argv[])
 {
+	struct argv_store last_rule = {}, cur_rule = {};
 	char buffer[10240];
 	int c;
 	FILE *in;
@@ -648,18 +651,16 @@ iptables_xml_main(int argc, char *argv[])
 			char *chain = NULL;
 
 			tokenize_rule_counters(&parsestart, &pcnt, &bcnt, line);
-			add_param_to_argv(parsestart, line);
+			add_param_to_argv(&cur_rule, parsestart, line);
 
 			DEBUGP("calling do_command4(%u, argv, &%s, handle):\n",
-			       newargc, curTable);
+			       cur_rule.argc, curTable);
+			debug_print_argv(&cur_rule);
 
-			for (a = 0; a < newargc; a++)
-				DEBUGP("argv[%u]: %s\n", a, newargv[a]);
-
-			for (a = 1; a < newargc; a++) {
-				if (strcmp(newargv[a - 1], "-A"))
+			for (a = 1; a < cur_rule.argc; a++) {
+				if (strcmp(cur_rule.argv[a - 1], "-A"))
 					continue;
-				chain = newargv[a];
+				chain = cur_rule.argv[a];
 				break;
 			}
 			if (!chain) {
@@ -668,9 +669,10 @@ iptables_xml_main(int argc, char *argv[])
 				exit(1);
 			}
 			needChain(chain);// Should we explicitly look for -A
-			do_rule(pcnt, bcnt, newargc, newargv, newargvattr);
+			do_rule(pcnt, bcnt, cur_rule.argc, cur_rule.argv,
+				cur_rule.argvattr, last_rule.argc, last_rule.argv);
 
-			save_argv();
+			save_argv(&last_rule, &cur_rule);
 			ret = 1;
 		}
 		if (!ret) {
@@ -687,7 +689,7 @@ iptables_xml_main(int argc, char *argv[])
 
 	fclose(in);
 	printf("</iptables-rules>\n");
-	free_argv();
+	free_argv(&last_rule);
 
 	return 0;
 }
