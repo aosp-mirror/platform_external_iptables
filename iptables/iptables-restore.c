@@ -70,7 +70,7 @@ struct iptables_restore_cb {
 };
 
 static struct xtc_handle *
-create_handle(struct iptables_restore_cb *cb, const char *tablename)
+create_handle(const struct iptables_restore_cb *cb, const char *tablename)
 {
 	struct xtc_handle *handle;
 
@@ -90,7 +90,8 @@ create_handle(struct iptables_restore_cb *cb, const char *tablename)
 }
 
 static int
-ip46tables_restore_main(struct iptables_restore_cb *cb, int argc, char *argv[])
+ip46tables_restore_main(const struct iptables_restore_cb *cb,
+			int argc, char *argv[])
 {
 	struct xtc_handle *handle = NULL;
 	char buffer[10240];
@@ -360,7 +361,7 @@ ip46tables_restore_main(struct iptables_restore_cb *cb, int argc, char *argv[])
 
 
 #if defined ENABLE_IPV4
-struct iptables_restore_cb ipt_restore_cb = {
+static const struct iptables_restore_cb ipt_restore_cb = {
 	.ops		= &iptc_ops,
 	.for_each_chain	= for_each_chain4,
 	.flush_entries	= flush_entries4,
@@ -391,7 +392,7 @@ iptables_restore_main(int argc, char *argv[])
 #endif
 
 #if defined ENABLE_IPV6
-struct iptables_restore_cb ip6t_restore_cb = {
+static const struct iptables_restore_cb ip6t_restore_cb = {
 	.ops		= &ip6tc_ops,
 	.for_each_chain	= for_each_chain6,
 	.flush_entries	= flush_entries6,
