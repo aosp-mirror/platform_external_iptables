@@ -759,3 +759,15 @@ void add_command(unsigned int *cmd, const int newcmd,
 			   cmd2char(newcmd), cmd2char(*cmd & (~othercmds)));
 	*cmd |= newcmd;
 }
+
+/* Can't be zero. */
+int parse_rulenumber(const char *rule)
+{
+	unsigned int rulenum;
+
+	if (!xtables_strtoui(rule, NULL, &rulenum, 1, INT_MAX))
+		xtables_error(PARAMETER_PROBLEM,
+			   "Invalid rule number `%s'", rule);
+
+	return rulenum;
+}

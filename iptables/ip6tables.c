@@ -352,19 +352,6 @@ static int is_exthdr(uint16_t proto)
 		proto == IPPROTO_DSTOPTS);
 }
 
-/* Can't be zero. */
-static int
-parse_rulenumber(const char *rule)
-{
-	unsigned int rulenum;
-
-	if (!xtables_strtoui(rule, NULL, &rulenum, 1, INT_MAX))
-		xtables_error(PARAMETER_PROBLEM,
-			   "Invalid rule number `%s'", rule);
-
-	return rulenum;
-}
-
 static void
 parse_chain(const char *chainname)
 {

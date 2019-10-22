@@ -327,18 +327,6 @@ opt2char(int option)
 */
 
 /* Christophe Burki wants `-p 6' to imply `-m tcp'.  */
-/* Can't be zero. */
-static int
-parse_rulenumber(const char *rule)
-{
-	unsigned int rulenum;
-
-	if (!xtables_strtoui(rule, NULL, &rulenum, 1, INT_MAX))
-		xtables_error(PARAMETER_PROBLEM,
-			   "Invalid rule number `%s'", rule);
-
-	return rulenum;
-}
 
 static void
 set_option(unsigned int *options, unsigned int option, uint8_t *invflg,

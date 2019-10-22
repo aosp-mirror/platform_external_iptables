@@ -186,5 +186,6 @@ void command_jump(struct iptables_command_state *cs, const char *jumpto);
 char cmd2char(int option);
 void add_command(unsigned int *cmd, const int newcmd,
 		 const int othercmds, int invert);
+int parse_rulenumber(const char *rule);
 
 #endif /* IPTABLES_XSHARED_H */

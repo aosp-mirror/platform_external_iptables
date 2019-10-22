@@ -518,19 +518,6 @@ parse_interface(const char *arg, char *vianame, unsigned char *mask)
 	}
 }
 
-/* Can't be zero. */
-static int
-parse_rulenumber(const char *rule)
-{
-	unsigned int rulenum;
-
-	if (!xtables_strtoui(rule, NULL, &rulenum, 1, INT_MAX))
-		xtables_error(PARAMETER_PROBLEM,
-			      "Invalid rule number `%s'", rule);
-
-	return rulenum;
-}
-
 static void
 set_option(unsigned int *options, unsigned int option, u_int16_t *invflg,
 	   int invert)
