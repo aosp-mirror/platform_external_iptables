@@ -590,6 +590,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 	bool wait_interval_set = false;
 	struct timeval wait_interval;
 	struct xtables_target *t;
+	bool table_set = false;
 	int wait = 0;
 
 	memset(cs, 0, sizeof(*cs));
@@ -879,7 +880,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 			if (cs->invert)
 				xtables_error(PARAMETER_PROBLEM,
 					   "unexpected ! flag before --table");
-			if (p->restore && p->table)
+			if (p->restore && table_set)
 				xtables_error(PARAMETER_PROBLEM,
 					      "The -t option (seen in line %u) cannot be used in %s.\n",
 					      line, xt_params->program_name);
@@ -888,6 +889,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 					      "table '%s' does not exist",
 					      optarg);
 			p->table = optarg;
+			table_set = true;
 			break;
 
 		case 'x':

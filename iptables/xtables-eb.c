@@ -780,6 +780,7 @@ int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table,
 	int selected_chain = -1;
 	struct xtables_rule_match *xtrm_i;
 	struct ebt_match *match;
+	bool table_set = false;
 
 	/* prevent getopt to spoil our error reporting */
 	optind = 0;
@@ -947,7 +948,7 @@ print_zero:
 			break;
 		case 't': /* Table */
 			ebt_check_option2(&flags, OPT_TABLE);
-			if (restore && *table)
+			if (restore && table_set)
 				xtables_error(PARAMETER_PROBLEM,
 					      "The -t option (seen in line %u) cannot be used in %s.\n",
 					      line, xt_params->program_name);
@@ -956,6 +957,7 @@ print_zero:
 					      "Table name length cannot exceed %d characters",
 					      EBT_TABLE_MAXNAMELEN - 1);
 			*table = optarg;
+			table_set = true;
 			break;
 		case 'i': /* Input interface */
 		case 2  : /* Logical input interface */

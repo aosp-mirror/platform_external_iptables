@@ -1217,6 +1217,7 @@ int do_command4(int argc, char *argv[], char **table,
 	struct xtables_rule_match *matchp;
 	struct xtables_target *t;
 	unsigned long long cnt;
+	bool table_set = false;
 
 	/* re-set optind to 0 in case do_command4 gets called
 	 * a second time */
@@ -1494,11 +1495,12 @@ int do_command4(int argc, char *argv[], char **table,
 			if (cs.invert)
 				xtables_error(PARAMETER_PROBLEM,
 					   "unexpected ! flag before --table");
-			if (restore && *table)
+			if (restore && table_set)
 				xtables_error(PARAMETER_PROBLEM,
 					      "The -t option (seen in line %u) cannot be used in %s.\n",
 					      line, xt_params->program_name);
 			*table = optarg;
+			table_set = true;
 			break;
 
 		case 'x':
