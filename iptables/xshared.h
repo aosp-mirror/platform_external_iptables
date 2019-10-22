@@ -183,4 +183,8 @@ void command_match(struct iptables_command_state *cs);
 const char *xt_parse_target(const char *targetname);
 void command_jump(struct iptables_command_state *cs, const char *jumpto);
 
+char cmd2char(int option);
+void add_command(unsigned int *cmd, const int newcmd,
+		 const int othercmds, int invert);
+
 #endif /* IPTABLES_XSHARED_H */

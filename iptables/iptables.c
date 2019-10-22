@@ -65,8 +65,6 @@
 #define CMD_ZERO_NUM		0x2000U
 #define CMD_CHECK		0x4000U
 #define NUMBER_OF_CMD	16
-static const char cmdflags[] = { 'I', 'D', 'D', 'R', 'A', 'L', 'F', 'Z',
-				 'N', 'X', 'P', 'E', 'S', 'Z', 'C' };
 
 #define OPT_FRAGMENT    0x00800U
 #define NUMBER_OF_OPT	ARRAY_SIZE(optflags)
@@ -333,27 +331,6 @@ opt2char(int option)
 	for (ptr = optflags; option > 1; option >>= 1, ptr++);
 
 	return *ptr;
-}
-
-static char
-cmd2char(int option)
-{
-	const char *ptr;
-	for (ptr = cmdflags; option > 1; option >>= 1, ptr++);
-
-	return *ptr;
-}
-
-static void
-add_command(unsigned int *cmd, const int newcmd, const int othercmds, 
-	    int invert)
-{
-	if (invert)
-		xtables_error(PARAMETER_PROBLEM, "unexpected ! flag");
-	if (*cmd & (~othercmds))
-		xtables_error(PARAMETER_PROBLEM, "Cannot use -%c with -%c\n",
-			   cmd2char(newcmd), cmd2char(*cmd & (~othercmds)));
-	*cmd |= newcmd;
 }
 
 /*

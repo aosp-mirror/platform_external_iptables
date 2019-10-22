@@ -81,8 +81,6 @@ typedef char arpt_chainlabel[32];
 #define CMD_CHECK		0x0800U
 #define CMD_RENAME_CHAIN	0x1000U
 #define NUMBER_OF_CMD	13
-static const char cmdflags[] = { 'I', 'D', 'D', 'R', 'A', 'L', 'F', 'Z',
-				 'N', 'X', 'P', 'E' };
 
 #define OPTION_OFFSET 256
 
@@ -460,26 +458,6 @@ opt2char(int option)
 	for (ptr = optflags; option > 1; option >>= 1, ptr++);
 
 	return *ptr;
-}
-
-static char
-cmd2char(int option)
-{
-	const char *ptr;
-	for (ptr = cmdflags; option > 1; option >>= 1, ptr++);
-
-	return *ptr;
-}
-
-static void
-add_command(unsigned int *cmd, const int newcmd, const unsigned int othercmds, int invert)
-{
-	if (invert)
-		xtables_error(PARAMETER_PROBLEM, "unexpected ! flag");
-	if (*cmd & (~othercmds))
-		xtables_error(PARAMETER_PROBLEM, "Can't use -%c with -%c\n",
-			      cmd2char(newcmd), cmd2char(*cmd & (~othercmds)));
-	*cmd |= newcmd;
 }
 
 static int

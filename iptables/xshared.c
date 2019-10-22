@@ -732,3 +732,30 @@ void command_jump(struct iptables_command_state *cs, const char *jumpto)
 		xtables_error(OTHER_PROBLEM, "can't alloc memory!");
 	xt_params->opts = opts;
 }
+
+char cmd2char(int option)
+{
+	/* cmdflags index corresponds with position of bit in CMD_* values */
+	static const char cmdflags[] = { 'I', 'D', 'D', 'R', 'A', 'L', 'F', 'Z',
+					 'N', 'X', 'P', 'E', 'S', 'Z', 'C' };
+	int i;
+
+	for (i = 0; option > 1; option >>= 1, i++)
+		;
+	if (i >= ARRAY_SIZE(cmdflags))
+		xtables_error(OTHER_PROBLEM,
+			      "cmd2char(): Invalid command number %u.\n",
+			      1 << i);
+	return cmdflags[i];
+}
+
+void add_command(unsigned int *cmd, const int newcmd,
+		 const int othercmds, int invert)
+{
+	if (invert)
+		xtables_error(PARAMETER_PROBLEM, "unexpected '!' flag");
+	if (*cmd & (~othercmds))
+		xtables_error(PARAMETER_PROBLEM, "Cannot use -%c with -%c\n",
+			   cmd2char(newcmd), cmd2char(*cmd & (~othercmds)));
+	*cmd |= newcmd;
+}
