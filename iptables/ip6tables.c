@@ -175,12 +175,6 @@ static const unsigned int inverse_for_options[NUMBER_OF_OPT] =
 #define opts ip6tables_globals.opts
 #define prog_name ip6tables_globals.program_name
 #define prog_vers ip6tables_globals.program_version
-/* A few hardcoded protocols for 'all' and in case the user has no
-   /etc/protocols */
-struct pprot {
-	const char *name;
-	uint8_t num;
-};
 
 static void __attribute__((noreturn))
 exit_tryhelp(int status)
