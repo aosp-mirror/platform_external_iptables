@@ -226,19 +226,6 @@ static void nft_ipv4_parse_immediate(const char *jumpto, bool nft_goto,
 		cs->fw.ip.flags |= IPT_F_GOTO;
 }
 
-static void print_fragment(unsigned int flags, unsigned int invflags,
-			   unsigned int format)
-{
-	if (!(format & FMT_OPTIONS))
-		return;
-
-	if (format & FMT_NOTABLE)
-		fputs("opt ", stdout);
-	fputc(invflags & IPT_INV_FRAG ? '!' : '-', stdout);
-	fputc(flags & IPT_F_FRAG ? 'f' : '-', stdout);
-	fputc(' ', stdout);
-}
-
 static void nft_ipv4_print_rule(struct nft_handle *h, struct nftnl_rule *r,
 				unsigned int num, unsigned int format)
 {
@@ -248,7 +235,7 @@ static void nft_ipv4_print_rule(struct nft_handle *h, struct nftnl_rule *r,
 
 	print_rule_details(num, &cs.counters, cs.jumpto, cs.fw.ip.proto,
 			   cs.fw.ip.flags, cs.fw.ip.invflags, format);
-	print_fragment(cs.fw.ip.flags, cs.fw.ip.invflags, format);
+	print_fragment(cs.fw.ip.flags, cs.fw.ip.invflags, format, false);
 	print_ifaces(cs.fw.ip.iniface, cs.fw.ip.outiface, cs.fw.ip.invflags,
 		     format);
 	print_ipv4_addresses(&cs.fw, format);

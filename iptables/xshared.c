@@ -669,6 +669,24 @@ void save_ipv6_addr(char letter, const struct in6_addr *addr,
 		printf("/%d", l);
 }
 
+void print_fragment(unsigned int flags, unsigned int invflags,
+		    unsigned int format, bool fake)
+{
+	if (!(format & FMT_OPTIONS))
+		return;
+
+	if (format & FMT_NOTABLE)
+		fputs("opt ", stdout);
+
+	if (fake) {
+		fputs("  ", stdout);
+	} else {
+		fputc(invflags & IPT_INV_FRAG ? '!' : '-', stdout);
+		fputc(flags & IPT_F_FRAG ? 'f' : '-', stdout);
+	}
+	fputc(' ', stdout);
+}
+
 /* Luckily, IPT_INV_VIA_IN and IPT_INV_VIA_OUT
  * have the same values as IP6T_INV_VIA_IN and IP6T_INV_VIA_OUT
  * so this function serves for both iptables and ip6tables */

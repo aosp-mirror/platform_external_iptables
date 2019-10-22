@@ -332,13 +332,7 @@ print_firewall(const struct ip6t_entry *fw,
 	print_rule_details(num, &fw->counters, targname, fw->ipv6.proto,
 			   fw->ipv6.flags, fw->ipv6.invflags, format);
 
-	if (format & FMT_OPTIONS) {
-		if (format & FMT_NOTABLE)
-			fputs("opt ", stdout);
-		fputc(' ', stdout); /* Invert flag of FRAG */
-		fputc(' ', stdout); /* -f */
-		fputc(' ', stdout);
-	}
+	print_fragment(fw->ipv6.flags, fw->ipv6.invflags, format, true);
 
 	print_ifaces(fw->ipv6.iniface, fw->ipv6.outiface,
 		     fw->ipv6.invflags, format);

@@ -232,6 +232,9 @@ void print_ifaces(const char *iniface, const char *outiface, uint8_t invflags,
 void save_iface(char letter, const char *iface,
 		const unsigned char *mask, int invert);
 
+void print_fragment(unsigned int flags, unsigned int invflags,
+		    unsigned int format, bool fake);
+
 void command_match(struct iptables_command_state *cs, bool invert);
 const char *xt_parse_target(const char *targetname);
 void command_jump(struct iptables_command_state *cs, const char *jumpto);

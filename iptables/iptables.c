@@ -311,7 +311,6 @@ print_firewall(const struct ipt_entry *fw,
 {
 	struct xtables_target *target, *tg;
 	const struct xt_entry_target *t;
-	uint8_t flags;
 
 	if (!iptc_is_chain(targname, handle))
 		target = xtables_find_target(targname, XTF_TRY_LOAD);
@@ -320,18 +319,11 @@ print_firewall(const struct ipt_entry *fw,
 		         XTF_LOAD_MUST_SUCCEED);
 
 	t = ipt_get_target((struct ipt_entry *)fw);
-	flags = fw->ip.flags;
 
 	print_rule_details(num, &fw->counters, targname, fw->ip.proto,
 			   fw->ip.flags, fw->ip.invflags, format);
 
-	if (format & FMT_OPTIONS) {
-		if (format & FMT_NOTABLE)
-			fputs("opt ", stdout);
-		fputc(fw->ip.invflags & IPT_INV_FRAG ? '!' : '-', stdout);
-		fputc(flags & IPT_F_FRAG ? 'f' : '-', stdout);
-		fputc(' ', stdout);
-	}
+	print_fragment(fw->ip.flags, fw->ip.invflags, format, false);
 
 	print_ifaces(fw->ip.iniface, fw->ip.outiface, fw->ip.invflags, format);
 

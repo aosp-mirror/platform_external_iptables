@@ -200,11 +200,7 @@ static void nft_ipv6_print_rule(struct nft_handle *h, struct nftnl_rule *r,
 
 	print_rule_details(num, &cs.counters, cs.jumpto, cs.fw6.ipv6.proto,
 			   cs.fw6.ipv6.flags, cs.fw6.ipv6.invflags, format);
-	if (format & FMT_OPTIONS) {
-		if (format & FMT_NOTABLE)
-			fputs("opt ", stdout);
-		fputs("   ", stdout);
-	}
+	print_fragment(cs.fw6.ipv6.flags, cs.fw6.ipv6.invflags, format, true);
 	print_ifaces(cs.fw6.ipv6.iniface, cs.fw6.ipv6.outiface,
 		     cs.fw6.ipv6.invflags, format);
 	print_ipv6_addresses(&cs.fw6, format);
