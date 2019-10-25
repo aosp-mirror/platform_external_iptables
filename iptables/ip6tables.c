@@ -45,14 +45,6 @@
 #include "ip6tables-multi.h"
 #include "xshared.h"
 
-#ifndef TRUE
-#define TRUE 1
-#endif
-#ifndef FALSE
-#define FALSE 0
-#endif
-
-
 #define NUMBER_OF_OPT	ARRAY_SIZE(optflags)
 static const char optflags[]
 = { 'n', 's', 'd', 'p', 'j', 'v', 'x', 'i', 'o', '0', 'c'};
@@ -1525,7 +1517,7 @@ int do_command6(int argc, char *argv[], char **table,
 					xtables_error(PARAMETER_PROBLEM,
 						   "multiple consecutive ! not"
 						   " allowed");
-				cs.invert = TRUE;
+				cs.invert = true;
 				optarg[0] = '\0';
 				continue;
 			}
@@ -1537,12 +1529,12 @@ int do_command6(int argc, char *argv[], char **table,
 				/*
 				 * If new options were loaded, we must retry
 				 * getopt immediately and not allow
-				 * cs.invert=FALSE to be executed.
+				 * cs.invert=false to be executed.
 				 */
 				continue;
 			break;
 		}
-		cs.invert = FALSE;
+		cs.invert = false;
 	}
 
 	if (!wait && wait_interval_set)

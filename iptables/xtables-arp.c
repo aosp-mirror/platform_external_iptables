@@ -55,13 +55,6 @@
 
 typedef char arpt_chainlabel[32];
 
-#ifndef TRUE
-#define TRUE 1
-#endif
-#ifndef FALSE
-#define FALSE 0
-#endif
-
 #define OPTION_OFFSET 256
 
 #define OPT_NONE	0x00000U
@@ -383,7 +376,7 @@ check_inverse(const char option[], int *invert, int *optidx, int argc)
 		if (*invert)
 			xtables_error(PARAMETER_PROBLEM,
 				      "Multiple `!' flags not allowed");
-		*invert = TRUE;
+		*invert = true;
 		if (optidx) {
 			*optidx = *optidx+1;
 			if (argc && *optidx > argc)
@@ -391,9 +384,9 @@ check_inverse(const char option[], int *invert, int *optidx, int argc)
 					      "no argument following `!'");
 		}
 
-		return TRUE;
+		return true;
 	}
-	return FALSE;
+	return false;
 }
 
 static void
@@ -942,7 +935,7 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table,
 					xtables_error(PARAMETER_PROBLEM,
 						      "multiple consecutive ! not"
 						      " allowed");
-				invert = TRUE;
+				invert = true;
 				optarg[0] = '\0';
 				continue;
 			}
@@ -956,7 +949,7 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table,
 			}
 			break;
 		}
-		invert = FALSE;
+		invert = false;
 	}
 
 	if (cs.target)

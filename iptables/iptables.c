@@ -41,14 +41,6 @@
 #include <fcntl.h>
 #include "xshared.h"
 
-#ifndef TRUE
-#define TRUE 1
-#endif
-#ifndef FALSE
-#define FALSE 0
-#endif
-
-
 #define OPT_FRAGMENT    0x00800U
 #define NUMBER_OF_OPT	ARRAY_SIZE(optflags)
 static const char optflags[]
@@ -1518,7 +1510,7 @@ int do_command4(int argc, char *argv[], char **table,
 					xtables_error(PARAMETER_PROBLEM,
 						   "multiple consecutive ! not"
 						   " allowed");
-				cs.invert = TRUE;
+				cs.invert = true;
 				optarg[0] = '\0';
 				continue;
 			}
@@ -1531,7 +1523,7 @@ int do_command4(int argc, char *argv[], char **table,
 				continue;
 			break;
 		}
-		cs.invert = FALSE;
+		cs.invert = false;
 	}
 
 	if (!wait && wait_interval_set)

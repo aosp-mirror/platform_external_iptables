@@ -43,13 +43,6 @@
 #include "nft-shared.h"
 #include "nft.h"
 
-#ifndef TRUE
-#define TRUE 1
-#endif
-#ifndef FALSE
-#define FALSE 0
-#endif
-
 #define OPT_FRAGMENT	0x00800U
 #define NUMBER_OF_OPT	ARRAY_SIZE(optflags)
 static const char optflags[]
@@ -952,7 +945,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 					xtables_error(PARAMETER_PROBLEM,
 						   "multiple consecutive ! not"
 						   " allowed");
-				cs->invert = TRUE;
+				cs->invert = true;
 				optarg[0] = '\0';
 				continue;
 			}
@@ -965,7 +958,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 				continue;
 			break;
 		}
-		cs->invert = FALSE;
+		cs->invert = false;
 	}
 
 	if (strcmp(p->table, "nat") == 0 &&
