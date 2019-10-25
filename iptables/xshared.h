@@ -29,6 +29,13 @@ enum {
 	OPT_VIANAMEOUT  = 1 << 8,
 	OPT_LINENUMBERS = 1 << 9,
 	OPT_COUNTERS    = 1 << 10,
+	/* below are for arptables only */
+	OPT_S_MAC	= 1 << 11,
+	OPT_D_MAC	= 1 << 12,
+	OPT_H_LENGTH	= 1 << 13,
+	OPT_OPCODE	= 1 << 14,
+	OPT_H_TYPE	= 1 << 15,
+	OPT_P_TYPE	= 1 << 16,
 };
 
 enum {
