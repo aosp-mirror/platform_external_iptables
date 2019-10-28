@@ -114,29 +114,6 @@ mask_to_dotted(const struct in_addr *mask)
 	return buf;
 }
 
-static void print_mac(const unsigned char *mac, int l)
-{
-	int j;
-
-	for (j = 0; j < l; j++)
-		printf("%02x%s", mac[j],
-			(j==l-1) ? "" : ":");
-}
-
-static void print_mac_and_mask(const unsigned char *mac, const unsigned char *mask, int l)
-{
-	int i;
-
-	print_mac(mac, l);
-	for (i = 0; i < l ; i++)
-		if (mask[i] != 255)
-			break;
-	if (i == l)
-		return;
-	printf("/");
-	print_mac(mask, l);
-}
-
 static bool need_devaddr(struct arpt_devaddr_info *info)
 {
 	int i;
@@ -506,8 +483,8 @@ static void nft_arp_print_rule_details(const struct iptables_command_state *cs,
 	printf("%s%s", sep, fw->arp.invflags & ARPT_INV_SRCDEVADDR
 		? "! " : "");
 	printf("--src-mac ");
-	print_mac_and_mask((unsigned char *)fw->arp.src_devaddr.addr,
-		(unsigned char *)fw->arp.src_devaddr.mask, ETH_ALEN);
+	xtables_print_mac_and_mask((unsigned char *)fw->arp.src_devaddr.addr,
+				   (unsigned char *)fw->arp.src_devaddr.mask);
 	sep = " ";
 after_devsrc:
 
@@ -532,8 +509,8 @@ after_devsrc:
 	printf("%s%s", sep, fw->arp.invflags & ARPT_INV_TGTDEVADDR
 		? "! " : "");
 	printf("--dst-mac ");
-	print_mac_and_mask((unsigned char *)fw->arp.tgt_devaddr.addr,
-		(unsigned char *)fw->arp.tgt_devaddr.mask, ETH_ALEN);
+	xtables_print_mac_and_mask((unsigned char *)fw->arp.tgt_devaddr.addr,
+				   (unsigned char *)fw->arp.tgt_devaddr.mask);
 	sep = " ";
 
 after_devdst:
