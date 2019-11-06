@@ -495,7 +495,6 @@ void add_param_to_argv(struct argv_store *store, char *parsestart, int line)
 				continue;
 			} else if (*curchar == '"') {
 				quote_open = 0;
-				*curchar = '"';
 			} else {
 				add_param(&param, curchar);
 				continue;
