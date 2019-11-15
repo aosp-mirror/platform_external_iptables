@@ -2897,6 +2897,44 @@ const char *nft_strerror(int err)
 	return strerror(err);
 }
 
+static int recover_rule_compat(struct nftnl_rule *r)
+{
+	struct nftnl_expr_iter *iter;
+	struct nftnl_expr *e;
+	uint32_t reg;
+	int ret = -1;
+
+	iter = nftnl_expr_iter_create(r);
+	if (!iter)
+		return -1;
+
+next_expr:
+	e = nftnl_expr_iter_next(iter);
+	if (!e)
+		goto out;
+
+	if (strcmp("meta", nftnl_expr_get_str(e, NFTNL_EXPR_NAME)) ||
+	    nftnl_expr_get_u32(e, NFTNL_EXPR_META_KEY) != NFT_META_L4PROTO)
+		goto next_expr;
+
+	reg = nftnl_expr_get_u32(e, NFTNL_EXPR_META_DREG);
+
+	e = nftnl_expr_iter_next(iter);
+	if (!e)
+		goto out;
+
+	if (strcmp("cmp", nftnl_expr_get_str(e, NFTNL_EXPR_NAME)) ||
+	    reg != nftnl_expr_get_u32(e, NFTNL_EXPR_CMP_SREG))
+		goto next_expr;
+
+	add_compat(r, nftnl_expr_get_u8(e, NFTNL_EXPR_CMP_DATA),
+		   nftnl_expr_get_u32(e, NFTNL_EXPR_CMP_OP) == NFT_CMP_NEQ);
+	ret = 0;
+out:
+	nftnl_expr_iter_destroy(iter);
+	return ret;
+}
+
 struct chain_zero_data {
 	struct nft_handle	*handle;
 	bool			verbose;
@@ -2961,6 +2999,7 @@ static int __nft_chain_zero_counters(struct nftnl_chain *c, void *data)
 			 * Unset RULE_POSITION for older kernels, we want to replace
 			 * rule based on its handle only.
 			 */
+			recover_rule_compat(r);
 			nftnl_rule_unset(r, NFTNL_RULE_POSITION);
 			if (!batch_rule_add(h, NFT_COMPAT_RULE_REPLACE, r)) {
 				nftnl_rule_iter_destroy(iter);
