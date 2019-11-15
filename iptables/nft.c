@@ -2922,6 +2922,8 @@ static int __nft_chain_zero_counters(struct nftnl_chain *c, void *data)
 			return -1;
 	}
 
+	nft_build_cache(h, c);
+
 	iter = nftnl_rule_iter_create(c);
 	if (iter == NULL)
 		return -1;

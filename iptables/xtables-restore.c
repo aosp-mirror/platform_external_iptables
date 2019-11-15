@@ -268,6 +268,7 @@ static bool cmd_needs_full_cache(char *cmd)
 	case 'C':
 	case 'S':
 	case 'L':
+	case 'Z':
 		return true;
 	}
 
