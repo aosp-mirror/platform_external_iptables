@@ -1,7 +1,7 @@
 #ifndef IPTABLES_INTERNAL_H
 #define IPTABLES_INTERNAL_H 1
 
-#define IPTABLES_VERSION "1.6.1"
+#define IPTABLES_VERSION "1.6.2"
 
 /**
  * Program's own name and version.
