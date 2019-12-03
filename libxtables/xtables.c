@@ -538,15 +538,15 @@ void xtables_parse_interface(const char *arg, char *vianame,
 	} else {
 		/* Include nul-terminator in match */
 		memset(mask, 0xFF, vialen + 1);
-		for (i = 0; vianame[i]; i++) {
-			if (vianame[i] == '/' ||
-			    vianame[i] == ' ') {
-				fprintf(stderr,
-					"Warning: weird character in interface"
-					" `%s' ('/' and ' ' are not allowed by the kernel).\n",
-					vianame);
-				break;
-			}
+	}
+
+	/* Display warning on invalid characters */
+	for (i = 0; vianame[i]; i++) {
+		if (vianame[i] == '/' || vianame[i] == ' ') {
+			fprintf(stderr,	"Warning: weird character in interface"
+				" `%s' ('/' and ' ' are not allowed by the kernel).\n",
+				vianame);
+			break;
 		}
 	}
 }
@@ -1367,26 +1367,22 @@ static struct in_addr *host_to_ipaddr(const char *name, unsigned int *naddr)
 	unsigned int i;
 
 	memset(&hints, 0, sizeof(hints));
-	hints.ai_flags    = AI_CANONNAME;
 	hints.ai_family   = AF_INET;
 	hints.ai_socktype = SOCK_RAW;
 
 	*naddr = 0;
-	if ((err = getaddrinfo(name, NULL, &hints, &res)) != 0) {
+	err = getaddrinfo(name, NULL, &hints, &res);
+	if (err != 0)
 		return NULL;
-	} else {
-		for (p = res; p != NULL; p = p->ai_next)
-			++*naddr;
-		addr = xtables_calloc(*naddr, sizeof(struct in_addr));
-		for (i = 0, p = res; p != NULL; p = p->ai_next)
-			memcpy(&addr[i++],
-			       &((const struct sockaddr_in *)p->ai_addr)->sin_addr,
-			       sizeof(struct in_addr));
-		freeaddrinfo(res);
-		return addr;
-	}
-
-	return NULL;
+	for (p = res; p != NULL; p = p->ai_next)
+		++*naddr;
+	addr = xtables_calloc(*naddr, sizeof(struct in_addr));
+	for (i = 0, p = res; p != NULL; p = p->ai_next)
+		memcpy(&addr[i++],
+		       &((const struct sockaddr_in *)p->ai_addr)->sin_addr,
+		       sizeof(struct in_addr));
+	freeaddrinfo(res);
+	return addr;
 }
 
 static struct in_addr *
@@ -1657,28 +1653,24 @@ host_to_ip6addr(const char *name, unsigned int *naddr)
 	unsigned int i;
 
 	memset(&hints, 0, sizeof(hints));
-	hints.ai_flags    = AI_CANONNAME;
 	hints.ai_family   = AF_INET6;
 	hints.ai_socktype = SOCK_RAW;
 
 	*naddr = 0;
-	if ((err = getaddrinfo(name, NULL, &hints, &res)) != 0) {
+	err = getaddrinfo(name, NULL, &hints, &res);
+	if (err != 0)
 		return NULL;
-	} else {
-		/* Find length of address chain */
-		for (p = res; p != NULL; p = p->ai_next)
-			++*naddr;
-		/* Copy each element of the address chain */
-		addr = xtables_calloc(*naddr, sizeof(struct in6_addr));
-		for (i = 0, p = res; p != NULL; p = p->ai_next)
-			memcpy(&addr[i++],
-			       &((const struct sockaddr_in6 *)p->ai_addr)->sin6_addr,
-			       sizeof(struct in6_addr));
-		freeaddrinfo(res);
-		return addr;
-	}
-
-	return NULL;
+	/* Find length of address chain */
+	for (p = res; p != NULL; p = p->ai_next)
+		++*naddr;
+	/* Copy each element of the address chain */
+	addr = xtables_calloc(*naddr, sizeof(struct in6_addr));
+	for (i = 0, p = res; p != NULL; p = p->ai_next)
+		memcpy(&addr[i++],
+		       &((const struct sockaddr_in6 *)p->ai_addr)->sin6_addr,
+		       sizeof(struct in6_addr));
+	freeaddrinfo(res);
+	return addr;
 }
 
 static struct in6_addr *network_to_ip6addr(const char *name)
