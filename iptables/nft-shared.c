@@ -998,7 +998,7 @@ bool nft_ipv46_rule_find(struct nft_handle *h, struct nftnl_rule *r, void *data)
 
 	DEBUGP("comparing with... ");
 #ifdef DEBUG_DEL
-	nft_rule_print_save(r, NFT_RULE_APPEND, 0);
+	nft_rule_print_save(h, r, NFT_RULE_APPEND, 0);
 #endif
 	if (!h->ops->is_same(cs, &this))
 		goto out;
