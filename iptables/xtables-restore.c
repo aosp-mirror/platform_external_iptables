@@ -327,10 +327,12 @@ void xtables_restore_parse(struct nft_handle *h,
 	line = 0;
 	ptr = preload_buffer;
 	while (*ptr) {
+		size_t len = strlen(ptr);
+
 		h->error.lineno = ++line;
 		DEBUGP("%s: buffered line %d: '%s'\n", __func__, line, ptr);
 		xtables_restore_parse_line(h, p, &state, ptr);
-		ptr += strlen(ptr) + 1;
+		ptr += len + 1;
 	}
 	if (*buffer) {
 		h->error.lineno = ++line;
