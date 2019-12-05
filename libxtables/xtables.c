@@ -856,7 +856,8 @@ int xtables_compatible_revision(const char *name, uint8_t revision, int opt)
 
 	xtables_load_ko(xtables_modprobe_program, true);
 
-	strcpy(rev.name, name);
+	strncpy(rev.name, name, XT_EXTENSION_MAXNAMELEN - 1);
+	rev.name[XT_EXTENSION_MAXNAMELEN - 1] = '\0';
 	rev.revision = revision;
 
 	max_rev = getsockopt(sockfd, afinfo->ipproto, opt, &rev, &s);
