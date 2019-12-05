@@ -6,6 +6,7 @@
  * August, 2003
  */
 
+#include <errno.h>
 #include <ctype.h>
 #include <fcntl.h>
 #include <getopt.h>
@@ -137,7 +138,10 @@ static int bramong_parse(int c, char **argv, int invert,
 		if ((fd = open(optarg, O_RDONLY)) == -1)
 			xtables_error(PARAMETER_PROBLEM,
 				      "Couldn't open file '%s'", optarg);
-		fstat(fd, &stats);
+		if (fstat(fd, &stats) < 0)
+			xtables_error(PARAMETER_PROBLEM,
+				      "fstat(%s) failed: '%s'",
+				      optarg, strerror(errno));
 		flen = stats.st_size;
 		/* use mmap because the file will probably be big */
 		optarg = mmap(0, flen, PROT_READ | PROT_WRITE,
