@@ -32,14 +32,13 @@
 void xlate_ifname(struct xt_xlate *xl, const char *nftmeta, const char *ifname,
 		  bool invert)
 {
+	int ifaclen = strlen(ifname);
 	char iface[IFNAMSIZ];
-	int ifaclen;
 
-	if (ifname[0] == '\0')
+	if (ifaclen < 1 || ifaclen >= IFNAMSIZ)
 		return;
 
 	strcpy(iface, ifname);
-	ifaclen = strlen(iface);
 	if (iface[ifaclen - 1] == '+')
 		iface[ifaclen - 1] = '*';
 
