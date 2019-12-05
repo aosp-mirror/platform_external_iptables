@@ -281,7 +281,7 @@ void xtables_restore_parse(struct nft_handle *h,
 			   const struct nft_xt_restore_parse *p)
 {
 	struct nft_xt_restore_state state = {};
-	char preload_buffer[PREBUFSIZ] = {}, buffer[10240], *ptr;
+	char preload_buffer[PREBUFSIZ] = {}, buffer[10240] = {}, *ptr;
 
 	if (!h->noflush) {
 		nft_fake_cache(h);
