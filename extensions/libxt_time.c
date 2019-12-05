@@ -330,7 +330,7 @@ static void time_print_monthdays(uint32_t mask, bool human_readable)
 
 	printf(" ");
 	for (i = 1; i <= 31; ++i)
-		if (mask & (1 << i)) {
+		if (mask & (1u << i)) {
 			if (nbdays++ > 0)
 				printf(",");
 			printf("%u", i);
