@@ -400,7 +400,7 @@ list_entries(struct nft_handle *h, const char *chain, const char *table,
 	if (linenumbers)
 		format |= FMT_LINENUMBERS;
 
-	return nft_rule_list(h, chain, table, rulenum, format);
+	return nft_cmd_rule_list(h, chain, table, rulenum, format);
 }
 
 static int
@@ -427,10 +427,10 @@ append_entry(struct nft_handle *h,
 			cs->arp.arp.tgt.s_addr = daddrs[j].s_addr;
 			cs->arp.arp.tmsk.s_addr = dmasks[j].s_addr;
 			if (append) {
-				ret = nft_rule_append(h, chain, table, cs, NULL,
+				ret = nft_cmd_rule_append(h, chain, table, cs, NULL,
 						      verbose);
 			} else {
-				ret = nft_rule_insert(h, chain, table, cs,
+				ret = nft_cmd_rule_insert(h, chain, table, cs,
 						      rulenum, verbose);
 			}
 		}
@@ -455,7 +455,7 @@ replace_entry(const char *chain,
 	cs->arp.arp.smsk.s_addr = smask->s_addr;
 	cs->arp.arp.tmsk.s_addr = dmask->s_addr;
 
-	return nft_rule_replace(h, chain, table, cs, rulenum, verbose);
+	return nft_cmd_rule_replace(h, chain, table, cs, rulenum, verbose);
 }
 
 static int
@@ -479,7 +479,7 @@ delete_entry(const char *chain,
 		for (j = 0; j < ndaddrs; j++) {
 			cs->arp.arp.tgt.s_addr = daddrs[j].s_addr;
 			cs->arp.arp.tmsk.s_addr = dmasks[j].s_addr;
-			ret = nft_rule_delete(h, chain, table, cs, verbose);
+			ret = nft_cmd_rule_delete(h, chain, table, cs, verbose);
 		}
 	}
 
@@ -955,7 +955,7 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table,
 				   options&OPT_VERBOSE, h);
 		break;
 	case CMD_DELETE_NUM:
-		ret = nft_rule_delete_num(h, chain, *table, rulenum - 1, verbose);
+		ret = nft_cmd_rule_delete_num(h, chain, *table, rulenum - 1, verbose);
 		break;
 	case CMD_REPLACE:
 		ret = replace_entry(chain, *table, &cs, rulenum - 1,
@@ -977,10 +977,10 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table,
 				   options&OPT_LINENUMBERS);
 		break;
 	case CMD_FLUSH:
-		ret = nft_rule_flush(h, chain, *table, options & OPT_VERBOSE);
+		ret = nft_cmd_rule_flush(h, chain, *table, options & OPT_VERBOSE);
 		break;
 	case CMD_ZERO:
-		ret = nft_chain_zero_counters(h, chain, *table,
+		ret = nft_cmd_chain_zero_counters(h, chain, *table,
 					      options & OPT_VERBOSE);
 		break;
 	case CMD_LIST|CMD_ZERO:
@@ -990,21 +990,21 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table,
 				   /*options&OPT_EXPANDED*/0,
 				   options&OPT_LINENUMBERS);
 		if (ret)
-			ret = nft_chain_zero_counters(h, chain, *table,
+			ret = nft_cmd_chain_zero_counters(h, chain, *table,
 						      options & OPT_VERBOSE);
 		break;
 	case CMD_NEW_CHAIN:
-		ret = nft_chain_user_add(h, chain, *table);
+		ret = nft_cmd_chain_user_add(h, chain, *table);
 		break;
 	case CMD_DELETE_CHAIN:
-		ret = nft_chain_user_del(h, chain, *table,
+		ret = nft_cmd_chain_user_del(h, chain, *table,
 					 options & OPT_VERBOSE);
 		break;
 	case CMD_RENAME_CHAIN:
-		ret = nft_chain_user_rename(h, chain, *table, newname);
+		ret = nft_cmd_chain_user_rename(h, chain, *table, newname);
 		break;
 	case CMD_SET_POLICY:
-		ret = nft_chain_set(h, *table, chain, policy, NULL);
+		ret = nft_cmd_chain_set(h, *table, chain, policy, NULL);
 		if (ret < 0)
 			xtables_error(PARAMETER_PROBLEM, "Wrong policy `%s'\n",
 				      policy);

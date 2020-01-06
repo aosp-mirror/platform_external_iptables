@@ -54,10 +54,16 @@ cmd 1 "$ENOENT" iptables -Z bar
 # test chain rename
 cmd 0 iptables -E foo bar
 cmd 1 "$EEXIST_F" iptables -E foo bar
+cmd 1 "$ENOENT" iptables -E foo bar2
+cmd 0 iptables -N foo2
+cmd 1 "$EEXIST_F" iptables -E foo2 bar
 
 # test rule adding
 cmd 0 iptables -A INPUT -j ACCEPT
 cmd 1 "$ENOENT" iptables -A noexist -j ACCEPT
+cmd 2 "" iptables -I INPUT -j foobar
+cmd 2 "" iptables -R INPUT 1 -j foobar
+cmd 2 "" iptables -D INPUT -j foobar
 
 # test rulenum commands
 cmd 1 "$E2BIG_I" iptables -I INPUT 23 -j ACCEPT

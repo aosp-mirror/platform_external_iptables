@@ -256,24 +256,6 @@ static int mnl_batch_talk(struct nft_handle *h, int numcmds)
 	return err;
 }
 
-enum obj_update_type {
-	NFT_COMPAT_TABLE_ADD,
-	NFT_COMPAT_TABLE_FLUSH,
-	NFT_COMPAT_CHAIN_ADD,
-	NFT_COMPAT_CHAIN_USER_ADD,
-	NFT_COMPAT_CHAIN_USER_DEL,
-	NFT_COMPAT_CHAIN_USER_FLUSH,
-	NFT_COMPAT_CHAIN_UPDATE,
-	NFT_COMPAT_CHAIN_RENAME,
-	NFT_COMPAT_CHAIN_ZERO,
-	NFT_COMPAT_RULE_APPEND,
-	NFT_COMPAT_RULE_INSERT,
-	NFT_COMPAT_RULE_REPLACE,
-	NFT_COMPAT_RULE_DELETE,
-	NFT_COMPAT_RULE_FLUSH,
-	NFT_COMPAT_SET_ADD,
-};
-
 enum obj_action {
 	NFT_COMPAT_COMMIT,
 	NFT_COMPAT_ABORT,
@@ -361,6 +343,15 @@ static int mnl_append_error(const struct nft_handle *h,
 	case NFT_COMPAT_SET_ADD:
 		snprintf(tcr, sizeof(tcr), "set %s",
 			 nftnl_set_get_str(o->set, NFTNL_SET_NAME));
+		break;
+	case NFT_COMPAT_RULE_LIST:
+	case NFT_COMPAT_RULE_CHECK:
+	case NFT_COMPAT_CHAIN_RESTORE:
+	case NFT_COMPAT_RULE_SAVE:
+	case NFT_COMPAT_RULE_ZERO:
+	case NFT_COMPAT_BRIDGE_USER_CHAIN_UPDATE:
+	case NFT_COMPAT_TABLE_NEW:
+		assert(0);
 		break;
 	}
 
@@ -813,12 +804,18 @@ int nft_init(struct nft_handle *h, int family, const struct builtin_table *t)
 
 	INIT_LIST_HEAD(&h->obj_list);
 	INIT_LIST_HEAD(&h->err_list);
+	INIT_LIST_HEAD(&h->cmd_list);
 
 	return 0;
 }
 
 void nft_fini(struct nft_handle *h)
 {
+	struct nft_cmd *cmd, *next;
+
+	list_for_each_entry_safe(cmd, next, &h->cmd_list, head)
+		nft_cmd_free(cmd);
+
 	flush_chain_cache(h, NULL);
 	mnl_socket_close(h->nl);
 }
@@ -1327,7 +1324,7 @@ void add_compat(struct nftnl_rule *r, uint32_t proto, bool inv)
 			      inv ? NFT_RULE_COMPAT_F_INV : 0);
 }
 
-static struct nftnl_rule *
+struct nftnl_rule *
 nft_rule_new(struct nft_handle *h, const char *chain, const char *table,
 	     void *data)
 {
@@ -1355,10 +1352,9 @@ nft_chain_find(struct nft_handle *h, const char *table, const char *chain);
 
 int
 nft_rule_append(struct nft_handle *h, const char *chain, const char *table,
-		void *data, struct nftnl_rule *ref, bool verbose)
+		struct nftnl_rule *r, struct nftnl_rule *ref, bool verbose)
 {
 	struct nftnl_chain *c;
-	struct nftnl_rule *r;
 	int type;
 
 	nft_xt_builtin_init(h, table);
@@ -1373,10 +1369,6 @@ nft_rule_append(struct nft_handle *h, const char *chain, const char *table,
 
 	nft_fn = nft_rule_append;
 
-	r = nft_rule_new(h, chain, table, data);
-	if (r == NULL)
-		return 0;
-
 	if (ref) {
 		nftnl_rule_set_u64(r, NFTNL_RULE_HANDLE,
 				   nftnl_rule_get_u64(ref, NFTNL_RULE_HANDLE));
@@ -1384,10 +1376,8 @@ nft_rule_append(struct nft_handle *h, const char *chain, const char *table,
 	} else
 		type = NFT_COMPAT_RULE_APPEND;
 
-	if (batch_rule_add(h, type, r) == NULL) {
-		nftnl_rule_free(r);
+	if (batch_rule_add(h, type, r) == NULL)
 		return 0;
-	}
 
 	if (verbose)
 		h->ops->print_rule(h, r, 0, FMT_PRINT_RULE);
@@ -1747,7 +1737,7 @@ int nft_chain_restore(struct nft_handle *h, const char *chain, const char *table
 	} else {
 		c = nftnl_chain_alloc();
 		if (!c)
-			return -1;
+			return 0;
 
 		nftnl_chain_set_str(c, NFTNL_CHAIN_TABLE, table);
 		nftnl_chain_set_str(c, NFTNL_CHAIN_NAME, chain);
@@ -1758,7 +1748,7 @@ int nft_chain_restore(struct nft_handle *h, const char *chain, const char *table
 		nftnl_chain_set_u32(c, NFTNL_CHAIN_POLICY, NF_ACCEPT);
 
 	if (!created)
-		return 0;
+		return 1;
 
 	ret = batch_chain_add(h, NFT_COMPAT_CHAIN_USER_ADD, c);
 
@@ -1766,7 +1756,8 @@ int nft_chain_restore(struct nft_handle *h, const char *chain, const char *table
 	if (list)
 		nftnl_chain_list_add(c, list);
 
-	return ret;
+	/* the core expects 1 for success and 0 for error */
+	return ret == 0 ? 1 : 0;
 }
 
 /* From linux/netlink.h */
@@ -2073,7 +2064,8 @@ static int __nft_rule_del(struct nft_handle *h, struct nftnl_rule *r)
 }
 
 static struct nftnl_rule *
-nft_rule_find(struct nft_handle *h, struct nftnl_chain *c, void *data, int rulenum)
+nft_rule_find(struct nft_handle *h, struct nftnl_chain *c,
+	      struct nftnl_rule *rule, int rulenum)
 {
 	struct nftnl_rule *r;
 	struct nftnl_rule_iter *iter;
@@ -2091,7 +2083,7 @@ nft_rule_find(struct nft_handle *h, struct nftnl_chain *c, void *data, int rulen
 
 	r = nftnl_rule_iter_next(iter);
 	while (r != NULL) {
-		found = h->ops->rule_find(h, r, data);
+		found = h->ops->rule_find(h, r, rule);
 		if (found)
 			break;
 		r = nftnl_rule_iter_next(iter);
@@ -2103,7 +2095,7 @@ nft_rule_find(struct nft_handle *h, struct nftnl_chain *c, void *data, int rulen
 }
 
 int nft_rule_check(struct nft_handle *h, const char *chain,
-		   const char *table, void *data, bool verbose)
+		   const char *table, struct nftnl_rule *rule, bool verbose)
 {
 	struct nftnl_chain *c;
 	struct nftnl_rule *r;
@@ -2114,7 +2106,7 @@ int nft_rule_check(struct nft_handle *h, const char *chain,
 	if (!c)
 		goto fail_enoent;
 
-	r = nft_rule_find(h, c, data, -1);
+	r = nft_rule_find(h, c, rule, -1);
 	if (r == NULL)
 		goto fail_enoent;
 
@@ -2128,7 +2120,7 @@ fail_enoent:
 }
 
 int nft_rule_delete(struct nft_handle *h, const char *chain,
-		    const char *table, void *data, bool verbose)
+		    const char *table, struct nftnl_rule *rule, bool verbose)
 {
 	int ret = 0;
 	struct nftnl_chain *c;
@@ -2142,7 +2134,7 @@ int nft_rule_delete(struct nft_handle *h, const char *chain,
 		return 0;
 	}
 
-	r = nft_rule_find(h, c, data, -1);
+	r = nft_rule_find(h, c, rule, -1);
 	if (r != NULL) {
 		ret =__nft_rule_del(h, r);
 		if (ret < 0)
@@ -2157,15 +2149,10 @@ int nft_rule_delete(struct nft_handle *h, const char *chain,
 
 static struct nftnl_rule *
 nft_rule_add(struct nft_handle *h, const char *chain,
-	     const char *table, struct iptables_command_state *cs,
+	     const char *table, struct nftnl_rule *r,
 	     struct nftnl_rule *ref, bool verbose)
 {
-	struct nftnl_rule *r;
 	uint64_t ref_id;
-
-	r = nft_rule_new(h, chain, table, cs);
-	if (r == NULL)
-		return NULL;
 
 	if (ref) {
 		ref_id = nftnl_rule_get_u64(ref, NFTNL_RULE_HANDLE);
@@ -2183,10 +2170,8 @@ nft_rule_add(struct nft_handle *h, const char *chain,
 		}
 	}
 
-	if (!batch_rule_add(h, NFT_COMPAT_RULE_INSERT, r)) {
-		nftnl_rule_free(r);
+	if (!batch_rule_add(h, NFT_COMPAT_RULE_INSERT, r))
 		return NULL;
-	}
 
 	if (verbose)
 		h->ops->print_rule(h, r, 0, FMT_PRINT_RULE);
@@ -2195,9 +2180,10 @@ nft_rule_add(struct nft_handle *h, const char *chain,
 }
 
 int nft_rule_insert(struct nft_handle *h, const char *chain,
-		    const char *table, void *data, int rulenum, bool verbose)
+		    const char *table, struct nftnl_rule *new_rule, int rulenum,
+		    bool verbose)
 {
-	struct nftnl_rule *r = NULL, *new_rule;
+	struct nftnl_rule *r = NULL;
 	struct nftnl_chain *c;
 
 	nft_xt_builtin_init(h, table);
@@ -2211,22 +2197,22 @@ int nft_rule_insert(struct nft_handle *h, const char *chain,
 	}
 
 	if (rulenum > 0) {
-		r = nft_rule_find(h, c, data, rulenum);
+		r = nft_rule_find(h, c, new_rule, rulenum);
 		if (r == NULL) {
 			/* special case: iptables allows to insert into
 			 * rule_count + 1 position.
 			 */
-			r = nft_rule_find(h, c, data, rulenum - 1);
+			r = nft_rule_find(h, c, new_rule, rulenum - 1);
 			if (r != NULL)
-				return nft_rule_append(h, chain, table, data,
-						       NULL, verbose);
+				return nft_rule_append(h, chain, table,
+						       new_rule, NULL, verbose);
 
 			errno = E2BIG;
 			goto err;
 		}
 	}
 
-	new_rule = nft_rule_add(h, chain, table, data, r, verbose);
+	new_rule = nft_rule_add(h, chain, table, new_rule, r, verbose);
 	if (!new_rule)
 		goto err;
 
@@ -2268,7 +2254,8 @@ int nft_rule_delete_num(struct nft_handle *h, const char *chain,
 }
 
 int nft_rule_replace(struct nft_handle *h, const char *chain,
-		     const char *table, void *data, int rulenum, bool verbose)
+		     const char *table, struct nftnl_rule *rule,
+		     int rulenum, bool verbose)
 {
 	int ret = 0;
 	struct nftnl_chain *c;
@@ -2282,13 +2269,13 @@ int nft_rule_replace(struct nft_handle *h, const char *chain,
 		return 0;
 	}
 
-	r = nft_rule_find(h, c, data, rulenum);
+	r = nft_rule_find(h, c, rule, rulenum);
 	if (r != NULL) {
 		DEBUGP("replacing rule with handle=%llu\n",
 			(unsigned long long)
 			nftnl_rule_get_u64(r, NFTNL_RULE_HANDLE));
 
-		ret = nft_rule_append(h, chain, table, data, r, verbose);
+		ret = nft_rule_append(h, chain, table, rule, r, verbose);
 	} else
 		errno = E2BIG;
 
@@ -2521,8 +2508,8 @@ int nft_rule_zero_counters(struct nft_handle *h, const char *chain,
 			   const char *table, int rulenum)
 {
 	struct iptables_command_state cs = {};
+	struct nftnl_rule *r, *new_rule;
 	struct nftnl_chain *c;
-	struct nftnl_rule *r;
 	int ret = 0;
 
 	nft_fn = nft_rule_delete;
@@ -2541,8 +2528,11 @@ int nft_rule_zero_counters(struct nft_handle *h, const char *chain,
 	nft_rule_to_iptables_command_state(h, r, &cs);
 
 	cs.counters.pcnt = cs.counters.bcnt = 0;
+	new_rule = nft_rule_new(h, chain, table, &cs);
+	if (!new_rule)
+		return 1;
 
-	ret =  nft_rule_append(h, chain, table, &cs, r, false);
+	ret = nft_rule_append(h, chain, table, new_rule, r, false);
 
 error:
 	return ret;
@@ -2644,6 +2634,15 @@ static void batch_obj_del(struct nft_handle *h, struct obj_update *o)
 	case NFT_COMPAT_SET_ADD:
 		nftnl_set_free(o->set);
 		break;
+	case NFT_COMPAT_RULE_LIST:
+	case NFT_COMPAT_RULE_CHECK:
+	case NFT_COMPAT_CHAIN_RESTORE:
+	case NFT_COMPAT_RULE_SAVE:
+	case NFT_COMPAT_RULE_ZERO:
+	case NFT_COMPAT_BRIDGE_USER_CHAIN_UPDATE:
+	case NFT_COMPAT_TABLE_NEW:
+		assert(0);
+		break;
 	}
 	h->obj_list_num--;
 	list_del(&o->head);
@@ -2711,6 +2710,13 @@ static void nft_refresh_transaction(struct nft_handle *h)
 		case NFT_COMPAT_RULE_DELETE:
 		case NFT_COMPAT_RULE_FLUSH:
 		case NFT_COMPAT_SET_ADD:
+		case NFT_COMPAT_RULE_LIST:
+		case NFT_COMPAT_RULE_CHECK:
+		case NFT_COMPAT_CHAIN_RESTORE:
+		case NFT_COMPAT_RULE_SAVE:
+		case NFT_COMPAT_RULE_ZERO:
+		case NFT_COMPAT_BRIDGE_USER_CHAIN_UPDATE:
+		case NFT_COMPAT_TABLE_NEW:
 			break;
 		}
 	}
@@ -2808,6 +2814,14 @@ retry:
 						     NLM_F_CREATE, &n->seq, n->set);
 			seq = n->seq;
 			break;
+		case NFT_COMPAT_RULE_LIST:
+		case NFT_COMPAT_RULE_CHECK:
+		case NFT_COMPAT_CHAIN_RESTORE:
+		case NFT_COMPAT_RULE_SAVE:
+		case NFT_COMPAT_RULE_ZERO:
+		case NFT_COMPAT_BRIDGE_USER_CHAIN_UPDATE:
+		case NFT_COMPAT_TABLE_NEW:
+			assert(0);
 		}
 
 		mnl_nft_batch_continue(h->batch);
@@ -2969,19 +2983,145 @@ static void nft_bridge_commit_prepare(struct nft_handle *h)
 	}
 }
 
+static void assert_chain_exists(struct nft_handle *h,
+				const char *table, const char *chain)
+{
+	if (chain && !nft_chain_exists(h, table, chain))
+		xtables_error(PARAMETER_PROBLEM,
+			      "Chain '%s' does not exist", chain);
+}
+
+static int nft_prepare(struct nft_handle *h)
+{
+	struct nft_cmd *cmd, *next;
+	int ret = 1;
+
+	list_for_each_entry_safe(cmd, next, &h->cmd_list, head) {
+		switch (cmd->command) {
+		case NFT_COMPAT_TABLE_FLUSH:
+			ret = nft_table_flush(h, cmd->table);
+			break;
+		case NFT_COMPAT_CHAIN_USER_ADD:
+			ret = nft_chain_user_add(h, cmd->chain, cmd->table);
+			break;
+		case NFT_COMPAT_CHAIN_USER_DEL:
+			ret = nft_chain_user_del(h, cmd->chain, cmd->table,
+						 cmd->verbose);
+			break;
+		case NFT_COMPAT_CHAIN_RESTORE:
+			ret = nft_chain_restore(h, cmd->chain, cmd->table);
+			break;
+		case NFT_COMPAT_CHAIN_UPDATE:
+			ret = nft_chain_set(h, cmd->table, cmd->chain,
+					    cmd->policy, &cmd->counters);
+			break;
+		case NFT_COMPAT_CHAIN_RENAME:
+			ret = nft_chain_user_rename(h, cmd->chain, cmd->table,
+						    cmd->rename);
+			break;
+		case NFT_COMPAT_CHAIN_ZERO:
+			ret = nft_chain_zero_counters(h, cmd->chain, cmd->table,
+						      cmd->verbose);
+			break;
+		case NFT_COMPAT_RULE_APPEND:
+			assert_chain_exists(h, cmd->table, cmd->jumpto);
+			ret = nft_rule_append(h, cmd->chain, cmd->table,
+					      cmd->obj.rule, NULL, cmd->verbose);
+			break;
+		case NFT_COMPAT_RULE_INSERT:
+			assert_chain_exists(h, cmd->table, cmd->jumpto);
+			ret = nft_rule_insert(h, cmd->chain, cmd->table,
+					      cmd->obj.rule, cmd->rulenum,
+					      cmd->verbose);
+			break;
+		case NFT_COMPAT_RULE_REPLACE:
+			assert_chain_exists(h, cmd->table, cmd->jumpto);
+			ret = nft_rule_replace(h, cmd->chain, cmd->table,
+					      cmd->obj.rule, cmd->rulenum,
+					      cmd->verbose);
+			break;
+		case NFT_COMPAT_RULE_DELETE:
+			assert_chain_exists(h, cmd->table, cmd->jumpto);
+			if (cmd->rulenum >= 0)
+				ret = nft_rule_delete_num(h, cmd->chain,
+							  cmd->table,
+							  cmd->rulenum,
+							  cmd->verbose);
+			else
+				ret = nft_rule_delete(h, cmd->chain, cmd->table,
+						      cmd->obj.rule, cmd->verbose);
+			break;
+		case NFT_COMPAT_RULE_FLUSH:
+			ret = nft_rule_flush(h, cmd->chain, cmd->table,
+					     cmd->verbose);
+			break;
+		case NFT_COMPAT_RULE_LIST:
+			ret = nft_rule_list(h, cmd->chain, cmd->table,
+					    cmd->rulenum, cmd->format);
+			break;
+		case NFT_COMPAT_RULE_CHECK:
+			assert_chain_exists(h, cmd->table, cmd->jumpto);
+			ret = nft_rule_check(h, cmd->chain, cmd->table,
+					     cmd->obj.rule, cmd->rulenum);
+			break;
+		case NFT_COMPAT_RULE_ZERO:
+			ret = nft_rule_zero_counters(h, cmd->chain, cmd->table,
+                                                     cmd->rulenum);
+			break;
+		case NFT_COMPAT_RULE_SAVE:
+			ret = nft_rule_list_save(h, cmd->chain, cmd->table,
+						 cmd->rulenum,
+						 cmd->counters_save);
+			break;
+		case NFT_COMPAT_BRIDGE_USER_CHAIN_UPDATE:
+			ret = ebt_set_user_chain_policy(h, cmd->table,
+							cmd->chain, cmd->policy);
+			break;
+		case NFT_COMPAT_TABLE_NEW:
+			nft_xt_builtin_init(h, cmd->table);
+			ret = 1;
+			break;
+		case NFT_COMPAT_TABLE_ADD:
+		case NFT_COMPAT_CHAIN_ADD:
+		case NFT_COMPAT_SET_ADD:
+			assert(0);
+			break;
+		}
+
+		nft_cmd_free(cmd);
+
+		if (ret == 0)
+			return 0;
+	}
+
+	return 1;
+}
+
 int nft_commit(struct nft_handle *h)
 {
+	if (!nft_prepare(h))
+		return 0;
+
 	return nft_action(h, NFT_COMPAT_COMMIT);
 }
 
 int nft_bridge_commit(struct nft_handle *h)
 {
+	if (!nft_prepare(h))
+		return 0;
+
 	nft_bridge_commit_prepare(h);
-	return nft_commit(h);
+
+	return nft_action(h, NFT_COMPAT_COMMIT);
 }
 
 int nft_abort(struct nft_handle *h)
 {
+	struct nft_cmd *cmd, *next;
+
+	list_for_each_entry_safe(cmd, next, &h->cmd_list, head)
+		nft_cmd_free(cmd);
+
 	return nft_action(h, NFT_COMPAT_ABORT);
 }
 

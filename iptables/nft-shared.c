@@ -989,12 +989,14 @@ void nft_ipv46_parse_target(struct xtables_target *t, void *data)
 	cs->target = t;
 }
 
-bool nft_ipv46_rule_find(struct nft_handle *h, struct nftnl_rule *r, void *data)
+bool nft_ipv46_rule_find(struct nft_handle *h, struct nftnl_rule *r,
+			 struct nftnl_rule *rule)
 {
-	struct iptables_command_state *cs = data, this = {};
+	struct iptables_command_state _cs = {}, this = {}, *cs = &_cs;
 	bool ret = false;
 
 	nft_rule_to_iptables_command_state(h, r, &this);
+	nft_rule_to_iptables_command_state(h, rule, cs);
 
 	DEBUGP("comparing with... ");
 #ifdef DEBUG_DEL
@@ -1022,6 +1024,7 @@ bool nft_ipv46_rule_find(struct nft_handle *h, struct nftnl_rule *r, void *data)
 	ret = true;
 out:
 	h->ops->clear_cs(&this);
+	h->ops->clear_cs(cs);
 	return ret;
 }
 

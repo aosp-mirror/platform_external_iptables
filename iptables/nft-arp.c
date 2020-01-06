@@ -634,14 +634,15 @@ static bool nft_arp_is_same(const void *data_a,
 }
 
 static bool nft_arp_rule_find(struct nft_handle *h, struct nftnl_rule *r,
-			      void *data)
+			      struct nftnl_rule *rule)
 {
-	const struct iptables_command_state *cs = data;
+	struct iptables_command_state _cs = {}, *cs = &_cs;
 	struct iptables_command_state this = {};
 	bool ret = false;
 
 	/* Delete by matching rule case */
 	nft_rule_to_iptables_command_state(h, r, &this);
+	nft_rule_to_iptables_command_state(h, rule, cs);
 
 	if (!nft_arp_is_same(&cs->arp, &this.arp))
 		goto out;
@@ -655,6 +656,7 @@ static bool nft_arp_rule_find(struct nft_handle *h, struct nftnl_rule *r,
 	ret = true;
 out:
 	h->ops->clear_cs(&this);
+	h->ops->clear_cs(cs);
 	return ret;
 }
 

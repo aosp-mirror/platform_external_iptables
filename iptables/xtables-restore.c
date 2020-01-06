@@ -61,11 +61,11 @@ static void print_usage(const char *name, const char *version)
 static const struct nft_xt_restore_cb restore_cb = {
 	.commit		= nft_commit,
 	.abort		= nft_abort,
-	.table_new	= nft_table_new,
-	.table_flush	= nft_table_flush,
+	.table_new	= nft_cmd_table_new,
+	.table_flush	= nft_cmd_table_flush,
 	.do_command	= do_commandx,
-	.chain_set	= nft_chain_set,
-	.chain_restore  = nft_chain_restore,
+	.chain_set	= nft_cmd_chain_set,
+	.chain_restore  = nft_cmd_chain_restore,
 };
 
 struct nft_xt_restore_state {
@@ -195,7 +195,7 @@ static void xtables_restore_parse_line(struct nft_handle *h,
 				      "cannot create chain '%s' (%s)\n",
 				      chain, strerror(errno));
 		} else if (h->family == NFPROTO_BRIDGE &&
-			   !ebt_set_user_chain_policy(h, state->curtable->name,
+			   !ebt_cmd_user_chain_policy(h, state->curtable->name,
 						      chain, policy)) {
 			xtables_error(OTHER_PROBLEM,
 				      "Can't set policy `%s' on `%s' line %u: %s\n",
@@ -492,11 +492,11 @@ int xtables_ip6_restore_main(int argc, char *argv[])
 
 static const struct nft_xt_restore_cb ebt_restore_cb = {
 	.commit		= nft_bridge_commit,
-	.table_new	= nft_table_new,
-	.table_flush	= nft_table_flush,
+	.table_new	= nft_cmd_table_new,
+	.table_flush	= nft_cmd_table_flush,
 	.do_command	= do_commandeb,
-	.chain_set	= nft_chain_set,
-	.chain_restore  = nft_chain_restore,
+	.chain_set	= nft_cmd_chain_set,
+	.chain_restore  = nft_cmd_chain_restore,
 };
 
 static const struct option ebt_restore_options[] = {
@@ -538,11 +538,11 @@ int xtables_eb_restore_main(int argc, char *argv[])
 
 static const struct nft_xt_restore_cb arp_restore_cb = {
 	.commit		= nft_commit,
-	.table_new	= nft_table_new,
-	.table_flush	= nft_table_flush,
+	.table_new	= nft_cmd_table_new,
+	.table_flush	= nft_cmd_table_flush,
 	.do_command	= do_commandarp,
-	.chain_set	= nft_chain_set,
-	.chain_restore  = nft_chain_restore,
+	.chain_set	= nft_cmd_chain_set,
+	.chain_restore  = nft_cmd_chain_restore,
 };
 
 int xtables_arp_restore_main(int argc, char *argv[])

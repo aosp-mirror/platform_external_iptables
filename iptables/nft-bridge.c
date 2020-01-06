@@ -748,13 +748,14 @@ static bool nft_bridge_is_same(const void *data_a, const void *data_b)
 }
 
 static bool nft_bridge_rule_find(struct nft_handle *h, struct nftnl_rule *r,
-				 void *data)
+				 struct nftnl_rule *rule)
 {
-	struct iptables_command_state *cs = data;
+	struct iptables_command_state _cs = {}, *cs = &_cs;
 	struct iptables_command_state this = {};
 	bool ret = false;
 
 	nft_rule_to_ebtables_command_state(h, r, &this);
+	nft_rule_to_ebtables_command_state(h, rule, cs);
 
 	DEBUGP("comparing with... ");
 
@@ -779,6 +780,7 @@ static bool nft_bridge_rule_find(struct nft_handle *h, struct nftnl_rule *r,
 	ret = true;
 out:
 	h->ops->clear_cs(&this);
+	h->ops->clear_cs(cs);
 	return ret;
 }
 

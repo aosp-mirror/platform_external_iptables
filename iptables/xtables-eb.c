@@ -150,9 +150,9 @@ append_entry(struct nft_handle *h,
 	int ret = 1;
 
 	if (append)
-		ret = nft_rule_append(h, chain, table, cs, NULL, verbose);
+		ret = nft_cmd_rule_append(h, chain, table, cs, NULL, verbose);
 	else
-		ret = nft_rule_insert(h, chain, table, cs, rule_nr, verbose);
+		ret = nft_cmd_rule_insert(h, chain, table, cs, rule_nr, verbose);
 
 	return ret;
 }
@@ -169,10 +169,10 @@ delete_entry(struct nft_handle *h,
 	int ret = 1;
 
 	if (rule_nr == -1)
-		ret = nft_rule_delete(h, chain, table, cs, verbose);
+		ret = nft_cmd_rule_delete(h, chain, table, cs, verbose);
 	else {
 		do {
-			ret = nft_rule_delete_num(h, chain, table,
+			ret = nft_cmd_rule_delete_num(h, chain, table,
 						  rule_nr, verbose);
 			rule_nr++;
 		} while (rule_nr < rule_nr_end);
@@ -427,7 +427,7 @@ static int list_rules(struct nft_handle *h, const char *chain, const char *table
 	if (!counters)
 		format |= FMT_NOCOUNTS;
 
-	return nft_rule_list(h, chain, table, rule_nr, format);
+	return nft_cmd_rule_list(h, chain, table, rule_nr, format);
 }
 
 static int parse_rule_range(const char *argv, int *rule_nr, int *rule_nr_end)
@@ -813,7 +813,7 @@ int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table,
 			flags |= OPT_COMMAND;
 
 			if (c == 'N') {
-				ret = nft_chain_user_add(h, chain, *table);
+				ret = nft_cmd_chain_user_add(h, chain, *table);
 				break;
 			} else if (c == 'X') {
 				/* X arg is optional, optarg is NULL */
@@ -821,7 +821,7 @@ int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table,
 					chain = argv[optind];
 					optind++;
 				}
-				ret = nft_chain_user_del(h, chain, *table, 0);
+				ret = nft_cmd_chain_user_del(h, chain, *table, 0);
 				break;
 			}
 
@@ -835,7 +835,7 @@ int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table,
 				else if (strchr(argv[optind], ' ') != NULL)
 					xtables_error(PARAMETER_PROBLEM, "Use of ' ' not allowed in chain names");
 
-				ret = nft_chain_user_rename(h, chain, *table,
+				ret = nft_cmd_chain_user_rename(h, chain, *table,
 							    argv[optind]);
 				if (ret != 0 && errno == ENOENT)
 					xtables_error(PARAMETER_PROBLEM, "Chain '%s' doesn't exists", chain);
@@ -1137,7 +1137,7 @@ print_zero:
 		/*case 7 :*/ /* atomic-init */
 		/*case 10:*/ /* atomic-save */
 		case 11: /* init-table */
-			nft_table_flush(h, *table);
+			nft_cmd_table_flush(h, *table);
 			return 1;
 		/*
 			replace->command = c;
@@ -1225,13 +1225,13 @@ print_zero:
 
 	if (command == 'P') {
 		if (selected_chain >= NF_BR_NUMHOOKS) {
-			ret = ebt_set_user_chain_policy(h, *table, chain, policy);
+			ret = ebt_cmd_user_chain_policy(h, *table, chain, policy);
 		} else {
 			if (strcmp(policy, "RETURN") == 0) {
 				xtables_error(PARAMETER_PROBLEM,
 					      "Policy RETURN only allowed for user defined chains");
 			}
-			ret = nft_chain_set(h, *table, chain, policy, NULL);
+			ret = nft_cmd_chain_set(h, *table, chain, policy, NULL);
 			if (ret < 0)
 				xtables_error(PARAMETER_PROBLEM, "Wrong policy");
 		}
@@ -1244,9 +1244,9 @@ print_zero:
 				 flags&LIST_C);
 	}
 	if (flags & OPT_ZERO) {
-		ret = nft_chain_zero_counters(h, chain, *table, 0);
+		ret = nft_cmd_chain_zero_counters(h, chain, *table, 0);
 	} else if (command == 'F') {
-		ret = nft_rule_flush(h, chain, *table, 0);
+		ret = nft_cmd_rule_flush(h, chain, *table, 0);
 	} else if (command == 'A') {
 		ret = append_entry(h, chain, *table, &cs, 0, 0, true);
 	} else if (command == 'I') {
