@@ -1367,14 +1367,6 @@ nft_rule_append(struct nft_handle *h, const char *chain, const char *table,
 
 	nft_xt_builtin_init(h, table);
 
-	/* Since ebtables user-defined chain policies are implemented as last
-	 * rule in nftables, rule cache is required here to treat them right. */
-	if (h->family == NFPROTO_BRIDGE) {
-		c = nft_chain_find(h, table, chain);
-		if (c && !nft_chain_builtin(c))
-			nft_build_cache(h, c);
-	}
-
 	nft_fn = nft_rule_append;
 
 	if (ref) {
@@ -1599,7 +1591,6 @@ int nft_rule_save(struct nft_handle *h, const char *table, unsigned int format)
 
 	c = nftnl_chain_list_iter_next(iter);
 	while (c) {
-		nft_build_cache(h, c);
 		ret = nft_chain_save_rules(h, c, format);
 		if (ret != 0)
 			break;
@@ -1806,10 +1797,6 @@ static int __nft_chain_user_del(struct nftnl_chain *c, void *data)
 	if (d->verbose)
 		fprintf(stdout, "Deleting chain `%s'\n",
 			nftnl_chain_get_str(c, NFTNL_CHAIN_NAME));
-
-	/* This triggers required policy rule deletion. */
-	if (h->family == NFPROTO_BRIDGE)
-		nft_build_cache(h, c);
 
 	/* XXX This triggers a fast lookup from the kernel. */
 	nftnl_chain_unset(c, NFTNL_CHAIN_HANDLE);
@@ -2092,8 +2079,6 @@ nft_rule_find(struct nft_handle *h, struct nftnl_chain *c,
 	struct nftnl_rule *r;
 	struct nftnl_rule_iter *iter;
 	bool found = false;
-
-	nft_build_cache(h, c);
 
 	if (rulenum >= 0)
 		/* Delete by rule number case */
@@ -2979,8 +2964,6 @@ int ebt_set_user_chain_policy(struct nft_handle *h, const char *table,
 	else
 		return 0;
 
-	nft_build_cache(h, c);
-
 	nftnl_chain_set_u32(c, NFTNL_CHAIN_POLICY, pval);
 	return 1;
 }
@@ -3333,8 +3316,6 @@ static int __nft_chain_zero_counters(struct nftnl_chain *c, void *data)
 			return -1;
 	}
 
-	nft_build_cache(h, c);
-
 	iter = nftnl_rule_iter_create(c);
 	if (iter == NULL)
 		return -1;
@@ -3470,8 +3451,6 @@ static int nft_is_chain_compatible(struct nftnl_chain *c, void *data)
 	struct nft_handle *h = data;
 	enum nf_inet_hooks hook;
 	int prio;
-
-	nft_build_cache(h, c);
 
 	if (nftnl_rule_foreach(c, nft_is_rule_compatible, NULL))
 		return -1;

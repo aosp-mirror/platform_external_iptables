@@ -5,7 +5,6 @@ struct nft_handle;
 
 void nft_cache_level_set(struct nft_handle *h, int level);
 void nft_fake_cache(struct nft_handle *h);
-void nft_build_cache(struct nft_handle *h, struct nftnl_chain *c);
 void nft_rebuild_cache(struct nft_handle *h);
 void nft_release_cache(struct nft_handle *h);
 void flush_chain_cache(struct nft_handle *h, const char *tablename);
