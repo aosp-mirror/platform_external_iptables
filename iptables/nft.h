@@ -145,6 +145,12 @@ void nft_bridge_chain_postprocess(struct nft_handle *h,
 
 
 /*
+ * Operations with sets.
+ */
+struct nftnl_set *nft_set_batch_lookup_byid(struct nft_handle *h,
+					    uint32_t set_id);
+
+/*
  * Operations with rule-set.
  */
 struct nftnl_rule;

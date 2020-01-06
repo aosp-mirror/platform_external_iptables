@@ -1613,6 +1613,20 @@ int nft_rule_save(struct nft_handle *h, const char *table, unsigned int format)
 	return ret == 0 ? 1 : 0;
 }
 
+struct nftnl_set *nft_set_batch_lookup_byid(struct nft_handle *h,
+					    uint32_t set_id)
+{
+	struct obj_update *n;
+
+	list_for_each_entry(n, &h->obj_list, head) {
+		if (n->type == NFT_COMPAT_SET_ADD &&
+		    nftnl_set_get_u32(n->set, NFTNL_SET_ID) == set_id)
+			return n->set;
+	}
+
+	return NULL;
+}
+
 static void
 __nft_rule_flush(struct nft_handle *h, const char *table,
 		 const char *chain, bool verbose, bool implicit)
@@ -3092,6 +3106,7 @@ static int nft_prepare(struct nft_handle *h)
 			ret = 1;
 			break;
 		case NFT_COMPAT_SET_ADD:
+			nft_xt_builtin_init(h, cmd->table);
 			batch_set_add(h, NFT_COMPAT_SET_ADD, cmd->obj.set);
 			ret = 1;
 			break;

@@ -421,11 +421,20 @@ static struct nftnl_set *set_from_lookup_expr(struct nft_xt_ctx *ctx,
 					      const struct nftnl_expr *e)
 {
 	const char *set_name = nftnl_expr_get_str(e, NFTNL_EXPR_LOOKUP_SET);
+	uint32_t set_id = nftnl_expr_get_u32(e, NFTNL_EXPR_LOOKUP_SET_ID);
 	struct nftnl_set_list *slist;
+	struct nftnl_set *set;
 
 	slist = nft_set_list_get(ctx->h, ctx->table, set_name);
-	if (slist)
-		return nftnl_set_list_lookup_byname(slist, set_name);
+	if (slist) {
+		set = nftnl_set_list_lookup_byname(slist, set_name);
+		if (set)
+			return set;
+
+		set = nft_set_batch_lookup_byid(ctx->h, set_id);
+		if (set)
+			return set;
+	}
 
 	return NULL;
 }
