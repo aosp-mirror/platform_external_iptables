@@ -954,6 +954,7 @@ static struct nftnl_set *add_anon_set(struct nft_handle *h, const char *table,
 {
 	static uint32_t set_id = 0;
 	struct nftnl_set *s;
+	struct nft_cmd *cmd;
 
 	s = nftnl_set_alloc();
 	if (!s)
@@ -969,7 +970,14 @@ static struct nftnl_set *add_anon_set(struct nft_handle *h, const char *table,
 	nftnl_set_set_u32(s, NFTNL_SET_KEY_LEN, key_len);
 	nftnl_set_set_u32(s, NFTNL_SET_DESC_SIZE, size);
 
-	return batch_set_add(h, NFT_COMPAT_SET_ADD, s) ? s : NULL;
+	cmd = nft_cmd_new(h, NFT_COMPAT_SET_ADD, table, NULL, NULL, -1, false);
+	if (!cmd) {
+		nftnl_set_free(s);
+		return NULL;
+	}
+	cmd->obj.set = s;
+
+	return s;
 }
 
 static struct nftnl_expr *
@@ -2996,6 +3004,8 @@ static int nft_prepare(struct nft_handle *h)
 	struct nft_cmd *cmd, *next;
 	int ret = 1;
 
+	nft_cache_build(h);
+
 	list_for_each_entry_safe(cmd, next, &h->cmd_list, head) {
 		switch (cmd->command) {
 		case NFT_COMPAT_TABLE_FLUSH:
@@ -3081,9 +3091,12 @@ static int nft_prepare(struct nft_handle *h)
 			nft_xt_builtin_init(h, cmd->table);
 			ret = 1;
 			break;
+		case NFT_COMPAT_SET_ADD:
+			batch_set_add(h, NFT_COMPAT_SET_ADD, cmd->obj.set);
+			ret = 1;
+			break;
 		case NFT_COMPAT_TABLE_ADD:
 		case NFT_COMPAT_CHAIN_ADD:
-		case NFT_COMPAT_SET_ADD:
 			assert(0);
 			break;
 		}

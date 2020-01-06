@@ -24,6 +24,14 @@
 #include "nft.h"
 #include "nft-cache.h"
 
+void nft_cache_level_set(struct nft_handle *h, int level)
+{
+	if (level <= h->cache_level)
+		return;
+
+	h->cache_level = level;
+}
+
 static int genid_cb(const struct nlmsghdr *nlh, void *data)
 {
 	uint32_t *genid = data;
@@ -436,42 +444,20 @@ __nft_build_cache(struct nft_handle *h, enum nft_cache_level level,
 		  const struct builtin_table *t, const char *set,
 		  const char *chain)
 {
-	if (level <= h->cache_level)
+	if (h->cache_init)
 		return;
 
-	if (!h->nft_genid)
-		mnl_genid_get(h, &h->nft_genid);
+	h->cache_init = true;
+	mnl_genid_get(h, &h->nft_genid);
 
-	switch (h->cache_level) {
-	case NFT_CL_NONE:
+	if (h->cache_level >= NFT_CL_TABLES)
 		fetch_table_cache(h);
-		if (level == NFT_CL_TABLES)
-			break;
-		/* fall through */
-	case NFT_CL_TABLES:
+	if (h->cache_level >= NFT_CL_CHAINS)
 		fetch_chain_cache(h, t, chain);
-		if (level == NFT_CL_CHAINS)
-			break;
-		/* fall through */
-	case NFT_CL_CHAINS:
+	if (h->cache_level >= NFT_CL_SETS)
 		fetch_set_cache(h, t, set);
-		if (level == NFT_CL_SETS)
-			break;
-		/* fall through */
-	case NFT_CL_SETS:
+	if (h->cache_level >= NFT_CL_RULES)
 		fetch_rule_cache(h, t, chain);
-		if (level == NFT_CL_RULES)
-			break;
-		/* fall through */
-	case NFT_CL_RULES:
-	case NFT_CL_FAKE:
-		break;
-	}
-
-	if (!t && !chain)
-		h->cache_level = level;
-	else if (h->cache_level < NFT_CL_TABLES)
-		h->cache_level = NFT_CL_TABLES;
 }
 
 void nft_build_cache(struct nft_handle *h, struct nftnl_chain *c)
@@ -493,6 +479,7 @@ void nft_fake_cache(struct nft_handle *h)
 	fetch_table_cache(h);
 
 	h->cache_level = NFT_CL_FAKE;
+	h->cache_init = true;
 	mnl_genid_get(h, &h->nft_genid);
 }
 
@@ -593,26 +580,29 @@ static int flush_cache(struct nft_handle *h, struct nft_cache *c,
 
 void flush_chain_cache(struct nft_handle *h, const char *tablename)
 {
-	if (!h->cache_level)
+	if (!h->cache_init)
 		return;
 
 	if (flush_cache(h, h->cache, tablename))
-		h->cache_level = NFT_CL_NONE;
+		h->cache_init = false;
 }
 
 void nft_rebuild_cache(struct nft_handle *h)
 {
-	enum nft_cache_level level = h->cache_level;
-
-	if (h->cache_level)
+	if (h->cache_init) {
 		__nft_flush_cache(h);
-
-	if (h->cache_level == NFT_CL_FAKE) {
-		nft_fake_cache(h);
-	} else {
-		h->cache_level = NFT_CL_NONE;
-		__nft_build_cache(h, level, NULL, NULL, NULL);
+		h->cache_init = false;
 	}
+
+	if (h->cache_level == NFT_CL_FAKE)
+		nft_fake_cache(h);
+	else
+		__nft_build_cache(h, h->cache_level, NULL, NULL, NULL);
+}
+
+void nft_cache_build(struct nft_handle *h)
+{
+	__nft_build_cache(h, h->cache_level, NULL, NULL, NULL);
 }
 
 void nft_release_cache(struct nft_handle *h)

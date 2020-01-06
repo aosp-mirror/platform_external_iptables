@@ -30,7 +30,6 @@ struct builtin_table {
 };
 
 enum nft_cache_level {
-	NFT_CL_NONE,
 	NFT_CL_TABLES,
 	NFT_CL_CHAINS,
 	NFT_CL_SETS,
@@ -95,6 +94,7 @@ struct nft_handle {
 	bool			noflush;
 	int8_t			config_done;
 	struct list_head	cmd_list;
+	bool			cache_init;
 
 	/* meta data, for error reporting */
 	struct {

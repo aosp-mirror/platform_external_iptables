@@ -18,6 +18,7 @@ struct nft_cmd {
 	unsigned int			format;
 	struct {
 		struct nftnl_rule	*rule;
+		struct nftnl_set	*set;
 	} obj;
 	const char			*policy;
 	struct xt_counters		counters;
