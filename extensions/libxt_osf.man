@@ -1,4 +1,4 @@
-The osf module does passive operating system fingerprinting. This modules
+The osf module does passive operating system fingerprinting. This module
 compares some data (Window Size, MSS, options and their order, TTL, DF,
 and others) from packets with the SYN bit set. 
 .TP
