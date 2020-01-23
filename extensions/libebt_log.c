@@ -27,12 +27,12 @@
 #define LOG_LOG    '5'
 #define LOG_IP6    '6'
 
-typedef struct _code {
+struct code {
 	char *c_name;
 	int c_val;
-} CODE;
+};
 
-static CODE eight_priority[] = {
+static struct code eight_priority[] = {
 	{ "emerg", LOG_EMERG },
 	{ "alert", LOG_ALERT },
 	{ "crit", LOG_CRIT },

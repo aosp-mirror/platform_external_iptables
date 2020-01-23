@@ -1,0 +1,5 @@
+iptables-translate -A INPUT -m connlabel --label bit40
+nft add rule ip filter INPUT ct label bit40 counter
+
+iptables-translate -A INPUT -m connlabel ! --label bit40 --set
+nft add rule ip filter INPUT ct label set bit40 ct label and bit40 != bit40 counter

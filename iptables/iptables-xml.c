@@ -34,9 +34,9 @@ struct xtables_globals iptables_xml_globals = {
 static void print_usage(const char *name, const char *version)
 	    __attribute__ ((noreturn));
 
-static int verbose = 0;
+static int verbose;
 /* Whether to combine actions of sequential rules with identical conditions */
-static int combine = 0;
+static int combine;
 /* Keeping track of external matches and targets.  */
 static struct option options[] = {
 	{"verbose", 0, NULL, 'v'},
@@ -73,10 +73,10 @@ parse_counters(char *string, struct xt_counters *ctr)
 
 /* global new argv and argc */
 static char *newargv[255];
-static unsigned int newargc = 0;
+static unsigned int newargc;
 
 static char *oldargv[255];
-static unsigned int oldargc = 0;
+static unsigned int oldargc;
 
 /* arg meta data, were they quoted, frinstance */
 static int newargvattr[255];
@@ -96,7 +96,7 @@ struct chain {
 
 #define maxChains 10240		/* max chains per table */
 static struct chain chains[maxChains];
-static int nextChain = 0;
+static int nextChain;
 
 /* funCtion adding one argument to newargv, updating newargc 
  * returns true if argument added, false otherwise */
@@ -426,12 +426,9 @@ do_rule_part(char *leveltag1, char *leveltag2, int part, int argc,
 			else
 				printf("%s%s", spacer, argv[arg]);
 			spacer = " ";
-		} else if (!argvattr[arg] && isTarget(argv[arg])
-			   && existsChain(argv[arg + 1])
-			   && (2 + arg >= argc)) {
-			if (!((1 + arg) < argc))
-				// no args to -j, -m or -g, ignore & finish loop
-				break;
+		} else if (!argvattr[arg] && isTarget(argv[arg]) &&
+			   (arg + 1 < argc) &&
+			   existsChain(argv[arg + 1])) {
 			CLOSE_LEVEL(2);
 			if (level1)
 				printf("%s", leveli1);
@@ -819,9 +816,11 @@ iptables_xml_main(int argc, char *argv[])
 					*(param_buffer + param_len) = '\0';
 
 					/* check if table name specified */
-					if (!strncmp(param_buffer, "-t", 3)
-					    || !strncmp(param_buffer,
-							"--table", 8)) {
+					if ((param_buffer[0] == '-' &&
+					     param_buffer[1] != '-' &&
+					     strchr(param_buffer, 't')) ||
+					    (!strncmp(param_buffer, "--t", 3) &&
+					     !strncmp(param_buffer, "--table", strlen(param_buffer)))) {
 						xtables_error(PARAMETER_PROBLEM,
 							   "Line %u seems to have a "
 							   "-t table option.\n",
