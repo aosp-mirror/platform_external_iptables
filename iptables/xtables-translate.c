@@ -60,12 +60,13 @@ int xlate_action(const struct iptables_command_state *cs, bool goto_set,
 	if (cs->target != NULL) {
 		/* Standard target? */
 		if (strcmp(cs->jumpto, XTC_LABEL_ACCEPT) == 0)
-			xt_xlate_add(xl, "accept");
+			xt_xlate_add(xl, " accept");
 		else if (strcmp(cs->jumpto, XTC_LABEL_DROP) == 0)
-			xt_xlate_add(xl, "drop");
+			xt_xlate_add(xl, " drop");
 		else if (strcmp(cs->jumpto, XTC_LABEL_RETURN) == 0)
-			xt_xlate_add(xl, "return");
+			xt_xlate_add(xl, " return");
 		else if (cs->target->xlate) {
+			xt_xlate_add(xl, " ");
 			struct xt_xlate_tg_params params = {
 				.ip		= (const void *)&cs->fw,
 				.target		= cs->target->t,
@@ -79,9 +80,9 @@ int xlate_action(const struct iptables_command_state *cs, bool goto_set,
 	} else if (strlen(cs->jumpto) > 0) {
 		/* Not standard, then it's a go / jump to chain */
 		if (goto_set)
-			xt_xlate_add(xl, "goto %s", cs->jumpto);
+			xt_xlate_add(xl, " goto %s", cs->jumpto);
 		else
-			xt_xlate_add(xl, "jump %s", cs->jumpto);
+			xt_xlate_add(xl, " jump %s", cs->jumpto);
 	}
 
 	return ret;
@@ -195,6 +196,8 @@ static int xlate(struct nft_handle *h, struct nft_xt_cmd_parse *p,
 			}
 			break;
 		}
+		if (!cs->restore && i < args->s.naddrs - 1)
+			printf("nft ");
 	}
 
 	return ret;
@@ -234,9 +237,8 @@ static int do_command_xlate(struct nft_handle *h, int argc, char *argv[],
 	switch (p.command) {
 	case CMD_APPEND:
 		ret = 1;
-		if (!xlate(h, &p, &cs, &args, true, nft_rule_xlate_add)) {
+		if (!xlate(h, &p, &cs, &args, true, nft_rule_xlate_add))
 			print_ipt_cmd(argc, argv);
-		}
 		break;
 	case CMD_DELETE:
 		break;
@@ -248,9 +250,8 @@ static int do_command_xlate(struct nft_handle *h, int argc, char *argv[],
 		break;
 	case CMD_INSERT:
 		ret = 1;
-		if (!xlate(h, &p, &cs, &args, false, nft_rule_xlate_add)) {
+		if (!xlate(h, &p, &cs, &args, false, nft_rule_xlate_add))
 			print_ipt_cmd(argc, argv);
-		}
 		break;
 	case CMD_FLUSH:
 		if (p.chain) {
@@ -356,6 +357,8 @@ static int xlate_chain_set(struct nft_handle *h, const char *table,
 
 	if (strcmp(table, "nat") == 0)
 		type = "nat";
+	else if (strcmp(table, "mangle") == 0 && strcmp(chain, "OUTPUT") == 0)
+		type = "route";
 
 	printf("add chain %s %s %s { type %s ",
 	       family2str[h->family], table, chain, type);
@@ -379,6 +382,14 @@ static int xlate_chain_set(struct nft_handle *h, const char *table,
 	return 1;
 }
 
+static int dummy_compat_rev(const char *name, uint8_t rev, int opt)
+{
+	/* Avoid querying the kernel - it's not needed when just translating
+	 * rules and not even possible when running as unprivileged user.
+	 */
+	return 1;
+}
+
 static struct nft_xt_restore_cb cb_xlate = {
 	.table_new	= xlate_table_new,
 	.chain_set	= xlate_chain_set,
@@ -398,6 +409,7 @@ static int xtables_xlate_main(int family, const char *progname, int argc,
 	};
 
 	xtables_globals.program_name = progname;
+	xtables_globals.compat_rev = dummy_compat_rev;
 	ret = xtables_init_all(&xtables_globals, family);
 	if (ret < 0) {
 		fprintf(stderr, "%s/%s Failed to initialize xtables\n",
@@ -440,6 +452,7 @@ static int xtables_restore_xlate_main(int family, const char *progname,
 	int c;
 
 	xtables_globals.program_name = progname;
+	xtables_globals.compat_rev = dummy_compat_rev;
 	ret = xtables_init_all(&xtables_globals, family);
 	if (ret < 0) {
 		fprintf(stderr, "%s/%s Failed to initialize xtables\n",

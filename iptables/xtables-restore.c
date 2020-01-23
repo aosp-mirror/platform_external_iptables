@@ -24,7 +24,7 @@
 #define DEBUGP(x, args...)
 #endif
 
-static int counters = 0, verbose = 0, noflush = 0;
+static int counters, verbose, noflush;
 
 /* Keeping track of external matches and targets.  */
 static const struct option options[] = {
@@ -40,8 +40,6 @@ static const struct option options[] = {
 	{NULL},
 };
 
-static void print_usage(const char *name, const char *version) __attribute__((noreturn));
-
 #define prog_name xtables_globals.program_name
 
 static void print_usage(const char *name, const char *version)
@@ -56,8 +54,6 @@ static void print_usage(const char *name, const char *version)
 			"          [ --modprobe=<command> ]\n"
 			"	   [ --ipv4 ]\n"
 			"	   [ --ipv6 ]\n", name);
-
-	exit(1);
 }
 
 static int parse_counters(char *string, struct xt_counters *ctr)
@@ -140,8 +136,11 @@ static void add_param_to_argv(char *parsestart)
 			param_buffer[param_len] = '\0';
 
 			/* check if table name specified */
-			if (!strncmp(param_buffer, "-t", 2)
-			    || !strncmp(param_buffer, "--table", 8)) {
+			if ((param_buffer[0] == '-' &&
+			     param_buffer[1] != '-' &&
+			     strchr(param_buffer, 't')) ||
+			    (!strncmp(param_buffer, "--t", 3) &&
+			     !strncmp(param_buffer, "--table", strlen(param_buffer)))) {
 				xtables_error(PARAMETER_PROBLEM,
 				"The -t option (seen in line %u) cannot be "
 				"used in xtables-restore.\n", line);
@@ -181,8 +180,10 @@ static void chain_delete(struct nftnl_chain_list *clist, const char *curtable,
 	/* This chain has been found, delete from list. Later
 	 * on, unvisited chains will be purged out.
 	 */
-	if (chain_obj != NULL)
+	if (chain_obj != NULL) {
 		nftnl_chain_list_del(chain_obj);
+		nftnl_chain_free(chain_obj);
+	}
 }
 
 struct nft_xt_restore_cb restore_cb = {
@@ -434,6 +435,9 @@ void xtables_restore_parse(struct nft_handle *h,
 				xt_params->program_name, line + 1);
 		exit(1);
 	}
+
+	if (chain_list)
+		nftnl_chain_list_free(chain_list);
 }
 
 static int
@@ -486,7 +490,7 @@ xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 			case 'h':
 				print_usage("xtables-restore",
 					    IPTABLES_VERSION);
-				break;
+				exit(0);
 			case 'n':
 				noflush = 1;
 				break;
@@ -503,6 +507,10 @@ xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 				h.family = AF_INET6;
 				xtables_set_nfproto(AF_INET6);
 				break;
+			default:
+				fprintf(stderr,
+					"Try `xtables-restore -h' for more information.\n");
+				exit(1);
 		}
 	}
 
@@ -522,6 +530,7 @@ xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 
 	xtables_restore_parse(&h, &p, &restore_cb, argc, argv);
 
+	nft_fini(&h);
 	fclose(p.in);
 	return 0;
 }

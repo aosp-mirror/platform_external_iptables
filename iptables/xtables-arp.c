@@ -150,7 +150,7 @@ static struct option original_opts[] = {
 int RUNTIME_NF_ARP_NUMHOOKS = 3;
 
 static struct option *opts = original_opts;
-static unsigned int global_option_offset = 0;
+static unsigned int global_option_offset;
 
 extern void xtables_exit_error(enum xtables_exittype status, const char *msg, ...) __attribute__((noreturn, format(printf,2,3)));
 struct xtables_globals arptables_globals = {

@@ -18,7 +18,7 @@
 
 #define MARK '1'
 
-static struct option brmark_m_opts[] = {
+static const struct option brmark_m_opts[] = {
 	{ .name = "mark",	.has_arg = true, .val = MARK },
 	XT_GETOPT_TABLEEND,
 };

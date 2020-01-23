@@ -23,10 +23,7 @@
 -p sctp -m sctp --chunk-types all COOKIE_ACK;=;OK
 -p sctp -m sctp --chunk-types all ECN_ECNE;=;OK
 -p sctp -m sctp --chunk-types all ECN_CWR;=;OK
-# ERROR: iptables-save segfaults: iptables -A INPUT -p sctp -m sctp --chunk-types all ASCONF
-# -p sctp -m sctp --chunk-types all ASCONF;=;OK
-# ERROR: iptables-save segfaults: iptables -A INPUT -p sctp -m sctp --chunk-types all ASCONF_ACK
-# -p sctp -m sctp --chunk-types all ASCONF_ACK;=;OK
-# ERROR: iptables-save segfaults: iptables -A INPUT -p sctp -m sctp --chunk-types all FORWARD_TSN
-# -p sctp -m sctp --chunk-types all FORWARD_TSN;=;OK
+-p sctp -m sctp --chunk-types all ASCONF;=;OK
+-p sctp -m sctp --chunk-types all ASCONF_ACK;=;OK
+-p sctp -m sctp --chunk-types all FORWARD_TSN;=;OK
 -p sctp -m sctp --chunk-types all SHUTDOWN_COMPLETE;=;OK
