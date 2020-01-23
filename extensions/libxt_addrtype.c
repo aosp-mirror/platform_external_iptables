@@ -5,6 +5,7 @@
  * This program is released under the terms of GNU GPL */
 #include <stdio.h>
 #include <string.h>
+#include <strings.h>
 #include <xtables.h>
 #include <linux/netfilter/xt_addrtype.h>
 
