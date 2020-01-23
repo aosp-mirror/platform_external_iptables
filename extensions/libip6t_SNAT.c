@@ -166,13 +166,11 @@ static void SNAT_parse(struct xt_option_call *cb)
 	switch (cb->entry->id) {
 	case O_TO_SRC:
 		if (cb->xflags & F_X_TO_SRC) {
-			if (!kernel_version)
-				get_kernel_version();
-			if (kernel_version > LINUX_VERSION(2, 6, 10))
-				xtables_error(PARAMETER_PROBLEM,
-					   "SNAT: Multiple --to-source not supported");
+			xtables_error(PARAMETER_PROBLEM,
+				      "SNAT: Multiple --to-source not supported");
 		}
 		parse_to(cb->arg, portok, range);
+		cb->xflags |= F_X_TO_SRC;
 		break;
 	case O_PERSISTENT:
 		range->flags |= NF_NAT_RANGE_PERSISTENT;

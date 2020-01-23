@@ -76,7 +76,7 @@ static void mark_tg_help(void)
 "  --set-mark value[/mask]   Clear bits in mask and OR value into nfmark\n"
 "  --and-mark bits           Binary AND the nfmark with bits\n"
 "  --or-mark bits            Binary OR the nfmark with bits\n"
-"  --xor-mask bits           Binary XOR the nfmark with bits\n"
+"  --xor-mark bits           Binary XOR the nfmark with bits\n"
 "\n");
 }
 
