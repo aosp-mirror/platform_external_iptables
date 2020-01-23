@@ -376,6 +376,31 @@ static void policy6_save(const void *ip, const struct xt_entry_match *match)
 	}
 }
 
+static int policy_xlate(struct xt_xlate *xl,
+			const struct xt_xlate_mt_params *params)
+{
+	static const unsigned int allowed = XT_POLICY_MATCH_STRICT |
+					    XT_POLICY_MATCH_NONE |
+					    XT_POLICY_MATCH_IN;
+	static const struct xt_policy_elem empty;
+	const struct xt_policy_info *info = (const void *)params->match->data;
+
+	if ((info->flags & ~allowed) || info->len > 1)
+		return 0;
+
+	if (memcmp(&info->pol[0], &empty, sizeof(empty)))
+		return 0;
+
+	xt_xlate_add(xl, "meta secpath ");
+
+	if (info->flags & XT_POLICY_MATCH_NONE)
+		xt_xlate_add(xl, "missing");
+	else
+		xt_xlate_add(xl, "exists");
+
+	return 1;
+}
+
 static struct xtables_match policy_mt_reg[] = {
 	{
 		.name          = "policy",
@@ -389,6 +414,7 @@ static struct xtables_match policy_mt_reg[] = {
 		.print         = policy4_print,
 		.save          = policy4_save,
 		.x6_options    = policy_opts,
+		.xlate         = policy_xlate,
 	},
 	{
 		.name          = "policy",
@@ -402,6 +428,7 @@ static struct xtables_match policy_mt_reg[] = {
 		.print         = policy6_print,
 		.save          = policy6_save,
 		.x6_options    = policy_opts,
+		.xlate         = policy_xlate,
 	},
 };
 

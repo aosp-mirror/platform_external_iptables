@@ -1,5 +1,5 @@
 
-AC_INIT([iptables], [1.6.1])
+AC_INIT([iptables], [1.6.2])
 
 # See libtool.info "Libtool's versioning system"
 libxtables_vcurrent=12
@@ -42,8 +42,9 @@ AC_ARG_ENABLE([ipv6],
 AC_ARG_ENABLE([largefile],
 	AS_HELP_STRING([--disable-largefile], [Do not build largefile support]),
 	[enable_largefile="$enableval"],
-	[enable_largefile="yes";
-	largefile_cppflags='-D_LARGEFILE_SOURCE=1 -D_LARGE_FILES -D_FILE_OFFSET_BITS=64'])
+	[enable_largefile="yes"])
+AS_IF([test "$enable_largefile" = "yes"], [largefile_cppflags='-D_LARGEFILE_SOURCE=1 -D_LARGE_FILES -D_FILE_OFFSET_BITS=64'])
+
 AC_ARG_ENABLE([devel],
 	AS_HELP_STRING([--enable-devel],
 	[Install Xtables development headers]),
@@ -248,7 +249,8 @@ AC_CONFIG_FILES([Makefile extensions/GNUmakefile include/Makefile
 	libiptc/Makefile libiptc/libiptc.pc
 	libiptc/libip4tc.pc libiptc/libip6tc.pc
 	libxtables/Makefile utils/Makefile
-	include/xtables-version.h include/iptables/internal.h])
+	include/xtables-version.h include/iptables/internal.h
+	utils/nfnl_osf.8])
 AC_OUTPUT
 
 

@@ -1114,9 +1114,8 @@ void print_rule4(const struct ipt_entry *e,
 		       e->ip.invflags & IPT_INV_FRAG ? " !" : "");
 
 	/* Print matchinfo part */
-	if (e->target_offset) {
+	if (e->target_offset)
 		IPT_MATCH_ITERATE(e, print_match_save, &e->ip);
-	}
 
 	/* print counters for iptables -R */
 	if (counters < 0)

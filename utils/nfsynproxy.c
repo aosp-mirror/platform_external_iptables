@@ -6,6 +6,7 @@
  * published by the Free Software Foundation.
  */
 
+#define _GNU_SOURCE
 #include <stdlib.h>
 #include <stdbool.h>
 #include <unistd.h>
