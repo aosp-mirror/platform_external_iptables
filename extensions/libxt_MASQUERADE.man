@@ -25,4 +25,10 @@ If option
 \fB\-\-random\fP
 is used then port mapping will be randomized (kernel >= 2.6.21).
 .TP
+\fB\-\-random-fully\fP
+Full randomize source port mapping
+If option
+\fB\-\-random-fully\fP
+is used then port mapping will be fully randomized (kernel >= 3.13).
+.TP
 IPv6 support available since Linux kernels >= 3.7.
