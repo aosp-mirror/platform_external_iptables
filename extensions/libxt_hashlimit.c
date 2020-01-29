@@ -205,6 +205,7 @@ static const struct xt_option_entry hashlimit_mt_opts_v2[] = {
 	{.name = "hashlimit-mode", .id = O_MODE, .type = XTTYPE_STRING},
 	{.name = "hashlimit-name", .id = O_NAME, .type = XTTYPE_STRING,
 	 .flags = XTOPT_MAND | XTOPT_PUT, XTOPT_POINTER(s, name), .min = 1},
+	XTOPT_TABLEEND,
 };
 #undef s
 
