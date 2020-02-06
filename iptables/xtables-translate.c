@@ -32,15 +32,38 @@
 void xlate_ifname(struct xt_xlate *xl, const char *nftmeta, const char *ifname,
 		  bool invert)
 {
-	int ifaclen = strlen(ifname);
-	char iface[IFNAMSIZ];
+	int ifaclen = strlen(ifname), i, j;
+	char iface[IFNAMSIZ * 2];
 
 	if (ifaclen < 1 || ifaclen >= IFNAMSIZ)
 		return;
 
-	strcpy(iface, ifname);
-	if (iface[ifaclen - 1] == '+')
-		iface[ifaclen - 1] = '*';
+	for (i = 0, j = 0; i < ifaclen + 1; i++, j++) {
+		switch (ifname[i]) {
+		case '+':
+			iface[j] = '*';
+			break;
+		case '*':
+			iface[j++] = '\\';
+			/* fall through */
+		default:
+			iface[j] = ifname[i];
+			break;
+		}
+	}
+
+	if (ifaclen == 1 && ifname[0] == '+') {
+		/* Nftables does not support wildcard only string. Workaround
+		 * is easy, given that this will match always or never
+		 * depending on 'invert' value. To match always, simply don't
+		 * generate an expression. To match never, use an invalid
+		 * interface name (kernel doesn't accept '/' in names) to match
+		 * against. */
+		if (!invert)
+			return;
+		strcpy(iface, "INVAL/D");
+		invert = false;
+	}
 
 	xt_xlate_add(xl, "%s %s\"%s\" ", nftmeta, invert ? "!= " : "", iface);
 }
