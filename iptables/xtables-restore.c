@@ -293,11 +293,13 @@ void xtables_restore_parse(struct nft_handle *h,
 		while (fgets(buffer, sizeof(buffer), p->in)) {
 			size_t blen = strlen(buffer);
 
-			/* drop trailing newline; xtables_restore_parse_line()
+			/* Drop trailing newline; xtables_restore_parse_line()
 			 * uses strtok() which replaces them by nul-characters,
 			 * causing unpredictable string delimiting in
-			 * preload_buffer */
-			if (buffer[blen - 1] == '\n')
+			 * preload_buffer.
+			 * Unless this is an empty line which would fold into a
+			 * spurious EoB indicator (double nul-char). */
+			if (buffer[blen - 1] == '\n' && blen > 1)
 				buffer[blen - 1] = '\0';
 			else
 				blen++;
