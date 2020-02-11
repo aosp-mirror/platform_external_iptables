@@ -282,8 +282,6 @@ static int icmp6_xlate(struct xt_xlate *xl,
 	if (!type_xlate_print(xl, info->type, info->code[0], info->code[1]))
 		return 0;
 
-	xt_xlate_add(xl, " ");
-
 	return 1;
 }
 

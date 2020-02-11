@@ -5,6 +5,7 @@
  * This program is released under the terms of GNU GPL */
 #include <stdio.h>
 #include <string.h>
+#include <strings.h>
 #include <xtables.h>
 #include <linux/netfilter/xt_addrtype.h>
 
@@ -245,6 +246,74 @@ static void addrtype_save_v1(const void *ip, const struct xt_entry_match *match)
 		printf(" --limit-iface-out");
 }
 
+static const char *const rtn_lnames[] = {
+	"unspec",
+	"unicast",
+	"local",
+	"broadcast",
+	"anycast",
+	"multicast",
+	"blackhole",
+	"unreachable",
+	"prohibit",
+	NULL,
+};
+
+static bool multiple_bits_set(uint16_t val)
+{
+	int first = ffs(val);
+
+	return first && (val >> first) > 0;
+}
+
+static int addrtype_xlate(struct xt_xlate *xl,
+			  const struct xt_xlate_mt_params *params)
+{
+	const struct xt_addrtype_info_v1 *info =
+		(const void *)params->match->data;
+	const char *sep = "";
+	bool need_braces;
+	uint16_t val;
+	int i;
+
+	xt_xlate_add(xl, "fib ");
+
+	if (info->source) {
+		xt_xlate_add(xl, "saddr ");
+		val = info->source;
+	} else {
+		xt_xlate_add(xl, "daddr ");
+		val = info->dest;
+	}
+
+	if (info->flags & XT_ADDRTYPE_LIMIT_IFACE_IN)
+		xt_xlate_add(xl, ". iif ");
+	else if (info->flags & XT_ADDRTYPE_LIMIT_IFACE_OUT)
+		xt_xlate_add(xl, ". oif ");
+
+	xt_xlate_add(xl, "type ");
+
+	if (info->flags & (XT_ADDRTYPE_INVERT_SOURCE | XT_ADDRTYPE_INVERT_DEST))
+			xt_xlate_add(xl, "!= ");
+
+	need_braces = multiple_bits_set(val);
+
+	if (need_braces)
+		xt_xlate_add(xl, "{ ");
+
+	for (i = 0; rtn_lnames[i]; i++) {
+		if (val & (1 << i)) {
+			xt_xlate_add(xl, "%s%s", sep, rtn_lnames[i]);
+			sep = ", ";
+		}
+	}
+
+	if (need_braces)
+		xt_xlate_add(xl, " }");
+
+	return 1;
+}
+
 static const struct xt_option_entry addrtype_opts_v0[] = {
 	{.name = "src-type", .id = O_SRC_TYPE, .type = XTTYPE_STRING,
 	 .flags = XTOPT_INVERT},
@@ -292,6 +361,7 @@ static struct xtables_match addrtype_mt_reg[] = {
 		.x6_parse      = addrtype_parse_v1,
 		.x6_fcheck     = addrtype_check,
 		.x6_options    = addrtype_opts_v1,
+		.xlate         = addrtype_xlate,
 	},
 };
 
