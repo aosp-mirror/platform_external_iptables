@@ -320,6 +320,8 @@ static void nft_ipv4_print_firewall(struct nftnl_rule *r, unsigned int num,
 
 	if (!(format & FMT_NONEWLINE))
 		fputc('\n', stdout);
+
+	xtables_rule_matches_free(&cs.matches);
 }
 
 static void save_ipv4_addr(char letter, const struct in_addr *addr,
@@ -457,7 +459,7 @@ static int nft_ipv4_xlate(const void *data, struct xt_xlate *xl)
 	if (cs->fw.ip.proto != 0) {
 		const struct protoent *pent =
 			getprotobynumber(cs->fw.ip.proto);
-		char protonum[strlen("255") + 1];
+		char protonum[sizeof("65535")];
 
 		if (!xlate_find_match(cs, pent->p_name)) {
 			snprintf(protonum, sizeof(protonum), "%u",
@@ -488,7 +490,7 @@ static int nft_ipv4_xlate(const void *data, struct xt_xlate *xl)
 		return ret;
 
 	/* Always add counters per rule, as in iptables */
-	xt_xlate_add(xl, "counter ");
+	xt_xlate_add(xl, "counter");
 	ret = xlate_action(cs, !!(cs->fw.ip.flags & IPT_F_GOTO), xl);
 
 	comment = xt_xlate_get_comment(xl);

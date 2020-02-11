@@ -163,13 +163,11 @@ static void DNAT_parse(struct xt_option_call *cb)
 	switch (cb->entry->id) {
 	case O_TO_DEST:
 		if (cb->xflags & F_X_TO_DEST) {
-			if (!kernel_version)
-				get_kernel_version();
-			if (kernel_version > LINUX_VERSION(2, 6, 10))
-				xtables_error(PARAMETER_PROBLEM,
-					   "DNAT: Multiple --to-destination not supported");
+			xtables_error(PARAMETER_PROBLEM,
+				      "DNAT: Multiple --to-destination not supported");
 		}
 		parse_to(cb->arg, portok, range);
+		cb->xflags |= F_X_TO_DEST;
 		break;
 	case O_PERSISTENT:
 		range->flags |= NF_NAT_RANGE_PERSISTENT;
@@ -281,7 +279,7 @@ static int DNAT_xlate(struct xt_xlate *xl,
 	return 1;
 }
 
-static struct xtables_target snat_tg_reg = {
+static struct xtables_target dnat_tg_reg = {
 	.name		= "DNAT",
 	.version	= XTABLES_VERSION,
 	.family		= NFPROTO_IPV6,
@@ -299,5 +297,5 @@ static struct xtables_target snat_tg_reg = {
 
 void _init(void)
 {
-	xtables_register_target(&snat_tg_reg);
+	xtables_register_target(&dnat_tg_reg);
 }

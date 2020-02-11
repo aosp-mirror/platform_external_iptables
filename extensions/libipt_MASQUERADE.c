@@ -11,6 +11,7 @@
 enum {
 	O_TO_PORTS = 0,
 	O_RANDOM,
+	O_RANDOM_FULLY,
 };
 
 static void MASQUERADE_help(void)
@@ -20,12 +21,15 @@ static void MASQUERADE_help(void)
 " --to-ports <port>[-<port>]\n"
 "				Port (range) to map to.\n"
 " --random\n"
-"				Randomize source port.\n");
+"				Randomize source port.\n"
+" --random-fully\n"
+"				Fully randomize source port.\n");
 }
 
 static const struct xt_option_entry MASQUERADE_opts[] = {
 	{.name = "to-ports", .id = O_TO_PORTS, .type = XTTYPE_STRING},
 	{.name = "random", .id = O_RANDOM, .type = XTTYPE_NONE},
+	{.name = "random-fully", .id = O_RANDOM_FULLY, .type = XTTYPE_NONE},
 	XTOPT_TABLEEND,
 };
 
@@ -97,6 +101,9 @@ static void MASQUERADE_parse(struct xt_option_call *cb)
 	case O_RANDOM:
 		mr->range[0].flags |=  NF_NAT_RANGE_PROTO_RANDOM;
 		break;
+	case O_RANDOM_FULLY:
+		mr->range[0].flags |=  NF_NAT_RANGE_PROTO_RANDOM_FULLY;
+		break;
 	}
 }
 
@@ -116,6 +123,9 @@ MASQUERADE_print(const void *ip, const struct xt_entry_target *target,
 
 	if (r->flags & NF_NAT_RANGE_PROTO_RANDOM)
 		printf(" random");
+
+	if (r->flags & NF_NAT_RANGE_PROTO_RANDOM_FULLY)
+		printf(" random-fully");
 }
 
 static void
@@ -132,6 +142,9 @@ MASQUERADE_save(const void *ip, const struct xt_entry_target *target)
 
 	if (r->flags & NF_NAT_RANGE_PROTO_RANDOM)
 		printf(" --random");
+
+	if (r->flags & NF_NAT_RANGE_PROTO_RANDOM_FULLY)
+		printf(" --random-fully");
 }
 
 static int MASQUERADE_xlate(struct xt_xlate *xl,

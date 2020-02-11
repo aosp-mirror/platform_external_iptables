@@ -147,7 +147,8 @@ static void mnl_nftnl_batch_reset(void)
 
 	list_for_each_entry_safe(batch_page, next, &batch_page_list, head) {
 		list_del(&batch_page->head);
-		free(batch_page->batch);
+		free(mnl_nlmsg_batch_head(batch_page->batch));
+		mnl_nlmsg_batch_stop(batch_page->batch);
 		free(batch_page);
 		batch_num_pages--;
 	}
@@ -1454,13 +1455,18 @@ int nft_chain_user_add(struct nft_handle *h, const char *chain, const char *tabl
 	return ret == 0 ? 1 : 0;
 }
 
+/* From linux/netlink.h */
+#ifndef NLM_F_NONREC
+#define NLM_F_NONREC	0x100	/* Do not delete recursively    */
+#endif
+
 static int __nft_chain_del(struct nft_handle *h, struct nftnl_chain *c)
 {
 	char buf[MNL_SOCKET_BUFFER_SIZE];
 	struct nlmsghdr *nlh;
 
 	nlh = nftnl_chain_nlmsg_build_hdr(buf, NFT_MSG_DELCHAIN, h->family,
-					NLM_F_ACK, h->seq);
+					  NLM_F_NONREC | NLM_F_ACK, h->seq);
 	nftnl_chain_nlmsg_build_payload(nlh, c);
 
 	return mnl_talk(h, nlh, NULL, NULL);
@@ -2348,7 +2354,8 @@ static int nft_action(struct nft_handle *h, int action)
 			break;
 		case NFT_COMPAT_CHAIN_USER_DEL:
 			nft_compat_chain_batch_add(h, NFT_MSG_DELCHAIN,
-						   0, seq++, n->chain);
+						   NLM_F_NONREC, seq++,
+						   n->chain);
 			break;
 		case NFT_COMPAT_CHAIN_UPDATE:
 			nft_compat_chain_batch_add(h, NFT_MSG_NEWCHAIN,
@@ -2536,8 +2543,8 @@ static void xtables_config_perror(uint32_t flags, const char *fmt, ...)
 int nft_xtables_config_load(struct nft_handle *h, const char *filename,
 			    uint32_t flags)
 {
-	struct nftnl_table_list *table_list = nftnl_table_list_alloc();
-	struct nftnl_chain_list *chain_list = nftnl_chain_list_alloc();
+	struct nftnl_table_list *table_list = NULL;
+	struct nftnl_chain_list *chain_list = NULL;
 	struct nftnl_table_list_iter *titer = NULL;
 	struct nftnl_chain_list_iter *citer = NULL;
 	struct nftnl_table *table;
@@ -2547,6 +2554,9 @@ int nft_xtables_config_load(struct nft_handle *h, const char *filename,
 
 	if (h->restore)
 		return 0;
+
+	table_list = nftnl_table_list_alloc();
+	chain_list = nftnl_chain_list_alloc();
 
 	if (xtables_config_parse(filename, table_list, chain_list) < 0) {
 		if (errno == ENOENT) {
