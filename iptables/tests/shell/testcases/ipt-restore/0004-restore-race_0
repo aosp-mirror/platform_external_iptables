@@ -86,7 +86,7 @@ if [ $LINES1 -ne $LINES2 ]; then
 fi
 
 case "$XT_MULTI" in
-*/xtables-nft-multi)
+*xtables-nft-multi)
 	attempts=$((RANDOM%10))
 	attempts=$((attempts+1))
 	;;
