@@ -40,9 +40,6 @@ void xlate_ifname(struct xt_xlate *xl, const char *nftmeta, const char *ifname,
 
 	for (i = 0, j = 0; i < ifaclen + 1; i++, j++) {
 		switch (ifname[i]) {
-		case '+':
-			iface[j] = '*';
-			break;
 		case '*':
 			iface[j++] = '\\';
 			/* fall through */
@@ -64,6 +61,9 @@ void xlate_ifname(struct xt_xlate *xl, const char *nftmeta, const char *ifname,
 		strcpy(iface, "INVAL/D");
 		invert = false;
 	}
+
+	if (iface[j - 2] == '+')
+		iface[j - 2] = '*';
 
 	xt_xlate_add(xl, "%s %s\"%s\" ", nftmeta, invert ? "!= " : "", iface);
 }

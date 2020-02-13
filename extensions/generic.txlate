@@ -23,6 +23,10 @@ nft insert rule bridge filter INPUT ether type 0x800 ether daddr 01:02:03:04:00:
 iptables-translate -A FORWARD -i '*' -o 'eth*foo'
 nft add rule ip filter FORWARD iifname "\*" oifname "eth\*foo" counter
 
+# escape all asterisks but translate only the first plus character
+iptables-translate -A FORWARD -i 'eth*foo*+' -o 'eth++'
+nft add rule ip filter FORWARD iifname "eth\*foo\**" oifname "eth+*" counter
+
 # skip for always matching interface names
 iptables-translate -A FORWARD -i '+'
 nft add rule ip filter FORWARD counter
