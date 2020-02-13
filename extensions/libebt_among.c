@@ -63,10 +63,6 @@ parse_nft_among_pair(char *buf, struct nft_among_pair *pair, bool have_ip)
 	char *sep = index(buf, '=');
 	struct ether_addr *ether;
 
-	if (have_ip ^ !!sep)
-		xtables_error(PARAMETER_PROBLEM,
-			      "among: Mixed MAC and MAC=IP not allowed.");
-
 	if (sep) {
 		*sep = '\0';
 
@@ -205,7 +201,7 @@ static void __bramong_print(struct nft_among_pair *pairs,
 		isep = ",";
 
 		printf("%s", ether_ntoa(&pairs[i].ether));
-		if (have_ip)
+		if (pairs[i].in.s_addr != INADDR_ANY)
 			printf("=%s", inet_ntoa(pairs[i].in));
 	}
 	printf(" ");

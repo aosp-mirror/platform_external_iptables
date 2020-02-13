@@ -1022,18 +1022,27 @@ static int __add_nft_among(struct nft_handle *h, const char *table,
 	};
 	struct nftnl_expr *e;
 	struct nftnl_set *s;
+	uint32_t flags = 0;
 	int idx = 0;
 
 	if (ip) {
 		type = type << CONCAT_TYPE_BITS | NFT_DATATYPE_IPADDR;
 		len += sizeof(struct in_addr) + NETLINK_ALIGN - 1;
 		len &= ~(NETLINK_ALIGN - 1);
+		flags = NFT_SET_INTERVAL;
 	}
 
-	s = add_anon_set(h, table, 0, type, len, cnt);
+	s = add_anon_set(h, table, flags, type, len, cnt);
 	if (!s)
 		return -ENOMEM;
 	set_id = nftnl_set_get_u32(s, NFTNL_SET_ID);
+
+	if (ip) {
+		uint8_t field_len[2] = { ETH_ALEN, sizeof(struct in_addr) };
+
+		nftnl_set_set_data(s, NFTNL_SET_DESC_CONCAT,
+				   field_len, sizeof(field_len));
+	}
 
 	for (idx = 0; idx < cnt; idx++) {
 		struct nftnl_set_elem *elem = nftnl_set_elem_alloc();
@@ -1042,6 +1051,15 @@ static int __add_nft_among(struct nft_handle *h, const char *table,
 			return -ENOMEM;
 		nftnl_set_elem_set(elem, NFTNL_SET_ELEM_KEY,
 				   &pairs[idx], len);
+		if (ip) {
+			struct in_addr tmp = pairs[idx].in;
+
+			if (tmp.s_addr == INADDR_ANY)
+				pairs[idx].in.s_addr = INADDR_BROADCAST;
+			nftnl_set_elem_set(elem, NFTNL_SET_ELEM_KEY_END,
+					   &pairs[idx], len);
+			pairs[idx].in = tmp;
+		}
 		nftnl_set_elem_add(s, elem);
 	}
 
