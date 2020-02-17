@@ -2821,7 +2821,6 @@ retry:
 
 		nft_refresh_transaction(h);
 
-		i=0;
 		list_for_each_entry_safe(err, ne, &h->err_list, head)
 			mnl_err_list_free(err);
 
