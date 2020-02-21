@@ -500,16 +500,9 @@ int nft_init_arp(struct nft_handle *h, const char *pname)
 	init_extensionsa();
 #endif
 
-	memset(h, 0, sizeof(*h));
-	h->family = NFPROTO_ARP;
-
-	if (nft_init(h, xtables_arp) < 0)
+	if (nft_init(h, NFPROTO_ARP, xtables_arp) < 0)
 		xtables_error(OTHER_PROBLEM,
 			      "Could not initialize nftables layer.");
-
-	h->ops = nft_family_ops_lookup(h->family);
-	if (h->ops == NULL)
-		xtables_error(PARAMETER_PROBLEM, "Unknown family");
 
 	return 0;
 }

@@ -80,7 +80,7 @@ extern const struct builtin_table xtables_bridge[NFT_TABLE_MAX];
 int mnl_talk(struct nft_handle *h, struct nlmsghdr *nlh,
 	     int (*cb)(const struct nlmsghdr *nlh, void *data),
 	     void *data);
-int nft_init(struct nft_handle *h, const struct builtin_table *t);
+int nft_init(struct nft_handle *h, int family, const struct builtin_table *t);
 void nft_fini(struct nft_handle *h);
 int nft_restart(struct nft_handle *h);
 

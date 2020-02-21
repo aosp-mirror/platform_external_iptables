@@ -480,7 +480,7 @@ static int xtables_xlate_main_common(struct nft_handle *h,
 		return 1;
 	}
 
-	if (nft_init(h, tables) < 0) {
+	if (nft_init(h, family, tables) < 0) {
 		fprintf(stderr, "%s/%s Failed to initialize nft: %s\n",
 				xtables_globals.program_name,
 				xtables_globals.program_version,

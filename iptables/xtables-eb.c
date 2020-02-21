@@ -739,16 +739,9 @@ int nft_init_eb(struct nft_handle *h, const char *pname)
 	init_extensionsb();
 #endif
 
-	memset(h, 0, sizeof(*h));
-
-	h->family = NFPROTO_BRIDGE;
-
-	if (nft_init(h, xtables_bridge) < 0)
+	if (nft_init(h, NFPROTO_BRIDGE, xtables_bridge) < 0)
 		xtables_error(OTHER_PROBLEM,
 			      "Could not initialize nftables layer.");
-	h->ops = nft_family_ops_lookup(h->family);
-	if (!h->ops)
-		xtables_error(PARAMETER_PROBLEM, "Unknown family");
 
 	/* manually registering ebt matches, given the original ebtables parser
 	 * don't use '-m matchname' and the match can't be loaded dynamically when

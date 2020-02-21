@@ -137,10 +137,8 @@ xtables_save_main(int family, int argc, char *argv[],
 	struct do_output_data d = {
 		.format = FMT_NOCOUNTS,
 	};
+	struct nft_handle h;
 	bool dump = false;
-	struct nft_handle h = {
-		.family	= family,
-	};
 	FILE *file = NULL;
 	int ret, c;
 
@@ -233,16 +231,13 @@ xtables_save_main(int family, int argc, char *argv[],
 		return 1;
 	}
 
-	if (nft_init(&h, tables) < 0) {
+	if (nft_init(&h, family, tables) < 0) {
 		fprintf(stderr, "%s/%s Failed to initialize nft: %s\n",
 				xtables_globals.program_name,
 				xtables_globals.program_version,
 				strerror(errno));
 		exit(EXIT_FAILURE);
 	}
-	h.ops = nft_family_ops_lookup(h.family);
-	if (!h.ops)
-		xtables_error(PARAMETER_PROBLEM, "Unknown family");
 
 	ret = do_output(&h, tablename, &d);
 	nft_fini(&h);

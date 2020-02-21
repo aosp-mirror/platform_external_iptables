@@ -571,10 +571,6 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 	   demand-load a protocol. */
 	opterr = 0;
 
-	h->ops = nft_family_ops_lookup(h->family);
-	if (h->ops == NULL)
-		xtables_error(PARAMETER_PROBLEM, "Unknown family");
-
 	opts = xt_params->orig_opts;
 	while ((cs->c = getopt_long(argc, argv,
 	   "-:A:C:D:R:I:L::S::M:F::Z::N:X::E:P:Vh::o:p:s:d:j:i:fbvw::W::nt:m:xc:g:46",

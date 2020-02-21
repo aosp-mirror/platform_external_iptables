@@ -360,15 +360,13 @@ static int
 xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 {
 	const struct builtin_table *tables;
-	struct nft_handle h = {
-		.family = family,
-		.restore = true,
-	};
-	int c;
 	struct nft_xt_restore_parse p = {
 		.commit = true,
 		.cb = &restore_cb,
 	};
+	bool noflush = false;
+	struct nft_handle h;
+	int c;
 
 	line = 0;
 
@@ -402,7 +400,7 @@ xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 				print_usage(prog_name, PACKAGE_VERSION);
 				exit(0);
 			case 'n':
-				h.noflush = 1;
+				noflush = true;
 				break;
 			case 'M':
 				xtables_modprobe_program = optarg;
@@ -457,13 +455,15 @@ xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 		return 1;
 	}
 
-	if (nft_init(&h, tables) < 0) {
+	if (nft_init(&h, family, tables) < 0) {
 		fprintf(stderr, "%s/%s Failed to initialize nft: %s\n",
 				xtables_globals.program_name,
 				xtables_globals.program_version,
 				strerror(errno));
 		exit(EXIT_FAILURE);
 	}
+	h.noflush = noflush;
+	h.restore = true;
 
 	xtables_restore_parse(&h, &p);
 

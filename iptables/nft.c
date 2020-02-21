@@ -789,8 +789,10 @@ int nft_restart(struct nft_handle *h)
 	return 0;
 }
 
-int nft_init(struct nft_handle *h, const struct builtin_table *t)
+int nft_init(struct nft_handle *h, int family, const struct builtin_table *t)
 {
+	memset(h, 0, sizeof(*h));
+
 	h->nl = mnl_socket_open(NETLINK_NETFILTER);
 	if (h->nl == NULL)
 		return -1;
@@ -800,9 +802,14 @@ int nft_init(struct nft_handle *h, const struct builtin_table *t)
 		return -1;
 	}
 
+	h->ops = nft_family_ops_lookup(family);
+	if (!h->ops)
+		xtables_error(PARAMETER_PROBLEM, "Unknown family");
+
 	h->portid = mnl_socket_get_portid(h->nl);
 	h->tables = t;
 	h->cache = &h->__cache[0];
+	h->family = family;
 
 	INIT_LIST_HEAD(&h->obj_list);
 	INIT_LIST_HEAD(&h->err_list);
