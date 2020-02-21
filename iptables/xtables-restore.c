@@ -381,7 +381,7 @@ xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 		exit(1);
 	}
 
-	while ((c = getopt_long(argc, argv, "bcvVthnM:T:46wW", options, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "bcvVthnM:T:wW", options, NULL)) != -1) {
 		switch (c) {
 			case 'b':
 				fprintf(stderr, "-b/--binary option is not implemented\n");
@@ -409,13 +409,6 @@ xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 				break;
 			case 'T':
 				p.tablename = optarg;
-				break;
-			case '4':
-				h.family = AF_INET;
-				break;
-			case '6':
-				h.family = AF_INET6;
-				xtables_set_nfproto(AF_INET6);
 				break;
 			case 'w': /* fallthrough.  Ignored by xt-restore */
 			case 'W':

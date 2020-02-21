@@ -32,7 +32,7 @@
 #define prog_name xtables_globals.program_name
 #define prog_vers xtables_globals.program_version
 
-static const char *ipt_save_optstring = "bcdt:M:f:46V";
+static const char *ipt_save_optstring = "bcdt:M:f:V";
 static const struct option ipt_save_options[] = {
 	{.name = "counters", .has_arg = false, .val = 'c'},
 	{.name = "version",  .has_arg = false, .val = 'V'},
@@ -40,8 +40,6 @@ static const struct option ipt_save_options[] = {
 	{.name = "table",    .has_arg = true,  .val = 't'},
 	{.name = "modprobe", .has_arg = true,  .val = 'M'},
 	{.name = "file",     .has_arg = true,  .val = 'f'},
-	{.name = "ipv4",     .has_arg = false, .val = '4'},
-	{.name = "ipv6",     .has_arg = false, .val = '6'},
 	{NULL},
 };
 
@@ -188,13 +186,6 @@ xtables_save_main(int family, int argc, char *argv[],
 			break;
 		case 'd':
 			dump = true;
-			break;
-		case '4':
-			h.family = AF_INET;
-			break;
-		case '6':
-			h.family = AF_INET6;
-			xtables_set_nfproto(AF_INET6);
 			break;
 		case 'V':
 			printf("%s v%s (nf_tables)\n", prog_name, prog_vers);
