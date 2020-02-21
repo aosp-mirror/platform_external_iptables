@@ -917,27 +917,22 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 			break;
 
 		case '4':
+			if (args->family == AF_INET)
+				break;
+
 			if (p->restore && args->family == AF_INET6)
 				return;
 
-			if (args->family != AF_INET)
-				exit_tryhelp(2);
-
-			h->ops = nft_family_ops_lookup(args->family);
-			break;
+			exit_tryhelp(2);
 
 		case '6':
+			if (args->family == AF_INET6)
+				break;
+
 			if (p->restore && args->family == AF_INET)
 				return;
 
-			args->family = AF_INET6;
-			xtables_set_nfproto(AF_INET6);
-
-			h->ops = nft_family_ops_lookup(args->family);
-			if (h->ops == NULL)
-				xtables_error(PARAMETER_PROBLEM,
-					      "Unknown family");
-			break;
+			exit_tryhelp(2);
 
 		case 1: /* non option */
 			if (optarg[0] == '!' && optarg[1] == '\0') {
