@@ -647,8 +647,14 @@ void nft_rebuild_cache(struct nft_handle *h)
 
 void nft_release_cache(struct nft_handle *h)
 {
-	if (h->cache_index)
-		flush_cache(h, &h->__cache[0], NULL);
+	if (!h->cache_index)
+		return;
+
+	flush_cache(h, &h->__cache[0], NULL);
+	memcpy(&h->__cache[0], &h->__cache[1], sizeof(h->__cache[0]));
+	memset(&h->__cache[1], 0, sizeof(h->__cache[1]));
+	h->cache_index = 0;
+	h->cache = &h->__cache[0];
 }
 
 struct nftnl_table_list *nftnl_table_list_get(struct nft_handle *h)
