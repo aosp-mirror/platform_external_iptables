@@ -32,7 +32,8 @@ enum nft_cache_level {
 	NFT_CL_TABLES,
 	NFT_CL_CHAINS,
 	NFT_CL_SETS,
-	NFT_CL_RULES
+	NFT_CL_RULES,
+	NFT_CL_FAKE	/* must be last entry */
 };
 
 struct nft_cache {

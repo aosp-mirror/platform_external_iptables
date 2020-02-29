@@ -484,6 +484,7 @@ retry:
 			break;
 		/* fall through */
 	case NFT_CL_RULES:
+	case NFT_CL_FAKE:
 		break;
 	}
 
@@ -528,7 +529,7 @@ void nft_fake_cache(struct nft_handle *h)
 
 		h->cache->table[type].chains = nftnl_chain_list_alloc();
 	}
-	h->cache_level = NFT_CL_RULES;
+	h->cache_level = NFT_CL_FAKE;
 	mnl_genid_get(h, &h->nft_genid);
 }
 
@@ -641,8 +642,12 @@ void nft_rebuild_cache(struct nft_handle *h)
 	if (h->cache_level)
 		__nft_flush_cache(h);
 
-	h->cache_level = NFT_CL_NONE;
-	__nft_build_cache(h, level, NULL, NULL, NULL);
+	if (h->cache_level == NFT_CL_FAKE) {
+		nft_fake_cache(h);
+	} else {
+		h->cache_level = NFT_CL_NONE;
+		__nft_build_cache(h, level, NULL, NULL, NULL);
+	}
 }
 
 void nft_release_cache(struct nft_handle *h)
