@@ -603,17 +603,19 @@ static int flush_cache(struct nft_handle *h, struct nft_cache *c,
 		if (h->tables[i].name == NULL)
 			continue;
 
-		if (!c->table[i].chains)
-			continue;
-
-		nftnl_chain_list_free(c->table[i].chains);
-		c->table[i].chains = NULL;
-		if (c->table[i].sets)
+		if (c->table[i].chains) {
+			nftnl_chain_list_free(c->table[i].chains);
+			c->table[i].chains = NULL;
+		}
+		if (c->table[i].sets) {
 			nftnl_set_list_free(c->table[i].sets);
-		c->table[i].sets = NULL;
+			c->table[i].sets = NULL;
+		}
 	}
-	nftnl_table_list_free(c->tables);
-	c->tables = NULL;
+	if (c->tables) {
+		nftnl_table_list_free(c->tables);
+		c->tables = NULL;
+	}
 
 	return 1;
 }
