@@ -449,15 +449,11 @@ __nft_build_cache(struct nft_handle *h, enum nft_cache_level level,
 		  const struct builtin_table *t, const char *set,
 		  const char *chain)
 {
-	uint32_t genid_start, genid_stop;
-
 	if (level <= h->cache_level)
 		return;
-retry:
-	mnl_genid_get(h, &genid_start);
 
-	if (h->cache_level && genid_start != h->nft_genid)
-		flush_chain_cache(h, NULL);
+	if (!h->nft_genid)
+		mnl_genid_get(h, &h->nft_genid);
 
 	switch (h->cache_level) {
 	case NFT_CL_NONE:
@@ -486,18 +482,10 @@ retry:
 		break;
 	}
 
-	mnl_genid_get(h, &genid_stop);
-	if (genid_start != genid_stop) {
-		flush_chain_cache(h, NULL);
-		goto retry;
-	}
-
 	if (!t && !chain)
 		h->cache_level = level;
 	else if (h->cache_level < NFT_CL_TABLES)
 		h->cache_level = NFT_CL_TABLES;
-
-	h->nft_genid = genid_start;
 }
 
 void nft_build_cache(struct nft_handle *h, struct nftnl_chain *c)
