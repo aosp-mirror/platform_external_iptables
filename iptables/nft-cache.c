@@ -331,7 +331,7 @@ static int fetch_chain_cache(struct nft_handle *h,
 	};
 	char buf[16536];
 	struct nlmsghdr *nlh;
-	int i, ret;
+	int ret;
 
 	if (t && chain) {
 		struct nftnl_chain *c = nftnl_chain_alloc();
@@ -516,8 +516,6 @@ void nft_build_cache(struct nft_handle *h, struct nftnl_chain *c)
 
 void nft_fake_cache(struct nft_handle *h)
 {
-	int i;
-
 	fetch_table_cache(h);
 	init_chain_cache(h);
 
