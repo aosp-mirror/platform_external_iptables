@@ -73,6 +73,7 @@ enum obj_update_type {
 
 struct nft_cache_req {
 	enum nft_cache_level	level;
+	char			*table;
 };
 
 struct nft_handle {

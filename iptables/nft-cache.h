@@ -2,8 +2,10 @@
 #define _NFT_CACHE_H_
 
 struct nft_handle;
+struct nft_cmd;
 
-void nft_cache_level_set(struct nft_handle *h, int level);
+void nft_cache_level_set(struct nft_handle *h, int level,
+			 const struct nft_cmd *cmd);
 void nft_rebuild_cache(struct nft_handle *h);
 void nft_release_cache(struct nft_handle *h);
 void flush_chain_cache(struct nft_handle *h, const char *tablename);

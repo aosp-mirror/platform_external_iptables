@@ -261,7 +261,7 @@ void xtables_restore_parse(struct nft_handle *h,
 	char buffer[10240] = {};
 
 	if (!h->noflush)
-		nft_cache_level_set(h, NFT_CL_FAKE);
+		nft_cache_level_set(h, NFT_CL_FAKE, NULL);
 
 	line = 0;
 	while (fgets(buffer, sizeof(buffer), p->in)) {

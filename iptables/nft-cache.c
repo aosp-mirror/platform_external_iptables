@@ -11,6 +11,7 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <stdlib.h>
 #include <string.h>
 #include <xtables.h>
 
@@ -24,14 +25,21 @@
 #include "nft.h"
 #include "nft-cache.h"
 
-void nft_cache_level_set(struct nft_handle *h, int level)
+void nft_cache_level_set(struct nft_handle *h, int level,
+			 const struct nft_cmd *cmd)
 {
 	struct nft_cache_req *req = &h->cache_req;
 
-	if (level <= req->level)
+	if (level > req->level)
+		req->level = level;
+
+	if (!cmd)
 		return;
 
-	req->level = level;
+	if (!req->table)
+		req->table = strdup(cmd->table);
+	else
+		assert(!strcmp(req->table, cmd->table));
 }
 
 static int genid_cb(const struct nlmsghdr *nlh, void *data)
@@ -435,9 +443,13 @@ static void
 __nft_build_cache(struct nft_handle *h)
 {
 	struct nft_cache_req *req = &h->cache_req;
+	const struct builtin_table *t = NULL;
 
 	if (h->cache_init)
 		return;
+
+	if (req->table)
+		t = nft_table_builtin_find(h, req->table);
 
 	h->cache_init = true;
 	mnl_genid_get(h, &h->nft_genid);
@@ -447,11 +459,11 @@ __nft_build_cache(struct nft_handle *h)
 	if (req->level == NFT_CL_FAKE)
 		return;
 	if (req->level >= NFT_CL_CHAINS)
-		fetch_chain_cache(h, NULL, NULL);
+		fetch_chain_cache(h, t, NULL);
 	if (req->level >= NFT_CL_SETS)
-		fetch_set_cache(h, NULL, NULL);
+		fetch_set_cache(h, t, NULL);
 	if (req->level >= NFT_CL_RULES)
-		fetch_rule_cache(h, NULL);
+		fetch_rule_cache(h, t);
 }
 
 static void __nft_flush_cache(struct nft_handle *h)
@@ -575,14 +587,20 @@ void nft_cache_build(struct nft_handle *h)
 
 void nft_release_cache(struct nft_handle *h)
 {
-	if (!h->cache_index)
-		return;
+	struct nft_cache_req *req = &h->cache_req;
 
+	while (h->cache_index)
+		flush_cache(h, &h->__cache[h->cache_index--], NULL);
 	flush_cache(h, &h->__cache[0], NULL);
-	memcpy(&h->__cache[0], &h->__cache[1], sizeof(h->__cache[0]));
-	memset(&h->__cache[1], 0, sizeof(h->__cache[1]));
-	h->cache_index = 0;
 	h->cache = &h->__cache[0];
+	h->cache_init = false;
+
+	if (req->level != NFT_CL_FAKE)
+		req->level = NFT_CL_TABLES;
+	if (req->table) {
+		free(req->table);
+		req->table = NULL;
+	}
 }
 
 struct nftnl_table_list *nftnl_table_list_get(struct nft_handle *h)

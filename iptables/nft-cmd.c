@@ -71,12 +71,11 @@ void nft_cmd_free(struct nft_cmd *cmd)
 	free(cmd);
 }
 
-static void nft_cmd_rule_bridge(struct nft_handle *h, const char *chain,
-				const char *table)
+static void nft_cmd_rule_bridge(struct nft_handle *h, const struct nft_cmd *cmd)
 {
 	const struct builtin_table *t;
 
-	t = nft_table_builtin_find(h, table);
+	t = nft_table_builtin_find(h, cmd->table);
 	if (!t)
 		return;
 
@@ -84,10 +83,10 @@ static void nft_cmd_rule_bridge(struct nft_handle *h, const char *chain,
 	 * rule in nftables, rule cache is required here to treat them right.
 	 */
 	if (h->family == NFPROTO_BRIDGE &&
-	    !nft_chain_builtin_find(t, chain))
-		nft_cache_level_set(h, NFT_CL_RULES);
+	    !nft_chain_builtin_find(t, cmd->chain))
+		nft_cache_level_set(h, NFT_CL_RULES, cmd);
 	else
-		nft_cache_level_set(h, NFT_CL_CHAINS);
+		nft_cache_level_set(h, NFT_CL_CHAINS, cmd);
 }
 
 int nft_cmd_rule_append(struct nft_handle *h, const char *chain,
@@ -96,12 +95,12 @@ int nft_cmd_rule_append(struct nft_handle *h, const char *chain,
 {
 	struct nft_cmd *cmd;
 
-	nft_cmd_rule_bridge(h, chain, table);
-
 	cmd = nft_cmd_new(h, NFT_COMPAT_RULE_APPEND, table, chain, state, -1,
 			  verbose);
 	if (!cmd)
 		return 0;
+
+	nft_cmd_rule_bridge(h, cmd);
 
 	return 1;
 }
@@ -112,17 +111,17 @@ int nft_cmd_rule_insert(struct nft_handle *h, const char *chain,
 {
 	struct nft_cmd *cmd;
 
-	nft_cmd_rule_bridge(h, chain, table);
-
 	cmd = nft_cmd_new(h, NFT_COMPAT_RULE_INSERT, table, chain, state,
 			  rulenum, verbose);
 	if (!cmd)
 		return 0;
 
+	nft_cmd_rule_bridge(h, cmd);
+
 	if (cmd->rulenum > 0)
-		nft_cache_level_set(h, NFT_CL_RULES);
+		nft_cache_level_set(h, NFT_CL_RULES, cmd);
 	else
-		nft_cache_level_set(h, NFT_CL_CHAINS);
+		nft_cache_level_set(h, NFT_CL_CHAINS, cmd);
 
 	return 1;
 }
@@ -138,7 +137,7 @@ int nft_cmd_rule_delete(struct nft_handle *h, const char *chain,
 	if (!cmd)
 		return 0;
 
-	nft_cache_level_set(h, NFT_CL_RULES);
+	nft_cache_level_set(h, NFT_CL_RULES, cmd);
 
 	return 1;
 }
@@ -153,7 +152,7 @@ int nft_cmd_rule_delete_num(struct nft_handle *h, const char *chain,
 	if (!cmd)
 		return 0;
 
-	nft_cache_level_set(h, NFT_CL_RULES);
+	nft_cache_level_set(h, NFT_CL_RULES, cmd);
 
 	return 1;
 }
@@ -168,7 +167,7 @@ int nft_cmd_rule_flush(struct nft_handle *h, const char *chain,
 	if (!cmd)
 		return 0;
 
-	nft_cache_level_set(h, NFT_CL_CHAINS);
+	nft_cache_level_set(h, NFT_CL_CHAINS, cmd);
 
 	return 1;
 }
@@ -183,7 +182,7 @@ int nft_cmd_chain_zero_counters(struct nft_handle *h, const char *chain,
 	if (!cmd)
 		return 0;
 
-	nft_cache_level_set(h, NFT_CL_CHAINS);
+	nft_cache_level_set(h, NFT_CL_CHAINS, cmd);
 
 	return 1;
 }
@@ -198,7 +197,7 @@ int nft_cmd_chain_user_add(struct nft_handle *h, const char *chain,
 	if (!cmd)
 		return 0;
 
-	nft_cache_level_set(h, NFT_CL_CHAINS);
+	nft_cache_level_set(h, NFT_CL_CHAINS, cmd);
 
 	return 1;
 }
@@ -217,9 +216,9 @@ int nft_cmd_chain_user_del(struct nft_handle *h, const char *chain,
 	 * rule cache.
 	 */
 	if (h->family == NFPROTO_BRIDGE)
-		nft_cache_level_set(h, NFT_CL_RULES);
+		nft_cache_level_set(h, NFT_CL_RULES, cmd);
 	else
-		nft_cache_level_set(h, NFT_CL_CHAINS);
+		nft_cache_level_set(h, NFT_CL_CHAINS, cmd);
 
 	return 1;
 }
@@ -236,7 +235,7 @@ int nft_cmd_chain_user_rename(struct nft_handle *h,const char *chain,
 
 	cmd->rename = strdup(newname);
 
-	nft_cache_level_set(h, NFT_CL_CHAINS);
+	nft_cache_level_set(h, NFT_CL_CHAINS, cmd);
 
 	return 1;
 }
@@ -253,7 +252,7 @@ int nft_cmd_rule_list(struct nft_handle *h, const char *chain,
 
 	cmd->format = format;
 
-	nft_cache_level_set(h, NFT_CL_RULES);
+	nft_cache_level_set(h, NFT_CL_RULES, cmd);
 
 	return 1;
 }
@@ -269,7 +268,7 @@ int nft_cmd_rule_replace(struct nft_handle *h, const char *chain,
 	if (!cmd)
 		return 0;
 
-	nft_cache_level_set(h, NFT_CL_RULES);
+	nft_cache_level_set(h, NFT_CL_RULES, cmd);
 
 	return 1;
 }
@@ -284,7 +283,7 @@ int nft_cmd_rule_check(struct nft_handle *h, const char *chain,
 	if (!cmd)
 		return 0;
 
-	nft_cache_level_set(h, NFT_CL_RULES);
+	nft_cache_level_set(h, NFT_CL_RULES, cmd);
 
 	return 1;
 }
@@ -304,7 +303,7 @@ int nft_cmd_chain_set(struct nft_handle *h, const char *table,
 	if (counters)
 		cmd->counters = *counters;
 
-	nft_cache_level_set(h, NFT_CL_CHAINS);
+	nft_cache_level_set(h, NFT_CL_CHAINS, cmd);
 
 	return 1;
 }
@@ -318,7 +317,7 @@ int nft_cmd_table_flush(struct nft_handle *h, const char *table)
 	if (!cmd)
 		return 0;
 
-	nft_cache_level_set(h, NFT_CL_TABLES);
+	nft_cache_level_set(h, NFT_CL_TABLES, cmd);
 
 	return 1;
 }
@@ -333,7 +332,7 @@ int nft_cmd_chain_restore(struct nft_handle *h, const char *chain,
 	if (!cmd)
 		return 0;
 
-	nft_cache_level_set(h, NFT_CL_CHAINS);
+	nft_cache_level_set(h, NFT_CL_CHAINS, cmd);
 
 	return 1;
 }
@@ -348,7 +347,7 @@ int nft_cmd_rule_zero_counters(struct nft_handle *h, const char *chain,
 	if (!cmd)
 		return 0;
 
-	nft_cache_level_set(h, NFT_CL_RULES);
+	nft_cache_level_set(h, NFT_CL_RULES, cmd);
 
 	return 1;
 }
@@ -365,7 +364,7 @@ int nft_cmd_rule_list_save(struct nft_handle *h, const char *chain,
 
 	cmd->counters_save = counters;
 
-	nft_cache_level_set(h, NFT_CL_RULES);
+	nft_cache_level_set(h, NFT_CL_RULES, cmd);
 
 	return 1;
 }
@@ -382,7 +381,7 @@ int ebt_cmd_user_chain_policy(struct nft_handle *h, const char *table,
 
 	cmd->policy = strdup(policy);
 
-	nft_cache_level_set(h, NFT_CL_RULES);
+	nft_cache_level_set(h, NFT_CL_RULES, cmd);
 
 	return 1;
 }

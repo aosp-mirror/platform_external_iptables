@@ -239,7 +239,7 @@ xtables_save_main(int family, int argc, char *argv[],
 		exit(EXIT_FAILURE);
 	}
 
-	nft_cache_level_set(&h, NFT_CL_RULES);
+	nft_cache_level_set(&h, NFT_CL_RULES, NULL);
 	nft_cache_build(&h);
 
 	ret = do_output(&h, tablename, &d);

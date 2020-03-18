@@ -816,7 +816,7 @@ void nft_fini(struct nft_handle *h)
 	list_for_each_entry_safe(cmd, next, &h->cmd_list, head)
 		nft_cmd_free(cmd);
 
-	flush_chain_cache(h, NULL);
+	nft_release_cache(h);
 	mnl_socket_close(h->nl);
 }
 
