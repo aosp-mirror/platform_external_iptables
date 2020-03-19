@@ -71,9 +71,16 @@ enum obj_update_type {
 	NFT_COMPAT_TABLE_NEW,
 };
 
+struct cache_chain {
+	struct list_head head;
+	char *name;
+};
+
 struct nft_cache_req {
 	enum nft_cache_level	level;
 	char			*table;
+	bool			all_chains;
+	struct list_head	chain_list;
 };
 
 struct nft_handle {

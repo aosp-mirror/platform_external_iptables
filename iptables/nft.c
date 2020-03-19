@@ -805,6 +805,7 @@ int nft_init(struct nft_handle *h, int family, const struct builtin_table *t)
 	INIT_LIST_HEAD(&h->obj_list);
 	INIT_LIST_HEAD(&h->err_list);
 	INIT_LIST_HEAD(&h->cmd_list);
+	INIT_LIST_HEAD(&h->cache_req.chain_list);
 
 	return 0;
 }
