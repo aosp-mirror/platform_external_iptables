@@ -91,6 +91,19 @@ static void TCPMSS_save(const void *ip, const struct xt_entry_target *target)
 		printf(" --set-mss %u", mssinfo->mss);
 }
 
+static int TCPMSS_xlate(struct xt_xlate *xl,
+			const struct xt_xlate_tg_params *params)
+{
+	const struct xt_tcpmss_info *mssinfo =
+		(const struct xt_tcpmss_info *)params->target->data;
+	if (mssinfo->mss == XT_TCPMSS_CLAMP_PMTU)
+		xt_xlate_add(xl, "tcp option maxseg size set rt mtu");
+	else
+		xt_xlate_add(xl, "tcp option maxseg size set %d", mssinfo->mss);
+
+	return 1;
+}
+
 static struct xtables_target tcpmss_tg_reg[] = {
 	{
 		.family        = NFPROTO_IPV4,
@@ -104,6 +117,7 @@ static struct xtables_target tcpmss_tg_reg[] = {
 		.x6_parse      = TCPMSS_parse,
 		.x6_fcheck     = TCPMSS_check,
 		.x6_options    = TCPMSS4_opts,
+		.xlate         = TCPMSS_xlate,
 	},
 	{
 		.family        = NFPROTO_IPV6,
