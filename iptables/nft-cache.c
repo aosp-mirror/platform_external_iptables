@@ -322,9 +322,9 @@ static int fetch_set_cache(struct nft_handle *h,
 	return ret;
 }
 
-static int fetch_chain_cache(struct nft_handle *h,
-			     const struct builtin_table *t,
-			     const char *chain)
+static int __fetch_chain_cache(struct nft_handle *h,
+			       const struct builtin_table *t,
+			       const struct nftnl_chain *c)
 {
 	struct nftnl_chain_list_cb_data d = {
 		.h = h,
@@ -334,29 +334,39 @@ static int fetch_chain_cache(struct nft_handle *h,
 	struct nlmsghdr *nlh;
 	int ret;
 
-	if (t && chain) {
-		struct nftnl_chain *c = nftnl_chain_alloc();
-
-		if (!c)
-			return -1;
-
-		nlh = nftnl_chain_nlmsg_build_hdr(buf, NFT_MSG_GETCHAIN,
-						  h->family, NLM_F_ACK,
-						  h->seq);
-		nftnl_chain_set_str(c, NFTNL_CHAIN_TABLE, t->name);
-		nftnl_chain_set_str(c, NFTNL_CHAIN_NAME, chain);
+	nlh = nftnl_chain_nlmsg_build_hdr(buf, NFT_MSG_GETCHAIN, h->family,
+					  c ? NLM_F_ACK : NLM_F_DUMP, h->seq);
+	if (c)
 		nftnl_chain_nlmsg_build_payload(nlh, c);
-		nftnl_chain_free(c);
-	} else {
-		nlh = nftnl_chain_nlmsg_build_hdr(buf, NFT_MSG_GETCHAIN,
-						  h->family, NLM_F_DUMP,
-						  h->seq);
-	}
 
 	ret = mnl_talk(h, nlh, nftnl_chain_list_cb, &d);
 	if (ret < 0 && errno == EINTR)
 		assert(nft_restart(h) >= 0);
 
+	return ret;
+}
+
+static int fetch_chain_cache(struct nft_handle *h,
+			     const struct builtin_table *t,
+			     const char *chain)
+{
+	struct nftnl_chain *c;
+	int ret;
+
+	if (!chain)
+		return __fetch_chain_cache(h, t, NULL);
+
+	assert(t);
+
+	c = nftnl_chain_alloc();
+	if (!c)
+		return -1;
+
+	nftnl_chain_set_str(c, NFTNL_CHAIN_TABLE, t->name);
+	nftnl_chain_set_str(c, NFTNL_CHAIN_NAME, chain);
+	ret = __fetch_chain_cache(h, t, c);
+
+	nftnl_chain_free(c);
 	return ret;
 }
 
