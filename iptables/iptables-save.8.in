@@ -19,26 +19,30 @@
 .\"
 .\"
 .SH NAME
-iptables-save \(em dump iptables rules to stdout
+iptables-save \(em dump iptables rules
 .P
-ip6tables-save \(em dump iptables rules to stdout
+ip6tables-save \(em dump iptables rules
 .SH SYNOPSIS
 \fBiptables\-save\fP [\fB\-M\fP \fImodprobe\fP] [\fB\-c\fP]
-[\fB\-t\fP \fItable\fP]
+[\fB\-t\fP \fItable\fP] [\fB\-f\fP \fIfilename\fP]
 .P
 \fBip6tables\-save\fP [\fB\-M\fP \fImodprobe\fP] [\fB\-c\fP]
-[\fB\-t\fP \fItable\fP]
+[\fB\-t\fP \fItable\fP] [\fB\-f\fP \fIfilename\fP]
 .SH DESCRIPTION
 .PP
 .B iptables-save
 and
 .B ip6tables-save
 are used to dump the contents of IP or IPv6 Table in easily parseable format
-to STDOUT. Use I/O-redirection provided by your shell to write to a file.
+either to STDOUT or to a specified file.
 .TP
 \fB\-M\fR, \fB\-\-modprobe\fR \fImodprobe_program\fP
 Specify the path to the modprobe program. By default, iptables-save will
 inspect /proc/sys/kernel/modprobe to determine the executable's path.
+.TP
+\fB\-f\fR, \fB\-\-file\fR \fIfilename\fP
+Specify a filename to log the output to. If not specified, iptables-save
+will log to STDOUT.
 .TP
 \fB\-c\fR, \fB\-\-counters\fR
 include the current values of all packet and byte counters in the output

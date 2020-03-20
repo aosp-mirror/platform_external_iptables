@@ -29,7 +29,7 @@
 #define ARG_LIMIT		'1'
 #define ARG_LIMIT_BURST		'2'
 
-static struct option brlimit_opts[] =
+static const struct option brlimit_opts[] =
 {
 	{ .name = "limit",	.has_arg = true,	.val = ARG_LIMIT },
 	{ .name = "limit-burst",.has_arg = true,	.val = ARG_LIMIT_BURST },
