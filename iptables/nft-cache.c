@@ -295,11 +295,7 @@ static int fetch_set_cache(struct nft_handle *h,
 		return ret;
 	}
 
-	if (t && set) {
-		s = nftnl_set_list_lookup_byname(h->cache->table[t->type].sets,
-						 set);
-		set_fetch_elem_cb(s, h);
-	} else if (t) {
+	if (t) {
 		nftnl_set_list_foreach(h->cache->table[t->type].sets,
 				       set_fetch_elem_cb, h);
 	} else {
@@ -409,20 +405,14 @@ static int nft_rule_list_update(struct nftnl_chain *c, void *data)
 }
 
 static int fetch_rule_cache(struct nft_handle *h,
-			    const struct builtin_table *t, const char *chain)
+			    const struct builtin_table *t)
 {
 	int i;
 
 	if (t) {
-		struct nftnl_chain_list *list;
-		struct nftnl_chain *c;
+		struct nftnl_chain_list *list =
+			h->cache->table[t->type].chains;
 
-		list = h->cache->table[t->type].chains;
-
-		if (chain) {
-			c = nftnl_chain_list_lookup_byname(list, chain);
-			return nft_rule_list_update(c, h);
-		}
 		return nftnl_chain_list_foreach(list, nft_rule_list_update, h);
 	}
 
@@ -457,7 +447,7 @@ __nft_build_cache(struct nft_handle *h, enum nft_cache_level level,
 	if (h->cache_level >= NFT_CL_SETS)
 		fetch_set_cache(h, t, set);
 	if (h->cache_level >= NFT_CL_RULES)
-		fetch_rule_cache(h, t, chain);
+		fetch_rule_cache(h, t);
 }
 
 void nft_fake_cache(struct nft_handle *h)
