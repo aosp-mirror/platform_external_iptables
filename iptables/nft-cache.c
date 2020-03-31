@@ -86,7 +86,7 @@ static int fetch_table_cache(struct nft_handle *h)
 	char buf[16536];
 	struct nlmsghdr *nlh;
 	struct nftnl_table_list *list;
-	int ret;
+	int i, ret;
 
 	if (h->cache->tables)
 		return 0;
@@ -104,13 +104,6 @@ static int fetch_table_cache(struct nft_handle *h)
 
 	h->cache->tables = list;
 
-	return 1;
-}
-
-static int init_chain_cache(struct nft_handle *h)
-{
-	int i;
-
 	for (i = 0; i < NFT_TABLE_MAX; i++) {
 		enum nft_table_type type = h->tables[i].type;
 
@@ -119,9 +112,10 @@ static int init_chain_cache(struct nft_handle *h)
 
 		h->cache->table[type].chains = nftnl_chain_list_alloc();
 		if (!h->cache->table[type].chains)
-			return -1;
+			return 0;
 	}
-	return 0;
+
+	return 1;
 }
 
 struct nftnl_chain_list_cb_data {
@@ -458,7 +452,6 @@ __nft_build_cache(struct nft_handle *h, enum nft_cache_level level,
 	switch (h->cache_level) {
 	case NFT_CL_NONE:
 		fetch_table_cache(h);
-		init_chain_cache(h);
 		if (level == NFT_CL_TABLES)
 			break;
 		/* fall through */
@@ -505,7 +498,6 @@ void nft_build_cache(struct nft_handle *h, struct nftnl_chain *c)
 void nft_fake_cache(struct nft_handle *h)
 {
 	fetch_table_cache(h);
-	init_chain_cache(h);
 
 	h->cache_level = NFT_CL_FAKE;
 	mnl_genid_get(h, &h->nft_genid);
