@@ -113,6 +113,10 @@ static int fetch_table_cache(struct nft_handle *h)
 		h->cache->table[type].chains = nftnl_chain_list_alloc();
 		if (!h->cache->table[type].chains)
 			return 0;
+
+		h->cache->table[type].sets = nftnl_set_list_alloc();
+		if (!h->cache->table[type].sets)
+			return 0;
 	}
 
 	return 1;
@@ -253,21 +257,6 @@ static int fetch_set_cache(struct nft_handle *h,
 	struct nlmsghdr *nlh;
 	char buf[16536];
 	int i, ret;
-
-	if (!t) {
-		for (i = 0; i < NFT_TABLE_MAX; i++) {
-			enum nft_table_type type = h->tables[i].type;
-
-			if (!h->tables[i].name)
-				continue;
-
-			h->cache->table[type].sets = nftnl_set_list_alloc();
-			if (!h->cache->table[type].sets)
-				return -1;
-		}
-	} else if (!h->cache->table[t->type].sets) {
-		h->cache->table[t->type].sets = nftnl_set_list_alloc();
-	}
 
 	if (t && set) {
 		struct nftnl_set *s = nftnl_set_alloc();
