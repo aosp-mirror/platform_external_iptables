@@ -254,25 +254,31 @@ static int fetch_set_cache(struct nft_handle *h,
 		.h = h,
 		.t = t,
 	};
+	uint16_t flags = NLM_F_DUMP;
+	struct nftnl_set *s = NULL;
 	struct nlmsghdr *nlh;
 	char buf[16536];
 	int i, ret;
 
-	if (t && set) {
-		struct nftnl_set *s = nftnl_set_alloc();
-
+	if (t) {
+		s = nftnl_set_alloc();
 		if (!s)
 			return -1;
 
-		nlh = nftnl_set_nlmsg_build_hdr(buf, NFT_MSG_GETSET, h->family,
-						NLM_F_ACK, h->seq);
 		nftnl_set_set_str(s, NFTNL_SET_TABLE, t->name);
-		nftnl_set_set_str(s, NFTNL_SET_NAME, set);
+
+		if (set) {
+			nftnl_set_set_str(s, NFTNL_SET_NAME, set);
+			flags = NLM_F_ACK;
+		}
+	}
+
+	nlh = nftnl_set_nlmsg_build_hdr(buf, NFT_MSG_GETSET,
+					h->family, flags, h->seq);
+
+	if (s) {
 		nftnl_set_nlmsg_build_payload(nlh, s);
 		nftnl_set_free(s);
-	} else {
-		nlh = nftnl_set_nlmsg_build_hdr(buf, NFT_MSG_GETSET, h->family,
-						NLM_F_DUMP, h->seq);
 	}
 
 	ret = mnl_talk(h, nlh, nftnl_set_list_cb, &d);
@@ -282,8 +288,6 @@ static int fetch_set_cache(struct nft_handle *h,
 	}
 
 	if (t && set) {
-		struct nftnl_set *s;
-
 		s = nftnl_set_list_lookup_byname(h->cache->table[t->type].sets,
 						 set);
 		set_fetch_elem_cb(s, h);
