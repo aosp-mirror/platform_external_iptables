@@ -71,6 +71,10 @@ enum obj_update_type {
 	NFT_COMPAT_TABLE_NEW,
 };
 
+struct nft_cache_req {
+	enum nft_cache_level	level;
+};
+
 struct nft_handle {
 	int			family;
 	struct mnl_socket	*nl;
@@ -89,7 +93,7 @@ struct nft_handle {
 	unsigned int		cache_index;
 	struct nft_cache	__cache[2];
 	struct nft_cache	*cache;
-	enum nft_cache_level	cache_level;
+	struct nft_cache_req	cache_req;
 	bool			restore;
 	bool			noflush;
 	int8_t			config_done;

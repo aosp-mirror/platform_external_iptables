@@ -26,10 +26,12 @@
 
 void nft_cache_level_set(struct nft_handle *h, int level)
 {
-	if (level <= h->cache_level)
+	struct nft_cache_req *req = &h->cache_req;
+
+	if (level <= req->level)
 		return;
 
-	h->cache_level = level;
+	req->level = level;
 }
 
 static int genid_cb(const struct nlmsghdr *nlh, void *data)
@@ -430,26 +432,26 @@ static int fetch_rule_cache(struct nft_handle *h,
 }
 
 static void
-__nft_build_cache(struct nft_handle *h, enum nft_cache_level level,
-		  const struct builtin_table *t, const char *set,
-		  const char *chain)
+__nft_build_cache(struct nft_handle *h)
 {
+	struct nft_cache_req *req = &h->cache_req;
+
 	if (h->cache_init)
 		return;
 
 	h->cache_init = true;
 	mnl_genid_get(h, &h->nft_genid);
 
-	if (h->cache_level >= NFT_CL_TABLES)
+	if (req->level >= NFT_CL_TABLES)
 		fetch_table_cache(h);
-	if (h->cache_level == NFT_CL_FAKE)
+	if (req->level == NFT_CL_FAKE)
 		return;
-	if (h->cache_level >= NFT_CL_CHAINS)
-		fetch_chain_cache(h, t, chain);
-	if (h->cache_level >= NFT_CL_SETS)
-		fetch_set_cache(h, t, set);
-	if (h->cache_level >= NFT_CL_RULES)
-		fetch_rule_cache(h, t);
+	if (req->level >= NFT_CL_CHAINS)
+		fetch_chain_cache(h, NULL, NULL);
+	if (req->level >= NFT_CL_SETS)
+		fetch_set_cache(h, NULL, NULL);
+	if (req->level >= NFT_CL_RULES)
+		fetch_rule_cache(h, NULL);
 }
 
 static void __nft_flush_cache(struct nft_handle *h)
@@ -563,12 +565,12 @@ void nft_rebuild_cache(struct nft_handle *h)
 		h->cache_init = false;
 	}
 
-	__nft_build_cache(h, h->cache_level, NULL, NULL, NULL);
+	__nft_build_cache(h);
 }
 
 void nft_cache_build(struct nft_handle *h)
 {
-	__nft_build_cache(h, h->cache_level, NULL, NULL, NULL);
+	__nft_build_cache(h);
 }
 
 void nft_release_cache(struct nft_handle *h)
