@@ -128,6 +128,10 @@ static void xtables_restore_parse_line(struct nft_handle *h,
 		if (p->tablename && (strcmp(p->tablename, table) != 0))
 			return;
 
+		/* implicit commit if no explicit COMMIT supported */
+		if (!p->commit)
+			cb->commit(h);
+
 		if (h->noflush == 0) {
 			DEBUGP("Cleaning all chains of table '%s'\n", table);
 			if (cb->table_flush)
