@@ -442,21 +442,14 @@ __nft_build_cache(struct nft_handle *h, enum nft_cache_level level,
 
 	if (h->cache_level >= NFT_CL_TABLES)
 		fetch_table_cache(h);
+	if (h->cache_level == NFT_CL_FAKE)
+		return;
 	if (h->cache_level >= NFT_CL_CHAINS)
 		fetch_chain_cache(h, t, chain);
 	if (h->cache_level >= NFT_CL_SETS)
 		fetch_set_cache(h, t, set);
 	if (h->cache_level >= NFT_CL_RULES)
 		fetch_rule_cache(h, t);
-}
-
-void nft_fake_cache(struct nft_handle *h)
-{
-	fetch_table_cache(h);
-
-	h->cache_level = NFT_CL_FAKE;
-	h->cache_init = true;
-	mnl_genid_get(h, &h->nft_genid);
 }
 
 static void __nft_flush_cache(struct nft_handle *h)
@@ -570,10 +563,7 @@ void nft_rebuild_cache(struct nft_handle *h)
 		h->cache_init = false;
 	}
 
-	if (h->cache_level == NFT_CL_FAKE)
-		nft_fake_cache(h);
-	else
-		__nft_build_cache(h, h->cache_level, NULL, NULL, NULL);
+	__nft_build_cache(h, h->cache_level, NULL, NULL, NULL);
 }
 
 void nft_cache_build(struct nft_handle *h)
