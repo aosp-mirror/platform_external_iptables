@@ -60,7 +60,7 @@ static struct nftnl_chain_list *get_chain_list(struct nft_handle *h)
 {
 	struct nftnl_chain_list *chain_list;
 
-	chain_list = nft_chain_dump(h);
+	chain_list = nft_chain_list_get(h);
 	if (chain_list == NULL)
 		xtables_error(OTHER_PROBLEM, "cannot retrieve chain list\n");
 

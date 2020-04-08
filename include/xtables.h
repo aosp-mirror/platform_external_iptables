@@ -556,6 +556,9 @@ extern void xtables_save_string(const char *value);
 #define FMT(tab,notab) ((format) & FMT_NOTABLE ? (notab) : (tab))
 
 extern void xtables_print_num(uint64_t number, unsigned int format);
+extern void xtables_print_mac(const unsigned char *macaddress);
+extern void xtables_print_mac_and_mask(const unsigned char *mac,
+				       const unsigned char *mask);
 
 extern void xtables_parse_val_mask(struct xt_option_call *cb,
 				   unsigned int *val, unsigned int *mask,
@@ -624,7 +627,7 @@ extern const char *xtables_lmap_id2name(const struct xtables_lmap *, int);
 /* xlate infrastructure */
 struct xt_xlate *xt_xlate_alloc(int size);
 void xt_xlate_free(struct xt_xlate *xl);
-void xt_xlate_add(struct xt_xlate *xl, const char *fmt, ...);
+void xt_xlate_add(struct xt_xlate *xl, const char *fmt, ...) __attribute__((format(printf,2,3)));
 void xt_xlate_add_comment(struct xt_xlate *xl, const char *comment);
 const char *xt_xlate_get_comment(struct xt_xlate *xl);
 const char *xt_xlate_get(struct xt_xlate *xl);

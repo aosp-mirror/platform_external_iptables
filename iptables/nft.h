@@ -5,12 +5,14 @@
 #include "nft-shared.h"
 #include <libiptc/linux_list.h>
 
-#define FILTER         0
-#define MANGLE         1
-#define RAW            2
-#define SECURITY       3
-#define NAT            4
-#define TABLES_MAX     5
+enum nft_table_type {
+	NFT_TABLE_FILTER	= 0,
+	NFT_TABLE_MANGLE,
+	NFT_TABLE_RAW,
+	NFT_TABLE_SECURITY,
+	NFT_TABLE_NAT,
+};
+#define NFT_TABLE_MAX	(NFT_TABLE_NAT + 1)
 
 struct builtin_chain {
 	const char *name;
@@ -47,9 +49,9 @@ struct nft_handle {
 	} error;
 };
 
-extern struct builtin_table xtables_ipv4[TABLES_MAX];
-extern struct builtin_table xtables_arp[TABLES_MAX];
-extern struct builtin_table xtables_bridge[TABLES_MAX];
+extern struct builtin_table xtables_ipv4[NFT_TABLE_MAX];
+extern struct builtin_table xtables_arp[NFT_TABLE_MAX];
+extern struct builtin_table xtables_bridge[NFT_TABLE_MAX];
 
 int mnl_talk(struct nft_handle *h, struct nlmsghdr *nlh,
 	     int (*cb)(const struct nlmsghdr *nlh, void *data),
@@ -76,7 +78,7 @@ struct builtin_table *nft_table_builtin_find(struct nft_handle *h, const char *t
 struct nftnl_chain;
 
 int nft_chain_set(struct nft_handle *h, const char *table, const char *chain, const char *policy, const struct xt_counters *counters);
-struct nftnl_chain_list *nft_chain_dump(struct nft_handle *h);
+struct nftnl_chain_list *nft_chain_list_get(struct nft_handle *h);
 struct nftnl_chain *nft_chain_list_find(struct nftnl_chain_list *list, const char *table, const char *chain);
 int nft_chain_save(struct nft_handle *h, struct nftnl_chain_list *list, const char *table);
 int nft_chain_user_add(struct nft_handle *h, const char *chain, const char *table);

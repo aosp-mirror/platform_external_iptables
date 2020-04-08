@@ -75,8 +75,8 @@ DUMP='*filter
 -A foo -p ARP --arp-op Request -j ACCEPT
 -A foo -p ARP --arp-ip-src 10.0.0.1 -j ACCEPT
 -A foo -p ARP --arp-ip-dst 10.0.0.0/8 -j ACCEPT
--A foo -p ARP --arp-mac-src fe:ed:ba:be:0:1 -j ACCEPT
--A foo -p ARP --arp-mac-dst fe:ed:ba:0:0:0/ff:ff:ff:0:0:0 -j ACCEPT
+-A foo -p ARP --arp-mac-src fe:ed:ba:be:00:01 -j ACCEPT
+-A foo -p ARP --arp-mac-dst fe:ed:ba:00:00:00/ff:ff:ff:00:00:00 -j ACCEPT
 -A foo -p IPv4 --ip-src 10.0.0.1 -j ACCEPT
 -A foo -p IPv4 --ip-dst 10.0.0.0/8 -j ACCEPT
 -A foo -p IPv4 --ip-tos 0x10 -j ACCEPT

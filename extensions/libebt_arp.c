@@ -332,67 +332,58 @@ brarp_parse(int c, char **argv, int invert, unsigned int *flags,
 	return 1;
 }
 
-static void brarp_print_mac_and_mask(const unsigned char *mac, const unsigned char *mask)
-{
-	char hlpmsk[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
-
-	printf("%s", ether_ntoa((struct ether_addr *) mac));
-	if (memcmp(mask, hlpmsk, 6))
-	        printf("/%s", ether_ntoa((struct ether_addr *) mask));
-}
-
 static void brarp_print(const void *ip, const struct xt_entry_match *match, int numeric)
 {
 	const struct ebt_arp_info *arpinfo = (struct ebt_arp_info *)match->data;
 
 	if (arpinfo->bitmask & EBT_ARP_OPCODE) {
 		int opcode = ntohs(arpinfo->opcode);
-		printf("--arp-op ");
 		if (arpinfo->invflags & EBT_ARP_OPCODE)
 			printf("! ");
+		printf("--arp-op ");
 		if (opcode > 0 && opcode <= ARRAY_SIZE(opcodes))
 			printf("%s ", opcodes[opcode - 1]);
 		else
 			printf("%d ", opcode);
 	}
 	if (arpinfo->bitmask & EBT_ARP_HTYPE) {
-		printf("--arp-htype ");
 		if (arpinfo->invflags & EBT_ARP_HTYPE)
 			printf("! ");
+		printf("--arp-htype ");
 		printf("%d ", ntohs(arpinfo->htype));
 	}
 	if (arpinfo->bitmask & EBT_ARP_PTYPE) {
-		printf("--arp-ptype ");
 		if (arpinfo->invflags & EBT_ARP_PTYPE)
 			printf("! ");
+		printf("--arp-ptype ");
 		printf("0x%x ", ntohs(arpinfo->ptype));
 	}
 	if (arpinfo->bitmask & EBT_ARP_SRC_IP) {
-		printf("--arp-ip-src ");
 		if (arpinfo->invflags & EBT_ARP_SRC_IP)
 			printf("! ");
+		printf("--arp-ip-src ");
 		printf("%s%s ", xtables_ipaddr_to_numeric((const struct in_addr*) &arpinfo->saddr),
 		       xtables_ipmask_to_numeric((const struct in_addr*)&arpinfo->smsk));
 	}
 	if (arpinfo->bitmask & EBT_ARP_DST_IP) {
-		printf("--arp-ip-dst ");
 		if (arpinfo->invflags & EBT_ARP_DST_IP)
 			printf("! ");
+		printf("--arp-ip-dst ");
 		printf("%s%s ", xtables_ipaddr_to_numeric((const struct in_addr*) &arpinfo->daddr),
 		       xtables_ipmask_to_numeric((const struct in_addr*)&arpinfo->dmsk));
 	}
 	if (arpinfo->bitmask & EBT_ARP_SRC_MAC) {
-		printf("--arp-mac-src ");
 		if (arpinfo->invflags & EBT_ARP_SRC_MAC)
 			printf("! ");
-		brarp_print_mac_and_mask(arpinfo->smaddr, arpinfo->smmsk);
+		printf("--arp-mac-src ");
+		xtables_print_mac_and_mask(arpinfo->smaddr, arpinfo->smmsk);
 		printf(" ");
 	}
 	if (arpinfo->bitmask & EBT_ARP_DST_MAC) {
-		printf("--arp-mac-dst ");
 		if (arpinfo->invflags & EBT_ARP_DST_MAC)
 			printf("! ");
-		brarp_print_mac_and_mask(arpinfo->dmaddr, arpinfo->dmmsk);
+		printf("--arp-mac-dst ");
+		xtables_print_mac_and_mask(arpinfo->dmaddr, arpinfo->dmmsk);
 		printf(" ");
 	}
 	if (arpinfo->bitmask & EBT_ARP_GRAT) {

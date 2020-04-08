@@ -655,6 +655,7 @@ void ebt_load_match_extensions(void)
 	ebt_load_target("mark");
 	ebt_load_target("dnat");
 	ebt_load_target("snat");
+	ebt_load_target("arpreply");
 	ebt_load_target("redirect");
 	ebt_load_target("standard");
 }
@@ -824,6 +825,7 @@ int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table,
 	struct xtables_target *t;
 	struct iptables_command_state cs = {
 		.argv = argv,
+		.jumpto	= "",
 		.eb.bitmask = EBT_NOPROTO,
 	};
 	char command = 'h';
@@ -999,9 +1001,6 @@ print_zero:
 			}
 			break;
 		case 't': /* Table */
-			if (OPT_COMMANDS)
-				xtables_error(PARAMETER_PROBLEM,
-					      "Please put the -t option first");
 			ebt_check_option2(&flags, OPT_TABLE);
 			if (strlen(optarg) > EBT_TABLE_MAXNAMELEN - 1)
 				xtables_error(PARAMETER_PROBLEM,
@@ -1066,8 +1065,10 @@ print_zero:
 				break;
 			} else if (c == 'j') {
 				ebt_check_option2(&flags, OPT_JUMP);
-				cs.jumpto = parse_target(optarg);
-				cs.target = ebt_command_jump(cs.jumpto);
+				if (strcmp(optarg, "CONTINUE") != 0) {
+					cs.jumpto = parse_target(optarg);
+					cs.target = ebt_command_jump(cs.jumpto);
+				}
 				break;
 			} else if (c == 's') {
 				ebt_check_option2(&flags, OPT_SOURCE);

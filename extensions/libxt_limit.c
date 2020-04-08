@@ -15,7 +15,6 @@
 #include <xtables.h>
 #include <linux/netfilter/x_tables.h>
 #include <linux/netfilter/xt_limit.h>
-#include "iptables/nft.h"
 #include "iptables/nft-bridge.h"
 
 #define XT_LIMIT_AVG	"3/hour"

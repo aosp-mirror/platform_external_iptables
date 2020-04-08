@@ -68,6 +68,7 @@ int ebt_get_mac_and_mask(const char *from, unsigned char *to, unsigned char *mas
 #define EBT_VERDICT_BITS 0x0000000F
 
 struct nftnl_rule;
+struct iptables_command_state;
 
 static const char *ebt_standard_targets[NUM_STANDARD_TARGETS] = {
 	"ACCEPT",

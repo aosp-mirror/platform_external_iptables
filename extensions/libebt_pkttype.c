@@ -75,7 +75,10 @@ static void brpkttype_print(const void *ip, const struct xt_entry_match *match, 
 {
 	struct ebt_pkttype_info *pt = (struct ebt_pkttype_info *)match->data;
 
-	printf("--pkttype-type %s", pt->invert ? "! " : "");
+	if (pt->invert)
+		printf("! ");
+
+	printf("--pkttype-type ");
 
 	if (pt->pkt_type < ARRAY_SIZE(classes))
 		printf("%s ", classes[pt->pkt_type]);

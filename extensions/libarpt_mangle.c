@@ -175,6 +175,11 @@ arpmangle_print(const void *ip, const struct xt_entry_target *target,
 	}
 }
 
+static void arpmangle_save(const void *ip, const struct xt_entry_target *target)
+{
+	arpmangle_print(ip, target, 0);
+}
+
 static struct xtables_target arpmangle_target = {
 	.name		= "mangle",
 	.revision	= 0,
@@ -187,6 +192,7 @@ static struct xtables_target arpmangle_target = {
 	.parse		= arpmangle_parse,
 	.final_check	= arpmangle_final_check,
 	.print		= arpmangle_print,
+	.save		= arpmangle_save,
 	.extra_opts	= arpmangle_opts,
 };
 

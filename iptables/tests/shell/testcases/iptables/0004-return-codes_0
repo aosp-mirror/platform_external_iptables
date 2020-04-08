@@ -23,6 +23,10 @@ cmd 1 iptables -N foo
 # iptables-nft allows this - bug or feature?
 #cmd 2 iptables -N "invalid name"
 
+# test chain rename
+cmd 0 iptables -E foo bar
+cmd 1 iptables -E foo bar
+
 # test rule adding
 cmd 0 iptables -A INPUT -j ACCEPT
 cmd 1 iptables -A noexist -j ACCEPT

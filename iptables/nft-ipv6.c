@@ -47,13 +47,17 @@ static int nft_ipv6_add(struct nftnl_rule *r, void *data)
 		add_l4proto(r, cs->fw6.ipv6.proto, op);
 	}
 
-	if (!IN6_IS_ADDR_UNSPECIFIED(&cs->fw6.ipv6.src)) {
+	if (!IN6_IS_ADDR_UNSPECIFIED(&cs->fw6.ipv6.src) ||
+	    !IN6_IS_ADDR_UNSPECIFIED(&cs->fw6.ipv6.smsk) ||
+	    (cs->fw6.ipv6.invflags & IPT_INV_SRCIP)) {
 		op = nft_invflags2cmp(cs->fw6.ipv6.invflags, IPT_INV_SRCIP);
 		add_addr(r, offsetof(struct ip6_hdr, ip6_src),
 			 &cs->fw6.ipv6.src, &cs->fw6.ipv6.smsk,
 			 sizeof(struct in6_addr), op);
 	}
-	if (!IN6_IS_ADDR_UNSPECIFIED(&cs->fw6.ipv6.dst)) {
+	if (!IN6_IS_ADDR_UNSPECIFIED(&cs->fw6.ipv6.dst) ||
+	    !IN6_IS_ADDR_UNSPECIFIED(&cs->fw6.ipv6.dmsk) ||
+	    (cs->fw6.ipv6.invflags & IPT_INV_DSTIP)) {
 		op = nft_invflags2cmp(cs->fw6.ipv6.invflags, IPT_INV_DSTIP);
 		add_addr(r, offsetof(struct ip6_hdr, ip6_dst),
 			 &cs->fw6.ipv6.dst, &cs->fw6.ipv6.dmsk,
@@ -235,7 +239,7 @@ static void save_ipv6_addr(char letter, const struct in6_addr *addr,
 		return;
 
 	printf("%s-%c %s",
-		invert ? " !" : "", letter,
+		invert ? "! " : "", letter,
 		inet_ntop(AF_INET6, addr, addr_str, sizeof(addr_str)));
 
 	if (l == -1)

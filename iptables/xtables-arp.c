@@ -208,9 +208,6 @@ static int inverse_for_options[NUMBER_OF_OPT] =
 /* -c */ 0,
 };
 
-const char *program_version = XTABLES_VERSION;
-const char *program_name = "arptables";
-
 /* A few hardcoded protocols for 'all' and in case the user has no
    /etc/protocols */
 struct pprot {
@@ -233,12 +230,12 @@ struct pprot {
 /* ARPTABLES SPECIFIC NEW FUNCTIONS ADDED HERE */
 /***********************************************/
 
-unsigned char mac_type_unicast[ETH_ALEN] =   {0,0,0,0,0,0};
-unsigned char msk_type_unicast[ETH_ALEN] =   {1,0,0,0,0,0};
-unsigned char mac_type_multicast[ETH_ALEN] = {1,0,0,0,0,0};
-unsigned char msk_type_multicast[ETH_ALEN] = {1,0,0,0,0,0};
-unsigned char mac_type_broadcast[ETH_ALEN] = {255,255,255,255,255,255};
-unsigned char msk_type_broadcast[ETH_ALEN] = {255,255,255,255,255,255};
+static unsigned char mac_type_unicast[ETH_ALEN] =   {0,0,0,0,0,0};
+static unsigned char msk_type_unicast[ETH_ALEN] =   {1,0,0,0,0,0};
+static unsigned char mac_type_multicast[ETH_ALEN] = {1,0,0,0,0,0};
+static unsigned char msk_type_multicast[ETH_ALEN] = {1,0,0,0,0,0};
+static unsigned char mac_type_broadcast[ETH_ALEN] = {255,255,255,255,255,255};
+static unsigned char msk_type_broadcast[ETH_ALEN] = {255,255,255,255,255,255};
 
 /*
  * put the mac address into 6 (ETH_ALEN) bytes
@@ -406,7 +403,8 @@ static void
 exit_tryhelp(int status)
 {
 	fprintf(stderr, "Try `%s -h' or '%s --help' for more information.\n",
-			program_name, program_name );
+		arptables_globals.program_name,
+		arptables_globals.program_version);
 	exit(status);
 }
 
@@ -425,10 +423,16 @@ exit_printhelp(void)
 "       %s -E old-chain-name new-chain-name\n"
 "       %s -P chain target [options]\n"
 "       %s -h (print this help information)\n\n",
-	       program_name, program_version, program_name, program_name,
-	       program_name, program_name, program_name, program_name,
-	       program_name, program_name);
-
+	       arptables_globals.program_name,
+	       arptables_globals.program_version,
+	       arptables_globals.program_name,
+	       arptables_globals.program_name,
+	       arptables_globals.program_name,
+	       arptables_globals.program_name,
+	       arptables_globals.program_name,
+	       arptables_globals.program_name,
+	       arptables_globals.program_name,
+	       arptables_globals.program_name);
 	printf(
 "Commands:\n"
 "Either long or short options are allowed.\n"
@@ -905,6 +909,8 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table,
 {
 	struct iptables_command_state cs = {
 		.jumpto = "",
+		.arp.arp.arhln = 6,
+		.arp.arp.arhrd = htons(ARPHRD_ETHER),
 	};
 	int invert = 0;
 	unsigned int nsaddrs = 0, ndaddrs = 0;
@@ -1104,18 +1110,8 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table,
 
 			break;
 
-		case 8:/* protocol length */
+		case 8: /* was never supported, not even in arptables-legacy */
 			xtables_error(PARAMETER_PROBLEM, "not supported");
-/*
-			check_inverse(optarg, &invert, &optind, argc);
-			set_option(&options, OPT_P_LENGTH, &cs.arp.arp.invflags,
-				   invert);
-
-			getlength_and_mask(argv[optind - 1], &cs.arp.arp.arpln,
-					   &cs.arp.arp.arpln_mask);
-			break;
-*/
-
 		case 4:/* opcode */
 			check_inverse(optarg, &invert, &optind, argc);
 			set_option(&options, OPT_OPCODE, &cs.arp.arp.invflags,
@@ -1170,7 +1166,6 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table,
 			parse_interface(argv[optind-1],
 					cs.arp.arp.iniface,
 					cs.arp.arp.iniface_mask);
-/*			cs.arp.nfcache |= NFC_IP_IF_IN; */
 			break;
 
 		case 'o':
@@ -1180,7 +1175,6 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table,
 			parse_interface(argv[optind-1],
 					cs.arp.arp.outiface,
 					cs.arp.arp.outiface_mask);
-			/* cs.arp.nfcache |= NFC_IP_IF_OUT; */
 			break;
 
 		case 'v':
@@ -1190,24 +1184,8 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table,
 			verbose++;
 			break;
 
-		case 'm': /*{
-			size_t size;
-
-			if (invert)
-				exit_error(PARAMETER_PROBLEM,
-					   "unexpected ! flag before --match");
-
-			m = find_match(optarg, LOAD_MUST_SUCCEED);
-			size = ARPT_ALIGN(sizeof(struct arpt_entry_match))
-					 + m->size;
-			m->m = fw_calloc(1, size);
-			m->m->u.match_size = size;
-			strcpy(m->m->u.user.name, m->name);
-			m->init(m->m, &fw.nfcache);
-			opts = merge_options(opts, m->extra_opts, &m->option_offset);
-		}*/
-		break;
-
+		case 'm': /* ignored by arptables-legacy */
+			break;
 		case 'n':
 			set_option(&options, OPT_NUMERIC, &cs.arp.arp.invflags,
 				   invert);
@@ -1217,15 +1195,19 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table,
 			if (invert)
 				xtables_error(PARAMETER_PROBLEM,
 					      "unexpected ! flag before --table");
-			*table = argv[optind-1];
+			/* ignore this option.
+			 * arptables-legacy parses it, but libarptc doesn't use it.
+			 * arptables only has a 'filter' table anyway.
+			 */
 			break;
 
 		case 'V':
 			if (invert)
-				printf("Not %s ;-)\n", program_version);
+				printf("Not %s ;-)\n", arptables_globals.program_version);
 			else
 				printf("%s v%s (nf_tables)\n",
-				       program_name, program_version);
+				       arptables_globals.program_name,
+				       arptables_globals.program_version);
 			exit(0);
 
 		case '0':

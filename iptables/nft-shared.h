@@ -233,6 +233,7 @@ struct nft_xt_cmd_parse {
 	const char			*policy;
 	bool				restore;
 	int				verbose;
+	bool				xlate;
 };
 
 void do_parse(struct nft_handle *h, int argc, char *argv[],

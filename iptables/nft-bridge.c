@@ -21,6 +21,8 @@
 #include "nft-bridge.h"
 #include "nft.h"
 
+static bool ebt_legacy_counter_fmt;
+
 void ebt_cs_clean(struct iptables_command_state *cs)
 {
 	struct ebt_match *m, *nm;
@@ -45,21 +47,12 @@ void ebt_cs_clean(struct iptables_command_state *cs)
 	}
 }
 
-/* 0: default, print only 2 digits if necessary
- * 2: always print 2 digits, a printed mac address
- * then always has the same length
- */
-int ebt_printstyle_mac;
-
 static void ebt_print_mac(const unsigned char *mac)
 {
-	if (ebt_printstyle_mac == 2) {
-		int j;
-		for (j = 0; j < ETH_ALEN; j++)
-			printf("%02x%s", mac[j],
-				(j==ETH_ALEN-1) ? "" : ":");
-	} else
-		printf("%s", ether_ntoa((struct ether_addr *) mac));
+	int j;
+
+	for (j = 0; j < ETH_ALEN; j++)
+		printf("%02x%s", mac[j], (j==ETH_ALEN-1) ? "" : ":");
 }
 
 static bool mac_all_ones(const unsigned char *mac)
@@ -120,33 +113,9 @@ static void add_logical_outiface(struct nftnl_rule *r, char *iface, uint32_t op)
 		add_cmp_ptr(r, op, iface, iface_len + 1);
 }
 
-/* TODO: Use generic add_action() once we convert this to use
- * iptables_command_state.
- */
 static int _add_action(struct nftnl_rule *r, struct iptables_command_state *cs)
 {
-	int ret = 0;
-
-	if (cs->jumpto == NULL || strcmp(cs->jumpto, "CONTINUE") == 0)
-		return 0;
-
-	/* If no target at all, add nothing (default to continue) */
-	if (cs->target != NULL) {
-		/* Standard target? */
-		if (strcmp(cs->jumpto, XTC_LABEL_ACCEPT) == 0)
-			ret = add_verdict(r, NF_ACCEPT);
-		else if (strcmp(cs->jumpto, XTC_LABEL_DROP) == 0)
-			ret = add_verdict(r, NF_DROP);
-		else if (strcmp(cs->jumpto, XTC_LABEL_RETURN) == 0)
-			ret = add_verdict(r, NFT_RETURN);
-		else
-			ret = add_target(r, cs->target->t);
-	} else if (strlen(cs->jumpto) > 0) {
-		/* Not standard, then it's a jump to chain */
-		ret = add_jumpto(r, cs->jumpto, NFT_JUMP);
-	}
-
-	return ret;
+	return add_action(r, cs, false);
 }
 
 static int nft_bridge_add(struct nftnl_rule *r, void *data)
@@ -410,9 +379,9 @@ static void print_mac(char option, const unsigned char *mac,
 		      const unsigned char *mask,
 		      bool invert)
 {
-	printf("-%c ", option);
 	if (invert)
 		printf("! ");
+	printf("-%c ", option);
 	ebt_print_mac_and_mask(mac, mask);
 	printf(" ");
 }
@@ -427,9 +396,9 @@ static void print_protocol(uint16_t ethproto, bool invert, unsigned int bitmask)
 	if (bitmask & EBT_NOPROTO)
 		return;
 
-	printf("-p ");
 	if (invert)
 		printf("! ");
+	printf("-p ");
 
 	if (bitmask & EBT_802_3) {
 		printf("length ");
@@ -441,6 +410,22 @@ static void print_protocol(uint16_t ethproto, bool invert, unsigned int bitmask)
 		printf("0x%x ", ntohs(ethproto));
 	else
 		printf("%s ", ent->e_name);
+}
+
+static void nft_bridge_save_counters(const void *data)
+{
+	const char *ctr;
+
+	if (ebt_legacy_counter_fmt)
+		return;
+
+	ctr = getenv("EBTABLES_SAVE_COUNTER");
+	if (ctr) {
+		ebt_legacy_counter_fmt = true;
+		return;
+	}
+
+	save_counters(data);
 }
 
 static void nft_bridge_save_rule(const void *data, unsigned int format)
@@ -479,18 +464,10 @@ static void nft_bridge_save_rule(const void *data, unsigned int format)
 		cs->target->print(&cs->fw, cs->target->t, format & FMT_NUMERIC);
 	}
 
-	if (!(format & FMT_NOCOUNTS)) {
-		const char *counter_fmt;
-
-		if (format & FMT_EBT_SAVE)
-			counter_fmt = " -c %"PRIu64" %"PRIu64"";
-		else
-			counter_fmt = " , pcnt = %"PRIu64" -- bcnt = %"PRIu64"";
-
-		printf(counter_fmt,
+	if (format & FMT_EBT_SAVE)
+		printf(" -c %"PRIu64" %"PRIu64"",
 		       (uint64_t)cs->counters.pcnt,
 		       (uint64_t)cs->counters.bcnt);
-	}
 
 	if (!(format & FMT_NONEWLINE))
 		fputc('\n', stdout);
@@ -505,7 +482,11 @@ static void nft_bridge_print_rule(struct nftnl_rule *r, unsigned int num,
 		printf("%d ", num);
 
 	nft_rule_to_ebtables_command_state(r, &cs);
-	nft_bridge_save_rule(&cs, format);
+	nft_bridge_save_rule(&cs, format & ~FMT_EBT_SAVE);
+	if (!(format & FMT_NOCOUNTS))
+		printf(" , pcnt = %"PRIu64" -- bcnt = %"PRIu64"",
+		       (uint64_t)cs.counters.pcnt,
+		       (uint64_t)cs.counters.bcnt);
 	ebt_cs_clean(&cs);
 }
 
@@ -767,7 +748,7 @@ struct nft_family_ops nft_family_ops_bridge = {
 	.print_header		= nft_bridge_print_header,
 	.print_rule		= nft_bridge_print_rule,
 	.save_rule		= nft_bridge_save_rule,
-	.save_counters		= NULL,
+	.save_counters		= nft_bridge_save_counters,
 	.save_chain		= nft_bridge_save_chain,
 	.post_parse		= NULL,
 	.rule_to_cs		= nft_rule_to_ebtables_command_state,

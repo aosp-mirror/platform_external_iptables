@@ -17,11 +17,13 @@ import argparse
 
 IPTABLES = "iptables"
 IP6TABLES = "ip6tables"
-#IPTABLES = "xtables -4"
-#IP6TABLES = "xtables -6"
+ARPTABLES = "arptables"
+EBTABLES = "ebtables"
 
 IPTABLES_SAVE = "iptables-save"
 IP6TABLES_SAVE = "ip6tables-save"
+ARPTABLES_SAVE = "arptables-save"
+EBTABLES_SAVE = "ebtables-save"
 #IPTABLES_SAVE = ['xtables-save','-4']
 #IP6TABLES_SAVE = ['xtables-save','-6']
 
@@ -111,6 +113,10 @@ def run_test(iptables, rule, rule_save, res, filename, lineno, netns):
             command = IPTABLES_SAVE
         elif splitted[0] == IP6TABLES:
             command = IP6TABLES_SAVE
+        elif splitted[0] == ARPTABLES:
+            command = ARPTABLES_SAVE
+        elif splitted[0] == EBTABLES:
+            command = EBTABLES_SAVE
 
     path = os.path.abspath(os.path.curdir) + "/iptables/" + EXECUTEABLE
     command = path + " " + command
@@ -147,12 +153,6 @@ def run_test(iptables, rule, rule_save, res, filename, lineno, netns):
 
     return delete_rule(iptables, rule, filename, lineno)
 
-def run_test_netns(iptables, rule, rule_save, res, filename, lineno):
-    execute_cmd("ip netns add ____iptables-container-test", filename, lineno)
-    ret = run_test(iptables, rule, rule_save, res, filename, lineno, True)
-    execute_cmd("ip netns del ____iptables-container-test", filename, lineno)
-    return ret
-
 def execute_cmd(cmd, filename, lineno):
     '''
     Executes a command, checking for segfaults and returning the command exit
@@ -163,7 +163,7 @@ def execute_cmd(cmd, filename, lineno):
     :param lineno: line number being tested (used for print_error purposes)
     '''
     global log_file
-    if cmd.startswith('iptables ') or cmd.startswith('ip6tables '):
+    if cmd.startswith('iptables ') or cmd.startswith('ip6tables ') or cmd.startswith('ebtables ') or cmd.startswith('arptables '):
         cmd = os.path.abspath(os.path.curdir) + "/iptables/" + EXECUTEABLE + " " + cmd
 
     print >> log_file, "command: %s" % cmd
@@ -196,6 +196,16 @@ def run_test_file(filename, netns):
         iptables = IP6TABLES
     elif "libxt_"  in filename:
         iptables = IPTABLES
+    elif "libarpt_" in filename:
+        # only supported with nf_tables backend
+        if EXECUTEABLE != "xtables-nft-multi":
+           return 0, 0
+        iptables = ARPTABLES
+    elif "libebt_" in filename:
+        # only supported with nf_tables backend
+        if EXECUTEABLE != "xtables-nft-multi":
+           return 0, 0
+        iptables = EBTABLES
     else:
         # default to iptables if not known prefix
         iptables = IPTABLES
@@ -206,6 +216,9 @@ def run_test_file(filename, netns):
     passed = 0
     table = ""
     total_test_passed = True
+
+    if netns:
+        execute_cmd("ip netns add ____iptables-container-test", filename, 0)
 
     for lineno, line in enumerate(f):
         if line[0] == "#":
@@ -218,6 +231,16 @@ def run_test_file(filename, netns):
         # external non-iptables invocation, executed as is.
         if line[0] == "@":
             external_cmd = line.rstrip()[1:]
+            if netns:
+                external_cmd = "ip netns exec ____iptables-container-test " + external_cmd
+            execute_cmd(external_cmd, filename, lineno)
+            continue
+
+        # external iptables invocation, executed as is.
+        if line[0] == "%":
+            external_cmd = line.rstrip()[1:]
+            if netns:
+                external_cmd = "ip netns exec ____iptables-container-test " + EXECUTEABLE + " " + external_cmd
             execute_cmd(external_cmd, filename, lineno)
             continue
 
@@ -245,13 +268,8 @@ def run_test_file(filename, netns):
                 rule_save = chain + " " + item[1]
 
             res = item[2].rstrip()
-
-            if netns:
-                ret = run_test_netns(iptables, rule, rule_save,
-                                     res, filename, lineno + 1)
-            else:
-                ret = run_test(iptables, rule, rule_save,
-                               res, filename, lineno + 1, False)
+            ret = run_test(iptables, rule, rule_save,
+                           res, filename, lineno + 1, netns)
 
             if ret < 0:
                 test_passed = False
@@ -261,6 +279,8 @@ def run_test_file(filename, netns):
         if test_passed:
             passed += 1
 
+    if netns:
+        execute_cmd("ip netns del ____iptables-container-test", filename, 0)
     if total_test_passed:
         print filename + ": " + Colors.GREEN + "OK" + Colors.ENDC
 

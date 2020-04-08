@@ -249,7 +249,7 @@ static void parse_ifname(const char *name, unsigned int len, char *dst, unsigned
 		return;
 	dst[len++] = 0;
 	if (mask)
-		memset(mask, 0xff, len + 1);
+		memset(mask, 0xff, len - 2);
 }
 
 int parse_meta(struct nftnl_expr *e, uint8_t key, char *iniface,
