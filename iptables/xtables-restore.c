@@ -19,7 +19,7 @@
 #include "nft-bridge.h"
 #include <libnftnl/chain.h>
 
-static int counters, verbose, noflush;
+static int counters, verbose;
 
 /* Keeping track of external matches and targets.  */
 static const struct option options[] = {
@@ -56,30 +56,16 @@ static void print_usage(const char *name, const char *version)
 			"	   [ --ipv6 ]\n", name);
 }
 
-static struct nftnl_chain_list *get_chain_list(struct nft_handle *h)
+static struct nftnl_chain_list *get_chain_list(struct nft_handle *h,
+					       const char *table)
 {
 	struct nftnl_chain_list *chain_list;
 
-	chain_list = nft_chain_list_get(h);
+	chain_list = nft_chain_list_get(h, table);
 	if (chain_list == NULL)
 		xtables_error(OTHER_PROBLEM, "cannot retrieve chain list\n");
 
 	return chain_list;
-}
-
-static void chain_delete(struct nftnl_chain_list *clist, const char *curtable,
-			 const char *chain)
-{
-	struct nftnl_chain *chain_obj;
-
-	chain_obj = nft_chain_list_find(clist, curtable, chain);
-	/* This chain has been found, delete from list. Later
-	 * on, unvisited chains will be purged out.
-	 */
-	if (chain_obj != NULL) {
-		nftnl_chain_list_del(chain_obj);
-		nftnl_chain_free(chain_obj);
-	}
 }
 
 struct nft_xt_restore_cb restore_cb = {
@@ -88,11 +74,9 @@ struct nft_xt_restore_cb restore_cb = {
 	.abort		= nft_abort,
 	.table_new	= nft_table_new,
 	.table_flush	= nft_table_flush,
-	.chain_user_flush = nft_chain_user_flush,
-	.chain_del	= chain_delete,
 	.do_command	= do_commandx,
 	.chain_set	= nft_chain_set,
-	.chain_user_add	= nft_chain_user_add,
+	.chain_restore  = nft_chain_restore,
 };
 
 static const struct xtc_ops xtc_ops = {
@@ -104,16 +88,12 @@ void xtables_restore_parse(struct nft_handle *h,
 			   struct nft_xt_restore_cb *cb,
 			   int argc, char *argv[])
 {
+	const struct builtin_table *curtable = NULL;
 	char buffer[10240];
 	int in_table = 0;
-	struct builtin_table *curtable = NULL;
 	const struct xtc_ops *ops = &xtc_ops;
-	struct nftnl_chain_list *chain_list = NULL;
 
 	line = 0;
-
-	if (cb->chain_list)
-		chain_list = cb->chain_list(h);
 
 	/* Grab standard input. */
 	while (fgets(buffer, sizeof(buffer), p->in)) {
@@ -165,7 +145,9 @@ void xtables_restore_parse(struct nft_handle *h,
 			if (p->tablename && (strcmp(p->tablename, table) != 0))
 				continue;
 
-			if (noflush == 0) {
+			nft_build_cache(h);
+
+			if (h->noflush == 0) {
 				DEBUGP("Cleaning all chains of table '%s'\n",
 					table);
 				if (cb->table_flush)
@@ -182,7 +164,6 @@ void xtables_restore_parse(struct nft_handle *h,
 			/* New chain. */
 			char *policy, *chain = NULL;
 			struct xt_counters count = {};
-			bool chain_exists = false;
 
 			chain = strtok(buffer+1, " \t\n");
 			DEBUGP("line %u, chain '%s'\n", line, chain);
@@ -191,22 +172,6 @@ void xtables_restore_parse(struct nft_handle *h,
 					   "%s: line %u chain name invalid\n",
 					   xt_params->program_name, line);
 				exit(1);
-			}
-
-			if (noflush == 0) {
-				if (cb->chain_del)
-					cb->chain_del(chain_list, curtable->name,
-						      chain);
-			} else if (nft_chain_list_find(chain_list,
-						       curtable->name, chain)) {
-				chain_exists = true;
-				/* Apparently -n still flushes existing user
-				 * defined chains that are redefined. Otherwise,
-				 * leave them as is.
-				 */
-				if (cb->chain_user_flush)
-					cb->chain_user_flush(h, chain_list,
-							     curtable->name, chain);
 			}
 
 			if (strlen(chain) >= XT_EXTENSION_MAXNAMELEN)
@@ -246,24 +211,22 @@ void xtables_restore_parse(struct nft_handle *h,
 				}
 				DEBUGP("Setting policy of chain %s to %s\n",
 				       chain, policy);
-				ret = 1;
-
-			} else {
-				if (!chain_exists &&
-				    cb->chain_user_add &&
-				    cb->chain_user_add(h, chain,
-						       curtable->name) < 0) {
-					if (errno == EEXIST)
-						continue;
-
-					xtables_error(PARAMETER_PROBLEM,
-						      "cannot create chain "
-						      "'%s' (%s)\n", chain,
-						      strerror(errno));
-				}
-				continue;
+			} else if (cb->chain_restore(h, chain, curtable->name) < 0 &&
+				   errno != EEXIST) {
+				xtables_error(PARAMETER_PROBLEM,
+					      "cannot create chain "
+					      "'%s' (%s)\n", chain,
+					      strerror(errno));
+			} else if (h->family == NFPROTO_BRIDGE &&
+				   !ebt_set_user_chain_policy(h, curtable->name,
+							      chain, policy)) {
+				xtables_error(OTHER_PROBLEM,
+					      "Can't set policy `%s'"
+					      " on `%s' line %u: %s\n",
+					      policy, chain, line,
+					      ops->strerror(errno));
 			}
-
+			ret = 1;
 		} else if (in_table) {
 			int a;
 			char *pcnt = NULL;
@@ -359,7 +322,7 @@ void xtables_restore_parse(struct nft_handle *h,
 static int
 xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 {
-	struct builtin_table *tables;
+	const struct builtin_table *tables;
 	struct nft_handle h = {
 		.family = family,
 		.restore = true,
@@ -402,7 +365,7 @@ xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 					    IPTABLES_VERSION);
 				exit(0);
 			case 'n':
-				noflush = 1;
+				h.noflush = 1;
 				break;
 			case 'M':
 				xtables_modprobe_program = optarg;
@@ -490,16 +453,21 @@ int xtables_ip6_restore_main(int argc, char *argv[])
 				    argc, argv);
 }
 
+static int ebt_table_flush(struct nft_handle *h, const char *table)
+{
+	/* drop any pending policy rule add/removal jobs */
+	nft_abort_policy_rule(h, table);
+	return nft_table_flush(h, table);
+}
+
 struct nft_xt_restore_cb ebt_restore_cb = {
 	.chain_list	= get_chain_list,
 	.commit		= nft_commit,
 	.table_new	= nft_table_new,
-	.table_flush	= nft_table_flush,
-	.chain_user_flush = nft_chain_user_flush,
-	.chain_del	= chain_delete,
+	.table_flush	= ebt_table_flush,
 	.do_command	= do_commandeb,
 	.chain_set	= nft_chain_set,
-	.chain_user_add	= nft_chain_user_add,
+	.chain_restore  = nft_chain_restore,
 };
 
 static const struct option ebt_restore_options[] = {
@@ -512,6 +480,7 @@ int xtables_eb_restore_main(int argc, char *argv[])
 	struct nft_xt_restore_parse p = {
 		.in = stdin,
 	};
+	bool noflush = false;
 	struct nft_handle h;
 	int c;
 
@@ -530,6 +499,7 @@ int xtables_eb_restore_main(int argc, char *argv[])
 	}
 
 	nft_init_eb(&h, "ebtables-restore");
+	h.noflush = noflush;
 	xtables_restore_parse(&h, &p, &ebt_restore_cb, argc, argv);
 	nft_fini(&h);
 
@@ -541,11 +511,9 @@ struct nft_xt_restore_cb arp_restore_cb = {
 	.commit		= nft_commit,
 	.table_new	= nft_table_new,
 	.table_flush	= nft_table_flush,
-	.chain_user_flush = nft_chain_user_flush,
-	.chain_del	= chain_delete,
 	.do_command	= do_commandarp,
 	.chain_set	= nft_chain_set,
-	.chain_user_add	= nft_chain_user_add,
+	.chain_restore  = nft_chain_restore,
 };
 
 int xtables_arp_restore_main(int argc, char *argv[])

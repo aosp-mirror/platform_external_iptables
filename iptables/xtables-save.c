@@ -73,7 +73,9 @@ __do_output(struct nft_handle *h, const char *tablename, bool counters)
 		return 0;
 	}
 
-	chain_list = nft_chain_list_get(h);
+	chain_list = nft_chain_list_get(h, tablename);
+	if (!chain_list)
+		return 0;
 
 	time_t now = time(NULL);
 
@@ -83,7 +85,7 @@ __do_output(struct nft_handle *h, const char *tablename, bool counters)
 
 	/* Dump out chain names first,
 	 * thereby preventing dependency conflicts */
-	nft_chain_save(h, chain_list, tablename);
+	nft_chain_save(h, chain_list);
 	nft_rule_save(h, tablename, counters ? 0 : FMT_NOCOUNTS);
 
 	now = time(NULL);
@@ -103,8 +105,9 @@ do_output(struct nft_handle *h, const char *tablename, bool counters)
 		return !!ret;
 	}
 
-	if (!nft_table_find(h, tablename)) {
-		printf("Table `%s' does not exist\n", tablename);
+	if (!nft_table_find(h, tablename) &&
+	    !nft_table_builtin_find(h, tablename)) {
+		fprintf(stderr, "Table `%s' does not exist\n", tablename);
 		return 1;
 	}
 
@@ -120,7 +123,7 @@ do_output(struct nft_handle *h, const char *tablename, bool counters)
 static int
 xtables_save_main(int family, const char *progname, int argc, char *argv[])
 {
-	struct builtin_table *tables;
+	const struct builtin_table *tables;
 	const char *tablename = NULL;
 	bool dump = false;
 	struct nft_handle h = {
@@ -184,7 +187,8 @@ xtables_save_main(int family, const char *progname, int argc, char *argv[])
 			exit(0);
 		default:
 			fprintf(stderr,
-				"Look at manual page `xtables-save.8' for more information.\n");
+				"Look at manual page `%s.8' for more information.\n",
+				prog_name);
 			exit(1);
 		}
 	}
@@ -257,7 +261,7 @@ static int __ebt_save(struct nft_handle *h, const char *tablename, bool counters
 		return 0;
 	}
 
-	chain_list = nft_chain_list_get(h);
+	chain_list = nft_chain_list_get(h, tablename);
 
 	if (first) {
 		now = time(NULL);
@@ -272,7 +276,7 @@ static int __ebt_save(struct nft_handle *h, const char *tablename, bool counters
 
 	/* Dump out chain names first,
 	 * thereby preventing dependency conflicts */
-	nft_chain_save(h, chain_list, tablename);
+	nft_chain_save(h, chain_list);
 	nft_rule_save(h, tablename, format);
 	printf("\n");
 	return 0;
@@ -330,7 +334,8 @@ int xtables_eb_save_main(int argc_, char *argv_[])
 			exit(0);
 		default:
 			fprintf(stderr,
-				"Look at manual page `xtables-save.8' for more information.\n");
+				"Look at manual page `%s.8' for more information.\n",
+				prog_name);
 			exit(1);
 		}
 	}
@@ -377,7 +382,8 @@ int xtables_arp_save_main(int argc, char **argv)
 			exit(0);
 		default:
 			fprintf(stderr,
-				"Look at manual page `xtables-save.8' for more information.\n");
+				"Look at manual page `%s.8' for more information.\n",
+				prog_name);
 			exit(1);
 		}
 	}
@@ -399,7 +405,7 @@ int xtables_arp_save_main(int argc, char **argv)
 	}
 
 	printf("*filter\n");
-	nft_chain_save(&h, nft_chain_list_get(&h), "filter");
+	nft_chain_save(&h, nft_chain_list_get(&h, "filter"));
 	nft_rule_save(&h, "filter", show_counters ? 0 : FMT_NOCOUNTS);
 	printf("\n");
 	nft_fini(&h);

@@ -406,7 +406,7 @@ add_entry(const char *chain,
 
 				if (append) {
 					ret = nft_rule_append(h, chain, table,
-							      cs, 0,
+							      cs, NULL,
 							      verbose);
 				} else {
 					ret = nft_rule_insert(h, chain, table,
@@ -426,7 +426,7 @@ add_entry(const char *chain,
 				       &d.mask.v6[j], sizeof(struct in6_addr));
 				if (append) {
 					ret = nft_rule_append(h, chain, table,
-							      cs, 0,
+							      cs, NULL,
 							      verbose);
 				} else {
 					ret = nft_rule_insert(h, chain, table,
@@ -820,7 +820,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 		case 'j':
 			set_option(&cs->options, OPT_JUMP, &cs->fw.ip.invflags,
 				   cs->invert);
-			command_jump(cs);
+			command_jump(cs, optarg);
 			break;
 
 
@@ -1064,18 +1064,11 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 					   p->chain);
 		}
 
-		if (!p->xlate && !nft_chain_exists(h, p->table, p->chain))
-			xtables_error(OTHER_PROBLEM,
-				      "Chain '%s' does not exist", p->chain);
-
 		if (!p->xlate && !cs->target && strlen(cs->jumpto) > 0 &&
 		    !nft_chain_exists(h, p->table, cs->jumpto))
 			xtables_error(PARAMETER_PROBLEM,
 				      "Chain '%s' does not exist", cs->jumpto);
 	}
-	if (!p->xlate && p->command == CMD_NEW_CHAIN &&
-	    nft_chain_exists(h, p->table, p->chain))
-		xtables_error(OTHER_PROBLEM, "Chain already exists");
 }
 
 int do_commandx(struct nft_handle *h, int argc, char *argv[], char **table,
@@ -1189,8 +1182,10 @@ int do_commandx(struct nft_handle *h, int argc, char *argv[], char **table,
 	*table = p.table;
 
 	xtables_rule_matches_free(&cs.matches);
-	if (cs.target)
+	if (cs.target) {
 		free(cs.target->t);
+		cs.target->t = NULL;
+	}
 
 	if (h->family == AF_INET) {
 		free(args.s.addr.v4);

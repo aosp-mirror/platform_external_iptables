@@ -139,27 +139,6 @@ static int parse_rule_number(const char *rule)
 	return rule_nr;
 }
 
-static const char *
-parse_target(const char *targetname)
-{
-	const char *ptr;
-
-	if (strlen(targetname) < 1)
-		xtables_error(PARAMETER_PROBLEM,
-			      "Invalid target name (too short)");
-
-	if (strlen(targetname)+1 > EBT_CHAIN_MAXNAMELEN)
-		xtables_error(PARAMETER_PROBLEM,
-			      "Invalid target '%s' (%d chars max)",
-			      targetname, EBT_CHAIN_MAXNAMELEN);
-
-	for (ptr = targetname; *ptr; ptr++)
-		if (isspace(*ptr))
-			xtables_error(PARAMETER_PROBLEM,
-				      "Invalid target name `%s'", targetname);
-	return targetname;
-}
-
 static int
 append_entry(struct nft_handle *h,
 	     const char *chain,
@@ -171,7 +150,7 @@ append_entry(struct nft_handle *h,
 	int ret = 1;
 
 	if (append)
-		ret = nft_rule_append(h, chain, table, cs, 0, verbose);
+		ret = nft_rule_append(h, chain, table, cs, NULL, verbose);
 	else
 		ret = nft_rule_insert(h, chain, table, cs, rule_nr, verbose);
 
@@ -291,23 +270,12 @@ struct option ebt_original_options[] =
 	{ 0 }
 };
 
-static void __attribute__((__noreturn__,format(printf,2,3)))
-ebt_print_error(enum xtables_exittype status, const char *format, ...)
-{
-	va_list l;
-
-	va_start(l, format);
-	vfprintf(stderr, format, l);
-	fprintf(stderr, ".\n");
-	va_end(l);
-	exit(-1);
-}
-
+extern void xtables_exit_error(enum xtables_exittype status, const char *msg, ...) __attribute__((noreturn, format(printf,2,3)));
 struct xtables_globals ebtables_globals = {
 	.option_offset 		= 0,
 	.program_version	= IPTABLES_VERSION,
 	.orig_opts		= ebt_original_options,
-	.exit_err		= ebt_print_error,
+	.exit_err		= xtables_exit_error,
 	.compat_rev		= nft_compatible_revision,
 };
 
@@ -374,29 +342,6 @@ static struct option *merge_options(struct option *oldopts,
 		free(oldopts);
 
 	return merge;
-}
-
-/*
- * More glue code.
- */
-struct xtables_target *ebt_command_jump(const char *jumpto)
-{
-	struct xtables_target *target;
-	unsigned int verdict;
-
-	/* Standard target? */
-	if (!ebt_fill_target(jumpto, &verdict))
-		jumpto = "standard";
-
-	/* For ebtables, all targets are preloaded. Hence it is either in
-	 * xtables_targets or a custom chain to jump to, in which case
-	 * returning NULL is fine. */
-	for (target = xtables_targets; target; target = target->next) {
-		if (!strcmp(target->name, jumpto))
-			break;
-	}
-
-	return target;
 }
 
 static void print_help(const struct xtables_target *t,
@@ -855,7 +800,6 @@ int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table,
 		case 'E': /* Rename chain */
 		case 'X': /* Delete chain */
 			/* We allow -N chainname -P policy */
-			/* XXX: Not in ebtables-compat */
 			if (command == 'N' && c == 'P') {
 				command = c;
 				optind--; /* No table specified */
@@ -1066,8 +1010,7 @@ print_zero:
 			} else if (c == 'j') {
 				ebt_check_option2(&flags, OPT_JUMP);
 				if (strcmp(optarg, "CONTINUE") != 0) {
-					cs.jumpto = parse_target(optarg);
-					cs.target = ebt_command_jump(cs.jumpto);
+					command_jump(&cs, optarg);
 				}
 				break;
 			} else if (c == 's') {
@@ -1281,17 +1224,16 @@ print_zero:
 
 	if (command == 'P') {
 		if (selected_chain < 0) {
-			xtables_error(PARAMETER_PROBLEM,
-				      "Policy %s not allowed for user defined chains",
-				      policy);
+			ret = ebt_set_user_chain_policy(h, *table, chain, policy);
+		} else {
+			if (strcmp(policy, "RETURN") == 0) {
+				xtables_error(PARAMETER_PROBLEM,
+					      "Policy RETURN only allowed for user defined chains");
+			}
+			ret = nft_chain_set(h, *table, chain, policy, NULL);
+			if (ret < 0)
+				xtables_error(PARAMETER_PROBLEM, "Wrong policy");
 		}
-		if (strcmp(policy, "RETURN") == 0) {
-			xtables_error(PARAMETER_PROBLEM,
-				      "Policy RETURN only allowed for user defined chains");
-		}
-		ret = nft_chain_set(h, *table, chain, policy, NULL);
-		if (ret < 0)
-			xtables_error(PARAMETER_PROBLEM, "Wrong policy");
 	} else if (command == 'L') {
 		ret = list_rules(h, chain, *table, rule_nr,
 				 0,

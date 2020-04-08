@@ -137,14 +137,6 @@ int parse_meta(struct nftnl_expr *e, uint8_t key, char *iniface,
 		unsigned char *outiface_mask, uint8_t *invflags);
 void print_proto(uint16_t proto, int invert);
 void get_cmp_data(struct nftnl_expr *e, void *data, size_t dlen, bool *inv);
-void nft_parse_bitwise(struct nft_xt_ctx *ctx, struct nftnl_expr *e);
-void nft_parse_cmp(struct nft_xt_ctx *ctx, struct nftnl_expr *e);
-void nft_parse_match(struct nft_xt_ctx *ctx, struct nftnl_expr *e);
-void nft_parse_target(struct nft_xt_ctx *ctx, struct nftnl_expr *e);
-void nft_parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e);
-void nft_parse_payload(struct nft_xt_ctx *ctx, struct nftnl_expr *e);
-void nft_parse_counter(struct nftnl_expr *e, struct xt_counters *counters);
-void nft_parse_immediate(struct nft_xt_ctx *ctx, struct nftnl_expr *e);
 void nft_rule_to_iptables_command_state(const struct nftnl_rule *r,
 					struct iptables_command_state *cs);
 void nft_clear_iptables_command_state(struct iptables_command_state *cs);
@@ -251,17 +243,13 @@ struct nftnl_chain_list;
 
 struct nft_xt_restore_cb {
 	void (*table_new)(struct nft_handle *h, const char *table);
-	struct nftnl_chain_list *(*chain_list)(struct nft_handle *h);
-	void (*chain_del)(struct nftnl_chain_list *clist, const char *curtable,
-			  const char *chain);
-	int (*chain_user_flush)(struct nft_handle *h,
-				struct nftnl_chain_list *clist,
-				const char *table, const char *chain);
+	struct nftnl_chain_list *(*chain_list)(struct nft_handle *h,
+					       const char *table);
 	int (*chain_set)(struct nft_handle *h, const char *table,
 			 const char *chain, const char *policy,
 			 const struct xt_counters *counters);
-	int (*chain_user_add)(struct nft_handle *h, const char *chain,
-			      const char *table);
+	int (*chain_restore)(struct nft_handle *h, const char *chain,
+			     const char *table);
 
 	int (*table_flush)(struct nft_handle *h, const char *table);
 

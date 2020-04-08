@@ -2758,11 +2758,15 @@ TC_STRERROR(int err)
 
 const struct xtc_ops TC_OPS = {
 	.commit        = TC_COMMIT,
+	.init          = TC_INIT,
 	.free          = TC_FREE,
 	.builtin       = TC_BUILTIN,
 	.is_chain      = TC_IS_CHAIN,
 	.flush_entries = TC_FLUSH_ENTRIES,
 	.create_chain  = TC_CREATE_CHAIN,
+	.first_chain   = TC_FIRST_CHAIN,
+	.next_chain    = TC_NEXT_CHAIN,
+	.get_policy    = TC_GET_POLICY,
 	.set_policy    = TC_SET_POLICY,
 	.strerror      = TC_STRERROR,
 };

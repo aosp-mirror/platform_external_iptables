@@ -5,8 +5,8 @@
 -d 192.168.0.1;=;OK
 ! -d 0.0.0.0;=;OK
 -d 0.0.0.0/24;=;OK
--i lo;=;OK
-! -i lo;=;OK
+-j DROP -i lo;=;OK
+-j ACCEPT ! -i lo;=;OK
 -i ppp+;=;OK
 ! -i ppp+;=;OK
 -i lo --destination-mac 11:22:33:44:55:66;-i lo --dst-mac 11:22:33:44:55:66;OK

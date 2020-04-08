@@ -3,10 +3,6 @@
 #configuration
 TESTDIR="./$(dirname $0)/"
 RETURNCODE_SEPARATOR="_"
-XTABLES_NFT_MULTI="$(dirname $0)/../../xtables-nft-multi"
-XTABLES_LEGACY_MULTI="$(dirname $0)/../../xtables-legacy-multi"
-
-export XTABLES_LIBDIR=${TESTDIR}/../../../extensions
 
 msg_error() {
         echo "E: $1 ..." >&2
@@ -29,19 +25,39 @@ if [ ! -d "$TESTDIR" ] ; then
         msg_error "missing testdir $TESTDIR"
 fi
 
-if [ "$1" == "-v" ] ; then
-        VERBOSE=y
-        shift
-fi
+# support matching repeated pattern in SINGLE check below
+shopt -s extglob
 
-for arg in "$@"; do
-        if grep ^.*${RETURNCODE_SEPARATOR}[0-9]\\+$ <<< $arg >/dev/null ; then
-                SINGLE+=" $arg"
-                VERBOSE=y
-        else
-                msg_error "unknown parameter '$arg'"
-        fi
+while [ -n "$1" ]; do
+	case "$1" in
+	-v|--verbose)
+		VERBOSE=y
+		shift
+		;;
+	-H|--host)
+		HOST=y
+		shift
+		;;
+	*${RETURNCODE_SEPARATOR}+([0-9]))
+		SINGLE+=" $1"
+		VERBOSE=y
+		shift
+		;;
+	*)
+		msg_error "unknown parameter '$1'"
+		;;
+	esac
 done
+
+if [ "$HOST" != "y" ]; then
+	XTABLES_NFT_MULTI="$(dirname $0)/../../xtables-nft-multi"
+	XTABLES_LEGACY_MULTI="$(dirname $0)/../../xtables-legacy-multi"
+
+	export XTABLES_LIBDIR=${TESTDIR}/../../../extensions
+else
+	XTABLES_NFT_MULTI="xtables-nft-multi"
+	XTABLES_LEGACY_MULTI="xtables-legacy-multi"
+fi
 
 find_tests() {
         if [ ! -z "$SINGLE" ] ; then

@@ -32,7 +32,6 @@ int ebt_get_mac_and_mask(const char *from, unsigned char *to, unsigned char *mas
  */
 
 #define EBT_TABLE_MAXNAMELEN 32
-#define EBT_CHAIN_MAXNAMELEN EBT_TABLE_MAXNAMELEN
 #define EBT_FUNCTION_MAXNAMELEN EBT_TABLE_MAXNAMELEN
 
 /* verdicts >0 are "branches" */
@@ -122,6 +121,5 @@ void ebt_add_match(struct xtables_match *m,
 void ebt_add_watcher(struct xtables_target *watcher,
                      struct iptables_command_state *cs);
 int ebt_command_default(struct iptables_command_state *cs);
-struct xtables_target *ebt_command_jump(const char *jumpto);
 
 #endif

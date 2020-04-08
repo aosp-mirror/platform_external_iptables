@@ -8,6 +8,7 @@ import argparse
 from subprocess import Popen, PIPE
 
 keywords = ("iptables-translate", "ip6tables-translate", "ebtables-translate")
+xtables_nft_multi = 'xtables-nft-multi'
 
 if sys.stdout.isatty():
     colors = {"magenta": "\033[95m", "green": "\033[92m", "yellow": "\033[93m",
@@ -33,6 +34,7 @@ def green(string):
 
 
 def run_test(name, payload):
+    global xtables_nft_multi
     test_passed = True
     tests = passed = failed = errors = 0
     result = []
@@ -40,7 +42,7 @@ def run_test(name, payload):
     for line in payload:
         if line.startswith(keywords):
             tests += 1
-            process = Popen([ os.path.abspath(os.path.curdir) + "/iptables/xtables-nft-multi" ] + shlex.split(line), stdout=PIPE, stderr=PIPE)
+            process = Popen([ xtables_nft_multi ] + shlex.split(line), stdout=PIPE, stderr=PIPE)
             (output, error) = process.communicate()
             if process.returncode == 0:
                 translation = output.decode("utf-8").rstrip(" \n")
@@ -86,8 +88,12 @@ def load_test_files():
     print("%d test files, %d tests, %d tests passed, %d tests failed, %d errors" % (test_files, total_tests, total_passed, total_failed, total_error))
 
 def main():
-    os.putenv("XTABLES_LIBDIR", os.path.abspath("extensions"))
-    os.putenv("PATH", "%s/iptables:%s" % (os.path.abspath(os.path.curdir), os.getenv("PATH")))
+    global xtables_nft_multi
+    if not args.host:
+        os.putenv("XTABLES_LIBDIR", os.path.abspath("extensions"))
+        xtables_nft_multi = os.path.abspath(os.path.curdir) \
+                            + '/iptables/' + xtables_nft_multi
+
     if args.test:
         if not args.test.endswith(".txlate"):
             args.test += ".txlate"
@@ -101,6 +107,8 @@ def main():
 
 
 parser = argparse.ArgumentParser()
+parser.add_argument('-H', '--host', action='store_true',
+                    help='Run tests against installed binaries')
 parser.add_argument("test", nargs="?", help="run only the specified test file")
 args = parser.parse_args()
 main()

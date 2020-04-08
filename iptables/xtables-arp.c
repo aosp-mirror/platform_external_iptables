@@ -144,6 +144,7 @@ static struct option original_opts[] = {
 	{ "help", 2, 0, 'h' },
 	{ "line-numbers", 0, 0, '0' },
 	{ "modprobe", 1, 0, 'M' },
+	{ "set-counters", 1, 0, 'c' },
 	{ 0 }
 };
 
@@ -481,11 +482,11 @@ exit_printhelp(void)
 "  --line-numbers		print line numbers when listing\n"
 "  --exact	-x		expand numbers (display exact values)\n"
 "  --modprobe=<command>		try to insert modules using this command\n"
-"  --set-counters PKTS BYTES	set the counter during insert/append\n"
+"  --set-counters -c PKTS BYTES	set the counter during insert/append\n"
 "[!] --version	-V		print package version.\n");
 	printf(" opcode strings: \n");
         for (i = 0; i < NUMOPCODES; i++)
-                printf(" %d = %s\n", i + 1, opcodes[i]);
+                printf(" %d = %s\n", i + 1, arp_opcodes[i]);
         printf(
 " hardware type string: 1 = Ethernet\n"
 " protocol type string: 0x800 = IPv4\n");
@@ -825,7 +826,7 @@ append_entry(struct nft_handle *h,
 		for (j = 0; j < ndaddrs; j++) {
 			cs->arp.arp.tgt.s_addr = daddrs[j].s_addr;
 			if (append) {
-				ret = nft_rule_append(h, chain, table, cs, 0,
+				ret = nft_rule_append(h, chain, table, cs, NULL,
 						      verbose);
 			} else {
 				ret = nft_rule_insert(h, chain, table, cs,
@@ -909,8 +910,12 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table,
 {
 	struct iptables_command_state cs = {
 		.jumpto = "",
-		.arp.arp.arhln = 6,
-		.arp.arp.arhrd = htons(ARPHRD_ETHER),
+		.arp.arp = {
+			.arhln = 6,
+			.arhln_mask = 255,
+			.arhrd = htons(ARPHRD_ETHER),
+			.arhrd_mask = 65535,
+		},
 	};
 	int invert = 0;
 	unsigned int nsaddrs = 0, ndaddrs = 0;
@@ -1121,7 +1126,7 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table,
 				int i;
 
 				for (i = 0; i < NUMOPCODES; i++)
-					if (!strcasecmp(opcodes[i], optarg))
+					if (!strcasecmp(arp_opcodes[i], optarg))
 						break;
 				if (i == NUMOPCODES)
 					xtables_error(PARAMETER_PROBLEM, "Problem with specified opcode");
@@ -1156,7 +1161,7 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table,
 		case 'j':
 			set_option(&options, OPT_JUMP, &cs.arp.arp.invflags,
 				   invert);
-			command_jump(&cs);
+			command_jump(&cs, optarg);
 			break;
 
 		case 'i':

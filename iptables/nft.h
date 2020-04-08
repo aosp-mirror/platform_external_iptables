@@ -23,8 +23,16 @@ struct builtin_chain {
 
 struct builtin_table {
 	const char *name;
+	enum nft_table_type type;
 	struct builtin_chain chains[NF_INET_NUMHOOKS];
-	bool initialized;
+};
+
+struct nft_cache {
+	struct nftnl_table_list		*tables;
+	struct {
+		struct nftnl_chain_list *chains;
+		bool			initialized;
+	} table[NFT_TABLE_MAX];
 };
 
 struct nft_handle {
@@ -32,15 +40,20 @@ struct nft_handle {
 	struct mnl_socket	*nl;
 	uint32_t		portid;
 	uint32_t		seq;
+	uint32_t		nft_genid;
+	uint32_t		rule_id;
 	struct list_head	obj_list;
 	int			obj_list_num;
 	struct nftnl_batch	*batch;
 	struct list_head	err_list;
 	struct nft_family_ops	*ops;
-	struct builtin_table	*tables;
-	struct nftnl_chain_list	*chain_cache;
-	struct nftnl_rule_list	*rule_cache;
+	const struct builtin_table *tables;
+	unsigned int		cache_index;
+	struct nft_cache	__cache[2];
+	struct nft_cache	*cache;
+	bool			have_cache;
 	bool			restore;
+	bool			noflush;
 	int8_t			config_done;
 
 	/* meta data, for error reporting */
@@ -49,15 +62,16 @@ struct nft_handle {
 	} error;
 };
 
-extern struct builtin_table xtables_ipv4[NFT_TABLE_MAX];
-extern struct builtin_table xtables_arp[NFT_TABLE_MAX];
-extern struct builtin_table xtables_bridge[NFT_TABLE_MAX];
+extern const struct builtin_table xtables_ipv4[NFT_TABLE_MAX];
+extern const struct builtin_table xtables_arp[NFT_TABLE_MAX];
+extern const struct builtin_table xtables_bridge[NFT_TABLE_MAX];
 
 int mnl_talk(struct nft_handle *h, struct nlmsghdr *nlh,
 	     int (*cb)(const struct nlmsghdr *nlh, void *data),
 	     void *data);
-int nft_init(struct nft_handle *h, struct builtin_table *t);
+int nft_init(struct nft_handle *h, const struct builtin_table *t);
 void nft_fini(struct nft_handle *h);
+void nft_build_cache(struct nft_handle *h);
 
 /*
  * Operations with tables.
@@ -70,7 +84,7 @@ bool nft_table_find(struct nft_handle *h, const char *tablename);
 int nft_table_purge_chains(struct nft_handle *h, const char *table, struct nftnl_chain_list *list);
 int nft_table_flush(struct nft_handle *h, const char *table);
 void nft_table_new(struct nft_handle *h, const char *table);
-struct builtin_table *nft_table_builtin_find(struct nft_handle *h, const char *table);
+const struct builtin_table *nft_table_builtin_find(struct nft_handle *h, const char *table);
 
 /*
  * Operations with chains.
@@ -78,16 +92,15 @@ struct builtin_table *nft_table_builtin_find(struct nft_handle *h, const char *t
 struct nftnl_chain;
 
 int nft_chain_set(struct nft_handle *h, const char *table, const char *chain, const char *policy, const struct xt_counters *counters);
-struct nftnl_chain_list *nft_chain_list_get(struct nft_handle *h);
-struct nftnl_chain *nft_chain_list_find(struct nftnl_chain_list *list, const char *table, const char *chain);
-int nft_chain_save(struct nft_handle *h, struct nftnl_chain_list *list, const char *table);
+struct nftnl_chain_list *nft_chain_list_get(struct nft_handle *h,
+					    const char *table);
+int nft_chain_save(struct nft_handle *h, struct nftnl_chain_list *list);
 int nft_chain_user_add(struct nft_handle *h, const char *chain, const char *table);
 int nft_chain_user_del(struct nft_handle *h, const char *chain, const char *table, bool verbose);
-int nft_chain_user_flush(struct nft_handle *h, struct nftnl_chain_list *list,
-			 const char *chain, const char *table);
+int nft_chain_restore(struct nft_handle *h, const char *chain, const char *table);
 int nft_chain_user_rename(struct nft_handle *h, const char *chain, const char *table, const char *newname);
 int nft_chain_zero_counters(struct nft_handle *h, const char *chain, const char *table, bool verbose);
-struct builtin_chain *nft_chain_builtin_find(struct builtin_table *t, const char *chain);
+const struct builtin_chain *nft_chain_builtin_find(const struct builtin_table *t, const char *chain);
 bool nft_chain_exists(struct nft_handle *h, const char *table, const char *chain);
 
 /*
@@ -95,7 +108,7 @@ bool nft_chain_exists(struct nft_handle *h, const char *table, const char *chain
  */
 struct nftnl_rule;
 
-int nft_rule_append(struct nft_handle *h, const char *chain, const char *table, void *data, uint64_t handle, bool verbose);
+int nft_rule_append(struct nft_handle *h, const char *chain, const char *table, void *data, struct nftnl_rule *ref, bool verbose);
 int nft_rule_insert(struct nft_handle *h, const char *chain, const char *table, void *data, int rulenum, bool verbose);
 int nft_rule_check(struct nft_handle *h, const char *chain, const char *table, void *data, bool verbose);
 int nft_rule_delete(struct nft_handle *h, const char *chain, const char *table, void *data, bool verbose);
@@ -116,7 +129,6 @@ int add_match(struct nftnl_rule *r, struct xt_entry_match *m);
 int add_target(struct nftnl_rule *r, struct xt_entry_target *t);
 int add_jumpto(struct nftnl_rule *r, const char *name, int verdict);
 int add_action(struct nftnl_rule *r, struct iptables_command_state *cs, bool goto_set);
-int add_comment(struct nftnl_rule *r, const char *comment);
 char *get_comment(const void *data, uint32_t data_len);
 
 enum nft_rule_print {
@@ -134,6 +146,7 @@ uint32_t nft_invflags2cmp(uint32_t invflags, uint32_t flag);
  */
 int nft_commit(struct nft_handle *h);
 int nft_abort(struct nft_handle *h);
+int nft_abort_policy_rule(struct nft_handle *h, const char *table);
 
 /*
  * revision compatibility.
@@ -199,5 +212,8 @@ int nft_arp_rule_insert(struct nft_handle *h, const char *chain,
 void nft_rule_to_arpt_entry(struct nftnl_rule *r, struct arpt_entry *fw);
 
 bool nft_is_table_compatible(struct nft_handle *h, const char *name);
+
+int ebt_set_user_chain_policy(struct nft_handle *h, const char *table,
+			      const char *chain, const char *policy);
 
 #endif

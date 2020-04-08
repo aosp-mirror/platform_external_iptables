@@ -756,8 +756,24 @@ xtables_find_target(const char *name, enum xtables_tryload tryload)
 	}
 
 	for (ptr = xtables_targets; ptr; ptr = ptr->next) {
-		if (extension_cmp(name, ptr->name, ptr->family))
+		if (extension_cmp(name, ptr->name, ptr->family)) {
+			struct xtables_target *clone;
+
+			/* First target of this type: */
+			if (ptr->t == NULL)
+				break;
+
+			/* Second and subsequent clones */
+			clone = xtables_malloc(sizeof(struct xtables_target));
+			memcpy(clone, ptr, sizeof(struct xtables_target));
+			clone->udata = NULL;
+			clone->tflags = 0;
+			/* This is a clone: */
+			clone->next = clone;
+
+			ptr = clone;
 			break;
+		}
 	}
 
 #ifndef NO_SHARED_LIBS

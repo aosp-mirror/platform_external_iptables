@@ -230,7 +230,7 @@ static unsigned int type_xlate_print(struct xt_xlate *xl, unsigned int icmptype,
 	type_name = icmp6_type_xlate(icmptype);
 
 	if (type_name) {
-		xt_xlate_add(xl, type_name);
+		xt_xlate_add(xl, "%s", type_name);
 	} else {
 		for (i = 0; i < ARRAY_SIZE(icmpv6_codes); ++i)
 			if (icmpv6_codes[i].type == icmptype &&
@@ -239,7 +239,7 @@ static unsigned int type_xlate_print(struct xt_xlate *xl, unsigned int icmptype,
 				break;
 
 		if (i != ARRAY_SIZE(icmpv6_codes))
-			xt_xlate_add(xl, icmpv6_codes[i].name);
+			xt_xlate_add(xl, "%s", icmpv6_codes[i].name);
 		else
 			return 0;
 	}

@@ -329,8 +329,8 @@ static const struct option options[] = {
 	{ NULL },
 };
 
-static int xlate_chain_user_add(struct nft_handle *h, const char *chain,
-				const char *table)
+static int xlate_chain_user_restore(struct nft_handle *h, const char *chain,
+				    const char *table)
 {
 	printf("add chain %s %s %s\n", family2str[h->family], table, chain);
 	return 0;
@@ -416,7 +416,7 @@ static int dummy_compat_rev(const char *name, uint8_t rev, int opt)
 static struct nft_xt_restore_cb cb_xlate = {
 	.table_new	= xlate_table_new,
 	.chain_set	= xlate_chain_set,
-	.chain_user_add	= xlate_chain_user_add,
+	.chain_restore	= xlate_chain_user_restore,
 	.do_command	= do_command_xlate,
 	.commit		= commit,
 	.abort		= commit,
@@ -426,7 +426,7 @@ static int xtables_xlate_main_common(struct nft_handle *h,
 				     int family,
 				     const char *progname)
 {
-	struct builtin_table *tables;
+	const struct builtin_table *tables;
 	int ret;
 
 	xtables_globals.program_name = progname;

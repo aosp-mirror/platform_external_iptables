@@ -302,7 +302,7 @@ int parse_meta(struct nftnl_expr *e, uint8_t key, char *iniface,
 	return 0;
 }
 
-void nft_parse_target(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
+static void nft_parse_target(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 {
 	uint32_t tg_len;
 	const char *targname = nftnl_expr_get_str(e, NFTNL_EXPR_TG_NAME);
@@ -331,7 +331,7 @@ void nft_parse_target(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 	ops->parse_target(target, data);
 }
 
-void nft_parse_match(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
+static void nft_parse_match(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 {
 	uint32_t mt_len;
 	const char *mt_name = nftnl_expr_get_str(e, NFTNL_EXPR_MT_NAME);
@@ -433,7 +433,7 @@ static void nft_meta_set_to_target(struct nft_xt_ctx *ctx)
 	ops->parse_target(target, ctx->cs);
 }
 
-void nft_parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
+static void nft_parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 {
 	ctx->meta.key = nftnl_expr_get_u32(e, NFTNL_EXPR_META_KEY);
 
@@ -449,14 +449,14 @@ void nft_parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 	ctx->flags |= NFT_XT_CTX_META;
 }
 
-void nft_parse_payload(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
+static void nft_parse_payload(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 {
 	ctx->reg = nftnl_expr_get_u32(e, NFTNL_EXPR_META_DREG);
 	ctx->payload.offset = nftnl_expr_get_u32(e, NFTNL_EXPR_PAYLOAD_OFFSET);
 	ctx->flags |= NFT_XT_CTX_PAYLOAD;
 }
 
-void nft_parse_bitwise(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
+static void nft_parse_bitwise(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 {
 	uint32_t reg, len;
 	const void *data;
@@ -472,7 +472,7 @@ void nft_parse_bitwise(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 	ctx->flags |= NFT_XT_CTX_BITWISE;
 }
 
-void nft_parse_cmp(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
+static void nft_parse_cmp(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 {
 	struct nft_family_ops *ops = nft_family_ops_lookup(ctx->family);
 	void *data = ctx->cs;
@@ -493,13 +493,13 @@ void nft_parse_cmp(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 	}
 }
 
-void nft_parse_counter(struct nftnl_expr *e, struct xt_counters *counters)
+static void nft_parse_counter(struct nftnl_expr *e, struct xt_counters *counters)
 {
 	counters->pcnt = nftnl_expr_get_u64(e, NFTNL_EXPR_CTR_PACKETS);
 	counters->bcnt = nftnl_expr_get_u64(e, NFTNL_EXPR_CTR_BYTES);
 }
 
-void nft_parse_immediate(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
+static void nft_parse_immediate(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 {
 	const char *chain = nftnl_expr_get_str(e, NFTNL_EXPR_IMM_CHAIN);
 	struct nft_family_ops *ops;
@@ -639,40 +639,65 @@ void nft_rule_to_iptables_command_state(const struct nftnl_rule *r,
 	if (nftnl_rule_is_set(r, NFTNL_RULE_USERDATA)) {
 		const void *data;
 		uint32_t len, size;
-		struct xtables_match *match;
-		struct xt_entry_match *m;
+		const char *comment;
 
 		data = nftnl_rule_get_data(r, NFTNL_RULE_USERDATA, &len);
-		match = xtables_find_match("comment", XTF_TRY_LOAD,
-					   &cs->matches);
-		if (match == NULL)
-			return;
+		comment = get_comment(data, len);
+		if (comment) {
+			struct xtables_match *match;
+			struct xt_entry_match *m;
 
-		size = XT_ALIGN(sizeof(struct xt_entry_match)) + match->size;
-		m = xtables_calloc(1, size);
+			match = xtables_find_match("comment", XTF_TRY_LOAD,
+						   &cs->matches);
+			if (match == NULL)
+				return;
 
-		strncpy((char *)m->data, get_comment(data, len),
-			match->size - 1);
-		m->u.match_size = size;
-		m->u.user.revision = 0;
-		strcpy(m->u.user.name, match->name);
+			size = XT_ALIGN(sizeof(struct xt_entry_match))
+				+ match->size;
+			m = xtables_calloc(1, size);
 
-		match->m = m;
+			strncpy((char *)m->data, comment, match->size - 1);
+			m->u.match_size = size;
+			m->u.user.revision = 0;
+			strcpy(m->u.user.name, match->name);
+
+			match->m = m;
+		}
 	}
 
-	if (cs->target != NULL)
+	if (cs->target != NULL) {
 		cs->jumpto = cs->target->name;
-	else if (cs->jumpto != NULL)
+	} else if (cs->jumpto != NULL) {
+		struct xt_entry_target *t;
+		uint32_t size;
+
 		cs->target = xtables_find_target(cs->jumpto, XTF_TRY_LOAD);
-	else
+		if (!cs->target)
+			return;
+
+		size = XT_ALIGN(sizeof(struct xt_entry_target)) + cs->target->size;
+		t = xtables_calloc(1, size);
+		t->u.target_size = size;
+		t->u.user.revision = cs->target->revision;
+		strcpy(t->u.user.name, cs->jumpto);
+		cs->target->t = t;
+	} else {
 		cs->jumpto = "";
+	}
 }
 
 void nft_clear_iptables_command_state(struct iptables_command_state *cs)
 {
 	xtables_rule_matches_free(&cs->matches);
-	if (cs->target)
+	if (cs->target) {
 		free(cs->target->t);
+		cs->target->t = NULL;
+
+		if (cs->target == cs->target->next) {
+			free(cs->target);
+			cs->target = NULL;
+		}
+	}
 }
 
 void print_header(unsigned int format, const char *chain, const char *pol,
@@ -961,6 +986,7 @@ bool nft_ipv46_rule_find(struct nft_family_ops *ops,
 			 struct nftnl_rule *r, void *data)
 {
 	struct iptables_command_state *cs = data, this = {};
+	bool ret = false;
 
 	nft_rule_to_iptables_command_state(r, &this);
 
@@ -969,24 +995,27 @@ bool nft_ipv46_rule_find(struct nft_family_ops *ops,
 	nft_rule_print_save(r, NFT_RULE_APPEND, 0);
 #endif
 	if (!ops->is_same(cs, &this))
-		return false;
+		goto out;
 
 	if (!compare_matches(cs->matches, this.matches)) {
 		DEBUGP("Different matches\n");
-		return false;
+		goto out;
 	}
 
 	if (!compare_targets(cs->target, this.target)) {
 		DEBUGP("Different target\n");
-		return false;
+		goto out;
 	}
 
 	if (strcmp(cs->jumpto, this.jumpto) != 0) {
 		DEBUGP("Different verdict\n");
-		return false;
+		goto out;
 	}
 
-	return true;
+	ret = true;
+out:
+	ops->clear_cs(&this);
+	return ret;
 }
 
 void nft_check_xt_legacy(int family, bool is_ipt_save)

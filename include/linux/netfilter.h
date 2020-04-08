@@ -3,8 +3,10 @@
 
 #include <linux/types.h>
 
+#ifndef _NETINET_IN_H
 #include <linux/in.h>
 #include <linux/in6.h>
+#endif
 #include <limits.h>
 
 /* Responses from hook functions. */

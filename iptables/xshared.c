@@ -433,10 +433,24 @@ void save_argv(void)
 	}
 }
 
+struct xt_param_buf {
+	char	buffer[1024];
+	int 	len;
+};
+
+static void add_param(struct xt_param_buf *param, const char *curchar)
+{
+	param->buffer[param->len++] = *curchar;
+	if (param->len >= sizeof(param->buffer))
+		xtables_error(PARAMETER_PROBLEM,
+			      "Parameter too long!");
+}
+
 void add_param_to_argv(char *parsestart, int line)
 {
-	int quote_open = 0, escaped = 0, param_len = 0;
-	char param_buffer[1024], *curchar;
+	int quote_open = 0, escaped = 0;
+	struct xt_param_buf param = {};
+	char *curchar;
 
 	/* After fighting with strtok enough, here's now
 	 * a 'real' parser. According to Rusty I'm now no
@@ -445,7 +459,7 @@ void add_param_to_argv(char *parsestart, int line)
 	for (curchar = parsestart; *curchar; curchar++) {
 		if (quote_open) {
 			if (escaped) {
-				param_buffer[param_len++] = *curchar;
+				add_param(&param, curchar);
 				escaped = 0;
 				continue;
 			} else if (*curchar == '\\') {
@@ -455,7 +469,7 @@ void add_param_to_argv(char *parsestart, int line)
 				quote_open = 0;
 				*curchar = '"';
 			} else {
-				param_buffer[param_len++] = *curchar;
+				add_param(&param, curchar);
 				continue;
 			}
 		} else {
@@ -471,36 +485,32 @@ void add_param_to_argv(char *parsestart, int line)
 		case ' ':
 		case '\t':
 		case '\n':
-			if (!param_len) {
+			if (!param.len) {
 				/* two spaces? */
 				continue;
 			}
 			break;
 		default:
 			/* regular character, copy to buffer */
-			param_buffer[param_len++] = *curchar;
-
-			if (param_len >= sizeof(param_buffer))
-				xtables_error(PARAMETER_PROBLEM,
-					      "Parameter too long!");
+			add_param(&param, curchar);
 			continue;
 		}
 
-		param_buffer[param_len] = '\0';
+		param.buffer[param.len] = '\0';
 
 		/* check if table name specified */
-		if ((param_buffer[0] == '-' &&
-		     param_buffer[1] != '-' &&
-		     strchr(param_buffer, 't')) ||
-		    (!strncmp(param_buffer, "--t", 3) &&
-		     !strncmp(param_buffer, "--table", strlen(param_buffer)))) {
+		if ((param.buffer[0] == '-' &&
+		     param.buffer[1] != '-' &&
+		     strchr(param.buffer, 't')) ||
+		    (!strncmp(param.buffer, "--t", 3) &&
+		     !strncmp(param.buffer, "--table", strlen(param.buffer)))) {
 			xtables_error(PARAMETER_PROBLEM,
 				      "The -t option (seen in line %u) cannot be used in %s.\n",
 				      line, xt_params->program_name);
 		}
 
-		add_argv(param_buffer, 0);
-		param_len = 0;
+		add_argv(param.buffer, 0);
+		param.len = 0;
 	}
 }
 
@@ -653,12 +663,12 @@ const char *xt_parse_target(const char *targetname)
 	return targetname;
 }
 
-void command_jump(struct iptables_command_state *cs)
+void command_jump(struct iptables_command_state *cs, const char *jumpto)
 {
 	struct option *opts = xt_params->opts;
 	size_t size;
 
-	cs->jumpto = xt_parse_target(optarg);
+	cs->jumpto = xt_parse_target(jumpto);
 	/* TRY_LOAD (may be chain name) */
 	cs->target = xtables_find_target(cs->jumpto, XTF_TRY_LOAD);
 

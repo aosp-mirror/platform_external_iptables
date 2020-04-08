@@ -9,6 +9,7 @@
  * This software has been sponsored by Sophos Astaro <http://www.sophos.com>
  */
 
+#define _GNU_SOURCE
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
@@ -403,26 +404,24 @@ static void trace_print_packet(const struct nftnl_trace *nlt, struct cb_arg *arg
 		case IPPROTO_UDP:
 			if (len < 4)
 				break;
-			printf("SPORT=%d DPORT=%d ", ntohs(tcph->th_sport), ntohs(tcph->th_dport));
+			printf("SPORT=%d DPORT=%d ", ntohs(tcph->source), ntohs(tcph->dest));
 			break;
 		case IPPROTO_TCP:
 			if (len < sizeof(*tcph))
 				break;
-			printf("SPORT=%d DPORT=%d ", ntohs(tcph->th_sport), ntohs(tcph->th_dport));
-			if (tcph->th_flags & (TH_FIN|TH_SYN|TH_RST|TH_PUSH|TH_ACK|TH_URG)) {
-				if (tcph->th_flags & TH_SYN)
-					printf("SYN ");
-				if (tcph->th_flags & TH_ACK)
-					printf("ACK ");
-				if (tcph->th_flags & TH_FIN)
-					printf("FIN ");
-				if (tcph->th_flags & TH_RST)
-					printf("RST ");
-				if (tcph->th_flags & TH_PUSH)
-					printf("PSH ");
-				if (tcph->th_flags & TH_URG)
-					printf("URG ");
-			}
+			printf("SPORT=%d DPORT=%d ", ntohs(tcph->source), ntohs(tcph->dest));
+			if (tcph->syn)
+				printf("SYN ");
+			if (tcph->ack)
+				printf("ACK ");
+			if (tcph->fin)
+				printf("FIN ");
+			if (tcph->rst)
+				printf("RST ");
+			if (tcph->psh)
+				printf("PSH ");
+			if (tcph->urg)
+				printf("URG ");
 			break;
 		default:
 			break;

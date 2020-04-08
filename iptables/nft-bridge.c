@@ -45,6 +45,16 @@ void ebt_cs_clean(struct iptables_command_state *cs)
 		free(m);
 		m = nm;
 	}
+
+	if (cs->target) {
+		free(cs->target->t);
+		cs->target->t = NULL;
+
+		if (cs->target == cs->target->next) {
+			free(cs->target);
+			cs->target = NULL;
+		}
+	}
 }
 
 static void ebt_print_mac(const unsigned char *mac)
@@ -334,7 +344,7 @@ static void nft_rule_to_ebtables_command_state(const struct nftnl_rule *r,
 static void print_iface(const char *option, const char *name, bool invert)
 {
 	if (*name)
-		printf("%s%s %s ", invert ? "! " : "", option, name);
+		printf("%s%s %s ", option, invert ? " !" : "", name);
 }
 
 static void nft_bridge_print_table_header(const char *tablename)
@@ -348,7 +358,7 @@ static void nft_bridge_print_header(unsigned int format, const char *chain,
 				    bool basechain, uint32_t refs, uint32_t entries)
 {
 	printf("Bridge chain: %s, entries: %u, policy: %s\n",
-	       chain, entries, basechain ? pol : "RETURN");
+	       chain, entries, pol ?: "RETURN");
 }
 
 static void print_matches_and_watchers(const struct iptables_command_state *cs,
@@ -379,9 +389,9 @@ static void print_mac(char option, const unsigned char *mac,
 		      const unsigned char *mask,
 		      bool invert)
 {
+	printf("-%c ", option);
 	if (invert)
 		printf("! ");
-	printf("-%c ", option);
 	ebt_print_mac_and_mask(mac, mask);
 	printf(" ");
 }
@@ -396,9 +406,9 @@ static void print_protocol(uint16_t ethproto, bool invert, unsigned int bitmask)
 	if (bitmask & EBT_NOPROTO)
 		return;
 
+	printf("-p ");
 	if (invert)
 		printf("! ");
-	printf("-p ");
 
 	if (bitmask & EBT_802_3) {
 		printf("length ");
@@ -469,6 +479,11 @@ static void nft_bridge_save_rule(const void *data, unsigned int format)
 		       (uint64_t)cs->counters.pcnt,
 		       (uint64_t)cs->counters.bcnt);
 
+	if (!(format & FMT_NOCOUNTS))
+		printf(" , pcnt = %"PRIu64" -- bcnt = %"PRIu64"",
+		       (uint64_t)cs->counters.pcnt,
+		       (uint64_t)cs->counters.bcnt);
+
 	if (!(format & FMT_NONEWLINE))
 		fputc('\n', stdout);
 }
@@ -482,11 +497,7 @@ static void nft_bridge_print_rule(struct nftnl_rule *r, unsigned int num,
 		printf("%d ", num);
 
 	nft_rule_to_ebtables_command_state(r, &cs);
-	nft_bridge_save_rule(&cs, format & ~FMT_EBT_SAVE);
-	if (!(format & FMT_NOCOUNTS))
-		printf(" , pcnt = %"PRIu64" -- bcnt = %"PRIu64"",
-		       (uint64_t)cs.counters.pcnt,
-		       (uint64_t)cs.counters.bcnt);
+	nft_bridge_save_rule(&cs, format);
 	ebt_cs_clean(&cs);
 }
 
@@ -547,30 +558,34 @@ static bool nft_bridge_rule_find(struct nft_family_ops *ops, struct nftnl_rule *
 {
 	struct iptables_command_state *cs = data;
 	struct iptables_command_state this = {};
+	bool ret = false;
 
 	nft_rule_to_ebtables_command_state(r, &this);
 
 	DEBUGP("comparing with... ");
 
 	if (!nft_bridge_is_same(cs, &this))
-		return false;
+		goto out;
 
 	if (!compare_matches(cs->matches, this.matches)) {
 		DEBUGP("Different matches\n");
-		return false;
+		goto out;
 	}
 
 	if (!compare_targets(cs->target, this.target)) {
 		DEBUGP("Different target\n");
-		return false;
+		goto out;
 	}
 
 	if (cs->jumpto != NULL && strcmp(cs->jumpto, this.jumpto) != 0) {
 		DEBUGP("Different verdict\n");
-		return false;
+		goto out;
 	}
 
-	return true;
+	ret = true;
+out:
+	ops->clear_cs(&this);
+	return ret;
 }
 
 static int xlate_ebmatches(const struct iptables_command_state *cs, struct xt_xlate *xl)

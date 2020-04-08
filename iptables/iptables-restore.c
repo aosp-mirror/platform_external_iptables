@@ -12,10 +12,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "iptables.h"
+#include "ip6tables.h"
 #include "xshared.h"
 #include "xtables.h"
 #include "libiptc/libiptc.h"
+#include "libiptc/libip6tc.h"
 #include "iptables-multi.h"
+#include "ip6tables-multi.h"
 
 static int counters, verbose, noflush, wait;
 
@@ -38,9 +41,6 @@ static const struct option options[] = {
 	{NULL},
 };
 
-#define prog_name iptables_globals.program_name
-#define prog_vers iptables_globals.program_version
-
 static void print_usage(const char *name, const char *version)
 {
 	fprintf(stderr, "Usage: %s [-c] [-v] [-V] [-t] [-h] [-n] [-w secs] [-W usecs] [-T table] [-M command]\n"
@@ -56,28 +56,42 @@ static void print_usage(const char *name, const char *version)
 			"	   [ --modprobe=<command> ]\n", name);
 }
 
-static struct xtc_handle *create_handle(const char *tablename)
+struct iptables_restore_cb {
+	const struct xtc_ops *ops;
+
+	int (*for_each_chain)(int (*fn)(const xt_chainlabel,
+					int, struct xtc_handle *),
+			      int verbose, int builtinstoo,
+			      struct xtc_handle *handle);
+	int (*flush_entries)(const xt_chainlabel, int, struct xtc_handle *);
+	int (*delete_chain)(const xt_chainlabel, int, struct xtc_handle *);
+	int (*do_command)(int argc, char *argv[], char **table,
+			  struct xtc_handle **handle, bool restore);
+};
+
+static struct xtc_handle *
+create_handle(struct iptables_restore_cb *cb, const char *tablename)
 {
 	struct xtc_handle *handle;
 
-	handle = iptc_init(tablename);
+	handle = cb->ops->init(tablename);
 
 	if (!handle) {
 		/* try to insmod the module if iptc_init failed */
 		xtables_load_ko(xtables_modprobe_program, false);
-		handle = iptc_init(tablename);
+		handle = cb->ops->init(tablename);
 	}
 
 	if (!handle) {
 		xtables_error(PARAMETER_PROBLEM, "%s: unable to initialize "
-			"table '%s'\n", prog_name, tablename);
+			"table '%s'\n", xt_params->program_name, tablename);
 		exit(1);
 	}
 	return handle;
 }
 
-int
-iptables_restore_main(int argc, char *argv[])
+static int
+ip46tables_restore_main(struct iptables_restore_cb *cb, int argc, char *argv[])
 {
 	struct xtc_handle *handle = NULL;
 	char buffer[10240];
@@ -86,23 +100,9 @@ iptables_restore_main(int argc, char *argv[])
 	FILE *in;
 	int in_table = 0, testing = 0;
 	const char *tablename = NULL;
-	const struct xtc_ops *ops = &iptc_ops;
 
 	line = 0;
 	lock = XT_LOCK_NOT_ACQUIRED;
-
-	iptables_globals.program_name = "iptables-restore";
-	c = xtables_init_all(&iptables_globals, NFPROTO_IPV4);
-	if (c < 0) {
-		fprintf(stderr, "%s/%s Failed to initialize xtables\n",
-				iptables_globals.program_name,
-				iptables_globals.program_version);
-		exit(1);
-	}
-#if defined(ALL_INCLUSIVE) || defined(NO_SHARED_LIBS)
-	init_extensions();
-	init_extensions4();
-#endif
 
 	while ((c = getopt_long(argc, argv, "bcvVthnwWM:T:", options, NULL)) != -1) {
 		switch (c) {
@@ -116,13 +116,15 @@ iptables_restore_main(int argc, char *argv[])
 				verbose = 1;
 				break;
 			case 'V':
-				printf("%s v%s (legacy)\n", prog_name, prog_vers);
+				printf("%s v%s (legacy)\n",
+				       xt_params->program_name,
+				       xt_params->program_version);
 				exit(0);
 			case 't':
 				testing = 1;
 				break;
 			case 'h':
-				print_usage("iptables-restore",
+				print_usage(xt_params->program_name,
 					    IPTABLES_VERSION);
 				exit(0);
 			case 'n':
@@ -142,7 +144,8 @@ iptables_restore_main(int argc, char *argv[])
 				break;
 			default:
 				fprintf(stderr,
-					"Try `iptables-restore -h' for more information.\n");
+					"Try `%s -h' for more information.\n",
+					xt_params->program_name);
 				exit(1);
 		}
 	}
@@ -180,8 +183,8 @@ iptables_restore_main(int argc, char *argv[])
 		} else if ((strcmp(buffer, "COMMIT\n") == 0) && (in_table)) {
 			if (!testing) {
 				DEBUGP("Calling commit\n");
-				ret = ops->commit(handle);
-				ops->free(handle);
+				ret = cb->ops->commit(handle);
+				cb->ops->free(handle);
 				handle = NULL;
 			} else {
 				DEBUGP("Not calling commit, testing\n");
@@ -213,7 +216,7 @@ iptables_restore_main(int argc, char *argv[])
 			strncpy(curtable, table, XT_TABLE_MAXNAMELEN);
 			curtable[XT_TABLE_MAXNAMELEN] = '\0';
 
-			if (tablename && (strcmp(tablename, table) != 0)) {
+			if (tablename && strcmp(tablename, table) != 0) {
 				if (lock >= 0) {
 					xtables_unlock(lock);
 					lock = XT_LOCK_NOT_ACQUIRED;
@@ -221,18 +224,18 @@ iptables_restore_main(int argc, char *argv[])
 				continue;
 			}
 			if (handle)
-				ops->free(handle);
+				cb->ops->free(handle);
 
-			handle = create_handle(table);
+			handle = create_handle(cb, table);
 			if (noflush == 0) {
 				DEBUGP("Cleaning all chains of table '%s'\n",
 					table);
-				for_each_chain4(flush_entries4, verbose, 1,
+				cb->for_each_chain(cb->flush_entries, verbose, 1,
 						handle);
 
 				DEBUGP("Deleting all user-defined chains "
 				       "of table '%s'\n", table);
-				for_each_chain4(delete_chain4, verbose, 0,
+				cb->for_each_chain(cb->delete_chain, verbose, 0,
 						handle);
 			}
 
@@ -258,17 +261,17 @@ iptables_restore_main(int argc, char *argv[])
 					   "(%u chars max)",
 					   chain, XT_EXTENSION_MAXNAMELEN - 1);
 
-			if (ops->builtin(chain, handle) <= 0) {
-				if (noflush && ops->is_chain(chain, handle)) {
+			if (cb->ops->builtin(chain, handle) <= 0) {
+				if (noflush && cb->ops->is_chain(chain, handle)) {
 					DEBUGP("Flushing existing user defined chain '%s'\n", chain);
-					if (!ops->flush_entries(chain, handle))
+					if (!cb->ops->flush_entries(chain, handle))
 						xtables_error(PARAMETER_PROBLEM,
 							   "error flushing chain "
 							   "'%s':%s\n", chain,
 							   strerror(errno));
 				} else {
 					DEBUGP("Creating new chain '%s'\n", chain);
-					if (!ops->create_chain(chain, handle))
+					if (!cb->ops->create_chain(chain, handle))
 						xtables_error(PARAMETER_PROBLEM,
 							   "error creating chain "
 							   "'%s':%s\n", chain,
@@ -294,20 +297,20 @@ iptables_restore_main(int argc, char *argv[])
 
 					if (!ctrs || !parse_counters(ctrs, &count))
 						xtables_error(PARAMETER_PROBLEM,
-							   "invalid policy counters "
-							   "for chain '%s'\n", chain);
+							  "invalid policy counters "
+							  "for chain '%s'\n", chain);
 				}
 
 				DEBUGP("Setting policy of chain %s to %s\n",
 					chain, policy);
 
-				if (!ops->set_policy(chain, policy, &count,
+				if (!cb->ops->set_policy(chain, policy, &count,
 						     handle))
 					xtables_error(OTHER_PROBLEM,
 						"Can't set policy `%s'"
 						" on `%s' line %u: %s\n",
 						policy, chain, line,
-						ops->strerror(errno));
+						cb->ops->strerror(errno));
 			}
 
 			ret = 1;
@@ -358,19 +361,19 @@ iptables_restore_main(int argc, char *argv[])
 
 			add_param_to_argv(parsestart, line);
 
-			DEBUGP("calling do_command4(%u, argv, &%s, handle):\n",
+			DEBUGP("calling do_command(%u, argv, &%s, handle):\n",
 				newargc, curtable);
 
 			for (a = 0; a < newargc; a++)
 				DEBUGP("argv[%u]: %s\n", a, newargv[a]);
 
-			ret = do_command4(newargc, newargv,
+			ret = cb->do_command(newargc, newargv,
 					 &newargv[2], &handle, true);
 
 			free_argv();
 			fflush(stdout);
 		}
-		if (tablename && (strcmp(tablename, curtable) != 0))
+		if (tablename && strcmp(tablename, curtable) != 0)
 			continue;
 		if (!ret) {
 			fprintf(stderr, "%s: line %u failed\n",
@@ -387,3 +390,66 @@ iptables_restore_main(int argc, char *argv[])
 	fclose(in);
 	return 0;
 }
+
+
+#if defined ENABLE_IPV4
+struct iptables_restore_cb ipt_restore_cb = {
+	.ops		= &iptc_ops,
+	.for_each_chain	= for_each_chain4,
+	.flush_entries	= flush_entries4,
+	.delete_chain	= delete_chain4,
+	.do_command	= do_command4,
+};
+
+int
+iptables_restore_main(int argc, char *argv[])
+{
+	int c;
+
+	iptables_globals.program_name = "iptables-restore";
+	c = xtables_init_all(&iptables_globals, NFPROTO_IPV4);
+	if (c < 0) {
+		fprintf(stderr, "%s/%s Failed to initialize xtables\n",
+				iptables_globals.program_name,
+				iptables_globals.program_version);
+		exit(1);
+	}
+#if defined(ALL_INCLUSIVE) || defined(NO_SHARED_LIBS)
+	init_extensions();
+	init_extensions4();
+#endif
+
+	return ip46tables_restore_main(&ipt_restore_cb, argc, argv);
+}
+#endif
+
+#if defined ENABLE_IPV6
+struct iptables_restore_cb ip6t_restore_cb = {
+	.ops		= &ip6tc_ops,
+	.for_each_chain	= for_each_chain6,
+	.flush_entries	= flush_entries6,
+	.delete_chain	= delete_chain6,
+	.do_command	= do_command6,
+};
+
+int
+ip6tables_restore_main(int argc, char *argv[])
+{
+	int c;
+
+	ip6tables_globals.program_name = "ip6tables-restore";
+	c = xtables_init_all(&ip6tables_globals, NFPROTO_IPV6);
+	if (c < 0) {
+		fprintf(stderr, "%s/%s Failed to initialize xtables\n",
+				ip6tables_globals.program_name,
+				ip6tables_globals.program_version);
+		exit(1);
+	}
+#if defined(ALL_INCLUSIVE) || defined(NO_SHARED_LIBS)
+	init_extensions();
+	init_extensions6();
+#endif
+
+	return ip46tables_restore_main(&ip6t_restore_cb, argc, argv);
+}
+#endif

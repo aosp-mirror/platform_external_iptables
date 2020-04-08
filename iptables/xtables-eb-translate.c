@@ -64,27 +64,6 @@ static int parse_rule_number(const char *rule)
 	return rule_nr;
 }
 
-static const char *
-parse_target(const char *targetname)
-{
-	const char *ptr;
-
-	if (strlen(targetname) < 1)
-		xtables_error(PARAMETER_PROBLEM,
-			      "Invalid target name (too short)");
-
-	if (strlen(targetname)+1 > EBT_CHAIN_MAXNAMELEN)
-		xtables_error(PARAMETER_PROBLEM,
-			      "Invalid target '%s' (%d chars max)",
-			      targetname, EBT_CHAIN_MAXNAMELEN);
-
-	for (ptr = targetname; *ptr; ptr++)
-		if (isspace(*ptr))
-			xtables_error(PARAMETER_PROBLEM,
-				      "Invalid target name `%s'", targetname);
-	return targetname;
-}
-
 static int get_current_chain(const char *chain)
 {
 	if (strcmp(chain, "PREROUTING") == 0)
@@ -411,8 +390,7 @@ print_zero:
 				break;
 			} else if (c == 'j') {
 				ebt_check_option2(&flags, OPT_JUMP);
-				cs.jumpto = parse_target(optarg);
-				cs.target = ebt_command_jump(cs.jumpto);
+				command_jump(&cs, optarg);
 				break;
 			} else if (c == 's') {
 				ebt_check_option2(&flags, OPT_SOURCE);

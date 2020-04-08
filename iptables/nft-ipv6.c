@@ -66,17 +66,9 @@ static int nft_ipv6_add(struct nftnl_rule *r, void *data)
 	add_compat(r, cs->fw6.ipv6.proto, cs->fw6.ipv6.invflags & XT_INV_PROTO);
 
 	for (matchp = cs->matches; matchp; matchp = matchp->next) {
-		/* Use nft built-in comments support instead of comment match */
-		if (strcmp(matchp->match->name, "comment") == 0) {
-			ret = add_comment(r, (char *)matchp->match->m->data);
-			if (ret < 0)
-				goto try_match;
-		} else {
-try_match:
-			ret = add_match(r, matchp->match->m);
-			if (ret < 0)
-				return ret;
-		}
+		ret = add_match(r, matchp->match->m);
+		if (ret < 0)
+			return ret;
 	}
 
 	/* Counters need to me added before the target, otherwise they are

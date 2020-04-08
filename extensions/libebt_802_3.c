@@ -98,15 +98,15 @@ static void br802_3_print(const void *ip, const struct xt_entry_match *match,
 	struct ebt_802_3_info *info = (struct ebt_802_3_info *)match->data;
 
 	if (info->bitmask & EBT_802_3_SAP) {
+		printf("--802_3-sap ");
 		if (info->invflags & EBT_802_3_SAP)
 			printf("! ");
-		printf("--802_3-sap ");
 		printf("0x%.2x ", info->sap);
 	}
 	if (info->bitmask & EBT_802_3_TYPE) {
+		printf("--802_3-type ");
 		if (info->invflags & EBT_802_3_TYPE)
 			printf("! ");
-		printf("--802_3-type ");
 		printf("0x%.4x ", ntohs(info->type));
 	}
 }

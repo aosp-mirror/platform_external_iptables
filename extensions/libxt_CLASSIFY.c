@@ -73,6 +73,24 @@ CLASSIFY_save(const void *ip, const struct xt_entry_target *target)
 	       TC_H_MAJ(clinfo->priority)>>16, TC_H_MIN(clinfo->priority));
 }
 
+static void
+CLASSIFY_arp_save(const void *ip, const struct xt_entry_target *target)
+{
+	const struct xt_classify_target_info *clinfo =
+		(const struct xt_classify_target_info *)target->data;
+
+	printf(" --set-class %x:%x",
+	       TC_H_MAJ(clinfo->priority)>>16, TC_H_MIN(clinfo->priority));
+}
+
+static void
+CLASSIFY_arp_print(const void *ip,
+      const struct xt_entry_target *target,
+      int numeric)
+{
+	CLASSIFY_arp_save(ip, target);
+}
+
 static int CLASSIFY_xlate(struct xt_xlate *xl,
 			  const struct xt_xlate_tg_params *params)
 {
@@ -98,21 +116,36 @@ static int CLASSIFY_xlate(struct xt_xlate *xl,
 	return 1;
 }
 
-static struct xtables_target classify_target = { 
-	.family		= NFPROTO_UNSPEC,
-	.name		= "CLASSIFY",
-	.version	= XTABLES_VERSION,
-	.size		= XT_ALIGN(sizeof(struct xt_classify_target_info)),
-	.userspacesize	= XT_ALIGN(sizeof(struct xt_classify_target_info)),
-	.help		= CLASSIFY_help,
-	.print		= CLASSIFY_print,
-	.save		= CLASSIFY_save,
-	.x6_parse	= CLASSIFY_parse,
-	.x6_options	= CLASSIFY_opts,
-	.xlate          = CLASSIFY_xlate,
+static struct xtables_target classify_tg_reg[] = {
+	{
+		.family		= NFPROTO_UNSPEC,
+		.name		= "CLASSIFY",
+		.version	= XTABLES_VERSION,
+		.size		= XT_ALIGN(sizeof(struct xt_classify_target_info)),
+		.userspacesize	= XT_ALIGN(sizeof(struct xt_classify_target_info)),
+		.help		= CLASSIFY_help,
+		.print		= CLASSIFY_print,
+		.save		= CLASSIFY_save,
+		.x6_parse	= CLASSIFY_parse,
+		.x6_options	= CLASSIFY_opts,
+		.xlate          = CLASSIFY_xlate,
+	},
+	{
+		.family		= NFPROTO_ARP,
+		.name		= "CLASSIFY",
+		.version	= XTABLES_VERSION,
+		.size		= XT_ALIGN(sizeof(struct xt_classify_target_info)),
+		.userspacesize	= XT_ALIGN(sizeof(struct xt_classify_target_info)),
+		.help		= CLASSIFY_help,
+		.print		= CLASSIFY_arp_print,
+		.save		= CLASSIFY_arp_save,
+		.x6_parse	= CLASSIFY_parse,
+		.x6_options	= CLASSIFY_opts,
+		.xlate          = CLASSIFY_xlate,
+	}
 };
 
 void _init(void)
 {
-	xtables_register_target(&classify_target);
+	xtables_register_targets(classify_tg_reg, ARRAY_SIZE(classify_tg_reg));
 }
