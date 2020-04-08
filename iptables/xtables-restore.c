@@ -16,13 +16,8 @@
 #include "libiptc/libiptc.h"
 #include "xtables-multi.h"
 #include "nft.h"
+#include "nft-bridge.h"
 #include <libnftnl/chain.h>
-
-#ifdef DEBUG
-#define DEBUGP(x, args...) fprintf(stderr, x, ## args)
-#else
-#define DEBUGP(x, args...)
-#endif
 
 static int counters, verbose, noflush;
 
@@ -59,110 +54,6 @@ static void print_usage(const char *name, const char *version)
 			"          [ --modprobe=<command> ]\n"
 			"	   [ --ipv4 ]\n"
 			"	   [ --ipv6 ]\n", name);
-}
-
-static int parse_counters(char *string, struct xt_counters *ctr)
-{
-	unsigned long long pcnt, bcnt;
-	int ret;
-
-	ret = sscanf(string, "[%llu:%llu]", &pcnt, &bcnt);
-	ctr->pcnt = pcnt;
-	ctr->bcnt = bcnt;
-	return ret == 2;
-}
-
-/* global new argv and argc */
-static char *newargv[255];
-static int newargc;
-
-/* function adding one argument to newargv, updating newargc 
- * returns true if argument added, false otherwise */
-static int add_argv(char *what) {
-	DEBUGP("add_argv: %s\n", what);
-	if (what && newargc + 1 < ARRAY_SIZE(newargv)) {
-		newargv[newargc] = strdup(what);
-		newargv[++newargc] = NULL;
-		return 1;
-	} else {
-		xtables_error(PARAMETER_PROBLEM,
-			"Parser cannot handle more arguments\n");
-		return 0;
-	}
-}
-
-static void free_argv(void) {
-	int i;
-
-	for (i = 0; i < newargc; i++)
-		free(newargv[i]);
-}
-
-static void add_param_to_argv(char *parsestart)
-{
-	int quote_open = 0, escaped = 0, param_len = 0;
-	char param_buffer[1024], *curchar;
-
-	/* After fighting with strtok enough, here's now
-	 * a 'real' parser. According to Rusty I'm now no
-	 * longer a real hacker, but I can live with that */
-
-	for (curchar = parsestart; *curchar; curchar++) {
-		if (quote_open) {
-			if (escaped) {
-				param_buffer[param_len++] = *curchar;
-				escaped = 0;
-				continue;
-			} else if (*curchar == '\\') {
-				escaped = 1;
-				continue;
-			} else if (*curchar == '"') {
-				quote_open = 0;
-				*curchar = ' ';
-			} else {
-				param_buffer[param_len++] = *curchar;
-				continue;
-			}
-		} else {
-			if (*curchar == '"') {
-				quote_open = 1;
-				continue;
-			}
-		}
-
-		if (*curchar == ' '
-		    || *curchar == '\t'
-		    || * curchar == '\n') {
-			if (!param_len) {
-				/* two spaces? */
-				continue;
-			}
-
-			param_buffer[param_len] = '\0';
-
-			/* check if table name specified */
-			if ((param_buffer[0] == '-' &&
-			     param_buffer[1] != '-' &&
-			     strchr(param_buffer, 't')) ||
-			    (!strncmp(param_buffer, "--t", 3) &&
-			     !strncmp(param_buffer, "--table", strlen(param_buffer)))) {
-				xtables_error(PARAMETER_PROBLEM,
-				"The -t option (seen in line %u) cannot be "
-				"used in xtables-restore.\n", line);
-				exit(1);
-			}
-
-			add_argv(param_buffer);
-			param_len = 0;
-		} else {
-			/* regular character, copy to buffer */
-			param_buffer[param_len++] = *curchar;
-
-			if (param_len >= sizeof(param_buffer))
-				xtables_error(PARAMETER_PROBLEM,
-				   "Parameter too long!");
-		}
-	}
 }
 
 static struct nftnl_chain_list *get_chain_list(struct nft_handle *h)
@@ -215,7 +106,7 @@ void xtables_restore_parse(struct nft_handle *h,
 {
 	char buffer[10240];
 	int in_table = 0;
-	char curtable[XT_TABLE_MAXNAMELEN + 1];
+	struct builtin_table *curtable = NULL;
 	const struct xtc_ops *ops = &xtc_ops;
 	struct nftnl_chain_list *chain_list = NULL;
 
@@ -253,7 +144,7 @@ void xtables_restore_parse(struct nft_handle *h,
 			}
 			in_table = 0;
 
-		} else if ((buffer[0] == '*') && (!in_table)) {
+		} else if ((buffer[0] == '*') && (!in_table || !p->commit)) {
 			/* New table */
 			char *table;
 
@@ -265,8 +156,11 @@ void xtables_restore_parse(struct nft_handle *h,
 					xt_params->program_name, line);
 				exit(1);
 			}
-			strncpy(curtable, table, XT_TABLE_MAXNAMELEN);
-			curtable[XT_TABLE_MAXNAMELEN] = '\0';
+			curtable = nft_table_builtin_find(h, table);
+			if (!curtable)
+				xtables_error(PARAMETER_PROBLEM,
+					"%s: line %u table name '%s' invalid\n",
+					xt_params->program_name, line, table);
 
 			if (p->tablename && (strcmp(p->tablename, table) != 0))
 				continue;
@@ -288,6 +182,7 @@ void xtables_restore_parse(struct nft_handle *h,
 			/* New chain. */
 			char *policy, *chain = NULL;
 			struct xt_counters count = {};
+			bool chain_exists = false;
 
 			chain = strtok(buffer+1, " \t\n");
 			DEBUGP("line %u, chain '%s'\n", line, chain);
@@ -300,16 +195,18 @@ void xtables_restore_parse(struct nft_handle *h,
 
 			if (noflush == 0) {
 				if (cb->chain_del)
-					cb->chain_del(chain_list, curtable,
+					cb->chain_del(chain_list, curtable->name,
 						      chain);
-			} else {
+			} else if (nft_chain_list_find(chain_list,
+						       curtable->name, chain)) {
+				chain_exists = true;
 				/* Apparently -n still flushes existing user
 				 * defined chains that are redefined. Otherwise,
 				 * leave them as is.
 				 */
 				if (cb->chain_user_flush)
 					cb->chain_user_flush(h, chain_list,
-							     curtable, chain);
+							     curtable->name, chain);
 			}
 
 			if (strlen(chain) >= XT_EXTENSION_MAXNAMELEN)
@@ -327,7 +224,7 @@ void xtables_restore_parse(struct nft_handle *h,
 				exit(1);
 			}
 
-			if (strcmp(policy, "-") != 0) {
+			if (nft_chain_builtin_find(curtable, chain)) {
 				if (counters) {
 					char *ctrs;
 					ctrs = strtok(NULL, " \t\n");
@@ -339,7 +236,8 @@ void xtables_restore_parse(struct nft_handle *h,
 
 				}
 				if (cb->chain_set &&
-				    cb->chain_set(h, curtable, chain, policy, &count) < 0) {
+				    cb->chain_set(h, curtable->name,
+					          chain, policy, &count) < 0) {
 					xtables_error(OTHER_PROBLEM,
 						      "Can't set policy `%s'"
 						      " on `%s' line %u: %s\n",
@@ -351,8 +249,10 @@ void xtables_restore_parse(struct nft_handle *h,
 				ret = 1;
 
 			} else {
-				if (cb->chain_user_add &&
-				    cb->chain_user_add(h, chain, curtable) < 0) {
+				if (!chain_exists &&
+				    cb->chain_user_add &&
+				    cb->chain_user_add(h, chain,
+						       curtable->name) < 0) {
 					if (errno == EEXIST)
 						continue;
 
@@ -366,7 +266,6 @@ void xtables_restore_parse(struct nft_handle *h,
 
 		} else if (in_table) {
 			int a;
-			char *ptr = buffer;
 			char *pcnt = NULL;
 			char *bcnt = NULL;
 			char *parsestart;
@@ -376,7 +275,8 @@ void xtables_restore_parse(struct nft_handle *h,
 
 			if (buffer[0] == '[') {
 				/* we have counters in our input */
-				ptr = strchr(buffer, ']');
+				char *ptr = strchr(buffer, ']');
+
 				if (!ptr)
 					xtables_error(PARAMETER_PROBLEM,
 						   "Bad line %u: need ]\n",
@@ -401,20 +301,20 @@ void xtables_restore_parse(struct nft_handle *h,
 				parsestart = buffer;
 			}
 
-			add_argv(argv[0]);
-			add_argv("-t");
-			add_argv(curtable);
+			add_argv(argv[0], 0);
+			add_argv("-t", 0);
+			add_argv(curtable->name, 0);
 
 			if (counters && pcnt && bcnt) {
-				add_argv("--set-counters");
-				add_argv((char *) pcnt);
-				add_argv((char *) bcnt);
+				add_argv("--set-counters", 0);
+				add_argv((char *) pcnt, 0);
+				add_argv((char *) bcnt, 0);
 			}
 
-			add_param_to_argv(parsestart);
+			add_param_to_argv(parsestart, line);
 
 			DEBUGP("calling do_command4(%u, argv, &%s, handle):\n",
-				newargc, curtable);
+				newargc, curtable->name);
 
 			for (a = 0; a < newargc; a++)
 				DEBUGP("argv[%u]: %s\n", a, newargv[a]);
@@ -437,7 +337,8 @@ void xtables_restore_parse(struct nft_handle *h,
 			free_argv();
 			fflush(stdout);
 		}
-		if (p->tablename && (strcmp(p->tablename, curtable) != 0))
+		if (p->tablename && curtable &&
+		    (strcmp(p->tablename, curtable->name) != 0))
 			continue;
 		if (!ret) {
 			fprintf(stderr, "%s: line %u failed\n",
@@ -445,10 +346,13 @@ void xtables_restore_parse(struct nft_handle *h,
 			exit(1);
 		}
 	}
-	if (in_table) {
+	if (in_table && p->commit) {
 		fprintf(stderr, "%s: COMMIT expected at line %u\n",
 				xt_params->program_name, line + 1);
 		exit(1);
+	} else if (in_table && cb->commit && !cb->commit(h)) {
+		xtables_error(OTHER_PROBLEM, "%s: final implicit COMMIT failed",
+			      xt_params->program_name);
 	}
 }
 
@@ -461,7 +365,9 @@ xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 		.restore = true,
 	};
 	int c;
-	struct nft_xt_restore_parse p = {};
+	struct nft_xt_restore_parse p = {
+		.commit = true,
+	};
 
 	line = 0;
 
@@ -513,6 +419,8 @@ xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 				break;
 			case 'w': /* fallthrough.  Ignored by xt-restore */
 			case 'W':
+				if (!optarg && xs_has_arg(argc, argv))
+					optind++;
 				break;
 			default:
 				fprintf(stderr,
@@ -580,4 +488,76 @@ int xtables_ip6_restore_main(int argc, char *argv[])
 {
 	return xtables_restore_main(NFPROTO_IPV6, "ip6tables-restore",
 				    argc, argv);
+}
+
+struct nft_xt_restore_cb ebt_restore_cb = {
+	.chain_list	= get_chain_list,
+	.commit		= nft_commit,
+	.table_new	= nft_table_new,
+	.table_flush	= nft_table_flush,
+	.chain_user_flush = nft_chain_user_flush,
+	.chain_del	= chain_delete,
+	.do_command	= do_commandeb,
+	.chain_set	= nft_chain_set,
+	.chain_user_add	= nft_chain_user_add,
+};
+
+static const struct option ebt_restore_options[] = {
+	{.name = "noflush", .has_arg = 0, .val = 'n'},
+	{ 0 }
+};
+
+int xtables_eb_restore_main(int argc, char *argv[])
+{
+	struct nft_xt_restore_parse p = {
+		.in = stdin,
+	};
+	struct nft_handle h;
+	int c;
+
+	while ((c = getopt_long(argc, argv, "n",
+				ebt_restore_options, NULL)) != -1) {
+		switch(c) {
+		case 'n':
+			noflush = 1;
+			break;
+		default:
+			fprintf(stderr,
+				"Usage: ebtables-restore [ --noflush ]\n");
+			exit(1);
+			break;
+		}
+	}
+
+	nft_init_eb(&h, "ebtables-restore");
+	xtables_restore_parse(&h, &p, &ebt_restore_cb, argc, argv);
+	nft_fini(&h);
+
+	return 0;
+}
+
+struct nft_xt_restore_cb arp_restore_cb = {
+	.chain_list	= get_chain_list,
+	.commit		= nft_commit,
+	.table_new	= nft_table_new,
+	.table_flush	= nft_table_flush,
+	.chain_user_flush = nft_chain_user_flush,
+	.chain_del	= chain_delete,
+	.do_command	= do_commandarp,
+	.chain_set	= nft_chain_set,
+	.chain_user_add	= nft_chain_user_add,
+};
+
+int xtables_arp_restore_main(int argc, char *argv[])
+{
+	struct nft_xt_restore_parse p = {
+		.in = stdin,
+	};
+	struct nft_handle h;
+
+	nft_init_arp(&h, "arptables-restore");
+	xtables_restore_parse(&h, &p, &arp_restore_cb, argc, argv);
+	nft_fini(&h);
+
+	return 0;
 }

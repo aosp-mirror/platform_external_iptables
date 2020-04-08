@@ -21,6 +21,7 @@
 #include <fcntl.h>
 #include <inttypes.h>
 #include <netdb.h>
+#include <spawn.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -119,8 +120,10 @@ struct option *xtables_merge_options(struct option *orig_opts,
 	 * Since @oldopts also has @orig_opts already (and does so at the
 	 * start), skip these entries.
 	 */
-	oldopts += num_oold;
-	num_old -= num_oold;
+	if (oldopts != NULL) {
+		oldopts += num_oold;
+		num_old -= num_oold;
+	}
 
 	merge = malloc(sizeof(*mp) * (num_oold + num_old + num_new + 1));
 	if (merge == NULL)
@@ -139,8 +142,10 @@ struct option *xtables_merge_options(struct option *orig_opts,
 		mp->val += *option_offset;
 
 	/* Third, the old options */
-	memcpy(mp, oldopts, sizeof(*mp) * num_old);
-	mp += num_old;
+	if (oldopts != NULL) {
+		memcpy(mp, oldopts, sizeof(*mp) * num_old);
+		mp += num_old;
+	}
 	xtables_free_opts(0);
 
 	/* Clear trailing entry */
@@ -358,6 +363,7 @@ int xtables_insmod(const char *modname, const char *modprobe, bool quiet)
 	char *buf = NULL;
 	char *argv[4];
 	int status;
+	pid_t pid;
 
 	/* If they don't explicitly set it, read out of kernel */
 	if (!modprobe) {
@@ -378,18 +384,11 @@ int xtables_insmod(const char *modname, const char *modprobe, bool quiet)
 	 */
 	fflush(stdout);
 
-	switch (vfork()) {
-	case 0:
-		execv(argv[0], argv);
-
-		/* not usually reached */
-		_exit(1);
-	case -1:
+	if (posix_spawn(&pid, argv[0], NULL, NULL, argv, NULL)) {
 		free(buf);
 		return -1;
-
-	default: /* parent */
-		wait(&status);
+	} else {
+		waitpid(pid, &status, 0);
 	}
 
 	free(buf);
@@ -488,7 +487,7 @@ bool xtables_strtoui(const char *s, char **end, unsigned int *value,
 	bool ret;
 
 	ret = xtables_strtoul(s, end, &v, min, max);
-	if (value != NULL)
+	if (ret && value != NULL)
 		*value = v;
 	return ret;
 }
@@ -921,6 +920,12 @@ void xtables_register_match(struct xtables_match *me)
 		exit(1);
 	}
 
+	if (me->real_name && strlen(me->real_name) >= XT_EXTENSION_MAXNAMELEN) {
+		fprintf(stderr, "%s: match `%s' has invalid real name\n",
+			xt_params->program_name, me->real_name);
+		exit(1);
+	}
+
 	if (me->family >= NPROTO) {
 		fprintf(stderr,
 			"%s: BUG: match %s has invalid protocol family\n",
@@ -1105,6 +1110,12 @@ void xtables_register_target(struct xtables_target *me)
 	if (strlen(me->name) >= XT_EXTENSION_MAXNAMELEN) {
 		fprintf(stderr, "%s: target `%s' has invalid name\n",
 			xt_params->program_name, me->name);
+		exit(1);
+	}
+
+	if (me->real_name && strlen(me->real_name) >= XT_EXTENSION_MAXNAMELEN) {
+		fprintf(stderr, "%s: target `%s' has invalid real name\n",
+			xt_params->program_name, me->real_name);
 		exit(1);
 	}
 

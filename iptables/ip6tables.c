@@ -420,27 +420,6 @@ parse_chain(const char *chainname)
 				   "Invalid chain name `%s'", chainname);
 }
 
-static const char *
-parse_target(const char *targetname)
-{
-	const char *ptr;
-
-	if (strlen(targetname) < 1)
-		xtables_error(PARAMETER_PROBLEM,
-			   "Invalid target name (too short)");
-
-	if (strlen(targetname) >= XT_EXTENSION_MAXNAMELEN)
-		xtables_error(PARAMETER_PROBLEM,
-			   "Invalid target name `%s' (%u chars max)",
-			   targetname, XT_EXTENSION_MAXNAMELEN - 1);
-
-	for (ptr = targetname; *ptr; ptr++)
-		if (isspace(*ptr))
-			xtables_error(PARAMETER_PROBLEM,
-				   "Invalid target name `%s'", targetname);
-	return targetname;
-}
-
 static void
 set_option(unsigned int *options, unsigned int option, uint8_t *invflg,
 	   int invert)
@@ -550,7 +529,6 @@ print_firewall(const struct ip6t_entry *fw,
 {
 	struct xtables_target *target, *tg;
 	const struct xt_entry_target *t;
-	char buf[BUFSIZ];
 
 	if (!ip6tc_is_chain(targname, handle))
 		target = xtables_find_target(targname, XTF_TRY_LOAD);
@@ -588,61 +566,10 @@ print_firewall(const struct ip6t_entry *fw,
 		fputc(' ', stdout);
 	}
 
-	if (format & FMT_VIA) {
-		char iface[IFNAMSIZ+2];
+	print_ifaces(fw->ipv6.iniface, fw->ipv6.outiface,
+		     fw->ipv6.invflags, format);
 
-		if (fw->ipv6.invflags & IP6T_INV_VIA_IN) {
-			iface[0] = '!';
-			iface[1] = '\0';
-		}
-		else iface[0] = '\0';
-
-		if (fw->ipv6.iniface[0] != '\0') {
-			strcat(iface, fw->ipv6.iniface);
-		}
-		else if (format & FMT_NUMERIC) strcat(iface, "*");
-		else strcat(iface, "any");
-		printf(FMT(" %-6s ","in %s "), iface);
-
-		if (fw->ipv6.invflags & IP6T_INV_VIA_OUT) {
-			iface[0] = '!';
-			iface[1] = '\0';
-		}
-		else iface[0] = '\0';
-
-		if (fw->ipv6.outiface[0] != '\0') {
-			strcat(iface, fw->ipv6.outiface);
-		}
-		else if (format & FMT_NUMERIC) strcat(iface, "*");
-		else strcat(iface, "any");
-		printf(FMT("%-6s ","out %s "), iface);
-	}
-
-	fputc(fw->ipv6.invflags & IP6T_INV_SRCIP ? '!' : ' ', stdout);
-	if (!memcmp(&fw->ipv6.smsk, &in6addr_any, sizeof in6addr_any)
-	    && !(format & FMT_NUMERIC))
-		printf(FMT("%-19s ","%s "), "anywhere");
-	else {
-		if (format & FMT_NUMERIC)
-			strcpy(buf, xtables_ip6addr_to_numeric(&fw->ipv6.src));
-		else
-			strcpy(buf, xtables_ip6addr_to_anyname(&fw->ipv6.src));
-		strcat(buf, xtables_ip6mask_to_numeric(&fw->ipv6.smsk));
-		printf(FMT("%-19s ","%s "), buf);
-	}
-
-	fputc(fw->ipv6.invflags & IP6T_INV_DSTIP ? '!' : ' ', stdout);
-	if (!memcmp(&fw->ipv6.dmsk, &in6addr_any, sizeof in6addr_any)
-	    && !(format & FMT_NUMERIC))
-		printf(FMT("%-19s ","-> %s"), "anywhere");
-	else {
-		if (format & FMT_NUMERIC)
-			strcpy(buf, xtables_ip6addr_to_numeric(&fw->ipv6.dst));
-		else
-			strcpy(buf, xtables_ip6addr_to_anyname(&fw->ipv6.dst));
-		strcat(buf, xtables_ip6mask_to_numeric(&fw->ipv6.dmsk));
-		printf(FMT("%-19s ","-> %s"), buf);
-	}
+	print_ipv6_addresses(fw, format);
 
 	if (format & FMT_NOTABLE)
 		fputs("  ", stdout);
@@ -1273,85 +1200,13 @@ generate_entry(const struct ip6t_entry *fw,
 	return e;
 }
 
-static void command_jump(struct iptables_command_state *cs)
-{
-	size_t size;
-
-	set_option(&cs->options, OPT_JUMP, &cs->fw6.ipv6.invflags, cs->invert);
-	cs->jumpto = parse_target(optarg);
-	/* TRY_LOAD (may be chain name) */
-	cs->target = xtables_find_target(cs->jumpto, XTF_TRY_LOAD);
-
-	if (cs->target == NULL)
-		return;
-
-	size = XT_ALIGN(sizeof(struct xt_entry_target)) + cs->target->size;
-
-	cs->target->t = xtables_calloc(1, size);
-	cs->target->t->u.target_size = size;
-	if (cs->target->real_name == NULL) {
-		strcpy(cs->target->t->u.user.name, cs->jumpto);
-	} else {
-		strcpy(cs->target->t->u.user.name, cs->target->real_name);
-		if (!(cs->target->ext_flags & XTABLES_EXT_ALIAS))
-			fprintf(stderr, "Notice: The %s target is converted into %s target "
-			        "in rule listing and saving.\n",
-			        cs->jumpto, cs->target->real_name);
-	}
-	cs->target->t->u.user.revision = cs->target->revision;
-
-	xs_init_target(cs->target);
-	if (cs->target->x6_options != NULL)
-		opts = xtables_options_xfrm(ip6tables_globals.orig_opts, opts,
-					    cs->target->x6_options,
-					    &cs->target->option_offset);
-	else
-		opts = xtables_merge_options(ip6tables_globals.orig_opts, opts,
-					     cs->target->extra_opts,
-					     &cs->target->option_offset);
-	if (opts == NULL)
-		xtables_error(OTHER_PROBLEM, "can't alloc memory!");
-}
-
-static void command_match(struct iptables_command_state *cs)
-{
-	struct xtables_match *m;
-	size_t size;
-
-	if (cs->invert)
-		xtables_error(PARAMETER_PROBLEM,
-			   "unexpected ! flag before --match");
-
-	m = xtables_find_match(optarg, XTF_LOAD_MUST_SUCCEED, &cs->matches);
-	size = XT_ALIGN(sizeof(struct xt_entry_match)) + m->size;
-	m->m = xtables_calloc(1, size);
-	m->m->u.match_size = size;
-	if (m->real_name == NULL) {
-		strcpy(m->m->u.user.name, m->name);
-	} else {
-		strcpy(m->m->u.user.name, m->real_name);
-		if (!(m->ext_flags & XTABLES_EXT_ALIAS))
-			fprintf(stderr, "Notice: The %s match is converted into %s match "
-			        "in rule listing and saving.\n", m->name, m->real_name);
-	}
-	m->m->u.user.revision = m->revision;
-
-	xs_init_match(m);
-	if (m == m->next)
-		return;
-	/* Merge options for non-cloned matches */
-	if (m->x6_options != NULL)
-		opts = xtables_options_xfrm(ip6tables_globals.orig_opts, opts,
-					    m->x6_options, &m->option_offset);
-	else if (m->extra_opts != NULL)
-		opts = xtables_merge_options(ip6tables_globals.orig_opts, opts,
-					     m->extra_opts, &m->option_offset);
-}
-
 int do_command6(int argc, char *argv[], char **table,
 		struct xtc_handle **handle, bool restore)
 {
-	struct iptables_command_state cs;
+	struct iptables_command_state cs = {
+		.jumpto	= "",
+		.argv	= argv,
+	};
 	struct ip6t_entry *e = NULL;
 	unsigned int nsaddrs = 0, ndaddrs = 0;
 	struct in6_addr *saddrs = NULL, *daddrs = NULL;
@@ -1373,10 +1228,6 @@ int do_command6(int argc, char *argv[], char **table,
 	struct xtables_rule_match *matchp;
 	struct xtables_target *t;
 	unsigned long long cnt;
-
-	memset(&cs, 0, sizeof(cs));
-	cs.jumpto = "";
-	cs.argv = argv;
 
 	/* re-set optind to 0 in case do_command6 gets called
 	 * a second time */
@@ -1583,11 +1434,13 @@ int do_command6(int argc, char *argv[], char **table,
 			set_option(&cs.options, OPT_JUMP, &cs.fw6.ipv6.invflags,
 					cs.invert);
 			cs.fw6.ipv6.flags |= IP6T_F_GOTO;
-			cs.jumpto = parse_target(optarg);
+			cs.jumpto = xt_parse_target(optarg);
 			break;
 #endif
 
 		case 'j':
+			set_option(&cs.options, OPT_JUMP, &cs.fw6.ipv6.invflags,
+					cs.invert);
 			command_jump(&cs);
 			break;
 

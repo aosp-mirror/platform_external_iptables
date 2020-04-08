@@ -1,4 +1,5 @@
 #include <config.h>
+#include <ctype.h>
 #include <getopt.h>
 #include <errno.h>
 #include <libgen.h>
@@ -359,9 +360,337 @@ void parse_wait_interval(int argc, char *argv[], struct timeval *wait_interval)
 	xtables_error(PARAMETER_PROBLEM, "wait interval not numeric");
 }
 
+int parse_counters(const char *string, struct xt_counters *ctr)
+{
+	int ret;
+
+	if (!string)
+		return 0;
+
+	ret = sscanf(string, "[%llu:%llu]",
+		     (unsigned long long *)&ctr->pcnt,
+		     (unsigned long long *)&ctr->bcnt);
+
+	return ret == 2;
+}
+
 inline bool xs_has_arg(int argc, char *argv[])
 {
 	return optind < argc &&
 	       argv[optind][0] != '-' &&
 	       argv[optind][0] != '!';
+}
+
+/* global new argv and argc */
+char *newargv[255];
+int newargc = 0;
+
+/* saved newargv and newargc from save_argv() */
+char *oldargv[255];
+int oldargc = 0;
+
+/* arg meta data, were they quoted, frinstance */
+int newargvattr[255];
+
+/* function adding one argument to newargv, updating newargc
+ * returns true if argument added, false otherwise */
+int add_argv(const char *what, int quoted)
+{
+	DEBUGP("add_argv: %s\n", what);
+	if (what && newargc + 1 < ARRAY_SIZE(newargv)) {
+		newargv[newargc] = strdup(what);
+		newargvattr[newargc] = quoted;
+		newargv[++newargc] = NULL;
+		return 1;
+	} else {
+		xtables_error(PARAMETER_PROBLEM,
+			      "Parser cannot handle more arguments\n");
+	}
+}
+
+void free_argv(void)
+{
+	while (newargc)
+		free(newargv[--newargc]);
+	while (oldargc)
+		free(oldargv[--oldargc]);
+}
+
+/* Save parsed rule for comparison with next rule to perform action aggregation
+ * on duplicate conditions.
+ */
+void save_argv(void)
+{
+	unsigned int i;
+
+	while (oldargc)
+		free(oldargv[--oldargc]);
+
+	oldargc = newargc;
+	newargc = 0;
+	for (i = 0; i < oldargc; i++) {
+		oldargv[i] = newargv[i];
+	}
+}
+
+void add_param_to_argv(char *parsestart, int line)
+{
+	int quote_open = 0, escaped = 0, param_len = 0;
+	char param_buffer[1024], *curchar;
+
+	/* After fighting with strtok enough, here's now
+	 * a 'real' parser. According to Rusty I'm now no
+	 * longer a real hacker, but I can live with that */
+
+	for (curchar = parsestart; *curchar; curchar++) {
+		if (quote_open) {
+			if (escaped) {
+				param_buffer[param_len++] = *curchar;
+				escaped = 0;
+				continue;
+			} else if (*curchar == '\\') {
+				escaped = 1;
+				continue;
+			} else if (*curchar == '"') {
+				quote_open = 0;
+				*curchar = '"';
+			} else {
+				param_buffer[param_len++] = *curchar;
+				continue;
+			}
+		} else {
+			if (*curchar == '"') {
+				quote_open = 1;
+				continue;
+			}
+		}
+
+		switch (*curchar) {
+		case '"':
+			break;
+		case ' ':
+		case '\t':
+		case '\n':
+			if (!param_len) {
+				/* two spaces? */
+				continue;
+			}
+			break;
+		default:
+			/* regular character, copy to buffer */
+			param_buffer[param_len++] = *curchar;
+
+			if (param_len >= sizeof(param_buffer))
+				xtables_error(PARAMETER_PROBLEM,
+					      "Parameter too long!");
+			continue;
+		}
+
+		param_buffer[param_len] = '\0';
+
+		/* check if table name specified */
+		if ((param_buffer[0] == '-' &&
+		     param_buffer[1] != '-' &&
+		     strchr(param_buffer, 't')) ||
+		    (!strncmp(param_buffer, "--t", 3) &&
+		     !strncmp(param_buffer, "--table", strlen(param_buffer)))) {
+			xtables_error(PARAMETER_PROBLEM,
+				      "The -t option (seen in line %u) cannot be used in %s.\n",
+				      line, xt_params->program_name);
+		}
+
+		add_argv(param_buffer, 0);
+		param_len = 0;
+	}
+}
+
+static const char *ipv4_addr_to_string(const struct in_addr *addr,
+				       const struct in_addr *mask,
+				       unsigned int format)
+{
+	static char buf[BUFSIZ];
+
+	if (!mask->s_addr && !(format & FMT_NUMERIC))
+		return "anywhere";
+
+	if (format & FMT_NUMERIC)
+		strncpy(buf, xtables_ipaddr_to_numeric(addr), BUFSIZ - 1);
+	else
+		strncpy(buf, xtables_ipaddr_to_anyname(addr), BUFSIZ - 1);
+	buf[BUFSIZ - 1] = '\0';
+
+	strncat(buf, xtables_ipmask_to_numeric(mask),
+		BUFSIZ - strlen(buf) - 1);
+
+	return buf;
+}
+
+void print_ipv4_addresses(const struct ipt_entry *fw, unsigned int format)
+{
+	fputc(fw->ip.invflags & IPT_INV_SRCIP ? '!' : ' ', stdout);
+	printf(FMT("%-19s ", "%s "),
+	       ipv4_addr_to_string(&fw->ip.src, &fw->ip.smsk, format));
+
+	fputc(fw->ip.invflags & IPT_INV_DSTIP ? '!' : ' ', stdout);
+	printf(FMT("%-19s ", "-> %s"),
+	       ipv4_addr_to_string(&fw->ip.dst, &fw->ip.dmsk, format));
+}
+
+static const char *ipv6_addr_to_string(const struct in6_addr *addr,
+				       const struct in6_addr *mask,
+				       unsigned int format)
+{
+	static char buf[BUFSIZ];
+
+	if (IN6_IS_ADDR_UNSPECIFIED(addr) && !(format & FMT_NUMERIC))
+		return "anywhere";
+
+	if (format & FMT_NUMERIC)
+		strncpy(buf, xtables_ip6addr_to_numeric(addr), BUFSIZ - 1);
+	else
+		strncpy(buf, xtables_ip6addr_to_anyname(addr), BUFSIZ - 1);
+	buf[BUFSIZ - 1] = '\0';
+
+	strncat(buf, xtables_ip6mask_to_numeric(mask),
+		BUFSIZ - strlen(buf) - 1);
+
+	return buf;
+}
+
+void print_ipv6_addresses(const struct ip6t_entry *fw6, unsigned int format)
+{
+	fputc(fw6->ipv6.invflags & IP6T_INV_SRCIP ? '!' : ' ', stdout);
+	printf(FMT("%-19s ", "%s "),
+	       ipv6_addr_to_string(&fw6->ipv6.src,
+				   &fw6->ipv6.smsk, format));
+
+	fputc(fw6->ipv6.invflags & IP6T_INV_DSTIP ? '!' : ' ', stdout);
+	printf(FMT("%-19s ", "-> %s"),
+	       ipv6_addr_to_string(&fw6->ipv6.dst,
+				   &fw6->ipv6.dmsk, format));
+}
+
+/* Luckily, IPT_INV_VIA_IN and IPT_INV_VIA_OUT
+ * have the same values as IP6T_INV_VIA_IN and IP6T_INV_VIA_OUT
+ * so this function serves for both iptables and ip6tables */
+void print_ifaces(const char *iniface, const char *outiface, uint8_t invflags,
+		  unsigned int format)
+{
+	const char *anyname = format & FMT_NUMERIC ? "*" : "any";
+	char iface[IFNAMSIZ + 2];
+
+	if (!(format & FMT_VIA))
+		return;
+
+	snprintf(iface, IFNAMSIZ + 2, "%s%s",
+		 invflags & IPT_INV_VIA_IN ? "!" : "",
+		 iniface[0] != '\0' ? iniface : anyname);
+
+	printf(FMT(" %-6s ", "in %s "), iface);
+
+	snprintf(iface, IFNAMSIZ + 2, "%s%s",
+		 invflags & IPT_INV_VIA_OUT ? "!" : "",
+		 outiface[0] != '\0' ? outiface : anyname);
+
+	printf(FMT("%-6s ", "out %s "), iface);
+}
+
+void command_match(struct iptables_command_state *cs)
+{
+	struct option *opts = xt_params->opts;
+	struct xtables_match *m;
+	size_t size;
+
+	if (cs->invert)
+		xtables_error(PARAMETER_PROBLEM,
+			   "unexpected ! flag before --match");
+
+	m = xtables_find_match(optarg, XTF_LOAD_MUST_SUCCEED, &cs->matches);
+	size = XT_ALIGN(sizeof(struct xt_entry_match)) + m->size;
+	m->m = xtables_calloc(1, size);
+	m->m->u.match_size = size;
+	if (m->real_name == NULL) {
+		strcpy(m->m->u.user.name, m->name);
+	} else {
+		strcpy(m->m->u.user.name, m->real_name);
+		if (!(m->ext_flags & XTABLES_EXT_ALIAS))
+			fprintf(stderr, "Notice: the %s match is converted into %s match "
+				"in rule listing and saving.\n", m->name, m->real_name);
+	}
+	m->m->u.user.revision = m->revision;
+	xs_init_match(m);
+	if (m == m->next)
+		return;
+	/* Merge options for non-cloned matches */
+	if (m->x6_options != NULL)
+		opts = xtables_options_xfrm(xt_params->orig_opts, opts,
+					    m->x6_options, &m->option_offset);
+	else if (m->extra_opts != NULL)
+		opts = xtables_merge_options(xt_params->orig_opts, opts,
+					     m->extra_opts, &m->option_offset);
+	if (opts == NULL)
+		xtables_error(OTHER_PROBLEM, "can't alloc memory!");
+	xt_params->opts = opts;
+}
+
+const char *xt_parse_target(const char *targetname)
+{
+	const char *ptr;
+
+	if (strlen(targetname) < 1)
+		xtables_error(PARAMETER_PROBLEM,
+			   "Invalid target name (too short)");
+
+	if (strlen(targetname) >= XT_EXTENSION_MAXNAMELEN)
+		xtables_error(PARAMETER_PROBLEM,
+			   "Invalid target name `%s' (%u chars max)",
+			   targetname, XT_EXTENSION_MAXNAMELEN - 1);
+
+	for (ptr = targetname; *ptr; ptr++)
+		if (isspace(*ptr))
+			xtables_error(PARAMETER_PROBLEM,
+				   "Invalid target name `%s'", targetname);
+	return targetname;
+}
+
+void command_jump(struct iptables_command_state *cs)
+{
+	struct option *opts = xt_params->opts;
+	size_t size;
+
+	cs->jumpto = xt_parse_target(optarg);
+	/* TRY_LOAD (may be chain name) */
+	cs->target = xtables_find_target(cs->jumpto, XTF_TRY_LOAD);
+
+	if (cs->target == NULL)
+		return;
+
+	size = XT_ALIGN(sizeof(struct xt_entry_target)) + cs->target->size;
+
+	cs->target->t = xtables_calloc(1, size);
+	cs->target->t->u.target_size = size;
+	if (cs->target->real_name == NULL) {
+		strcpy(cs->target->t->u.user.name, cs->jumpto);
+	} else {
+		/* Alias support for userspace side */
+		strcpy(cs->target->t->u.user.name, cs->target->real_name);
+		if (!(cs->target->ext_flags & XTABLES_EXT_ALIAS))
+			fprintf(stderr, "Notice: The %s target is converted into %s target "
+				"in rule listing and saving.\n",
+				cs->jumpto, cs->target->real_name);
+	}
+	cs->target->t->u.user.revision = cs->target->revision;
+	xs_init_target(cs->target);
+
+	if (cs->target->x6_options != NULL)
+		opts = xtables_options_xfrm(xt_params->orig_opts, opts,
+					    cs->target->x6_options,
+					    &cs->target->option_offset);
+	else
+		opts = xtables_merge_options(xt_params->orig_opts, opts,
+					     cs->target->extra_opts,
+					     &cs->target->option_offset);
+	if (opts == NULL)
+		xtables_error(OTHER_PROBLEM, "can't alloc memory!");
+	xt_params->opts = opts;
 }

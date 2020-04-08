@@ -6,6 +6,8 @@
 #define _BSD_SOURCE 1
 #define _DEFAULT_SOURCE 1
 #define _ISOC99_SOURCE 1
+#include <errno.h>
+#include <getopt.h>
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
@@ -13,6 +15,8 @@
 #include <xtables.h>
 #include <linux/netfilter/x_tables.h>
 #include <linux/netfilter/xt_limit.h>
+#include "iptables/nft.h"
+#include "iptables/nft-bridge.h"
 
 #define XT_LIMIT_AVG	"3/hour"
 #define XT_LIMIT_BURST	5
@@ -191,22 +195,100 @@ static int limit_xlate(struct xt_xlate *xl,
 	return 1;
 }
 
-static struct xtables_match limit_match = {
-	.family		= NFPROTO_UNSPEC,
-	.name		= "limit",
-	.version	= XTABLES_VERSION,
-	.size		= XT_ALIGN(sizeof(struct xt_rateinfo)),
-	.userspacesize	= offsetof(struct xt_rateinfo, prev),
-	.help		= limit_help,
-	.init		= limit_init,
-	.x6_parse	= limit_parse,
-	.print		= limit_print,
-	.save		= limit_save,
-	.x6_options	= limit_opts,
-	.xlate		= limit_xlate,
+static int limit_xlate_eb(struct xt_xlate *xl,
+			  const struct xt_xlate_mt_params *params)
+{
+	limit_xlate(xl, params);
+	xt_xlate_add(xl, " ");
+	return 1;
+}
+
+#define FLAG_LIMIT		0x01
+#define FLAG_LIMIT_BURST	0x02
+#define ARG_LIMIT		'1'
+#define ARG_LIMIT_BURST		'2'
+
+static int brlimit_parse(int c, char **argv, int invert, unsigned int *flags,
+			 const void *entry, struct xt_entry_match **match)
+{
+	struct xt_rateinfo *r = (struct xt_rateinfo *)(*match)->data;
+	uintmax_t num;
+
+	switch (c) {
+	case ARG_LIMIT:
+		EBT_CHECK_OPTION(flags, FLAG_LIMIT);
+		if (invert)
+			xtables_error(PARAMETER_PROBLEM,
+				      "Unexpected `!' after --limit");
+		if (!parse_rate(optarg, &r->avg))
+			xtables_error(PARAMETER_PROBLEM,
+				      "bad rate `%s'", optarg);
+		break;
+	case ARG_LIMIT_BURST:
+		EBT_CHECK_OPTION(flags, FLAG_LIMIT_BURST);
+		if (invert)
+			xtables_error(PARAMETER_PROBLEM,
+				      "Unexpected `!' after --limit-burst");
+		if (!xtables_strtoul(optarg, NULL, &num, 0, 10000))
+			xtables_error(PARAMETER_PROBLEM,
+				      "bad --limit-burst `%s'", optarg);
+		r->burst = num;
+		break;
+	default:
+		return 0;
+	}
+
+	return 1;
+}
+
+static void brlimit_print(const void *ip, const struct xt_entry_match *match,
+			  int numeric)
+{
+	const struct xt_rateinfo *r = (struct xt_rateinfo *)match->data;
+
+	printf("--limit");
+	print_rate(r->avg);
+	printf(" --limit-burst %u ", r->burst);
+}
+
+static const struct option brlimit_opts[] =
+{
+	{ .name = "limit",	.has_arg = true,	.val = ARG_LIMIT },
+	{ .name = "limit-burst",.has_arg = true,	.val = ARG_LIMIT_BURST },
+	XT_GETOPT_TABLEEND,
+};
+
+static struct xtables_match limit_match[] = {
+	{
+		.family		= NFPROTO_UNSPEC,
+		.name		= "limit",
+		.version	= XTABLES_VERSION,
+		.size		= XT_ALIGN(sizeof(struct xt_rateinfo)),
+		.userspacesize	= offsetof(struct xt_rateinfo, prev),
+		.help		= limit_help,
+		.init		= limit_init,
+		.x6_parse	= limit_parse,
+		.print		= limit_print,
+		.save		= limit_save,
+		.x6_options	= limit_opts,
+		.xlate		= limit_xlate,
+	},
+	{
+		.family		= NFPROTO_BRIDGE,
+		.name		= "limit",
+		.version	= XTABLES_VERSION,
+		.size		= XT_ALIGN(sizeof(struct xt_rateinfo)),
+		.userspacesize	= offsetof(struct xt_rateinfo, prev),
+		.help		= limit_help,
+		.init		= limit_init,
+		.parse		= brlimit_parse,
+		.print		= brlimit_print,
+		.extra_opts	= brlimit_opts,
+		.xlate		= limit_xlate_eb,
+	},
 };
 
 void _init(void)
 {
-	xtables_register_match(&limit_match);
+	xtables_register_matches(limit_match, ARRAY_SIZE(limit_match));
 }

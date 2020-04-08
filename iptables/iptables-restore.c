@@ -17,12 +17,6 @@
 #include "libiptc/libiptc.h"
 #include "iptables-multi.h"
 
-#ifdef DEBUG
-#define DEBUGP(x, args...) fprintf(stderr, x, ## args)
-#else
-#define DEBUGP(x, args...)
-#endif
-
 static int counters, verbose, noflush, wait;
 
 static struct timeval wait_interval = {
@@ -82,117 +76,13 @@ static struct xtc_handle *create_handle(const char *tablename)
 	return handle;
 }
 
-static int parse_counters(char *string, struct xt_counters *ctr)
-{
-	unsigned long long pcnt, bcnt;
-	int ret;
-
-	ret = sscanf(string, "[%llu:%llu]", &pcnt, &bcnt);
-	ctr->pcnt = pcnt;
-	ctr->bcnt = bcnt;
-	return ret == 2;
-}
-
-/* global new argv and argc */
-static char *newargv[255];
-static int newargc;
-
-/* function adding one argument to newargv, updating newargc 
- * returns true if argument added, false otherwise */
-static int add_argv(char *what) {
-	DEBUGP("add_argv: %s\n", what);
-	if (what && newargc + 1 < ARRAY_SIZE(newargv)) {
-		newargv[newargc] = strdup(what);
-		newargv[++newargc] = NULL;
-		return 1;
-	} else {
-		xtables_error(PARAMETER_PROBLEM,
-			"Parser cannot handle more arguments\n");
-		return 0;
-	}
-}
-
-static void free_argv(void) {
-	int i;
-
-	for (i = 0; i < newargc; i++)
-		free(newargv[i]);
-}
-
-static void add_param_to_argv(char *parsestart)
-{
-	int quote_open = 0, escaped = 0, param_len = 0;
-	char param_buffer[1024], *curchar;
-
-	/* After fighting with strtok enough, here's now
-	 * a 'real' parser. According to Rusty I'm now no
-	 * longer a real hacker, but I can live with that */
-
-	for (curchar = parsestart; *curchar; curchar++) {
-		if (quote_open) {
-			if (escaped) {
-				param_buffer[param_len++] = *curchar;
-				escaped = 0;
-				continue;
-			} else if (*curchar == '\\') {
-				escaped = 1;
-				continue;
-			} else if (*curchar == '"') {
-				quote_open = 0;
-				*curchar = ' ';
-			} else {
-				param_buffer[param_len++] = *curchar;
-				continue;
-			}
-		} else {
-			if (*curchar == '"') {
-				quote_open = 1;
-				continue;
-			}
-		}
-
-		if (*curchar == ' '
-		    || *curchar == '\t'
-		    || * curchar == '\n') {
-			if (!param_len) {
-				/* two spaces? */
-				continue;
-			}
-
-			param_buffer[param_len] = '\0';
-
-			/* check if table name specified */
-			if ((param_buffer[0] == '-' &&
-			     param_buffer[1] != '-' &&
-			     strchr(param_buffer, 't')) ||
-			    (!strncmp(param_buffer, "--t", 3) &&
-			     !strncmp(param_buffer, "--table", strlen(param_buffer)))) {
-				xtables_error(PARAMETER_PROBLEM,
-				"The -t option (seen in line %u) cannot be "
-				"used in iptables-restore.\n", line);
-				exit(1);
-			}
-
-			add_argv(param_buffer);
-			param_len = 0;
-		} else {
-			/* regular character, copy to buffer */
-			param_buffer[param_len++] = *curchar;
-
-			if (param_len >= sizeof(param_buffer))
-				xtables_error(PARAMETER_PROBLEM,
-				   "Parameter too long!");
-		}
-	}
-}
-
 int
 iptables_restore_main(int argc, char *argv[])
 {
 	struct xtc_handle *handle = NULL;
 	char buffer[10240];
 	int c, lock;
-	char curtable[XT_TABLE_MAXNAMELEN + 1];
+	char curtable[XT_TABLE_MAXNAMELEN + 1] = {};
 	FILE *in;
 	int in_table = 0, testing = 0;
 	const char *tablename = NULL;
@@ -325,8 +215,13 @@ iptables_restore_main(int argc, char *argv[])
 			strncpy(curtable, table, XT_TABLE_MAXNAMELEN);
 			curtable[XT_TABLE_MAXNAMELEN] = '\0';
 
-			if (tablename && (strcmp(tablename, table) != 0))
+			if (tablename && (strcmp(tablename, table) != 0)) {
+				if (lock >= 0) {
+					xtables_unlock(lock);
+					lock = XT_LOCK_NOT_ACQUIRED;
+				}
 				continue;
+			}
 			if (handle)
 				ops->free(handle);
 
@@ -393,7 +288,7 @@ iptables_restore_main(int argc, char *argv[])
 			}
 
 			if (strcmp(policy, "-") != 0) {
-				struct xt_counters count;
+				struct xt_counters count = {};
 
 				if (counters) {
 					char *ctrs;
@@ -403,9 +298,6 @@ iptables_restore_main(int argc, char *argv[])
 						xtables_error(PARAMETER_PROBLEM,
 							   "invalid policy counters "
 							   "for chain '%s'\n", chain);
-
-				} else {
-					memset(&count, 0, sizeof(count));
 				}
 
 				DEBUGP("Setting policy of chain %s to %s\n",
@@ -424,17 +316,14 @@ iptables_restore_main(int argc, char *argv[])
 
 		} else if (in_table) {
 			int a;
-			char *ptr = buffer;
 			char *pcnt = NULL;
 			char *bcnt = NULL;
 			char *parsestart;
 
-			/* reset the newargv */
-			newargc = 0;
-
 			if (buffer[0] == '[') {
 				/* we have counters in our input */
-				ptr = strchr(buffer, ']');
+				char *ptr = strchr(buffer, ']');
+
 				if (!ptr)
 					xtables_error(PARAMETER_PROBLEM,
 						   "Bad line %u: need ]\n",
@@ -459,17 +348,17 @@ iptables_restore_main(int argc, char *argv[])
 				parsestart = buffer;
 			}
 
-			add_argv(argv[0]);
-			add_argv("-t");
-			add_argv(curtable);
+			add_argv(argv[0], 0);
+			add_argv("-t", 0);
+			add_argv(curtable, 0);
 
 			if (counters && pcnt && bcnt) {
-				add_argv("--set-counters");
-				add_argv((char *) pcnt);
-				add_argv((char *) bcnt);
+				add_argv("--set-counters", 0);
+				add_argv((char *) pcnt, 0);
+				add_argv((char *) bcnt, 0);
 			}
 
-			add_param_to_argv(parsestart);
+			add_param_to_argv(parsestart, line);
 
 			DEBUGP("calling do_command4(%u, argv, &%s, handle):\n",
 				newargc, curtable);

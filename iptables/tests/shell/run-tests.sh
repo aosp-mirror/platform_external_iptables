@@ -65,12 +65,12 @@ do_test() {
 
 	if [ "$VERBOSE" = "y" ]; then
 		XT_MULTI=$xtables_multi unshare -n ${testfile}
+		rc_got=$?
 	else
 		XT_MULTI=$xtables_multi unshare -n ${testfile} > /dev/null 2>&1
+		rc_got=$?
+		echo -en "\033[1A\033[K" # clean the [EXECUTING] foobar line
 	fi
-
-	rc_got=$?
-	echo -en "\033[1A\033[K" # clean the [EXECUTING] foobar line
 
 	if [ "$rc_got" == "$rc_spec" ] ; then
 		msg_info "[OK]          $testfile"

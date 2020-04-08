@@ -14,7 +14,6 @@
 
 #include <linux/netfilter_bridge.h>
 #include <linux/netfilter/nf_tables.h>
-#include <ebtables/ethernetdb.h>
 #include <libiptc/libxtc.h>
 
 #include "xshared.h"
@@ -130,72 +129,6 @@ extern struct xtables_globals ebtables_globals;
 #define prog_name ebtables_globals.program_name
 #define prog_vers ebtables_globals.program_version
 
-#define OPTION_OFFSET 256
-static struct option *merge_options(struct option *oldopts,
-				    const struct option *newopts,
-				    unsigned int *options_offset)
-{
-	unsigned int num_old, num_new, i;
-	struct option *merge;
-
-	if (!newopts || !oldopts || !options_offset)
-		return oldopts;
-	for (num_old = 0; oldopts[num_old].name; num_old++);
-	for (num_new = 0; newopts[num_new].name; num_new++);
-
-	ebtables_globals.option_offset += OPTION_OFFSET;
-	*options_offset = ebtables_globals.option_offset;
-
-	merge = malloc(sizeof(struct option) * (num_new + num_old + 1));
-	if (!merge)
-		return NULL;
-	memcpy(merge, oldopts, num_old * sizeof(struct option));
-	for (i = 0; i < num_new; i++) {
-		merge[num_old + i] = newopts[i];
-		merge[num_old + i].val += *options_offset;
-	}
-	memset(merge + num_old + num_new, 0, sizeof(struct option));
-	/* Only free dynamically allocated stuff */
-	if (oldopts != ebt_original_options)
-		free(oldopts);
-
-	return merge;
-}
-
-/*
- * More glue code.
- */
-static struct xtables_target *command_jump(struct iptables_command_state *cs,
-					   const char *jumpto)
-{
-	struct xtables_target *target;
-	size_t size;
-
-	/* XTF_TRY_LOAD (may be chain name) */
-	target = xtables_find_target(jumpto, XTF_TRY_LOAD);
-
-	if (!target)
-		return NULL;
-
-	size = XT_ALIGN(sizeof(struct xt_entry_target))
-		+ target->size;
-
-	target->t = xtables_calloc(1, size);
-	target->t->u.target_size = size;
-	snprintf(target->t->u.user.name,
-		 sizeof(target->t->u.user.name), "%s", jumpto);
-	target->t->u.user.name[sizeof(target->t->u.user.name)-1] = '\0';
-	target->t->u.user.revision = target->revision;
-
-	xs_init_target(target);
-
-	opts = merge_options(opts, target->extra_opts, &target->option_offset);
-	if (opts == NULL)
-		xtables_error(OTHER_PROBLEM, "Can't alloc memory");
-
-	return target;
-}
-
 static void print_help(void)
 {
 	fprintf(stderr, "%s: Translate ebtables command to nft syntax\n"
@@ -286,9 +219,10 @@ static int do_commandeb_xlate(struct nft_handle *h, int argc, char *argv[], char
 	int rule_nr_end = 0;
 	int ret = 0;
 	unsigned int flags = 0;
-	struct xtables_target *t, *w;
-	struct xtables_match *m;
-	struct iptables_command_state cs;
+	struct iptables_command_state cs = {
+		.argv		= argv,
+		.eb.bitmask	= EBT_NOPROTO,
+	};
 	char command = 'h';
 	const char *chain = NULL;
 	int exec_style = EXEC_STYLE_PRG;
@@ -299,36 +233,8 @@ static int do_commandeb_xlate(struct nft_handle *h, int argc, char *argv[], char
 		.table          = *table,
         };
 
-	memset(&cs, 0, sizeof(cs));
-	cs.argv = argv;
-
-	if (nft_init(h, xtables_bridge) < 0)
-		xtables_error(OTHER_PROBLEM,
-			      "Could not initialize nftables layer.");
-
-	h->ops = nft_family_ops_lookup(h->family);
-	if (h->ops == NULL)
-		xtables_error(PARAMETER_PROBLEM, "Unknown family");
-
-	/* manually registering ebt matches, given the original ebtables parser
-	 * don't use '-m matchname' and the match can't loaded dinamically when
-	 * the user calls it.
-	 */
-	ebt_load_match_extensions();
-
-	/* clear mflags in case do_commandeb gets called a second time
-	 * (we clear the global list of all matches for security)*/
-	for (m = xtables_matches; m; m = m->next)
-		m->mflags = 0;
-
-	for (t = xtables_targets; t; t = t->next) {
-		t->tflags = 0;
-		t->used = 0;
-	}
-
 	/* prevent getopt to spoil our error reporting */
 	opterr = false;
-	cs.eb.bitmask = EBT_NOPROTO;
 
 	printf("nft ");
 	/* Getopt saves the day */
@@ -425,7 +331,6 @@ print_zero:
 			if (OPT_COMMANDS)
 				xtables_error(PARAMETER_PROBLEM,
 					      "Multiple commands are not allowed");
-			command = 'V';
 			if (exec_style == EXEC_STYLE_DAEMON)
 				xtables_error(PARAMETER_PROBLEM,
 					      "%s %s\n", prog_name, prog_vers);
@@ -507,7 +412,7 @@ print_zero:
 			} else if (c == 'j') {
 				ebt_check_option2(&flags, OPT_JUMP);
 				cs.jumpto = parse_target(optarg);
-				cs.target = command_jump(&cs, cs.jumpto);
+				cs.target = ebt_command_jump(cs.jumpto);
 				break;
 			} else if (c == 's') {
 				ebt_check_option2(&flags, OPT_SOURCE);
@@ -559,16 +464,16 @@ print_zero:
 				xtables_error(PARAMETER_PROBLEM,
 					      "Problem with the specified protocol");
 			if (*buffer != '\0') {
-				struct ethertypeent *ent;
+				struct xt_ethertypeent *ent;
 
 				if (!strcasecmp(optarg, "LENGTH")) {
 					cs.eb.bitmask |= EBT_802_3;
 					break;
 				}
-				ent = getethertypebyname(optarg);
+				ent = xtables_getethertypebyname(optarg);
 				if (!ent)
 					xtables_error(PARAMETER_PROBLEM,
-						      "Problem with the specified Ethernet protocol '%s', perhaps "_PATH_ETHERTYPES " is missing", optarg);
+						      "Problem with the specified Ethernet protocol '%s', perhaps "XT_PATH_ETHERTYPES " is missing", optarg);
 				cs.eb.ethproto = ent->e_ethertype;
 			} else
 				cs.eb.ethproto = i;
@@ -621,34 +526,13 @@ print_zero:
 			optind--;
 			continue;
 		default:
-			/* Is it a target option? */
-			if (cs.target != NULL && cs.target->parse != NULL) {
-				int opt_offset = cs.target->option_offset;
-				if (cs.target->parse(c - opt_offset,
-						     argv, ebt_invert,
-						     &cs.target->tflags,
-						     NULL, &cs.target->t))
-					goto check_extension;
-			}
+			ebt_check_inverse2(optarg, argc, argv);
 
-			/* Is it a match_option? */
-			for (m = xtables_matches; m; m = m->next) {
-				if (m->parse(c - m->option_offset, argv, ebt_check_inverse2(optarg, argc, argv), &m->mflags, NULL, &m->m)) {
-					ebt_add_match(m, &cs);
-					goto check_extension;
-				}
-			}
+			if (ebt_command_default(&cs))
+				xtables_error(PARAMETER_PROBLEM,
+					      "Unknown argument: '%s'",
+					      argv[optind - 1]);
 
-			/* Is it a watcher option? */
-			for (w = xtables_targets; w; w = w->next) {
-				if (w->parse(c - w->option_offset, argv,
-					     ebt_invert, &w->tflags,
-					     NULL, &w->t)) {
-					ebt_add_watcher(w, &cs);
-					goto check_extension;
-				}
-			}
-check_extension:
 			if (command != 'A' && command != 'I' &&
 			    command != 'D')
 				xtables_error(PARAMETER_PROBLEM,
@@ -700,20 +584,11 @@ int xtables_eb_xlate_main(int argc, char *argv[])
 {
 	int ret;
 	char *table = "filter";
-	struct nft_handle h = {
-		.family = NFPROTO_BRIDGE,
-	};
+	struct nft_handle h;
 
-	ebtables_globals.program_name = argv[0];
-	ret = xtables_init_all(&ebtables_globals, NFPROTO_BRIDGE);
-	if (ret < 0) {
-		fprintf(stderr, "%s/%s Failed to initialize xtables\n",
-			ebtables_globals.program_name,
-			ebtables_globals.program_version);
-		exit(EXIT_FAILURE);
-	}
-
+	nft_init_eb(&h, argv[0]);
 	ebtables_globals.compat_rev = dummy_compat_rev;
+
 	ret = do_commandeb_xlate(&h, argc, argv, &table);
 	if (!ret)
 		fprintf(stderr, "Translation not implemented\n");

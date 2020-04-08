@@ -7,8 +7,15 @@
 #include <netinet/in.h>
 #include <net/if.h>
 #include <sys/time.h>
+#include <linux/netfilter_arp/arp_tables.h>
 #include <linux/netfilter_ipv4/ip_tables.h>
 #include <linux/netfilter_ipv6/ip6_tables.h>
+
+#ifdef DEBUG
+#define DEBUGP(x, args...) fprintf(stdout, x, ## args)
+#else
+#define DEBUGP(x, args...)
+#endif
 
 enum {
 	OPT_NONE        = 0,
@@ -84,6 +91,7 @@ struct iptables_command_state {
 		struct ebt_entry eb;
 		struct ipt_entry fw;
 		struct ip6t_entry fw6;
+		struct arpt_entry arp;
 	};
 	int invert;
 	int c;
@@ -143,8 +151,32 @@ extern int xtables_lock_or_exit(int wait, struct timeval *tv);
 
 int parse_wait_time(int argc, char *argv[]);
 void parse_wait_interval(int argc, char *argv[], struct timeval *wait_interval);
+int parse_counters(const char *string, struct xt_counters *ctr);
 bool xs_has_arg(int argc, char *argv[]);
 
 extern const struct xtables_afinfo *afinfo;
+
+extern char *newargv[];
+extern int newargc;
+
+extern char *oldargv[];
+extern int oldargc;
+
+extern int newargvattr[];
+
+int add_argv(const char *what, int quoted);
+void free_argv(void);
+void save_argv(void);
+void add_param_to_argv(char *parsestart, int line);
+
+void print_ipv4_addresses(const struct ipt_entry *fw, unsigned int format);
+void print_ipv6_addresses(const struct ip6t_entry *fw6, unsigned int format);
+
+void print_ifaces(const char *iniface, const char *outiface, uint8_t invflags,
+		  unsigned int format);
+
+void command_match(struct iptables_command_state *cs);
+const char *xt_parse_target(const char *targetname);
+void command_jump(struct iptables_command_state *cs);
 
 #endif /* IPTABLES_XSHARED_H */

@@ -149,8 +149,7 @@ static struct option original_opts[] = {
 
 int RUNTIME_NF_ARP_NUMHOOKS = 3;
 
-static struct option *opts = original_opts;
-static unsigned int global_option_offset;
+#define opts xt_params->opts
 
 extern void xtables_exit_error(enum xtables_exittype status, const char *msg, ...) __attribute__((noreturn, format(printf,2,3)));
 struct xtables_globals arptables_globals = {
@@ -588,15 +587,14 @@ static struct in_addr *
 host_to_addr(const char *name, unsigned int *naddr)
 {
 	struct in_addr *addr;
-	struct addrinfo hints;
+	struct addrinfo hints = {
+		.ai_flags	= AI_CANONNAME,
+		.ai_family	= AF_INET,
+		.ai_socktype	= SOCK_RAW,
+	};;
 	struct addrinfo *res, *p;
 	int err;
 	unsigned int i;
-
-	memset(&hints, 0, sizeof(hints));
-	hints.ai_flags	  = AI_CANONNAME;
-	hints.ai_family	  = AF_INET;
-	hints.ai_socktype = SOCK_RAW;
 
 	*naddr = 0;
 	err = getaddrinfo(name, NULL, &hints, &res);
@@ -757,27 +755,6 @@ parse_rulenumber(const char *rule)
 	return rulenum;
 }
 
-static const char *
-parse_target(const char *targetname)
-{
-	const char *ptr;
-
-	if (strlen(targetname) < 1)
-		xtables_error(PARAMETER_PROBLEM,
-			      "Invalid target name (too short)");
-
-	if (strlen(targetname)+1 > sizeof(arpt_chainlabel))
-		xtables_error(PARAMETER_PROBLEM,
-			      "Invalid target name `%s' (%zu chars max)",
-			      targetname, sizeof(arpt_chainlabel)-1);
-
-	for (ptr = targetname; *ptr; ptr++)
-		if (isspace(*ptr))
-			xtables_error(PARAMETER_PROBLEM,
-				      "Invalid target name `%s'", targetname);
-	return targetname;
-}
-
 static void
 set_option(unsigned int *options, unsigned int option, u_int16_t *invflg,
 	   int invert)
@@ -824,46 +801,11 @@ list_entries(struct nft_handle *h, const char *chain, const char *table,
 	return nft_rule_list(h, chain, table, rulenum, format);
 }
 
-static struct xtables_target *command_jump(struct arpt_entry *fw,
-					   const char *jumpto)
-{
-	struct xtables_target *target;
-	size_t size;
-
-	/* XTF_TRY_LOAD (may be chain name) */
-	target = xtables_find_target(jumpto, XTF_TRY_LOAD);
-
-	if (!target)
-		return NULL;
-
-	size = XT_ALIGN(sizeof(struct xt_entry_target))
-		+ target->size;
-
-	target->t = xtables_calloc(1, size);
-	target->t->u.target_size = size;
-	strncpy(target->t->u.user.name, jumpto, sizeof(target->t->u.user.name) - 1);
-	target->t->u.user.name[sizeof(target->t->u.user.name)-1] = '\0';
-	target->t->u.user.revision = target->revision;
-
-	xs_init_target(target);
-
-	if (target->x6_options != NULL)
-		opts = xtables_options_xfrm(arptables_globals.orig_opts,
-					    opts, target->x6_options,
-					    &target->option_offset);
-	else
-		opts = xtables_merge_options(arptables_globals.orig_opts,
-					     opts, target->extra_opts,
-					     &target->option_offset);
-
-	return target;
-}
-
 static int
 append_entry(struct nft_handle *h,
 	     const char *chain,
 	     const char *table,
-	     struct arptables_command_state *cs,
+	     struct iptables_command_state *cs,
 	     int rulenum,
 	     unsigned int nsaddrs,
 	     const struct in_addr saddrs[],
@@ -875,9 +817,9 @@ append_entry(struct nft_handle *h,
 	int ret = 1;
 
 	for (i = 0; i < nsaddrs; i++) {
-		cs->fw.arp.src.s_addr = saddrs[i].s_addr;
+		cs->arp.arp.src.s_addr = saddrs[i].s_addr;
 		for (j = 0; j < ndaddrs; j++) {
-			cs->fw.arp.tgt.s_addr = daddrs[j].s_addr;
+			cs->arp.arp.tgt.s_addr = daddrs[j].s_addr;
 			if (append) {
 				ret = nft_rule_append(h, chain, table, cs, 0,
 						      verbose);
@@ -894,14 +836,14 @@ append_entry(struct nft_handle *h,
 static int
 replace_entry(const char *chain,
 	      const char *table,
-	      struct arptables_command_state *cs,
+	      struct iptables_command_state *cs,
 	      unsigned int rulenum,
 	      const struct in_addr *saddr,
 	      const struct in_addr *daddr,
 	      bool verbose, struct nft_handle *h)
 {
-	cs->fw.arp.src.s_addr = saddr->s_addr;
-	cs->fw.arp.tgt.s_addr = daddr->s_addr;
+	cs->arp.arp.src.s_addr = saddr->s_addr;
+	cs->arp.arp.tgt.s_addr = daddr->s_addr;
 
 	return nft_rule_replace(h, chain, table, cs, rulenum, verbose);
 }
@@ -909,7 +851,7 @@ replace_entry(const char *chain,
 static int
 delete_entry(const char *chain,
 	     const char *table,
-	     struct arptables_command_state *cs,
+	     struct iptables_command_state *cs,
 	     unsigned int nsaddrs,
 	     const struct in_addr saddrs[],
 	     unsigned int ndaddrs,
@@ -920,9 +862,9 @@ delete_entry(const char *chain,
 	int ret = 1;
 
 	for (i = 0; i < nsaddrs; i++) {
-		cs->fw.arp.src.s_addr = saddrs[i].s_addr;
+		cs->arp.arp.src.s_addr = saddrs[i].s_addr;
 		for (j = 0; j < ndaddrs; j++) {
-			cs->fw.arp.tgt.s_addr = daddrs[j].s_addr;
+			cs->arp.arp.tgt.s_addr = daddrs[j].s_addr;
 			ret = nft_rule_delete(h, chain, table, cs, verbose);
 		}
 	}
@@ -930,9 +872,40 @@ delete_entry(const char *chain,
 	return ret;
 }
 
-int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table)
+int nft_init_arp(struct nft_handle *h, const char *pname)
 {
-	struct arptables_command_state cs;
+	arptables_globals.program_name = pname;
+	if (xtables_init_all(&arptables_globals, NFPROTO_ARP) < 0) {
+		fprintf(stderr, "%s/%s Failed to initialize arptables-compat\n",
+			arptables_globals.program_name,
+			arptables_globals.program_version);
+		exit(1);
+	}
+
+#if defined(ALL_INCLUSIVE) || defined(NO_SHARED_LIBS)
+	init_extensionsa();
+#endif
+
+	memset(h, 0, sizeof(*h));
+	h->family = NFPROTO_ARP;
+
+	if (nft_init(h, xtables_arp) < 0)
+		xtables_error(OTHER_PROBLEM,
+			      "Could not initialize nftables layer.");
+
+	h->ops = nft_family_ops_lookup(h->family);
+	if (h->ops == NULL)
+		xtables_error(PARAMETER_PROBLEM, "Unknown family");
+
+	return 0;
+}
+
+int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table,
+		  bool restore)
+{
+	struct iptables_command_state cs = {
+		.jumpto = "",
+	};
 	int invert = 0;
 	unsigned int nsaddrs = 0, ndaddrs = 0;
 	struct in_addr *saddrs = NULL, *daddrs = NULL;
@@ -945,14 +918,6 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table)
 	const char *pcnt = NULL, *bcnt = NULL;
 	int ret = 1;
 	struct xtables_target *t;
-
-	memset(&cs, 0, sizeof(cs));
-	cs.jumpto = "";
-
-	opts = original_opts;
-	global_option_offset = 0;
-
-	xtables_globals.orig_opts = original_opts;
 
 	/* re-set optind to 0 in case do_command gets called
 	 * a second time */
@@ -967,6 +932,7 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table)
 	    demand-load a protocol. */
 	opterr = 0;
 
+	opts = xt_params->orig_opts;
 	while ((c = getopt_long(argc, argv,
 	   "-A:D:R:I:L::M:F::Z::N:X::E:P:Vh::o:p:s:d:j:l:i:vnt:m:c:",
 					   opts, NULL)) != -1) {
@@ -1090,47 +1056,47 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table)
 			break;
 		case 's':
 			check_inverse(optarg, &invert, &optind, argc);
-			set_option(&options, OPT_S_IP, &cs.fw.arp.invflags,
+			set_option(&options, OPT_S_IP, &cs.arp.arp.invflags,
 				   invert);
 			shostnetworkmask = argv[optind-1];
 			break;
 
 		case 'd':
 			check_inverse(optarg, &invert, &optind, argc);
-			set_option(&options, OPT_D_IP, &cs.fw.arp.invflags,
+			set_option(&options, OPT_D_IP, &cs.arp.arp.invflags,
 				   invert);
 			dhostnetworkmask = argv[optind-1];
 			break;
 
 		case 2:/* src-mac */
 			check_inverse(optarg, &invert, &optind, argc);
-			set_option(&options, OPT_S_MAC, &cs.fw.arp.invflags,
+			set_option(&options, OPT_S_MAC, &cs.arp.arp.invflags,
 				   invert);
 			if (getmac_and_mask(argv[optind - 1],
-			    cs.fw.arp.src_devaddr.addr, cs.fw.arp.src_devaddr.mask))
+			    cs.arp.arp.src_devaddr.addr, cs.arp.arp.src_devaddr.mask))
 				xtables_error(PARAMETER_PROBLEM, "Problem with specified "
 						"source mac");
 			break;
 
 		case 3:/* dst-mac */
 			check_inverse(optarg, &invert, &optind, argc);
-			set_option(&options, OPT_D_MAC, &cs.fw.arp.invflags,
+			set_option(&options, OPT_D_MAC, &cs.arp.arp.invflags,
 				   invert);
 
 			if (getmac_and_mask(argv[optind - 1],
-			    cs.fw.arp.tgt_devaddr.addr, cs.fw.arp.tgt_devaddr.mask))
+			    cs.arp.arp.tgt_devaddr.addr, cs.arp.arp.tgt_devaddr.mask))
 				xtables_error(PARAMETER_PROBLEM, "Problem with specified "
 						"destination mac");
 			break;
 
 		case 'l':/* hardware length */
 			check_inverse(optarg, &invert, &optind, argc);
-			set_option(&options, OPT_H_LENGTH, &cs.fw.arp.invflags,
+			set_option(&options, OPT_H_LENGTH, &cs.arp.arp.invflags,
 				   invert);
-			getlength_and_mask(argv[optind - 1], &cs.fw.arp.arhln,
-					   &cs.fw.arp.arhln_mask);
+			getlength_and_mask(argv[optind - 1], &cs.arp.arp.arhln,
+					   &cs.arp.arp.arhln_mask);
 
-			if (cs.fw.arp.arhln != 6) {
+			if (cs.arp.arp.arhln != 6) {
 				xtables_error(PARAMETER_PROBLEM,
 					      "Only harware address length of"
 					      " 6 is supported currently.");
@@ -1142,20 +1108,20 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table)
 			xtables_error(PARAMETER_PROBLEM, "not supported");
 /*
 			check_inverse(optarg, &invert, &optind, argc);
-			set_option(&options, OPT_P_LENGTH, &cs.fw.arp.invflags,
+			set_option(&options, OPT_P_LENGTH, &cs.arp.arp.invflags,
 				   invert);
 
-			getlength_and_mask(argv[optind - 1], &cs.fw.arp.arpln,
-					   &cs.fw.arp.arpln_mask);
+			getlength_and_mask(argv[optind - 1], &cs.arp.arp.arpln,
+					   &cs.arp.arp.arpln_mask);
 			break;
 */
 
 		case 4:/* opcode */
 			check_inverse(optarg, &invert, &optind, argc);
-			set_option(&options, OPT_OPCODE, &cs.fw.arp.invflags,
+			set_option(&options, OPT_OPCODE, &cs.arp.arp.invflags,
 				   invert);
-			if (get16_and_mask(argv[optind - 1], &cs.fw.arp.arpop,
-					   &cs.fw.arp.arpop_mask, 10)) {
+			if (get16_and_mask(argv[optind - 1], &cs.arp.arp.arpop,
+					   &cs.arp.arp.arpop_mask, 10)) {
 				int i;
 
 				for (i = 0; i < NUMOPCODES; i++)
@@ -1163,65 +1129,64 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table)
 						break;
 				if (i == NUMOPCODES)
 					xtables_error(PARAMETER_PROBLEM, "Problem with specified opcode");
-				cs.fw.arp.arpop = htons(i+1);
+				cs.arp.arp.arpop = htons(i+1);
 			}
 			break;
 
 		case 5:/* h-type */
 			check_inverse(optarg, &invert, &optind, argc);
-			set_option(&options, OPT_H_TYPE, &cs.fw.arp.invflags,
+			set_option(&options, OPT_H_TYPE, &cs.arp.arp.invflags,
 				   invert);
-			if (get16_and_mask(argv[optind - 1], &cs.fw.arp.arhrd,
-					   &cs.fw.arp.arhrd_mask, 16)) {
+			if (get16_and_mask(argv[optind - 1], &cs.arp.arp.arhrd,
+					   &cs.arp.arp.arhrd_mask, 16)) {
 				if (strcasecmp(argv[optind-1], "Ethernet"))
 					xtables_error(PARAMETER_PROBLEM, "Problem with specified hardware type");
-				cs.fw.arp.arhrd = htons(1);
+				cs.arp.arp.arhrd = htons(1);
 			}
 			break;
 
 		case 6:/* proto-type */
 			check_inverse(optarg, &invert, &optind, argc);
-			set_option(&options, OPT_P_TYPE, &cs.fw.arp.invflags,
+			set_option(&options, OPT_P_TYPE, &cs.arp.arp.invflags,
 				   invert);
-			if (get16_and_mask(argv[optind - 1], &cs.fw.arp.arpro,
-					   &cs.fw.arp.arpro_mask, 0)) {
+			if (get16_and_mask(argv[optind - 1], &cs.arp.arp.arpro,
+					   &cs.arp.arp.arpro_mask, 0)) {
 				if (strcasecmp(argv[optind-1], "ipv4"))
 					xtables_error(PARAMETER_PROBLEM, "Problem with specified protocol type");
-				cs.fw.arp.arpro = htons(0x800);
+				cs.arp.arp.arpro = htons(0x800);
 			}
 			break;
 
 		case 'j':
-			set_option(&options, OPT_JUMP, &cs.fw.arp.invflags,
+			set_option(&options, OPT_JUMP, &cs.arp.arp.invflags,
 				   invert);
-			cs.jumpto = parse_target(optarg);
-			cs.target = command_jump(&cs.fw, cs.jumpto);
+			command_jump(&cs);
 			break;
 
 		case 'i':
 			check_inverse(optarg, &invert, &optind, argc);
-			set_option(&options, OPT_VIANAMEIN, &cs.fw.arp.invflags,
+			set_option(&options, OPT_VIANAMEIN, &cs.arp.arp.invflags,
 				   invert);
 			parse_interface(argv[optind-1],
-					cs.fw.arp.iniface,
-					cs.fw.arp.iniface_mask);
-/*			cs.fw.nfcache |= NFC_IP_IF_IN; */
+					cs.arp.arp.iniface,
+					cs.arp.arp.iniface_mask);
+/*			cs.arp.nfcache |= NFC_IP_IF_IN; */
 			break;
 
 		case 'o':
 			check_inverse(optarg, &invert, &optind, argc);
-			set_option(&options, OPT_VIANAMEOUT, &cs.fw.arp.invflags,
+			set_option(&options, OPT_VIANAMEOUT, &cs.arp.arp.invflags,
 				   invert);
 			parse_interface(argv[optind-1],
-					cs.fw.arp.outiface,
-					cs.fw.arp.outiface_mask);
-			/* cs.fw.nfcache |= NFC_IP_IF_OUT; */
+					cs.arp.arp.outiface,
+					cs.arp.arp.outiface_mask);
+			/* cs.arp.nfcache |= NFC_IP_IF_OUT; */
 			break;
 
 		case 'v':
 			if (!verbose)
 				set_option(&options, OPT_VERBOSE,
-					   &cs.fw.arp.invflags, invert);
+					   &cs.arp.arp.invflags, invert);
 			verbose++;
 			break;
 
@@ -1244,7 +1209,7 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table)
 		break;
 
 		case 'n':
-			set_option(&options, OPT_NUMERIC, &cs.fw.arp.invflags,
+			set_option(&options, OPT_NUMERIC, &cs.arp.arp.invflags,
 				   invert);
 			break;
 
@@ -1264,7 +1229,7 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table)
 			exit(0);
 
 		case '0':
-			set_option(&options, OPT_LINENUMBERS, &cs.fw.arp.invflags,
+			set_option(&options, OPT_LINENUMBERS, &cs.arp.arp.invflags,
 				   invert);
 			break;
 
@@ -1274,7 +1239,7 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table)
 
 		case 'c':
 
-			set_option(&options, OPT_COUNTERS, &cs.fw.arp.invflags,
+			set_option(&options, OPT_COUNTERS, &cs.arp.arp.invflags,
 				   invert);
 			pcnt = optarg;
 			if (xs_has_arg(argc, argv))
@@ -1284,12 +1249,12 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table)
 					      "-%c requires packet and byte counter",
 					      opt2char(OPT_COUNTERS));
 
-			if (sscanf(pcnt, "%llu", &cs.fw.counters.pcnt) != 1)
+			if (sscanf(pcnt, "%llu", &cs.arp.counters.pcnt) != 1)
 			xtables_error(PARAMETER_PROBLEM,
 				"-%c packet counter not numeric",
 				opt2char(OPT_COUNTERS));
 
-			if (sscanf(bcnt, "%llu", &cs.fw.counters.bcnt) != 1)
+			if (sscanf(bcnt, "%llu", &cs.arp.counters.bcnt) != 1)
 				xtables_error(PARAMETER_PROBLEM,
 					      "-%c byte counter not numeric",
 					      opt2char(OPT_COUNTERS));
@@ -1313,7 +1278,7 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table)
 		default:
 			if (cs.target) {
 				xtables_option_tpcall(c, argv,
-						      invert, cs.target, &cs.fw);
+						      invert, cs.target, &cs.arp);
 			}
 			break;
 		}
@@ -1341,14 +1306,14 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table)
 
 	if (shostnetworkmask)
 		parse_hostnetworkmask(shostnetworkmask, &saddrs,
-				      &(cs.fw.arp.smsk), &nsaddrs);
+				      &(cs.arp.arp.smsk), &nsaddrs);
 
 	if (dhostnetworkmask)
 		parse_hostnetworkmask(dhostnetworkmask, &daddrs,
-				      &(cs.fw.arp.tmsk), &ndaddrs);
+				      &(cs.arp.arp.tmsk), &ndaddrs);
 
 	if ((nsaddrs > 1 || ndaddrs > 1) &&
-	    (cs.fw.arp.invflags & (ARPT_INV_SRCIP | ARPT_INV_TGTIP)))
+	    (cs.arp.arp.invflags & (ARPT_INV_SRCIP | ARPT_INV_TGTIP)))
 		xtables_error(PARAMETER_PROBLEM, "! not allowed with multiple"
 				" source or destination IP addresses");
 
@@ -1362,14 +1327,6 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table)
 		xtables_error(PARAMETER_PROBLEM,
 				"chain name `%s' too long (must be under %i chars)",
 				chain, ARPT_FUNCTION_MAXNAMELEN);
-
-	if (nft_init(h, xtables_arp) < 0)
-		xtables_error(OTHER_PROBLEM,
-			      "Could not initialize nftables layer.");
-
-	h->ops = nft_family_ops_lookup(h->family);
-	if (h->ops == NULL)
-		xtables_error(PARAMETER_PROBLEM, "Unknown family");
 
 	if (command == CMD_APPEND
 	    || command == CMD_DELETE
@@ -1393,17 +1350,6 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table)
 						"Can't use -%c with %s\n",
 						opt2char(OPT_VIANAMEIN),
 						chain);
-		}
-
-		if (!cs.target && strlen(cs.jumpto) != 0) {
-			size_t size;
-
-			cs.target = xtables_find_target(XT_STANDARD_TARGET,
-							XTF_LOAD_MUST_SUCCEED);
-			size = sizeof(struct arpt_entry_target) + cs.target->size;
-			cs.target->t = xtables_calloc(1, size);
-			cs.target->t->u.target_size = size;
-			strcpy(cs.target->t->u.user.name, cs.jumpto);
 		}
 	}
 
@@ -1439,10 +1385,11 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table)
 				   options&OPT_LINENUMBERS);
 		break;
 	case CMD_FLUSH:
-		ret = nft_rule_flush(h, chain, *table);
+		ret = nft_rule_flush(h, chain, *table, options & OPT_VERBOSE);
 		break;
 	case CMD_ZERO:
-		ret = nft_chain_zero_counters(h, chain, *table);
+		ret = nft_chain_zero_counters(h, chain, *table,
+					      options & OPT_VERBOSE);
 		break;
 	case CMD_LIST|CMD_ZERO:
 		ret = list_entries(h, chain, *table, rulenum,
@@ -1451,13 +1398,15 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table)
 				   /*options&OPT_EXPANDED*/0,
 				   options&OPT_LINENUMBERS);
 		if (ret)
-			ret = nft_chain_zero_counters(h, chain, *table);
+			ret = nft_chain_zero_counters(h, chain, *table,
+						      options & OPT_VERBOSE);
 		break;
 	case CMD_NEW_CHAIN:
 		ret = nft_chain_user_add(h, chain, *table);
 		break;
 	case CMD_DELETE_CHAIN:
-		ret = nft_chain_user_del(h, chain, *table);
+		ret = nft_chain_user_del(h, chain, *table,
+					 options & OPT_VERBOSE);
 		break;
 	case CMD_RENAME_CHAIN:
 		ret = nft_chain_user_rename(h, chain, *table, newname);
@@ -1472,6 +1421,16 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table)
 		/* We should never reach this... */
 		exit_tryhelp(2);
 	}
+
+	if (nsaddrs)
+		free(saddrs);
+	if (ndaddrs)
+		free(daddrs);
+
+	if (cs.target)
+		free(cs.target->t);
+
+	xtables_free_opts(1);
 
 /*	if (verbose > 1)
 		dump_entries(*handle);*/

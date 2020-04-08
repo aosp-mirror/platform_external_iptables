@@ -18,8 +18,6 @@
 #include "iptables/nft.h"
 #include "iptables/nft-bridge.h"
 
-static int mark_supplied;
-
 #define MARK_TARGET  '1'
 #define MARK_SETMARK '2'
 #define MARK_ORMARK  '3'
@@ -54,7 +52,6 @@ static void brmark_init(struct xt_entry_target *target)
 
 	info->target = EBT_ACCEPT;
 	info->mark = 0;
-	mark_supplied = 0;
 }
 
 #define OPT_MARK_TARGET   0x01
@@ -133,7 +130,6 @@ brmark_parse(int c, char **argv, int invert, unsigned int *flags,
 		xtables_error(PARAMETER_PROBLEM, "Bad MARK value '%s'",
 			      optarg);
 
-	mark_supplied = 1;
 	return 1;
 }
 
@@ -162,9 +158,6 @@ static void brmark_print(const void *ip, const struct xt_entry_target *target,
 
 static void brmark_final_check(unsigned int flags)
 {
-	if (mark_supplied == 0)
-		xtables_error(PARAMETER_PROBLEM, "No mark value supplied");
-
 	if (!flags)
 		xtables_error(PARAMETER_PROBLEM,
 			      "You must specify some option");

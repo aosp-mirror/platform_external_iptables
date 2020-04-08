@@ -68,6 +68,7 @@ bool nft_table_find(struct nft_handle *h, const char *tablename);
 int nft_table_purge_chains(struct nft_handle *h, const char *table, struct nftnl_chain_list *list);
 int nft_table_flush(struct nft_handle *h, const char *table);
 void nft_table_new(struct nft_handle *h, const char *table);
+struct builtin_table *nft_table_builtin_find(struct nft_handle *h, const char *table);
 
 /*
  * Operations with chains.
@@ -79,11 +80,13 @@ struct nftnl_chain_list *nft_chain_dump(struct nft_handle *h);
 struct nftnl_chain *nft_chain_list_find(struct nftnl_chain_list *list, const char *table, const char *chain);
 int nft_chain_save(struct nft_handle *h, struct nftnl_chain_list *list, const char *table);
 int nft_chain_user_add(struct nft_handle *h, const char *chain, const char *table);
-int nft_chain_user_del(struct nft_handle *h, const char *chain, const char *table);
+int nft_chain_user_del(struct nft_handle *h, const char *chain, const char *table, bool verbose);
 int nft_chain_user_flush(struct nft_handle *h, struct nftnl_chain_list *list,
 			 const char *chain, const char *table);
 int nft_chain_user_rename(struct nft_handle *h, const char *chain, const char *table, const char *newname);
-int nft_chain_zero_counters(struct nft_handle *h, const char *chain, const char *table);
+int nft_chain_zero_counters(struct nft_handle *h, const char *chain, const char *table, bool verbose);
+struct builtin_chain *nft_chain_builtin_find(struct builtin_table *t, const char *chain);
+bool nft_chain_exists(struct nft_handle *h, const char *table, const char *chain);
 
 /*
  * Operations with rule-set.
@@ -98,8 +101,8 @@ int nft_rule_delete_num(struct nft_handle *h, const char *chain, const char *tab
 int nft_rule_replace(struct nft_handle *h, const char *chain, const char *table, void *data, int rulenum, bool verbose);
 int nft_rule_list(struct nft_handle *h, const char *chain, const char *table, int rulenum, unsigned int format);
 int nft_rule_list_save(struct nft_handle *h, const char *chain, const char *table, int rulenum, int counters);
-int nft_rule_save(struct nft_handle *h, const char *table, bool counters);
-int nft_rule_flush(struct nft_handle *h, const char *chain, const char *table);
+int nft_rule_save(struct nft_handle *h, const char *table, unsigned int format);
+int nft_rule_flush(struct nft_handle *h, const char *chain, const char *table, bool verbose);
 int nft_rule_zero_counters(struct nft_handle *h, const char *chain, const char *table, int rulenum);
 
 /*
@@ -119,8 +122,7 @@ enum nft_rule_print {
 	NFT_RULE_DEL,
 };
 
-void nft_rule_print_save(const void *data,
-			 struct nftnl_rule *r, enum nft_rule_print type,
+void nft_rule_print_save(const struct nftnl_rule *r, enum nft_rule_print type,
 			 unsigned int format);
 
 uint32_t nft_invflags2cmp(uint32_t invflags, uint32_t flag);
@@ -144,9 +146,12 @@ const char *nft_strerror(int err);
 /* For xtables.c */
 int do_commandx(struct nft_handle *h, int argc, char *argv[], char **table, bool restore);
 /* For xtables-arptables.c */
-int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table);
+int nft_init_arp(struct nft_handle *h, const char *pname);
+int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table, bool restore);
 /* For xtables-eb.c */
-int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table);
+int nft_init_eb(struct nft_handle *h, const char *pname);
+int ebt_get_current_chain(const char *chain);
+int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table, bool restore);
 
 /*
  * Parse config for tables and chain helper functions

@@ -78,7 +78,7 @@ static const char *ebt_standard_targets[NUM_STANDARD_TARGETS] = {
 
 static inline const char *nft_ebt_standard_target(unsigned int num)
 {
-	if (num > NUM_STANDARD_TARGETS)
+	if (num >= NUM_STANDARD_TARGETS)
 		return NULL;
 
 	return ebt_standard_targets[num];
@@ -120,5 +120,7 @@ void ebt_add_match(struct xtables_match *m,
 			  struct iptables_command_state *cs);
 void ebt_add_watcher(struct xtables_target *watcher,
                      struct iptables_command_state *cs);
+int ebt_command_default(struct iptables_command_state *cs);
+struct xtables_target *ebt_command_jump(const char *jumpto);
 
 #endif

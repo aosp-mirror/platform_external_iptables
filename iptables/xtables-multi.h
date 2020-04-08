@@ -15,7 +15,11 @@ extern int xtables_eb_xlate_main(int, char **);
 extern int xtables_ip4_xlate_restore_main(int, char **);
 extern int xtables_ip6_xlate_restore_main(int, char **);
 extern int xtables_arp_main(int, char **);
+extern int xtables_arp_restore_main(int, char **);
+extern int xtables_arp_save_main(int, char **);
 extern int xtables_eb_main(int, char **);
+extern int xtables_eb_restore_main(int, char **);
+extern int xtables_eb_save_main(int, char **);
 extern int xtables_config_main(int, char **);
 extern int xtables_monitor_main(int, char **);
 #endif

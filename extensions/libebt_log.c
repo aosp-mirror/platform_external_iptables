@@ -92,6 +92,14 @@ static void brlog_init(struct xt_entry_target *t)
 	loginfo->loglevel = LOG_NOTICE;
 }
 
+static unsigned int log_chk_inv(int inv, unsigned int bit, const char *suffix)
+{
+	if (inv)
+		xtables_error(PARAMETER_PROBLEM,
+			      "Unexpected `!' after --log%s", suffix);
+	return bit;
+}
+
 static int brlog_parse(int c, char **argv, int invert, unsigned int *flags,
 		       const void *entry, struct xt_entry_target **target)
 {
@@ -125,26 +133,16 @@ static int brlog_parse(int c, char **argv, int invert, unsigned int *flags,
 				      "Problem with the log-level");
 		break;
 	case LOG_IP:
-		if (invert)
-			xtables_error(PARAMETER_PROBLEM,
-				      "Unexpected `!' after --log-ip");
-		loginfo->bitmask |= EBT_LOG_IP;
+		loginfo->bitmask |= log_chk_inv(invert, EBT_LOG_IP, "-ip");
 		break;
 	case LOG_ARP:
-		if (invert)
-			xtables_error(PARAMETER_PROBLEM,
-				      "Unexpected `!' after --log-arp");
-		loginfo->bitmask |= EBT_LOG_ARP;
+		loginfo->bitmask |= log_chk_inv(invert, EBT_LOG_ARP, "-arp");
+		break;
 	case LOG_LOG:
-		if (invert)
-			xtables_error(PARAMETER_PROBLEM,
-				      "Unexpected `!' after --log");
+		loginfo->bitmask |= log_chk_inv(invert, 0, "");
 		break;
 	case LOG_IP6:
-		if (invert)
-			xtables_error(PARAMETER_PROBLEM,
-				      "Unexpected `!' after --log-ip6");
-		loginfo->bitmask |= EBT_LOG_IP6;
+		loginfo->bitmask |= log_chk_inv(invert, EBT_LOG_IP6, "-ip6");
 		break;
 	default:
 		return 0;

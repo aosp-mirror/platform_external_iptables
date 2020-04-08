@@ -139,8 +139,8 @@ static void print_mac_and_mask(const unsigned char *mac, const unsigned char *ma
 
 static int nft_arp_add(struct nftnl_rule *r, void *data)
 {
-	struct arptables_command_state *cs = data;
-	struct arpt_entry *fw = &cs->fw;
+	struct iptables_command_state *cs = data;
+	struct arpt_entry *fw = &cs->arp;
 	uint32_t op;
 	int ret = 0;
 
@@ -260,8 +260,8 @@ static uint16_t ipt_to_arpt_flags(uint8_t invflags)
 static void nft_arp_parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e,
 			       void *data)
 {
-	struct arptables_command_state *cs = data;
-	struct arpt_entry *fw = &cs->fw;
+	struct iptables_command_state *cs = data;
+	struct arpt_entry *fw = &cs->arp;
 	uint8_t flags = 0;
 
 	parse_meta(e, ctx->meta.key, fw->arp.iniface, fw->arp.iniface_mask,
@@ -271,17 +271,10 @@ static void nft_arp_parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e,
 	fw->arp.invflags |= ipt_to_arpt_flags(flags);
 }
 
-static void nft_arp_parse_target(struct xtables_target *target, void *data)
-{
-	struct arptables_command_state *cs = data;
-
-	cs->target = target;
-}
-
 static void nft_arp_parse_immediate(const char *jumpto, bool nft_goto,
 				    void *data)
 {
-	struct arptables_command_state *cs = data;
+	struct iptables_command_state *cs = data;
 
 	cs->jumpto = jumpto;
 }
@@ -294,8 +287,8 @@ static void parse_mask_ipv4(struct nft_xt_ctx *ctx, struct in_addr *mask)
 static void nft_arp_parse_payload(struct nft_xt_ctx *ctx,
 				  struct nftnl_expr *e, void *data)
 {
-	struct arptables_command_state *cs = data;
-	struct arpt_entry *fw = &cs->fw;
+	struct iptables_command_state *cs = data;
+	struct arpt_entry *fw = &cs->arp;
 	struct in_addr addr;
 	unsigned short int ar_hrd, ar_pro, ar_op, ar_hln;
 	bool inv;
@@ -330,9 +323,6 @@ static void nft_arp_parse_payload(struct nft_xt_ctx *ctx,
 			fw->arp.invflags |= ARPT_INV_ARPOP;
 		break;
 	default:
-		if (fw->arp.arhln < 0)
-			break;
-
 		if (ctx->payload.offset == sizeof(struct arphdr) +
 					   fw->arp.arhln) {
 			get_cmp_data(e, &addr, sizeof(addr), &inv);
@@ -365,14 +355,14 @@ static void nft_arp_parse_payload(struct nft_xt_ctx *ctx,
 	}
 }
 
-void nft_rule_to_arptables_command_state(struct nftnl_rule *r,
-					 struct arptables_command_state *cs)
+static void nft_arp_rule_to_cs(const struct nftnl_rule *r,
+			       struct iptables_command_state *cs)
 {
 	struct nftnl_expr_iter *iter;
 	struct nftnl_expr *expr;
 	int family = nftnl_rule_get_u32(r, NFTNL_RULE_FAMILY);
 	struct nft_xt_ctx ctx = {
-		.state.cs_arp = cs,
+		.cs = cs,
 		.family = family,
 	};
 
@@ -387,7 +377,7 @@ void nft_rule_to_arptables_command_state(struct nftnl_rule *r,
 			nftnl_expr_get_str(expr, NFTNL_EXPR_NAME);
 
 		if (strcmp(name, "counter") == 0)
-			nft_parse_counter(expr, &ctx.state.cs_arp->fw.counters);
+			nft_parse_counter(expr, &ctx.cs->arp.counters);
 		else if (strcmp(name, "payload") == 0)
 			nft_parse_payload(&ctx, expr);
 		else if (strcmp(name, "meta") == 0)
@@ -418,10 +408,11 @@ void nft_rule_to_arptables_command_state(struct nftnl_rule *r,
 static void nft_arp_print_header(unsigned int format, const char *chain,
 				 const char *pol,
 				 const struct xt_counters *counters,
-				 bool basechain, uint32_t refs)
+				 bool basechain, uint32_t refs,
+				 uint32_t entries)
 {
 	printf("Chain %s", chain);
-	if (pol) {
+	if (basechain && pol) {
 		printf(" (policy %s", pol);
 		if (!(format & FMT_NOCOUNTS)) {
 			fputc(' ', stdout);
@@ -436,7 +427,8 @@ static void nft_arp_print_header(unsigned int format, const char *chain,
 	}
 }
 
-static void print_fw_details(struct arpt_entry *fw, unsigned int format)
+static void nft_arp_print_rule_details(const struct arpt_entry *fw,
+				       unsigned int format)
 {
 	char buf[BUFSIZ];
 	char iface[IFNAMSIZ+2];
@@ -542,6 +534,7 @@ after_devdst:
 		if (tmp <= NUMOPCODES && !(format & FMT_NUMERIC))
 			printf("--opcode %s", opcodes[tmp-1]);
 		else
+			printf("--opcode %d", tmp);
 
 		if (fw->arp.arpop_mask != 65535)
 			printf("/%d", ntohs(fw->arp.arpop_mask));
@@ -578,34 +571,46 @@ after_devdst:
 }
 
 static void
-nft_arp_print_firewall(struct nftnl_rule *r, unsigned int num,
-		       unsigned int format)
+__nft_arp_save_rule(const void *data, unsigned int format)
 {
-	struct arptables_command_state cs = {};
+	const struct iptables_command_state *cs = data;
 
-	nft_rule_to_arptables_command_state(r, &cs);
+	nft_arp_print_rule_details(&cs->arp, format);
 
-	if (format & FMT_LINENUMBERS)
-		printf("%u ", num);
-
-	print_fw_details(&cs.fw, format);
-
-	if (cs.jumpto != NULL && strcmp(cs.jumpto, "") != 0) {
-		printf("-j %s", cs.jumpto);
-	} else if (cs.target) {
-		printf("-j %s", cs.target->name);
-		cs.target->print(&cs.fw, cs.target->t, format & FMT_NUMERIC);
+	if (cs->jumpto != NULL && strcmp(cs->jumpto, "") != 0) {
+		printf("-j %s", cs->jumpto);
+	} else if (cs->target) {
+		printf("-j %s", cs->target->name);
+		cs->target->print(&cs->arp, cs->target->t, format & FMT_NUMERIC);
 	}
 
 	if (!(format & FMT_NOCOUNTS)) {
 		printf(", pcnt=");
-		xtables_print_num(cs.fw.counters.pcnt, format);
+		xtables_print_num(cs->arp.counters.pcnt, format);
 		printf("-- bcnt=");
-		xtables_print_num(cs.fw.counters.bcnt, format);
+		xtables_print_num(cs->arp.counters.bcnt, format);
 	}
 
 	if (!(format & FMT_NONEWLINE))
 		fputc('\n', stdout);
+}
+
+static void
+nft_arp_save_rule(const void *data, unsigned int format)
+{
+	__nft_arp_save_rule(data, format | FMT_NUMERIC);
+}
+
+static void
+nft_arp_print_rule(struct nftnl_rule *r, unsigned int num, unsigned int format)
+{
+	struct iptables_command_state cs = {};
+
+	if (format & FMT_LINENUMBERS)
+		printf("%u ", num);
+
+	nft_arp_rule_to_cs(r, &cs);
+	__nft_arp_save_rule(&cs, format);
 }
 
 static bool nft_arp_is_same(const void *data_a,
@@ -637,22 +642,29 @@ static bool nft_arp_is_same(const void *data_a,
 static bool nft_arp_rule_find(struct nft_family_ops *ops, struct nftnl_rule *r,
 			      void *data)
 {
-	const struct arptables_command_state *cs = data;
-	struct arptables_command_state this = {};
+	const struct iptables_command_state *cs = data;
+	struct iptables_command_state this = {};
 
 	/* Delete by matching rule case */
-	nft_rule_to_arptables_command_state(r, &this);
+	nft_arp_rule_to_cs(r, &this);
 
-	if (!nft_arp_is_same(cs, &this))
+	if (!nft_arp_is_same(&cs->arp, &this.arp))
 		return false;
 
 	if (!compare_targets(cs->target, this.target))
 		return false;
 
-	if (strcmp(cs->jumpto, this.jumpto) != 0)
+	if (this.jumpto && strcmp(cs->jumpto, this.jumpto) != 0)
 		return false;
 
 	return true;
+}
+
+static void nft_arp_save_chain(const struct nftnl_chain *c, const char *policy)
+{
+	const char *chain = nftnl_chain_get_str(c, NFTNL_CHAIN_NAME);
+
+	printf(":%s %s\n", chain, policy ?: "-");
 }
 
 struct nft_family_ops nft_family_ops_arp = {
@@ -663,10 +675,13 @@ struct nft_family_ops nft_family_ops_arp = {
 	.parse_payload		= nft_arp_parse_payload,
 	.parse_immediate	= nft_arp_parse_immediate,
 	.print_header		= nft_arp_print_header,
-	.print_firewall		= nft_arp_print_firewall,
-	.save_firewall		= NULL,
+	.print_rule		= nft_arp_print_rule,
+	.save_rule		= nft_arp_save_rule,
 	.save_counters		= NULL,
+	.save_chain		= nft_arp_save_chain,
 	.post_parse		= NULL,
+	.rule_to_cs		= nft_arp_rule_to_cs,
+	.clear_cs		= nft_clear_iptables_command_state,
 	.rule_find		= nft_arp_rule_find,
-	.parse_target		= nft_arp_parse_target,
+	.parse_target		= nft_ipv46_parse_target,
 };

@@ -5,17 +5,15 @@
 
 #include <libnftnl/rule.h>
 #include <libnftnl/expr.h>
+#include <libnftnl/chain.h>
 
 #include <linux/netfilter_arp/arp_tables.h>
 
 #include "xshared.h"
 
-#if 0
-#define DEBUGP(x, args...) fprintf(stdout, x, ## args)
+#ifdef DEBUG
 #define NLDEBUG
 #define DEBUG_DEL
-#else
-#define DEBUGP(x, args...)
 #endif
 
 /*
@@ -47,10 +45,7 @@ enum {
 };
 
 struct nft_xt_ctx {
-	union {
-		struct iptables_command_state *cs;
-		struct arptables_command_state *cs_arp;
-	} state;
+	struct iptables_command_state *cs;
 	struct nftnl_expr_iter *iter;
 	int family;
 	uint32_t flags;
@@ -93,17 +88,21 @@ struct nft_family_ops {
 	void (*print_header)(unsigned int format, const char *chain,
 			     const char *pol,
 			     const struct xt_counters *counters, bool basechain,
-			     uint32_t refs);
-	void (*print_firewall)(struct nftnl_rule *r, unsigned int num,
-			       unsigned int format);
-	void (*save_firewall)(const void *data, unsigned int format);
+			     uint32_t refs, uint32_t entries);
+	void (*print_rule)(struct nftnl_rule *r, unsigned int num,
+			   unsigned int format);
+	void (*save_rule)(const void *data, unsigned int format);
 	void (*save_counters)(const void *data);
+	void (*save_chain)(const struct nftnl_chain *c, const char *policy);
 	void (*proto_parse)(struct iptables_command_state *cs,
 			    struct xtables_args *args);
 	void (*post_parse)(int command, struct iptables_command_state *cs,
 			   struct xtables_args *args);
 	void (*parse_match)(struct xtables_match *m, void *data);
 	void (*parse_target)(struct xtables_target *t, void *data);
+	void (*rule_to_cs)(const struct nftnl_rule *r,
+			   struct iptables_command_state *cs);
+	void (*clear_cs)(struct iptables_command_state *cs);
 	bool (*rule_find)(struct nft_family_ops *ops, struct nftnl_rule *r,
 			  void *data);
 	int (*xlate)(const void *data, struct xt_xlate *xl);
@@ -123,6 +122,7 @@ void add_addr(struct nftnl_rule *r, int offset,
 	      void *data, void *mask, size_t len, uint32_t op);
 void add_proto(struct nftnl_rule *r, int offset, size_t len,
 	       uint8_t proto, uint32_t op);
+void add_l4proto(struct nftnl_rule *r, uint8_t proto, uint32_t op);
 void add_compat(struct nftnl_rule *r, uint32_t proto, bool inv);
 
 bool is_same_interfaces(const char *a_iniface, const char *a_outiface,
@@ -145,36 +145,36 @@ void nft_parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e);
 void nft_parse_payload(struct nft_xt_ctx *ctx, struct nftnl_expr *e);
 void nft_parse_counter(struct nftnl_expr *e, struct xt_counters *counters);
 void nft_parse_immediate(struct nft_xt_ctx *ctx, struct nftnl_expr *e);
-void nft_rule_to_iptables_command_state(struct nftnl_rule *r,
+void nft_rule_to_iptables_command_state(const struct nftnl_rule *r,
 					struct iptables_command_state *cs);
+void nft_clear_iptables_command_state(struct iptables_command_state *cs);
 void print_header(unsigned int format, const char *chain, const char *pol,
 		  const struct xt_counters *counters, bool basechain,
-		  uint32_t refs);
-void print_firewall_details(const struct iptables_command_state *cs,
-			    const char *targname, uint8_t flags,
-			    uint8_t invflags, uint8_t proto,
-			    unsigned int num, unsigned int format);
-void print_ifaces(const char *iniface, const char *outiface, uint8_t invflags,
-		  unsigned int format);
+		  uint32_t refs, uint32_t entries);
+void print_rule_details(const struct iptables_command_state *cs,
+			const char *targname, uint8_t flags,
+			uint8_t invflags, uint8_t proto,
+			unsigned int num, unsigned int format);
 void print_matches_and_target(struct iptables_command_state *cs,
 			      unsigned int format);
-void save_firewall_details(const struct iptables_command_state *cs,
-			   uint8_t invflags, uint16_t proto,
-			   const char *iniface,
-			   unsigned const char *iniface_mask,
-			   const char *outiface,
-			   unsigned const char *outiface_mask);
-void save_counters(uint64_t pcnt, uint64_t bcnt);
-void save_matches_and_target(struct xtables_rule_match *m,
-			     struct xtables_target *target,
-			     const char *jumpto,
-			     uint8_t flags, const void *fw);
+void save_rule_details(const struct iptables_command_state *cs,
+		       uint8_t invflags, uint16_t proto,
+		       const char *iniface,
+		       unsigned const char *iniface_mask,
+		       const char *outiface,
+		       unsigned const char *outiface_mask);
+void save_counters(const void *data);
+void nft_ipv46_save_chain(const struct nftnl_chain *c, const char *policy);
+void save_matches_and_target(const struct iptables_command_state *cs,
+			     bool goto_flag, const void *fw,
+			     unsigned int format);
 
 struct nft_family_ops *nft_family_ops_lookup(int family);
 
 struct nft_handle;
+void nft_ipv46_parse_target(struct xtables_target *t, void *data);
 bool nft_ipv46_rule_find(struct nft_family_ops *ops, struct nftnl_rule *r,
-			 struct iptables_command_state *cs);
+			 void *data);
 
 bool compare_matches(struct xtables_rule_match *mt1, struct xtables_rule_match *mt2);
 bool compare_targets(struct xtables_target *tg1, struct xtables_target *tg2);
@@ -243,6 +243,7 @@ struct nft_xt_restore_parse {
 	FILE		*in;
 	int		testing;
 	const char	*tablename;
+	bool		commit;
 };
 
 struct nftnl_chain_list;

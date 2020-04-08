@@ -91,8 +91,10 @@ xtables_options_xfrm(struct option *orig_opts, struct option *oldopts,
 	 * Since @oldopts also has @orig_opts already (and does so at the
 	 * start), skip these entries.
 	 */
-	oldopts += num_orig;
-	num_old -= num_orig;
+	if (oldopts != NULL) {
+		oldopts += num_orig;
+		num_old -= num_orig;
+	}
 
 	merge = malloc(sizeof(*mp) * (num_orig + num_old + num_new + 1));
 	if (merge == NULL)
@@ -114,8 +116,10 @@ xtables_options_xfrm(struct option *orig_opts, struct option *oldopts,
 	}
 
 	/* Third, the old options */
-	memcpy(mp, oldopts, sizeof(*mp) * num_old);
-	mp += num_old;
+	if (oldopts != NULL) {
+		memcpy(mp, oldopts, sizeof(*mp) * num_old);
+		mp += num_old;
+	}
 	xtables_free_opts(0);
 
 	/* Clear trailing entry */
@@ -282,7 +286,7 @@ static void xtopt_mint_value_to_ptr(struct xt_option_call *cb, void **datap,
 static void xtopt_parse_mint(struct xt_option_call *cb)
 {
 	const struct xt_option_entry *entry = cb->entry;
-	const char *arg = cb->arg;
+	const char *arg;
 	size_t esize = xtopt_esize_by_type(entry->type);
 	const uintmax_t lmax = xtopt_max_by_type(entry->type);
 	void *put = XTOPT_MKPTR(cb);
@@ -844,7 +848,7 @@ void xtables_option_parse(struct xt_option_call *cb)
 	 * a *RC option type.
 	 */
 	cb->nvals = 1;
-	if (entry->type <= ARRAY_SIZE(xtopt_subparse) &&
+	if (entry->type < ARRAY_SIZE(xtopt_subparse) &&
 	    xtopt_subparse[entry->type] != NULL)
 		xtopt_subparse[entry->type](cb);
 	/* Exclusion with other flags tested later in finalize. */

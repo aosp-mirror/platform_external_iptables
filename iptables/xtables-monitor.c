@@ -73,12 +73,9 @@ static bool events;
 
 static int rule_cb(const struct nlmsghdr *nlh, void *data)
 {
-	struct arptables_command_state cs_arp = {};
-	struct iptables_command_state cs = {};
 	uint32_t type = nlh->nlmsg_type & 0xFF;
 	const struct cb_arg *arg = data;
 	struct nftnl_rule *r;
-	void *fw = NULL;
 	uint8_t family;
 
 	r = nftnl_rule_alloc();
@@ -98,21 +95,16 @@ static int rule_cb(const struct nlmsghdr *nlh, void *data)
 	case AF_INET:
 	case AF_INET6:
 		printf("-%c ", family == AF_INET ? '4' : '6');
-		nft_rule_to_iptables_command_state(r, &cs);
-		fw = &cs;
 		break;
 	case NFPROTO_ARP:
 		printf("-0 ");
-		nft_rule_to_arptables_command_state(r, &cs_arp);
-		fw = &cs_arp;
 		break;
 	default:
 		goto err_free;
 	}
 
 	printf("-t %s ", nftnl_rule_get_str(r, NFTNL_RULE_TABLE));
-	nft_rule_print_save(fw, r,
-			    type == NFT_MSG_NEWRULE ? NFT_RULE_APPEND :
+	nft_rule_print_save(r, type == NFT_MSG_NEWRULE ? NFT_RULE_APPEND :
 							   NFT_RULE_DEL,
 			    counters ? 0 : FMT_NOCOUNTS);
 err_free:
@@ -576,6 +568,7 @@ static const struct option options[] = {
 	{.name = "ipv4", .has_arg = false, .val = '4'},
 	{.name = "ipv6", .has_arg = false, .val = '6'},
 	{.name = "version", .has_arg = false, .val = 'V'},
+	{.name = "help", .has_arg = false, .val = 'h'},
 	{NULL},
 };
 
@@ -585,10 +578,10 @@ static void print_usage(void)
 			  xtables_globals.program_version);
 	printf("Usage: %s [ -t | -e ]\n"
 	       "        --trace    -t    trace ruleset traversal of packets tagged via -j TRACE rule\n"
-	       "        --event    -e    show events  taht modify the ruleset\n"
+	       "        --event    -e    show events that modify the ruleset\n"
 	       "Optional arguments:\n"
-	       "        --ipv4     -4    only monitor ipv4\n"
-	       "        --ipv6     -6    only monitor ipv6\n"
+	       "        --ipv4     -4    only monitor IPv4\n"
+	       "        --ipv6     -6    only monitor IPv6\n"
 	       "	--counters -c    show counters in rules\n"
 
 	       , xtables_globals.program_name);
@@ -600,7 +593,7 @@ int xtables_monitor_main(int argc, char *argv[])
 	struct mnl_socket *nl;
 	char buf[MNL_SOCKET_BUFFER_SIZE];
 	uint32_t nfgroup = 0;
-	struct cb_arg cb_arg;
+	struct cb_arg cb_arg = {};
 	int ret, c;
 
 	xtables_globals.program_name = "xtables-monitor";
@@ -617,7 +610,6 @@ int xtables_monitor_main(int argc, char *argv[])
 	init_extensions4();
 #endif
 
-	memset(&cb_arg, 0, sizeof(cb_arg));
 	opterr = 0;
 	while ((c = getopt_long(argc, argv, "ceht46V", options, NULL)) != -1) {
 		switch (c) {
@@ -644,7 +636,7 @@ int xtables_monitor_main(int argc, char *argv[])
 			exit(0);
 		default:
 			fprintf(stderr, "xtables-monitor %s: Bad argument.\n", IPTABLES_VERSION);
-			fprintf(stderr, "Try `xtables-monitor -h' for more information.");
+			fprintf(stderr, "Try `xtables-monitor -h' for more information.\n");
 			exit(PARAMETER_PROBLEM);
 		}
 	}

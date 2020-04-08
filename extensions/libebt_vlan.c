@@ -12,7 +12,6 @@
 #include <getopt.h>
 #include <ctype.h>
 #include <xtables.h>
-#include <ebtables/ethernetdb.h>
 #include <linux/netfilter_bridge/ebt_vlan.h>
 #include <linux/if_ether.h>
 #include "iptables/nft.h"
@@ -50,82 +49,12 @@ static void brvlan_print_help(void)
 "--vlan-encap [!] encap : Encapsulated frame protocol (hexadecimal or name)\n");
 }
 
-static struct ethertypeent *vlan_getethertypeent(FILE *etherf, const char *name)
-{
-	static struct ethertypeent et_ent;
-	char *e, *found_name;
-	char line[1024];
-
-	while ((e = fgets(line, sizeof(line), etherf))) {
-		char *endptr, *cp;
-
-		if (*e == '#')
-			continue;
-
-		cp = strpbrk(e, "#\n");
-		if (cp == NULL)
-			continue;
-		*cp = '\0';
-		found_name = e;
-
-		cp = strpbrk(e, " \t");
-		if (cp == NULL)
-			continue;
-
-		*cp++ = '\0';
-		while (*cp == ' ' || *cp == '\t')
-			cp++;
-		e = strpbrk(cp, " \t");
-		if (e != NULL)
-			*e++ = '\0';
-
-		et_ent.e_ethertype = strtol(cp, &endptr, 16);
-		if (*endptr != '\0' ||
-		    (et_ent.e_ethertype < ETH_ZLEN || et_ent.e_ethertype > 0xFFFF))
-			continue; // skip invalid etherproto type entry
-
-		if (strcasecmp(found_name, name) == 0)
-			return (&et_ent);
-
-		if (e != NULL) {
-			cp = e;
-			while (cp && *cp) {
-				if (*cp == ' ' || *cp == '\t') {
-					cp++;
-					continue;
-				}
-				e = cp;
-				cp = strpbrk(cp, " \t");
-				if (cp != NULL)
-					*cp++ = '\0';
-				if (strcasecmp(e, name) == 0)
-					return (&et_ent);
-				e = cp;
-			}
-		}
-	}
-
-	return NULL;
-}
-
-static struct ethertypeent *brvlan_getethertypebyname(const char *name)
-{
-	struct ethertypeent *e;
-	FILE *etherf;
-
-	etherf = fopen(_PATH_ETHERTYPES, "r");
-
-	e = vlan_getethertypeent(etherf, name);
-	fclose(etherf);
-	return (e);
-}
-
 static int
 brvlan_parse(int c, char **argv, int invert, unsigned int *flags,
 	       const void *entry, struct xt_entry_match **match)
 {
 	struct ebt_vlan_info *vlaninfo = (struct ebt_vlan_info *) (*match)->data;
-	struct ethertypeent *ethent;
+	struct xt_ethertypeent *ethent;
 	char *end;
 	struct ebt_vlan_info local;
 
@@ -156,7 +85,7 @@ brvlan_parse(int c, char **argv, int invert, unsigned int *flags,
 			vlaninfo->invflags |= EBT_VLAN_ENCAP;
 		local.encap = strtoul(optarg, &end, 16);
 		if (*end != '\0') {
-			ethent = brvlan_getethertypebyname(optarg);
+			ethent = xtables_getethertypebyname(optarg);
 			if (ethent == NULL)
 				xtables_error(PARAMETER_PROBLEM, "Unknown --vlan-encap value ('%s')", optarg);
 			local.encap = ethent->e_ethertype;

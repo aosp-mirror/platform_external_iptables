@@ -1122,8 +1122,9 @@ static inline int iptcc_compile_rule (struct xtc_handle *h, STRUCT_REPLACE *repl
 		STRUCT_STANDARD_TARGET *t;
 		t = (STRUCT_STANDARD_TARGET *)GET_TARGET(r->entry);
 		/* memset for memcmp convenience on delete/replace */
-		memset(t->target.u.user.name, 0, FUNCTION_MAXNAMELEN);
+		memset(t->target.u.user.name, 0, XT_EXTENSION_MAXNAMELEN);
 		strcpy(t->target.u.user.name, STANDARD_TARGET);
+		t->target.u.user.revision = 0;
 		/* Jumps can only happen to builtin chains, so we
 		 * can safely assume that they always have a header */
 		t->verdict = r->jump->head_offset + IPTCB_CHAIN_START_SIZE;
@@ -1156,7 +1157,8 @@ static int iptcc_compile_chain(struct xtc_handle *h, STRUCT_REPLACE *repl, struc
 		strcpy(head->name.target.u.user.name, ERROR_TARGET);
 		head->name.target.u.target_size =
 				ALIGN(sizeof(struct xt_error_target));
-		strcpy(head->name.errorname, c->name);
+		strncpy(head->name.errorname, c->name, XT_FUNCTION_MAXNAMELEN);
+		head->name.errorname[XT_FUNCTION_MAXNAMELEN - 1] = '\0';
 	} else {
 		repl->hook_entry[c->hooknum-1] = c->head_offset;
 		repl->underflow[c->hooknum-1] = c->foot_offset;
@@ -1276,7 +1278,7 @@ static int iptcc_compile_table(struct xtc_handle *h, STRUCT_REPLACE *repl)
 
 /* Allocate handle of given size */
 static struct xtc_handle *
-alloc_handle(const char *tablename, unsigned int size, unsigned int num_rules)
+alloc_handle(STRUCT_GETINFO *infop)
 {
 	struct xtc_handle *h;
 
@@ -1287,14 +1289,14 @@ alloc_handle(const char *tablename, unsigned int size, unsigned int num_rules)
 	}
 	memset(h, 0, sizeof(*h));
 	INIT_LIST_HEAD(&h->chains);
-	strcpy(h->info.name, tablename);
+	strcpy(h->info.name, infop->name);
 
-	h->entries = malloc(sizeof(STRUCT_GET_ENTRIES) + size);
+	h->entries = malloc(sizeof(STRUCT_GET_ENTRIES) + infop->size);
 	if (!h->entries)
 		goto out_free_handle;
 
-	strcpy(h->entries->name, tablename);
-	h->entries->size = size;
+	strcpy(h->entries->name, infop->name);
+	h->entries->size = infop->size;
 
 	return h;
 
@@ -1343,8 +1345,8 @@ retry:
 	DEBUGP("valid_hooks=0x%08x, num_entries=%u, size=%u\n",
 		info.valid_hooks, info.num_entries, info.size);
 
-	if ((h = alloc_handle(info.name, info.size, info.num_entries))
-	    == NULL) {
+	h = alloc_handle(&info);
+	if (h == NULL) {
 		close(sockfd);
 		return NULL;
 	}
@@ -1682,8 +1684,9 @@ iptcc_standard_map(struct rule_head *r, int verdict)
 		return 0;
 	}
 	/* memset for memcmp convenience on delete/replace */
-	memset(t->target.u.user.name, 0, FUNCTION_MAXNAMELEN);
+	memset(t->target.u.user.name, 0, XT_EXTENSION_MAXNAMELEN);
 	strcpy(t->target.u.user.name, STANDARD_TARGET);
+	t->target.u.user.revision = 0;
 	t->verdict = verdict;
 
 	r->type = IPTCC_R_STANDARD;

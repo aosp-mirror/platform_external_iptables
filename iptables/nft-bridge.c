@@ -16,7 +16,6 @@
 #include <xtables.h>
 #include <libiptc/libxtc.h>
 #include <linux/netfilter/nf_tables.h>
-#include <ebtables/ethernetdb.h>
 
 #include "nft-shared.h"
 #include "nft-bridge.h"
@@ -29,9 +28,18 @@ void ebt_cs_clean(struct iptables_command_state *cs)
 	xtables_rule_matches_free(&cs->matches);
 
 	for (m = cs->match_list; m;) {
+		if (!m->ismatch) {
+			struct xtables_target *target = m->u.watcher;
+
+			if (target->t) {
+				free(target->t);
+				target->t = NULL;
+			}
+			if (target == target->next)
+				free(target);
+		}
+
 		nm = m->next;
-		if (!m->ismatch)
-			free(m->u.watcher->t);
 		free(m);
 		m = nm;
 	}
@@ -193,7 +201,7 @@ static int nft_bridge_add(struct nftnl_rule *r, void *data)
 		add_cmp_u16(r, fw->ethproto, op);
 	}
 
-	add_compat(r, fw->ethproto, fw->invflags);
+	add_compat(r, fw->ethproto, fw->invflags & EBT_IPROTO);
 
 	for (iter = cs->match_list; iter; iter = iter->next) {
 		if (iter->ismatch) {
@@ -217,10 +225,7 @@ static void nft_bridge_parse_meta(struct nft_xt_ctx *ctx,
 	struct iptables_command_state *cs = data;
 	struct ebt_entry *fw = &cs->eb;
 	uint8_t invflags = 0;
-	char iifname[IFNAMSIZ], oifname[IFNAMSIZ];
-
-	memset(iifname, 0, sizeof(iifname));
-	memset(oifname, 0, sizeof(oifname));
+	char iifname[IFNAMSIZ] = {}, oifname[IFNAMSIZ] = {};
 
 	parse_meta(e, ctx->meta.key, iifname, NULL, oifname, NULL, &invflags);
 
@@ -350,7 +355,7 @@ static void nft_bridge_parse_target(struct xtables_target *t, void *data)
 	cs->target = t;
 }
 
-static void nft_rule_to_ebtables_command_state(struct nftnl_rule *r,
+static void nft_rule_to_ebtables_command_state(const struct nftnl_rule *r,
 					       struct iptables_command_state *cs)
 {
 	cs->eb.bitmask = EBT_NOPROTO;
@@ -371,10 +376,10 @@ static void nft_bridge_print_table_header(const char *tablename)
 static void nft_bridge_print_header(unsigned int format, const char *chain,
 				    const char *pol,
 				    const struct xt_counters *counters,
-				    bool basechain, uint32_t refs)
+				    bool basechain, uint32_t refs, uint32_t entries)
 {
 	printf("Bridge chain: %s, entries: %u, policy: %s\n",
-	       chain, refs, basechain ? pol : "RETURN");
+	       chain, entries, basechain ? pol : "RETURN");
 }
 
 static void print_matches_and_watchers(const struct iptables_command_state *cs,
@@ -415,7 +420,7 @@ static void print_mac(char option, const unsigned char *mac,
 
 static void print_protocol(uint16_t ethproto, bool invert, unsigned int bitmask)
 {
-	struct ethertypeent *ent;
+	struct xt_ethertypeent *ent;
 
 	/* Dont print anything about the protocol if no protocol was
 	 * specified, obviously this means any protocol will do. */
@@ -431,57 +436,85 @@ static void print_protocol(uint16_t ethproto, bool invert, unsigned int bitmask)
 		return;
 	}
 
-	ent = getethertypebynumber(ntohs(ethproto));
+	ent = xtables_getethertypebynumber(ntohs(ethproto));
 	if (!ent)
 		printf("0x%x ", ntohs(ethproto));
 	else
 		printf("%s ", ent->e_name);
 }
 
-static void nft_bridge_print_firewall(struct nftnl_rule *r, unsigned int num,
-				      unsigned int format)
+static void nft_bridge_save_rule(const void *data, unsigned int format)
+{
+	const struct iptables_command_state *cs = data;
+
+	if (cs->eb.ethproto)
+		print_protocol(cs->eb.ethproto, cs->eb.invflags & EBT_IPROTO,
+			       cs->eb.bitmask);
+	if (cs->eb.bitmask & EBT_ISOURCE)
+		print_mac('s', cs->eb.sourcemac, cs->eb.sourcemsk,
+		          cs->eb.invflags & EBT_ISOURCE);
+	if (cs->eb.bitmask & EBT_IDEST)
+		print_mac('d', cs->eb.destmac, cs->eb.destmsk,
+		          cs->eb.invflags & EBT_IDEST);
+
+	print_iface("-i", cs->eb.in, cs->eb.invflags & EBT_IIN);
+	print_iface("--logical-in", cs->eb.logical_in,
+		    cs->eb.invflags & EBT_ILOGICALIN);
+	print_iface("-o", cs->eb.out, cs->eb.invflags & EBT_IOUT);
+	print_iface("--logical-out", cs->eb.logical_out,
+		    cs->eb.invflags & EBT_ILOGICALOUT);
+
+	print_matches_and_watchers(cs, format);
+
+	printf("-j ");
+
+	if (cs->jumpto != NULL) {
+		if (strcmp(cs->jumpto, "") != 0)
+			printf("%s", cs->jumpto);
+		else
+			printf("CONTINUE");
+	}
+	if (cs->target != NULL && cs->target->print != NULL) {
+		printf(" ");
+		cs->target->print(&cs->fw, cs->target->t, format & FMT_NUMERIC);
+	}
+
+	if (!(format & FMT_NOCOUNTS)) {
+		const char *counter_fmt;
+
+		if (format & FMT_EBT_SAVE)
+			counter_fmt = " -c %"PRIu64" %"PRIu64"";
+		else
+			counter_fmt = " , pcnt = %"PRIu64" -- bcnt = %"PRIu64"";
+
+		printf(counter_fmt,
+		       (uint64_t)cs->counters.pcnt,
+		       (uint64_t)cs->counters.bcnt);
+	}
+
+	if (!(format & FMT_NONEWLINE))
+		fputc('\n', stdout);
+}
+
+static void nft_bridge_print_rule(struct nftnl_rule *r, unsigned int num,
+				  unsigned int format)
 {
 	struct iptables_command_state cs = {};
-
-	nft_rule_to_ebtables_command_state(r, &cs);
 
 	if (format & FMT_LINENUMBERS)
 		printf("%d ", num);
 
-	print_protocol(cs.eb.ethproto, cs.eb.invflags & EBT_IPROTO, cs.eb.bitmask);
-	if (cs.eb.bitmask & EBT_ISOURCE)
-		print_mac('s', cs.eb.sourcemac, cs.eb.sourcemsk,
-		          cs.eb.invflags & EBT_ISOURCE);
-	if (cs.eb.bitmask & EBT_IDEST)
-		print_mac('d', cs.eb.destmac, cs.eb.destmsk,
-		          cs.eb.invflags & EBT_IDEST);
-
-	print_iface("-i", cs.eb.in, cs.eb.invflags & EBT_IIN);
-	print_iface("--logical-in", cs.eb.logical_in, cs.eb.invflags & EBT_ILOGICALIN);
-	print_iface("-o", cs.eb.out, cs.eb.invflags & EBT_IOUT);
-	print_iface("--logical-out", cs.eb.logical_out, cs.eb.invflags & EBT_ILOGICALOUT);
-
-	print_matches_and_watchers(&cs, format);
-
-	printf("-j ");
-
-	if (cs.jumpto != NULL) {
-		if (strcmp(cs.jumpto, "") != 0)
-			printf("%s", cs.jumpto);
-		else
-			printf("CONTINUE");
-	}
-	else if (cs.target != NULL && cs.target->print != NULL)
-		cs.target->print(&cs.fw, cs.target->t, format & FMT_NUMERIC);
-
-	if (!(format & FMT_NOCOUNTS))
-		printf(" , pcnt = %"PRIu64" -- bcnt = %"PRIu64"",
-		       (uint64_t)cs.counters.pcnt, (uint64_t)cs.counters.bcnt);
-
-	if (!(format & FMT_NONEWLINE))
-		fputc('\n', stdout);
-
+	nft_rule_to_ebtables_command_state(r, &cs);
+	nft_bridge_save_rule(&cs, format);
 	ebt_cs_clean(&cs);
+}
+
+static void nft_bridge_save_chain(const struct nftnl_chain *c,
+				  const char *policy)
+{
+	const char *chain = nftnl_chain_get_str(c, NFTNL_CHAIN_NAME);
+
+	printf(":%s %s\n", chain, policy ?: "ACCEPT");
 }
 
 static bool nft_bridge_is_same(const void *data_a, const void *data_b)
@@ -732,10 +765,13 @@ struct nft_family_ops nft_family_ops_bridge = {
 	.parse_target		= nft_bridge_parse_target,
 	.print_table_header	= nft_bridge_print_table_header,
 	.print_header		= nft_bridge_print_header,
-	.print_firewall		= nft_bridge_print_firewall,
-	.save_firewall		= NULL,
+	.print_rule		= nft_bridge_print_rule,
+	.save_rule		= nft_bridge_save_rule,
 	.save_counters		= NULL,
+	.save_chain		= nft_bridge_save_chain,
 	.post_parse		= NULL,
+	.rule_to_cs		= nft_rule_to_ebtables_command_state,
+	.clear_cs		= ebt_cs_clean,
 	.rule_find		= nft_bridge_rule_find,
 	.xlate			= nft_bridge_xlate,
 };

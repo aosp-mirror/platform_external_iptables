@@ -156,9 +156,9 @@ static const int inverse_for_options[NUMBER_OF_OPT] =
 /* -f */ IPT_INV_FRAG,
 };
 
-#define opts xtables_globals.opts
-#define prog_name xtables_globals.program_name
-#define prog_vers xtables_globals.program_version
+#define opts xt_params->opts
+#define prog_name xt_params->program_name
+#define prog_vers xt_params->program_version
 
 static void __attribute__((noreturn))
 exit_tryhelp(int status)
@@ -361,27 +361,6 @@ parse_rulenumber(const char *rule)
 			   "Invalid rule number `%s'", rule);
 
 	return rulenum;
-}
-
-static const char *
-parse_target(const char *targetname)
-{
-	const char *ptr;
-
-	if (strlen(targetname) < 1)
-		xtables_error(PARAMETER_PROBLEM,
-			   "Invalid target name (too short)");
-
-	if (strlen(targetname) >= XT_EXTENSION_MAXNAMELEN)
-		xtables_error(PARAMETER_PROBLEM,
-			   "Invalid target name `%s' (%u chars max)",
-			   targetname, XT_EXTENSION_MAXNAMELEN - 1);
-
-	for (ptr = targetname; *ptr; ptr++)
-		if (isspace(*ptr))
-			xtables_error(PARAMETER_PROBLEM,
-				   "Invalid target name `%s'", targetname);
-	return targetname;
 }
 
 static void
@@ -599,88 +578,7 @@ list_rules(struct nft_handle *h, const char *chain, const char *table,
 	if (counters)
 	    counters = -1;		/* iptables -c format */
 
-	nft_rule_list_save(h, chain, table, rulenum, counters);
-
-	/* iptables does not return error if rule number not found */
-	return 1;
-}
-
-static void command_jump(struct iptables_command_state *cs)
-{
-	size_t size;
-
-	set_option(&cs->options, OPT_JUMP, &cs->fw.ip.invflags, cs->invert);
-	cs->jumpto = parse_target(optarg);
-	/* TRY_LOAD (may be chain name) */
-	cs->target = xtables_find_target(cs->jumpto, XTF_TRY_LOAD);
-
-	if (cs->target == NULL)
-		return;
-
-	size = XT_ALIGN(sizeof(struct xt_entry_target))
-		+ cs->target->size;
-
-	cs->target->t = xtables_calloc(1, size);
-	cs->target->t->u.target_size = size;
-	if (cs->target->real_name == NULL) {
-		strcpy(cs->target->t->u.user.name, cs->jumpto);
-	} else {
-		/* Alias support for userspace side */
-		strcpy(cs->target->t->u.user.name, cs->target->real_name);
-		if (!(cs->target->ext_flags & XTABLES_EXT_ALIAS))
-			fprintf(stderr, "Notice: The %s target is converted into %s target "
-				"in rule listing and saving.\n",
-				cs->jumpto, cs->target->real_name);
-	}
-	cs->target->t->u.user.revision = cs->target->revision;
-	xs_init_target(cs->target);
-
-	if (cs->target->x6_options != NULL)
-		opts = xtables_options_xfrm(xtables_globals.orig_opts, opts,
-					    cs->target->x6_options,
-					    &cs->target->option_offset);
-	else
-		opts = xtables_merge_options(xtables_globals.orig_opts, opts,
-					     cs->target->extra_opts,
-					     &cs->target->option_offset);
-	if (opts == NULL)
-		xtables_error(OTHER_PROBLEM, "can't alloc memory!");
-}
-
-static void command_match(struct iptables_command_state *cs)
-{
-	struct xtables_match *m;
-	size_t size;
-
-	if (cs->invert)
-		xtables_error(PARAMETER_PROBLEM,
-			   "unexpected ! flag before --match");
-
-	m = xtables_find_match(optarg, XTF_LOAD_MUST_SUCCEED, &cs->matches);
-	size = XT_ALIGN(sizeof(struct xt_entry_match)) + m->size;
-	m->m = xtables_calloc(1, size);
-	m->m->u.match_size = size;
-	if (m->real_name == NULL) {
-		strcpy(m->m->u.user.name, m->name);
-	} else {
-		strcpy(m->m->u.user.name, m->real_name);
-		if (!(m->ext_flags & XTABLES_EXT_ALIAS))
-			fprintf(stderr, "Notice: the %s match is converted into %s match "
-				"in rule listing and saving.\n", m->name, m->real_name);
-	}
-	m->m->u.user.revision = m->revision;
-	xs_init_match(m);
-	if (m == m->next)
-		return;
-	/* Merge options for non-cloned matches */
-	if (m->x6_options != NULL)
-		opts = xtables_options_xfrm(xtables_globals.orig_opts, opts,
-					    m->x6_options, &m->option_offset);
-	else if (m->extra_opts != NULL)
-		opts = xtables_merge_options(xtables_globals.orig_opts, opts,
-					     m->extra_opts, &m->option_offset);
-	if (opts == NULL)
-		xtables_error(OTHER_PROBLEM, "can't alloc memory!");
+	return nft_rule_list_save(h, chain, table, rulenum, counters);
 }
 
 void do_parse(struct nft_handle *h, int argc, char *argv[],
@@ -915,11 +813,13 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 			set_option(&cs->options, OPT_JUMP, &args->invflags,
 				   cs->invert);
 			args->goto_set = true;
-			cs->jumpto = parse_target(optarg);
+			cs->jumpto = xt_parse_target(optarg);
 			break;
 #endif
 
 		case 'j':
+			set_option(&cs->options, OPT_JUMP, &cs->fw.ip.invflags,
+				   cs->invert);
 			command_jump(cs);
 			break;
 
@@ -979,6 +879,10 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 			if (cs->invert)
 				xtables_error(PARAMETER_PROBLEM,
 					   "unexpected ! flag before --table");
+			if (!nft_table_builtin_find(h, optarg))
+				xtables_error(VERSION_PROBLEM,
+					      "table '%s' does not exist",
+					      optarg);
 			p->table = optarg;
 			break;
 
@@ -1159,12 +1063,18 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 					   p->chain);
 		}
 
-		/*
-		 * Contrary to what iptables does, we assume that any jumpto
-		 * is a custom chain jumps (if no target is found). Later on,
-		 * nf_table will spot the error if the chain does not exists.
-		 */
+		if (!nft_chain_exists(h, p->table, p->chain))
+			xtables_error(OTHER_PROBLEM,
+				      "Chain '%s' does not exist", cs->jumpto);
+
+		if (!cs->target && strlen(cs->jumpto) > 0 &&
+		    !nft_chain_exists(h, p->table, cs->jumpto))
+			xtables_error(PARAMETER_PROBLEM,
+				      "Chain '%s' does not exist", cs->jumpto);
 	}
+	if (p->command == CMD_NEW_CHAIN &&
+	    nft_chain_exists(h, p->table, p->chain))
+		xtables_error(OTHER_PROBLEM, "Chain already exists");
 }
 
 int do_commandx(struct nft_handle *h, int argc, char *argv[], char **table,
@@ -1213,10 +1123,12 @@ int do_commandx(struct nft_handle *h, int argc, char *argv[], char **table,
 				cs.options&OPT_VERBOSE, h, false);
 		break;
 	case CMD_FLUSH:
-		ret = nft_rule_flush(h, p.chain, p.table);
+		ret = nft_rule_flush(h, p.chain, p.table,
+				     cs.options & OPT_VERBOSE);
 		break;
 	case CMD_ZERO:
-		ret = nft_chain_zero_counters(h, p.chain, p.table);
+		ret = nft_chain_zero_counters(h, p.chain, p.table,
+					      cs.options & OPT_VERBOSE);
 		break;
 	case CMD_ZERO_NUM:
 		ret = nft_rule_zero_counters(h, p.chain, p.table,
@@ -1231,8 +1143,8 @@ int do_commandx(struct nft_handle *h, int argc, char *argv[], char **table,
 				   cs.options & OPT_EXPANDED,
 				   cs.options & OPT_LINENUMBERS);
 		if (ret && (p.command & CMD_ZERO)) {
-			ret = nft_chain_zero_counters(h, p.chain,
-						      p.table);
+			ret = nft_chain_zero_counters(h, p.chain, p.table,
+						      cs.options & OPT_VERBOSE);
 		}
 		if (ret && (p.command & CMD_ZERO_NUM)) {
 			ret = nft_rule_zero_counters(h, p.chain, p.table,
@@ -1246,8 +1158,8 @@ int do_commandx(struct nft_handle *h, int argc, char *argv[], char **table,
 		ret = list_rules(h, p.chain, p.table, p.rulenum,
 				 cs.options & OPT_VERBOSE);
 		if (ret && (p.command & CMD_ZERO)) {
-			ret = nft_chain_zero_counters(h, p.chain,
-						      p.table);
+			ret = nft_chain_zero_counters(h, p.chain, p.table,
+						      cs.options & OPT_VERBOSE);
 		}
 		if (ret && (p.command & CMD_ZERO_NUM)) {
 			ret = nft_rule_zero_counters(h, p.chain, p.table,
@@ -1259,16 +1171,14 @@ int do_commandx(struct nft_handle *h, int argc, char *argv[], char **table,
 		ret = nft_chain_user_add(h, p.chain, p.table);
 		break;
 	case CMD_DELETE_CHAIN:
-		ret = nft_chain_user_del(h, p.chain, p.table);
+		ret = nft_chain_user_del(h, p.chain, p.table,
+					 cs.options & OPT_VERBOSE);
 		break;
 	case CMD_RENAME_CHAIN:
 		ret = nft_chain_user_rename(h, p.chain, p.table, p.newname);
 		break;
 	case CMD_SET_POLICY:
 		ret = nft_chain_set(h, p.table, p.chain, p.policy, NULL);
-		if (ret < 0)
-			xtables_error(PARAMETER_PROBLEM, "Wrong policy `%s'\n",
-				      p.policy);
 		break;
 	default:
 		/* We should never reach this... */

@@ -376,10 +376,6 @@ brip6_parse(int c, char **argv, int invert, unsigned int *flags,
 		if (invert)
 			info->invflags |= EBT_IP6_PROTO;
 		info->protocol = xtables_parse_protocol(optarg);
-		if (info->protocol == -1)
-			xtables_error(PARAMETER_PROBLEM,
-				      "Unknown specified IP protocol - %s",
-				      optarg);
 		info->bitmask |= EBT_IP6_PROTO;
 		break;
 	default:

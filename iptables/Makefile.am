@@ -43,7 +43,7 @@ xtables_nft_multi_SOURCES += xtables-save.c xtables-restore.c \
 				nft-shared.c nft-ipv4.c nft-ipv6.c nft-arp.c \
 				xtables-monitor.c \
 				xtables-arp-standalone.c xtables-arp.c \
-				getethertype.c nft-bridge.c \
+				nft-bridge.c \
 				xtables-eb-standalone.c xtables-eb.c \
 				xtables-eb-translate.c \
 				xtables-translate.c
@@ -80,7 +80,13 @@ x_sbin_links  = iptables-nft iptables-nft-restore iptables-nft-save \
 		ip6tables-nft ip6tables-nft-restore ip6tables-nft-save \
 		iptables-translate ip6tables-translate \
 		iptables-restore-translate ip6tables-restore-translate \
-		arptables ebtables xtables-monitor
+		arptables-nft arptables \
+		arptables-nft-restore arptables-restore \
+		arptables-nft-save arptables-save \
+		ebtables-nft ebtables \
+		ebtables-nft-restore ebtables-restore \
+		ebtables-nft-save ebtables-save \
+		xtables-monitor
 endif
 
 iptables-extensions.8: iptables-extensions.8.tmpl ../extensions/matches.man ../extensions/targets.man
