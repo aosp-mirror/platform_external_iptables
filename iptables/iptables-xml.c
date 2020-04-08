@@ -5,7 +5,7 @@
  *
  * This code is distributed under the terms of GNU GPL v2
  */
-
+#include "config.h"
 #include <getopt.h>
 #include <errno.h>
 #include <string.h>
@@ -20,7 +20,7 @@
 
 struct xtables_globals iptables_xml_globals = {
 	.option_offset = 0,
-	.program_version = IPTABLES_VERSION,
+	.program_version = PACKAGE_VERSION,
 	.program_name = "iptables-xml",
 };
 #define prog_name iptables_xml_globals.program_name
@@ -208,12 +208,11 @@ needChain(char *chain)
 static void
 saveChain(char *chain, char *policy, struct xt_counters *ctr)
 {
-	if (nextChain >= maxChains) {
+	if (nextChain >= maxChains)
 		xtables_error(PARAMETER_PROBLEM,
 			   "%s: line %u chain name invalid\n",
 			   prog_name, line);
-		exit(1);
-	};
+
 	chains[nextChain].chain = strdup(chain);
 	chains[nextChain].policy = strdup(policy);
 	chains[nextChain].count = *ctr;
@@ -441,7 +440,7 @@ do_rule_part(char *leveltag1, char *leveltag2, int part, int argc,
 }
 
 static int
-compareRules(void)
+compareRules(int newargc, char *newargv[], int oldargc, char *oldargv[])
 {
 	/* Compare arguments up to -j or -g for match.
 	 * NOTE: We don't want to combine actions if there were no criteria
@@ -490,11 +489,13 @@ compareRules(void)
 
 /* has a nice parsed rule starting with -A */
 static void
-do_rule(char *pcnt, char *bcnt, int argc, char *argv[], int argvattr[])
+do_rule(char *pcnt, char *bcnt, int argc, char *argv[], int argvattr[],
+	int oldargc, char *oldargv[])
 {
 	/* are these conditions the same as the previous rule?
 	 * If so, skip arg straight to -j or -g */
-	if (combine && argc > 2 && !isTarget(argv[2]) && compareRules()) {
+	if (combine && argc > 2 && !isTarget(argv[2]) &&
+	    compareRules(argc, argv, oldargc, oldargv)) {
 		xmlComment("Combine action from next rule");
 	} else {
 
@@ -540,6 +541,7 @@ do_rule(char *pcnt, char *bcnt, int argc, char *argv[], int argvattr[])
 int
 iptables_xml_main(int argc, char *argv[])
 {
+	struct argv_store last_rule = {}, cur_rule = {};
 	char buffer[10240];
 	int c;
 	FILE *in;
@@ -557,7 +559,7 @@ iptables_xml_main(int argc, char *argv[])
 			verbose = 1;
 			break;
 		case 'h':
-			print_usage("iptables-xml", IPTABLES_VERSION);
+			print_usage("iptables-xml", PACKAGE_VERSION);
 			break;
 		}
 	}
@@ -606,12 +608,11 @@ iptables_xml_main(int argc, char *argv[])
 
 			table = strtok(buffer + 1, " \t\n");
 			DEBUGP("line %u, table '%s'\n", line, table);
-			if (!table) {
+			if (!table)
 				xtables_error(PARAMETER_PROBLEM,
 					   "%s: line %u table name invalid\n",
 					   prog_name, line);
-				exit(1);
-			}
+
 			openTable(table);
 
 			ret = 1;
@@ -623,23 +624,19 @@ iptables_xml_main(int argc, char *argv[])
 
 			chain = strtok(buffer + 1, " \t\n");
 			DEBUGP("line %u, chain '%s'\n", line, chain);
-			if (!chain) {
+			if (!chain)
 				xtables_error(PARAMETER_PROBLEM,
 					   "%s: line %u chain name invalid\n",
 					   prog_name, line);
-				exit(1);
-			}
 
 			DEBUGP("Creating new chain '%s'\n", chain);
 
 			policy = strtok(NULL, " \t\n");
 			DEBUGP("line %u, policy '%s'\n", line, policy);
-			if (!policy) {
+			if (!policy)
 				xtables_error(PARAMETER_PROBLEM,
 					   "%s: line %u policy invalid\n",
 					   prog_name, line);
-				exit(1);
-			}
 
 			ctrs = strtok(NULL, " \t\n");
 			parse_counters(ctrs, &count);
@@ -650,126 +647,32 @@ iptables_xml_main(int argc, char *argv[])
 			unsigned int a;
 			char *pcnt = NULL;
 			char *bcnt = NULL;
-			char *parsestart;
+			char *parsestart = buffer;
 			char *chain = NULL;
 
-			/* the parser */
-			char *param_start, *curchar;
-			int quote_open, quoted;
-			char param_buffer[1024];
-
-			if (buffer[0] == '[') {
-				/* we have counters in our input */
-				char *ptr = strchr(buffer, ']');
-
-				if (!ptr)
-					xtables_error(PARAMETER_PROBLEM,
-						   "Bad line %u: need ]\n",
-						   line);
-
-				pcnt = strtok(buffer + 1, ":");
-				if (!pcnt)
-					xtables_error(PARAMETER_PROBLEM,
-						   "Bad line %u: need :\n",
-						   line);
-
-				bcnt = strtok(NULL, "]");
-				if (!bcnt)
-					xtables_error(PARAMETER_PROBLEM,
-						   "Bad line %u: need ]\n",
-						   line);
-
-				/* start command parsing after counter */
-				parsestart = ptr + 1;
-			} else {
-				/* start command parsing at start of line */
-				parsestart = buffer;
-			}
-
-
-			/* This is a 'real' parser crafted in artist mode
-			 * not hacker mode. If the author can live with that
-			 * then so can everyone else */
-
-			quote_open = 0;
-			/* We need to know which args were quoted so we 
-			   can preserve quote */
-			quoted = 0;
-			param_start = parsestart;
-
-			for (curchar = parsestart; *curchar; curchar++) {
-				if (*curchar == '"') {
-					/* quote_open cannot be true if there
-					 * was no previous character.  Thus, 
-					 * curchar-1 has to be within bounds */
-					if (quote_open &&
-					    *(curchar - 1) != '\\') {
-						quote_open = 0;
-						*curchar = ' ';
-					} else {
-						quote_open = 1;
-						quoted = 1;
-						param_start++;
-					}
-				}
-				if (*curchar == ' '
-				    || *curchar == '\t' || *curchar == '\n') {
-					int param_len = curchar - param_start;
-
-					if (quote_open)
-						continue;
-
-					if (!param_len) {
-						/* two spaces? */
-						param_start++;
-						continue;
-					}
-
-					/* end of one parameter */
-					strncpy(param_buffer, param_start,
-						param_len);
-					*(param_buffer + param_len) = '\0';
-
-					/* check if table name specified */
-					if ((param_buffer[0] == '-' &&
-					     param_buffer[1] != '-' &&
-					     strchr(param_buffer, 't')) ||
-					    (!strncmp(param_buffer, "--t", 3) &&
-					     !strncmp(param_buffer, "--table", strlen(param_buffer)))) {
-						xtables_error(PARAMETER_PROBLEM,
-							   "Line %u seems to have a "
-							   "-t table option.\n",
-							   line);
-						exit(1);
-					}
-
-					add_argv(param_buffer, quoted);
-					if (newargc >= 2
-					    && 0 ==
-					    strcmp(newargv[newargc - 2], "-A"))
-						chain = newargv[newargc - 1];
-					quoted = 0;
-					param_start += param_len + 1;
-				} else {
-					/* regular character, skip */
-				}
-			}
+			tokenize_rule_counters(&parsestart, &pcnt, &bcnt, line);
+			add_param_to_argv(&cur_rule, parsestart, line);
 
 			DEBUGP("calling do_command4(%u, argv, &%s, handle):\n",
-			       newargc, curTable);
+			       cur_rule.argc, curTable);
+			debug_print_argv(&cur_rule);
 
-			for (a = 0; a < newargc; a++)
-				DEBUGP("argv[%u]: %s\n", a, newargv[a]);
-
+			for (a = 1; a < cur_rule.argc; a++) {
+				if (strcmp(cur_rule.argv[a - 1], "-A"))
+					continue;
+				chain = cur_rule.argv[a];
+				break;
+			}
 			if (!chain) {
 				fprintf(stderr, "%s: line %u failed - no chain found\n",
 					prog_name, line);
 				exit(1);
 			}
 			needChain(chain);// Should we explicitly look for -A
-			do_rule(pcnt, bcnt, newargc, newargv, newargvattr);
+			do_rule(pcnt, bcnt, cur_rule.argc, cur_rule.argv,
+				cur_rule.argvattr, last_rule.argc, last_rule.argv);
 
-			save_argv();
+			save_argv(&last_rule, &cur_rule);
 			ret = 1;
 		}
 		if (!ret) {
@@ -786,7 +689,7 @@ iptables_xml_main(int argc, char *argv[])
 
 	fclose(in);
 	printf("</iptables-rules>\n");
-	free_argv();
+	free_argv(&last_rule);
 
 	return 0;
 }

@@ -9,3 +9,20 @@
 -p ! ARP -j ACCEPT;=;OK
 -p 0 -j ACCEPT;=;FAIL
 -p ! 0 -j ACCEPT;=;FAIL
+:INPUT
+-i foobar;=;OK
+-o foobar;=;FAIL
+:FORWARD
+-i foobar;=;OK
+-o foobar;=;OK
+:OUTPUT
+-i foobar;=;FAIL
+-o foobar;=;OK
+:PREROUTING
+*nat
+-i foobar;=;OK
+-o foobar;=;FAIL
+:POSTROUTING
+*nat
+-i foobar;=;FAIL
+-o foobar;=;OK

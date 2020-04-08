@@ -20,7 +20,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-
+#include "config.h"
 #include <ctype.h>
 #include <errno.h>
 #include <getopt.h>
@@ -197,7 +197,8 @@ int ebt_get_current_chain(const char *chain)
 	else if (strcmp(chain, "POSTROUTING") == 0)
 		return NF_BR_POST_ROUTING;
 
-	return -1;
+	/* placeholder for user defined chain */
+	return NF_BR_NUMHOOKS;
 }
 
 /*
@@ -273,7 +274,7 @@ struct option ebt_original_options[] =
 extern void xtables_exit_error(enum xtables_exittype status, const char *msg, ...) __attribute__((noreturn, format(printf,2,3)));
 struct xtables_globals ebtables_globals = {
 	.option_offset 		= 0,
-	.program_version	= IPTABLES_VERSION,
+	.program_version	= PACKAGE_VERSION,
 	.orig_opts		= ebt_original_options,
 	.exit_err		= xtables_exit_error,
 	.compat_rev		= nft_compatible_revision,
@@ -410,7 +411,7 @@ static int list_rules(struct nft_handle *h, const char *chain, const char *table
 {
 	unsigned int format;
 
-	format = FMT_OPTIONS;
+	format = FMT_OPTIONS | FMT_C_COUNTS;
 	if (verbose)
 		format |= FMT_VIA;
 
@@ -593,6 +594,7 @@ void ebt_load_match_extensions(void)
 	ebt_load_match("pkttype");
 	ebt_load_match("vlan");
 	ebt_load_match("stp");
+	ebt_load_match("among");
 
 	ebt_load_watcher("log");
 	ebt_load_watcher("nflog");
@@ -779,6 +781,7 @@ int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table,
 	int selected_chain = -1;
 	struct xtables_rule_match *xtrm_i;
 	struct ebt_match *match;
+	bool table_set = false;
 
 	/* prevent getopt to spoil our error reporting */
 	optind = 0;
@@ -946,11 +949,16 @@ print_zero:
 			break;
 		case 't': /* Table */
 			ebt_check_option2(&flags, OPT_TABLE);
+			if (restore && table_set)
+				xtables_error(PARAMETER_PROBLEM,
+					      "The -t option (seen in line %u) cannot be used in %s.\n",
+					      line, xt_params->program_name);
 			if (strlen(optarg) > EBT_TABLE_MAXNAMELEN - 1)
 				xtables_error(PARAMETER_PROBLEM,
 					      "Table name length cannot exceed %d characters",
 					      EBT_TABLE_MAXNAMELEN - 1);
 			*table = optarg;
+			table_set = true;
 			break;
 		case 'i': /* Input interface */
 		case 2  : /* Logical input interface */
@@ -1180,7 +1188,7 @@ print_zero:
 			if (ebt_command_default(&cs))
 				xtables_error(PARAMETER_PROBLEM,
 					      "Unknown argument: '%s'",
-					      argv[optind - 1]);
+					      argv[optind]);
 
 			if (command != 'A' && command != 'I' &&
 			    command != 'D' && command != 'C')
@@ -1223,7 +1231,7 @@ print_zero:
 	cs.eb.ethproto = htons(cs.eb.ethproto);
 
 	if (command == 'P') {
-		if (selected_chain < 0) {
+		if (selected_chain >= NF_BR_NUMHOOKS) {
 			ret = ebt_set_user_chain_policy(h, *table, chain, policy);
 		} else {
 			if (strcmp(policy, "RETURN") == 0) {

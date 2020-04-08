@@ -1,5 +1,5 @@
 
-AC_INIT([iptables], [1.8.3])
+AC_INIT([iptables], [1.8.4])
 
 # See libtool.info "Libtool's versioning system"
 libxtables_vcurrent=14
@@ -73,11 +73,6 @@ AC_ARG_WITH([xt-lock-name], AS_HELP_STRING([--with-xt-lock-name=PATH],
 	[xt_lock_name="$withval"],
 	[xt_lock_name="/run/xtables.lock"])
 
-libiptc_LDFLAGS2="";
-AX_CHECK_LINKER_FLAGS([-Wl,--no-as-needed],
-	[libiptc_LDFLAGS2="-Wl,--no-as-needed"])
-AC_SUBST([libiptc_LDFLAGS2])
-
 AC_MSG_CHECKING([whether $LD knows -Wl,--no-undefined])
 saved_LDFLAGS="$LDFLAGS";
 LDFLAGS="-Wl,--no-undefined";
@@ -145,22 +140,6 @@ if test "x$enable_nftables" = "xyes"; then
 		echo "    Or consider --disable-nftables to skip"
 		echo "    iptables-compat over nftables support."
 		exit 1
-	fi
-
-	AM_PROG_LEX
-	AC_PROG_YACC
-
-	if test -z "$ac_cv_prog_YACC"
-	then
-		echo "*** Error: No suitable bison/yacc found. ***"
-		echo "    Please install the 'bison' package."
-		exit 1
-	fi
-	if test -z "$ac_cv_prog_LEX"
-	then
-	        echo "*** Error: No suitable flex/lex found. ***"
-	        echo "    Please install the 'flex' package."
-	        exit 1
 	fi
 fi
 
@@ -250,7 +229,7 @@ AC_CONFIG_FILES([Makefile extensions/GNUmakefile include/Makefile
 	libiptc/Makefile libiptc/libiptc.pc
 	libiptc/libip4tc.pc libiptc/libip6tc.pc
 	libxtables/Makefile utils/Makefile
-	include/xtables-version.h include/iptables/internal.h
+	include/xtables-version.h
 	iptables/xtables-monitor.8
 	utils/nfnl_osf.8
 	utils/nfbpf_compile.8])

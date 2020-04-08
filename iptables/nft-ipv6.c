@@ -25,7 +25,7 @@
 #include "nft.h"
 #include "nft-shared.h"
 
-static int nft_ipv6_add(struct nftnl_rule *r, void *data)
+static int nft_ipv6_add(struct nft_handle *h, struct nftnl_rule *r, void *data)
 {
 	struct iptables_command_state *cs = data;
 	struct xtables_rule_match *matchp;
@@ -66,7 +66,7 @@ static int nft_ipv6_add(struct nftnl_rule *r, void *data)
 	add_compat(r, cs->fw6.ipv6.proto, cs->fw6.ipv6.invflags & XT_INV_PROTO);
 
 	for (matchp = cs->matches; matchp; matchp = matchp->next) {
-		ret = add_match(r, matchp->match->m);
+		ret = add_match(h, r, matchp->match->m);
 		if (ret < 0)
 			return ret;
 	}
@@ -187,12 +187,12 @@ static void nft_ipv6_parse_immediate(const char *jumpto, bool nft_goto,
 		cs->fw6.ipv6.flags |= IP6T_F_GOTO;
 }
 
-static void nft_ipv6_print_rule(struct nftnl_rule *r, unsigned int num,
-				unsigned int format)
+static void nft_ipv6_print_rule(struct nft_handle *h, struct nftnl_rule *r,
+				unsigned int num, unsigned int format)
 {
 	struct iptables_command_state cs = {};
 
-	nft_rule_to_iptables_command_state(r, &cs);
+	nft_rule_to_iptables_command_state(h, r, &cs);
 
 	print_rule_details(&cs, cs.jumpto, cs.fw6.ipv6.flags,
 			   cs.fw6.ipv6.invflags, cs.fw6.ipv6.proto,

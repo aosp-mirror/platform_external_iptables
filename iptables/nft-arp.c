@@ -114,29 +114,6 @@ mask_to_dotted(const struct in_addr *mask)
 	return buf;
 }
 
-static void print_mac(const unsigned char *mac, int l)
-{
-	int j;
-
-	for (j = 0; j < l; j++)
-		printf("%02x%s", mac[j],
-			(j==l-1) ? "" : ":");
-}
-
-static void print_mac_and_mask(const unsigned char *mac, const unsigned char *mask, int l)
-{
-	int i;
-
-	print_mac(mac, l);
-	for (i = 0; i < l ; i++)
-		if (mask[i] != 255)
-			break;
-	if (i == l)
-		return;
-	printf("/");
-	print_mac(mask, l);
-}
-
 static bool need_devaddr(struct arpt_devaddr_info *info)
 {
 	int i;
@@ -149,7 +126,7 @@ static bool need_devaddr(struct arpt_devaddr_info *info)
 	return false;
 }
 
-static int nft_arp_add(struct nftnl_rule *r, void *data)
+static int nft_arp_add(struct nft_handle *h, struct nftnl_rule *r, void *data)
 {
 	struct iptables_command_state *cs = data;
 	struct arpt_entry *fw = &cs->arp;
@@ -506,8 +483,8 @@ static void nft_arp_print_rule_details(const struct iptables_command_state *cs,
 	printf("%s%s", sep, fw->arp.invflags & ARPT_INV_SRCDEVADDR
 		? "! " : "");
 	printf("--src-mac ");
-	print_mac_and_mask((unsigned char *)fw->arp.src_devaddr.addr,
-		(unsigned char *)fw->arp.src_devaddr.mask, ETH_ALEN);
+	xtables_print_mac_and_mask((unsigned char *)fw->arp.src_devaddr.addr,
+				   (unsigned char *)fw->arp.src_devaddr.mask);
 	sep = " ";
 after_devsrc:
 
@@ -532,8 +509,8 @@ after_devsrc:
 	printf("%s%s", sep, fw->arp.invflags & ARPT_INV_TGTDEVADDR
 		? "! " : "");
 	printf("--dst-mac ");
-	print_mac_and_mask((unsigned char *)fw->arp.tgt_devaddr.addr,
-		(unsigned char *)fw->arp.tgt_devaddr.mask, ETH_ALEN);
+	xtables_print_mac_and_mask((unsigned char *)fw->arp.tgt_devaddr.addr,
+				   (unsigned char *)fw->arp.tgt_devaddr.mask);
 	sep = " ";
 
 after_devdst:
@@ -605,14 +582,15 @@ nft_arp_save_rule(const void *data, unsigned int format)
 }
 
 static void
-nft_arp_print_rule(struct nftnl_rule *r, unsigned int num, unsigned int format)
+nft_arp_print_rule(struct nft_handle *h, struct nftnl_rule *r,
+		   unsigned int num, unsigned int format)
 {
 	struct iptables_command_state cs = {};
 
 	if (format & FMT_LINENUMBERS)
 		printf("%u ", num);
 
-	nft_rule_to_iptables_command_state(r, &cs);
+	nft_rule_to_iptables_command_state(h, r, &cs);
 
 	nft_arp_print_rule_details(&cs, format);
 	print_matches_and_target(&cs, format);
@@ -655,7 +633,7 @@ static bool nft_arp_is_same(const void *data_a,
 				  (unsigned char *)b->arp.outiface_mask);
 }
 
-static bool nft_arp_rule_find(struct nft_family_ops *ops, struct nftnl_rule *r,
+static bool nft_arp_rule_find(struct nft_handle *h, struct nftnl_rule *r,
 			      void *data)
 {
 	const struct iptables_command_state *cs = data;
@@ -663,7 +641,7 @@ static bool nft_arp_rule_find(struct nft_family_ops *ops, struct nftnl_rule *r,
 	bool ret = false;
 
 	/* Delete by matching rule case */
-	nft_rule_to_iptables_command_state(r, &this);
+	nft_rule_to_iptables_command_state(h, r, &this);
 
 	if (!nft_arp_is_same(&cs->arp, &this.arp))
 		goto out;
@@ -676,7 +654,7 @@ static bool nft_arp_rule_find(struct nft_family_ops *ops, struct nftnl_rule *r,
 
 	ret = true;
 out:
-	ops->clear_cs(&this);
+	h->ops->clear_cs(&this);
 	return ret;
 }
 

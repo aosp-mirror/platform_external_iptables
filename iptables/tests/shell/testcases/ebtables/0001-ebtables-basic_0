@@ -1,5 +1,9 @@
 #!/bin/sh
 
+get_entries_count() { # (chain)
+	$XT_MULTI ebtables -L $1 | sed -n 's/.*entries: \([0-9]*\).*/\1/p'
+}
+
 set -x
 case "$XT_MULTI" in
 */xtables-nft-multi)
@@ -28,32 +32,32 @@ case "$XT_MULTI" in
 		exit 1
 	fi
 
-	$XT_MULTI ebtables -L FOO | grep -q 'entries: 0'
-	if [ $? -ne 0 ]; then
-		echo "Unexpected entries count in empty unreferenced chain"
+	entries=$(get_entries_count FOO)
+	if [ $entries -ne 0 ]; then
+		echo "Unexpected entries count in empty unreferenced chain (expected 0, have $entries)"
 		$XT_MULTI ebtables -L
 		exit 1
 	fi
 
 	$XT_MULTI ebtables -A FORWARD -j FOO
-	$XT_MULTI ebtables -L FORWARD | grep -q 'entries: 1'
-	if [ $? -ne 0 ]; then
-		echo "Unexpected entries count in FORWARD chain"
+	entries=$(get_entries_count FORWARD)
+	if [ $entries -ne 1 ]; then
+		echo "Unexpected entries count in FORWARD chain (expected 1, have $entries)"
 		$XT_MULTI ebtables -L
 		exit 1
 	fi
 
-	$XT_MULTI ebtables -L FOO | grep -q 'entries: 0'
-	if [ $? -ne 0 ]; then
-		echo "Unexpected entries count in empty referenced chain"
+	entries=$(get_entries_count FOO)
+	if [ $entries -ne 0 ]; then
+		echo "Unexpected entries count in empty referenced chain (expected 0, have $entries)"
 		$XT_MULTI ebtables -L
 		exit 1
 	fi
 
 	$XT_MULTI ebtables -A FOO -j ACCEPT
-	$XT_MULTI ebtables -L FOO | grep -q 'entries: 1'
-	if [ $? -ne 0 ]; then
-		echo "Unexpected entries count in non-empty referenced chain"
+	entries=$(get_entries_count FOO)
+	if [ $entries -ne 1 ]; then
+		echo "Unexpected entries count in non-empty referenced chain (expected 1, have $entries)"
 		$XT_MULTI ebtables -L
 		exit 1
 	fi

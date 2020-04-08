@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 #
 # (C) 2012-2013 by Pablo Neira Ayuso <pablo@netfilter.org>
 #
@@ -10,6 +10,7 @@
 # This software has been sponsored by Sophos Astaro <http://www.sophos.com>
 #
 
+from __future__ import print_function
 import sys
 import os
 import subprocess
@@ -45,7 +46,7 @@ def print_error(reason, filename=None, lineno=None):
     '''
     Prints an error with nice colors, indicating file and line number.
     '''
-    print (filename + ": " + Colors.RED + "ERROR" +
+    print(filename + ": " + Colors.RED + "ERROR" +
         Colors.ENDC + ": line %d (%s)" % (lineno, reason))
 
 
@@ -140,7 +141,7 @@ def run_test(iptables, rule, rule_save, res, filename, lineno, netns):
         return -1
 
     # find the rule
-    matching = out.find(rule_save)
+    matching = out.find(rule_save.encode('utf-8'))
     if matching < 0:
         reason = "cannot find: " + iptables + " -I " + rule
         print_error(reason, filename, lineno)
@@ -166,7 +167,7 @@ def execute_cmd(cmd, filename, lineno):
     if cmd.startswith('iptables ') or cmd.startswith('ip6tables ') or cmd.startswith('ebtables ') or cmd.startswith('arptables '):
         cmd = os.path.abspath(os.path.curdir) + "/iptables/" + EXECUTEABLE + " " + cmd
 
-    print >> log_file, "command: %s" % cmd
+    print("command: {}".format(cmd), file=log_file)
     ret = subprocess.call(cmd, shell=True, universal_newlines=True,
         stderr=subprocess.STDOUT, stdout=log_file)
     log_file.flush()
@@ -249,7 +250,7 @@ def run_test_file(filename, netns):
             continue
 
         if len(chain_array) == 0:
-            print "broken test, missing chain, leaving"
+            print("broken test, missing chain, leaving")
             sys.exit()
 
         test_passed = True
@@ -282,7 +283,7 @@ def run_test_file(filename, netns):
     if netns:
         execute_cmd("ip netns del ____iptables-container-test", filename, 0)
     if total_test_passed:
-        print filename + ": " + Colors.GREEN + "OK" + Colors.ENDC
+        print(filename + ": " + Colors.GREEN + "OK" + Colors.ENDC)
 
     f.close()
     return tests, passed
@@ -302,7 +303,7 @@ def show_missing():
     missing = [test_name(i) for i in libfiles
                if not test_name(i) in testfiles]
 
-    print '\n'.join(missing)
+    print('\n'.join(missing))
 
 
 #
@@ -313,6 +314,8 @@ def main():
     parser.add_argument('filename', nargs='?',
                         metavar='path/to/file.t',
                         help='Run only this test')
+    parser.add_argument('-H', '--host', action='store_true',
+                        help='Run tests against installed binaries')
     parser.add_argument('-l', '--legacy', action='store_true',
                         help='Test iptables-legacy')
     parser.add_argument('-m', '--missing', action='store_true',
@@ -336,11 +339,13 @@ def main():
         EXECUTEABLE = "xtables-nft-multi"
 
     if os.getuid() != 0:
-        print "You need to be root to run this, sorry"
+        print("You need to be root to run this, sorry")
         return
 
-    os.putenv("XTABLES_LIBDIR", os.path.abspath(EXTENSIONS_PATH))
-    os.putenv("PATH", "%s/iptables:%s" % (os.path.abspath(os.path.curdir), os.getenv("PATH")))
+    if not args.host:
+        os.putenv("XTABLES_LIBDIR", os.path.abspath(EXTENSIONS_PATH))
+        os.putenv("PATH", "%s/iptables:%s" % (os.path.abspath(os.path.curdir),
+                                              os.getenv("PATH")))
 
     test_files = 0
     tests = 0
@@ -351,13 +356,17 @@ def main():
     try:
         log_file = open(LOGFILE, 'w')
     except IOError:
-        print "Couldn't open log file %s" % LOGFILE
+        print("Couldn't open log file %s" % LOGFILE)
         return
 
-    file_list = [os.path.join(EXTENSIONS_PATH, i)
-                 for i in os.listdir(EXTENSIONS_PATH)]
     if args.filename:
         file_list = [args.filename]
+    else:
+        file_list = [os.path.join(EXTENSIONS_PATH, i)
+                     for i in os.listdir(EXTENSIONS_PATH)
+                     if i.endswith('.t')]
+        file_list.sort()
+
     for filename in file_list:
         file_tests, file_passed = run_test_file(filename, args.netns)
         if file_tests:
@@ -365,8 +374,7 @@ def main():
             passed += file_passed
             test_files += 1
 
-    print ("%d test files, %d unit tests, %d passed" %
-           (test_files, tests, passed))
+    print("%d test files, %d unit tests, %d passed" % (test_files, tests, passed))
 
 
 if __name__ == '__main__':

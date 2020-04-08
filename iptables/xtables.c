@@ -24,7 +24,7 @@
  *	along with this program; if not, write to the Free Software
  *	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-
+#include "config.h"
 #include <getopt.h>
 #include <string.h>
 #include <netdb.h>
@@ -42,17 +42,6 @@
 #include "xshared.h"
 #include "nft-shared.h"
 #include "nft.h"
-
-#ifndef TRUE
-#define TRUE 1
-#endif
-#ifndef FALSE
-#define FALSE 0
-#endif
-
-#define NUMBER_OF_CMD	16
-static const char cmdflags[] = { 'I', 'D', 'D', 'R', 'A', 'L', 'F', 'Z',
-				 'N', 'X', 'P', 'E', 'S', 'Z', 'C' };
 
 #define OPT_FRAGMENT	0x00800U
 #define NUMBER_OF_OPT	ARRAY_SIZE(optflags)
@@ -104,7 +93,7 @@ void xtables_exit_error(enum xtables_exittype status, const char *msg, ...) __at
 
 struct xtables_globals xtables_globals = {
 	.option_offset = 0,
-	.program_version = IPTABLES_VERSION,
+	.program_version = PACKAGE_VERSION,
 	.orig_opts = original_opts,
 	.exit_err = xtables_exit_error,
 	.compat_rev = nft_compatible_revision,
@@ -319,27 +308,6 @@ opt2char(int option)
 	return *ptr;
 }
 
-static char
-cmd2char(int option)
-{
-	const char *ptr;
-	for (ptr = cmdflags; option > 1; option >>= 1, ptr++);
-
-	return *ptr;
-}
-
-static void
-add_command(unsigned int *cmd, const int newcmd, const int othercmds,
-	    int invert)
-{
-	if (invert)
-		xtables_error(PARAMETER_PROBLEM, "unexpected ! flag");
-	if (*cmd & (~othercmds))
-		xtables_error(PARAMETER_PROBLEM, "Cannot use -%c with -%c\n",
-			   cmd2char(newcmd), cmd2char(*cmd & (~othercmds)));
-	*cmd |= newcmd;
-}
-
 /*
  *	All functions starting with "parse" should succeed, otherwise
  *	the program fails.
@@ -350,18 +318,6 @@ add_command(unsigned int *cmd, const int newcmd, const int othercmds,
 */
 
 /* Christophe Burki wants `-p 6' to imply `-m tcp'.  */
-/* Can't be zero. */
-static int
-parse_rulenumber(const char *rule)
-{
-	unsigned int rulenum;
-
-	if (!xtables_strtoui(rule, NULL, &rulenum, 1, INT_MAX))
-		xtables_error(PARAMETER_PROBLEM,
-			   "Invalid rule number `%s'", rule);
-
-	return rulenum;
-}
 
 static void
 set_option(unsigned int *options, unsigned int option, uint8_t *invflg,
@@ -590,6 +546,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 	bool wait_interval_set = false;
 	struct timeval wait_interval;
 	struct xtables_target *t;
+	bool table_set = false;
 	int wait = 0;
 
 	memset(cs, 0, sizeof(*cs));
@@ -879,11 +836,16 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 			if (cs->invert)
 				xtables_error(PARAMETER_PROBLEM,
 					   "unexpected ! flag before --table");
+			if (p->restore && table_set)
+				xtables_error(PARAMETER_PROBLEM,
+					      "The -t option (seen in line %u) cannot be used in %s.\n",
+					      line, xt_params->program_name);
 			if (!nft_table_builtin_find(h, optarg))
 				xtables_error(VERSION_PROBLEM,
 					      "table '%s' does not exist",
 					      optarg);
 			p->table = optarg;
+			table_set = true;
 			break;
 
 		case 'x':
@@ -955,6 +917,9 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 			break;
 
 		case '4':
+			if (p->restore && args->family == AF_INET6)
+				return;
+
 			if (args->family != AF_INET)
 				exit_tryhelp(2);
 
@@ -962,6 +927,9 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 			break;
 
 		case '6':
+			if (p->restore && args->family == AF_INET)
+				return;
+
 			args->family = AF_INET6;
 			xtables_set_nfproto(AF_INET6);
 
@@ -977,7 +945,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 					xtables_error(PARAMETER_PROBLEM,
 						   "multiple consecutive ! not"
 						   " allowed");
-				cs->invert = TRUE;
+				cs->invert = true;
 				optarg[0] = '\0';
 				continue;
 			}
@@ -990,7 +958,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 				continue;
 			break;
 		}
-		cs->invert = FALSE;
+		cs->invert = false;
 	}
 
 	if (strcmp(p->table, "nat") == 0 &&
@@ -1173,6 +1141,9 @@ int do_commandx(struct nft_handle *h, int argc, char *argv[], char **table,
 		break;
 	case CMD_SET_POLICY:
 		ret = nft_chain_set(h, p.table, p.chain, p.policy, NULL);
+		break;
+	case CMD_NONE:
+	/* do_parse ignored the line (eg: -4 with ip6tables-restore) */
 		break;
 	default:
 		/* We should never reach this... */

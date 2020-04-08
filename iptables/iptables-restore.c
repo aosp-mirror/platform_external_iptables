@@ -4,7 +4,7 @@
  *
  * This code is distributed under the terms of GNU GPL v2
  */
-
+#include "config.h"
 #include <getopt.h>
 #include <errno.h>
 #include <stdbool.h>
@@ -43,7 +43,7 @@ static const struct option options[] = {
 
 static void print_usage(const char *name, const char *version)
 {
-	fprintf(stderr, "Usage: %s [-c] [-v] [-V] [-t] [-h] [-n] [-w secs] [-W usecs] [-T table] [-M command]\n"
+	fprintf(stderr, "Usage: %s [-c] [-v] [-V] [-t] [-h] [-n] [-w secs] [-W usecs] [-T table] [-M command] [file]\n"
 			"	   [ --counters ]\n"
 			"	   [ --verbose ]\n"
 			"	   [ --version]\n"
@@ -70,7 +70,7 @@ struct iptables_restore_cb {
 };
 
 static struct xtc_handle *
-create_handle(struct iptables_restore_cb *cb, const char *tablename)
+create_handle(const struct iptables_restore_cb *cb, const char *tablename)
 {
 	struct xtc_handle *handle;
 
@@ -82,18 +82,19 @@ create_handle(struct iptables_restore_cb *cb, const char *tablename)
 		handle = cb->ops->init(tablename);
 	}
 
-	if (!handle) {
+	if (!handle)
 		xtables_error(PARAMETER_PROBLEM, "%s: unable to initialize "
 			"table '%s'\n", xt_params->program_name, tablename);
-		exit(1);
-	}
+
 	return handle;
 }
 
 static int
-ip46tables_restore_main(struct iptables_restore_cb *cb, int argc, char *argv[])
+ip46tables_restore_main(const struct iptables_restore_cb *cb,
+			int argc, char *argv[])
 {
 	struct xtc_handle *handle = NULL;
+	struct argv_store av_store = {};
 	char buffer[10240];
 	int c, lock;
 	char curtable[XT_TABLE_MAXNAMELEN + 1] = {};
@@ -125,7 +126,7 @@ ip46tables_restore_main(struct iptables_restore_cb *cb, int argc, char *argv[])
 				break;
 			case 'h':
 				print_usage(xt_params->program_name,
-					    IPTABLES_VERSION);
+					    PACKAGE_VERSION);
 				exit(0);
 			case 'n':
 				noflush = 1;
@@ -207,12 +208,11 @@ ip46tables_restore_main(struct iptables_restore_cb *cb, int argc, char *argv[])
 
 			table = strtok(buffer+1, " \t\n");
 			DEBUGP("line %u, table '%s'\n", line, table);
-			if (!table) {
+			if (!table)
 				xtables_error(PARAMETER_PROBLEM,
 					"%s: line %u table name invalid\n",
 					xt_params->program_name, line);
-				exit(1);
-			}
+
 			strncpy(curtable, table, XT_TABLE_MAXNAMELEN);
 			curtable[XT_TABLE_MAXNAMELEN] = '\0';
 
@@ -248,12 +248,10 @@ ip46tables_restore_main(struct iptables_restore_cb *cb, int argc, char *argv[])
 
 			chain = strtok(buffer+1, " \t\n");
 			DEBUGP("line %u, chain '%s'\n", line, chain);
-			if (!chain) {
+			if (!chain)
 				xtables_error(PARAMETER_PROBLEM,
 					   "%s: line %u chain name invalid\n",
 					   xt_params->program_name, line);
-				exit(1);
-			}
 
 			if (strlen(chain) >= XT_EXTENSION_MAXNAMELEN)
 				xtables_error(PARAMETER_PROBLEM,
@@ -281,12 +279,10 @@ ip46tables_restore_main(struct iptables_restore_cb *cb, int argc, char *argv[])
 
 			policy = strtok(NULL, " \t\n");
 			DEBUGP("line %u, policy '%s'\n", line, policy);
-			if (!policy) {
+			if (!policy)
 				xtables_error(PARAMETER_PROBLEM,
 					   "%s: line %u policy invalid\n",
 					   xt_params->program_name, line);
-				exit(1);
-			}
 
 			if (strcmp(policy, "-") != 0) {
 				struct xt_counters count = {};
@@ -316,61 +312,31 @@ ip46tables_restore_main(struct iptables_restore_cb *cb, int argc, char *argv[])
 			ret = 1;
 
 		} else if (in_table) {
-			int a;
 			char *pcnt = NULL;
 			char *bcnt = NULL;
-			char *parsestart;
+			char *parsestart = buffer;
 
-			if (buffer[0] == '[') {
-				/* we have counters in our input */
-				char *ptr = strchr(buffer, ']');
+			add_argv(&av_store, argv[0], 0);
+			add_argv(&av_store, "-t", 0);
+			add_argv(&av_store, curtable, 0);
 
-				if (!ptr)
-					xtables_error(PARAMETER_PROBLEM,
-						   "Bad line %u: need ]\n",
-						   line);
-
-				pcnt = strtok(buffer+1, ":");
-				if (!pcnt)
-					xtables_error(PARAMETER_PROBLEM,
-						   "Bad line %u: need :\n",
-						   line);
-
-				bcnt = strtok(NULL, "]");
-				if (!bcnt)
-					xtables_error(PARAMETER_PROBLEM,
-						   "Bad line %u: need ]\n",
-						   line);
-
-				/* start command parsing after counter */
-				parsestart = ptr + 1;
-			} else {
-				/* start command parsing at start of line */
-				parsestart = buffer;
-			}
-
-			add_argv(argv[0], 0);
-			add_argv("-t", 0);
-			add_argv(curtable, 0);
-
+			tokenize_rule_counters(&parsestart, &pcnt, &bcnt, line);
 			if (counters && pcnt && bcnt) {
-				add_argv("--set-counters", 0);
-				add_argv((char *) pcnt, 0);
-				add_argv((char *) bcnt, 0);
+				add_argv(&av_store, "--set-counters", 0);
+				add_argv(&av_store, pcnt, 0);
+				add_argv(&av_store, bcnt, 0);
 			}
 
-			add_param_to_argv(parsestart, line);
+			add_param_to_argv(&av_store, parsestart, line);
 
 			DEBUGP("calling do_command(%u, argv, &%s, handle):\n",
-				newargc, curtable);
+				av_store.argc, curtable);
+			debug_print_argv(&av_store);
 
-			for (a = 0; a < newargc; a++)
-				DEBUGP("argv[%u]: %s\n", a, newargv[a]);
+			ret = cb->do_command(av_store.argc, av_store.argv,
+					 &av_store.argv[2], &handle, true);
 
-			ret = cb->do_command(newargc, newargv,
-					 &newargv[2], &handle, true);
-
-			free_argv();
+			free_argv(&av_store);
 			fflush(stdout);
 		}
 		if (tablename && strcmp(tablename, curtable) != 0)
@@ -393,7 +359,7 @@ ip46tables_restore_main(struct iptables_restore_cb *cb, int argc, char *argv[])
 
 
 #if defined ENABLE_IPV4
-struct iptables_restore_cb ipt_restore_cb = {
+static const struct iptables_restore_cb ipt_restore_cb = {
 	.ops		= &iptc_ops,
 	.for_each_chain	= for_each_chain4,
 	.flush_entries	= flush_entries4,
@@ -424,7 +390,7 @@ iptables_restore_main(int argc, char *argv[])
 #endif
 
 #if defined ENABLE_IPV6
-struct iptables_restore_cb ip6t_restore_cb = {
+static const struct iptables_restore_cb ip6t_restore_cb = {
 	.ops		= &ip6tc_ops,
 	.for_each_chain	= for_each_chain6,
 	.flush_entries	= flush_entries6,

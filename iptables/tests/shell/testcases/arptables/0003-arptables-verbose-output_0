@@ -58,7 +58,6 @@ EXPECT='*filter
 -A INPUT -j MARK -i eth23 --set-mark 42
 -A OUTPUT -j CLASSIFY -o eth23 --set-class 23:42
 -A OUTPUT -j foo -o eth23
--A foo -j mangle -o eth23 --mangle-ip-s 10.0.0.1
-'
+-A foo -j mangle -o eth23 --mangle-ip-s 10.0.0.1'
 
-diff -u -Z <(echo -e "$EXPECT") <($XT_MULTI arptables-save)
+diff -u -Z <(echo -e "$EXPECT") <($XT_MULTI arptables-save | grep -v '^#')

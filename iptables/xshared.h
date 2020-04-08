@@ -12,7 +12,7 @@
 #include <linux/netfilter_ipv6/ip6_tables.h>
 
 #ifdef DEBUG
-#define DEBUGP(x, args...) fprintf(stdout, x, ## args)
+#define DEBUGP(x, args...) fprintf(stderr, x, ## args)
 #else
 #define DEBUGP(x, args...)
 #endif
@@ -30,7 +30,34 @@ enum {
 	OPT_VIANAMEOUT  = 1 << 8,
 	OPT_LINENUMBERS = 1 << 9,
 	OPT_COUNTERS    = 1 << 10,
+	/* below are for arptables only */
+	OPT_S_MAC	= 1 << 11,
+	OPT_D_MAC	= 1 << 12,
+	OPT_H_LENGTH	= 1 << 13,
+	OPT_OPCODE	= 1 << 14,
+	OPT_H_TYPE	= 1 << 15,
+	OPT_P_TYPE	= 1 << 16,
 };
+
+enum {
+	CMD_NONE		= 0,
+	CMD_INSERT		= 1 << 0,
+	CMD_DELETE		= 1 << 1,
+	CMD_DELETE_NUM		= 1 << 2,
+	CMD_REPLACE		= 1 << 3,
+	CMD_APPEND		= 1 << 4,
+	CMD_LIST		= 1 << 5,
+	CMD_FLUSH		= 1 << 6,
+	CMD_ZERO		= 1 << 7,
+	CMD_NEW_CHAIN		= 1 << 8,
+	CMD_DELETE_CHAIN	= 1 << 9,
+	CMD_SET_POLICY		= 1 << 10,
+	CMD_RENAME_CHAIN	= 1 << 11,
+	CMD_LIST_RULES		= 1 << 12,
+	CMD_ZERO_NUM		= 1 << 13,
+	CMD_CHECK		= 1 << 14,
+};
+#define NUMBER_OF_CMD		16
 
 struct xtables_globals;
 struct xtables_rule_match;
@@ -152,22 +179,27 @@ extern int xtables_lock_or_exit(int wait, struct timeval *tv);
 int parse_wait_time(int argc, char *argv[]);
 void parse_wait_interval(int argc, char *argv[], struct timeval *wait_interval);
 int parse_counters(const char *string, struct xt_counters *ctr);
+bool tokenize_rule_counters(char **bufferp, char **pcnt, char **bcnt, int line);
 bool xs_has_arg(int argc, char *argv[]);
 
 extern const struct xtables_afinfo *afinfo;
 
-extern char *newargv[];
-extern int newargc;
+#define MAX_ARGC	255
+struct argv_store {
+	int argc;
+	char *argv[MAX_ARGC];
+	int argvattr[MAX_ARGC];
+};
 
-extern char *oldargv[];
-extern int oldargc;
-
-extern int newargvattr[];
-
-int add_argv(const char *what, int quoted);
-void free_argv(void);
-void save_argv(void);
-void add_param_to_argv(char *parsestart, int line);
+void add_argv(struct argv_store *store, const char *what, int quoted);
+void free_argv(struct argv_store *store);
+void save_argv(struct argv_store *dst, struct argv_store *src);
+void add_param_to_argv(struct argv_store *store, char *parsestart, int line);
+#ifdef DEBUG
+void debug_print_argv(struct argv_store *store);
+#else
+#  define debug_print_argv(...) /* nothing */
+#endif
 
 void print_ipv4_addresses(const struct ipt_entry *fw, unsigned int format);
 void print_ipv6_addresses(const struct ip6t_entry *fw6, unsigned int format);
@@ -178,5 +210,10 @@ void print_ifaces(const char *iniface, const char *outiface, uint8_t invflags,
 void command_match(struct iptables_command_state *cs);
 const char *xt_parse_target(const char *targetname);
 void command_jump(struct iptables_command_state *cs, const char *jumpto);
+
+char cmd2char(int option);
+void add_command(unsigned int *cmd, const int newcmd,
+		 const int othercmds, int invert);
+int parse_rulenumber(const char *rule);
 
 #endif /* IPTABLES_XSHARED_H */

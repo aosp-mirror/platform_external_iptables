@@ -24,7 +24,7 @@ clean_tempfile()
 
 trap clean_tempfile EXIT
 
-ENTRY_NUM=$((RANDOM%100))
+ENTRY_NUM=$((RANDOM%10))
 UCHAIN_NUM=$((RANDOM%10))
 
 get_target()
@@ -87,7 +87,7 @@ fi
 
 case "$XT_MULTI" in
 */xtables-nft-multi)
-	attempts=$((RANDOM%200))
+	attempts=$((RANDOM%10))
 	attempts=$((attempts+1))
 	;;
 *)

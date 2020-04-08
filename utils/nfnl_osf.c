@@ -343,31 +343,34 @@ static int osf_load_line(char *buffer, int len, int del)
 	pend = xt_osf_strchr(pbeg, OSFPDEL);
 	if (pend) {
 		*pend = '\0';
-		snprintf(obuf, sizeof(obuf), "%s,", pbeg);
+		i = sizeof(obuf);
+		snprintf(obuf, i, "%.*s,", i - 2, pbeg);
 		pbeg = pend + 1;
 	}
 
 	pend = xt_osf_strchr(pbeg, OSFPDEL);
 	if (pend) {
 		*pend = '\0';
+		i = sizeof(f.genre);
 		if (pbeg[0] == '@' || pbeg[0] == '*')
-			snprintf(f.genre, sizeof(f.genre), "%s", pbeg + 1);
-		else
-			snprintf(f.genre, sizeof(f.genre), "%s", pbeg);
+			pbeg++;
+		snprintf(f.genre, i, "%.*s", i - 1, pbeg);
 		pbeg = pend + 1;
 	}
 
 	pend = xt_osf_strchr(pbeg, OSFPDEL);
 	if (pend) {
 		*pend = '\0';
-		snprintf(f.version, sizeof(f.version), "%s", pbeg);
+		i = sizeof(f.version);
+		snprintf(f.version, i, "%.*s", i - 1, pbeg);
 		pbeg = pend + 1;
 	}
 
 	pend = xt_osf_strchr(pbeg, OSFPDEL);
 	if (pend) {
 		*pend = '\0';
-		snprintf(f.subtype, sizeof(f.subtype), "%s", pbeg);
+		i = sizeof(f.subtype);
+		snprintf(f.subtype, i, "%.*s", i - 1, pbeg);
 	}
 
 	xt_osf_parse_opt(f.opt, &f.opt_num, obuf, sizeof(obuf));

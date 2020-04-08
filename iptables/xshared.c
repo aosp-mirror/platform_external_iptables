@@ -181,7 +181,6 @@ int command_default(struct iptables_command_state *cs,
 		xtables_error(PARAMETER_PROBLEM, "unknown option "
 			      "\"%s\"", cs->argv[optind-1]);
 	xtables_error(PARAMETER_PROBLEM, "Unknown arg \"%s\"", optarg);
-	return 0;
 }
 
 static mainfunc_t subcmd_get(const char *cmd, const struct subcommand *cb)
@@ -374,6 +373,43 @@ int parse_counters(const char *string, struct xt_counters *ctr)
 	return ret == 2;
 }
 
+/* Tokenize counters argument of typical iptables-restore format rule.
+ *
+ * If *bufferp contains counters, update *pcntp and *bcntp to point at them,
+ * change bytes after counters in *bufferp to nul-bytes, update *bufferp to
+ * point to after the counters and return true.
+ * If *bufferp does not contain counters, return false.
+ * If syntax is wrong in *bufferp, call xtables_error() and hence exit().
+ * */
+bool tokenize_rule_counters(char **bufferp, char **pcntp, char **bcntp, int line)
+{
+	char *ptr, *buffer = *bufferp, *pcnt, *bcnt;
+
+	if (buffer[0] != '[')
+		return false;
+
+	/* we have counters in our input */
+
+	ptr = strchr(buffer, ']');
+	if (!ptr)
+		xtables_error(PARAMETER_PROBLEM, "Bad line %u: need ]\n", line);
+
+	pcnt = strtok(buffer+1, ":");
+	if (!pcnt)
+		xtables_error(PARAMETER_PROBLEM, "Bad line %u: need :\n", line);
+
+	bcnt = strtok(NULL, "]");
+	if (!bcnt)
+		xtables_error(PARAMETER_PROBLEM, "Bad line %u: need ]\n", line);
+
+	*pcntp = pcnt;
+	*bcntp = bcnt;
+	/* start command parsing after counter */
+	*bufferp = ptr + 1;
+
+	return true;
+}
+
 inline bool xs_has_arg(int argc, char *argv[])
 {
 	return optind < argc &&
@@ -381,56 +417,48 @@ inline bool xs_has_arg(int argc, char *argv[])
 	       argv[optind][0] != '!';
 }
 
-/* global new argv and argc */
-char *newargv[255];
-int newargc = 0;
-
-/* saved newargv and newargc from save_argv() */
-char *oldargv[255];
-int oldargc = 0;
-
-/* arg meta data, were they quoted, frinstance */
-int newargvattr[255];
-
-/* function adding one argument to newargv, updating newargc
- * returns true if argument added, false otherwise */
-int add_argv(const char *what, int quoted)
+/* function adding one argument to store, updating argc
+ * returns if argument added, does not return otherwise */
+void add_argv(struct argv_store *store, const char *what, int quoted)
 {
 	DEBUGP("add_argv: %s\n", what);
-	if (what && newargc + 1 < ARRAY_SIZE(newargv)) {
-		newargv[newargc] = strdup(what);
-		newargvattr[newargc] = quoted;
-		newargv[++newargc] = NULL;
-		return 1;
-	} else {
+
+	if (store->argc + 1 >= MAX_ARGC)
 		xtables_error(PARAMETER_PROBLEM,
 			      "Parser cannot handle more arguments\n");
-	}
+	if (!what)
+		xtables_error(PARAMETER_PROBLEM,
+			      "Trying to store NULL argument\n");
+
+	store->argv[store->argc] = strdup(what);
+	store->argvattr[store->argc] = quoted;
+	store->argv[++store->argc] = NULL;
 }
 
-void free_argv(void)
+void free_argv(struct argv_store *store)
 {
-	while (newargc)
-		free(newargv[--newargc]);
-	while (oldargc)
-		free(oldargv[--oldargc]);
+	while (store->argc) {
+		store->argc--;
+		free(store->argv[store->argc]);
+		store->argvattr[store->argc] = 0;
+	}
 }
 
 /* Save parsed rule for comparison with next rule to perform action aggregation
  * on duplicate conditions.
  */
-void save_argv(void)
+void save_argv(struct argv_store *dst, struct argv_store *src)
 {
-	unsigned int i;
+	int i;
 
-	while (oldargc)
-		free(oldargv[--oldargc]);
-
-	oldargc = newargc;
-	newargc = 0;
-	for (i = 0; i < oldargc; i++) {
-		oldargv[i] = newargv[i];
+	free_argv(dst);
+	for (i = 0; i < src->argc; i++) {
+		dst->argvattr[i] = src->argvattr[i];
+		dst->argv[i] = src->argv[i];
+		src->argv[i] = NULL;
 	}
+	dst->argc = src->argc;
+	src->argc = 0;
 }
 
 struct xt_param_buf {
@@ -446,9 +474,9 @@ static void add_param(struct xt_param_buf *param, const char *curchar)
 			      "Parameter too long!");
 }
 
-void add_param_to_argv(char *parsestart, int line)
+void add_param_to_argv(struct argv_store *store, char *parsestart, int line)
 {
-	int quote_open = 0, escaped = 0;
+	int quote_open = 0, escaped = 0, quoted = 0;
 	struct xt_param_buf param = {};
 	char *curchar;
 
@@ -475,6 +503,7 @@ void add_param_to_argv(char *parsestart, int line)
 		} else {
 			if (*curchar == '"') {
 				quote_open = 1;
+				quoted = 1;
 				continue;
 			}
 		}
@@ -497,22 +526,25 @@ void add_param_to_argv(char *parsestart, int line)
 		}
 
 		param.buffer[param.len] = '\0';
-
-		/* check if table name specified */
-		if ((param.buffer[0] == '-' &&
-		     param.buffer[1] != '-' &&
-		     strchr(param.buffer, 't')) ||
-		    (!strncmp(param.buffer, "--t", 3) &&
-		     !strncmp(param.buffer, "--table", strlen(param.buffer)))) {
-			xtables_error(PARAMETER_PROBLEM,
-				      "The -t option (seen in line %u) cannot be used in %s.\n",
-				      line, xt_params->program_name);
-		}
-
-		add_argv(param.buffer, 0);
+		add_argv(store, param.buffer, quoted);
 		param.len = 0;
+		quoted = 0;
+	}
+	if (param.len) {
+		param.buffer[param.len] = '\0';
+		add_argv(store, param.buffer, 0);
 	}
 }
+
+#ifdef DEBUG
+void debug_print_argv(struct argv_store *store)
+{
+	int i;
+
+	for (i = 0; i < store->argc; i++)
+		fprintf(stderr, "argv[%d]: %s\n", i, store->argv[i]);
+}
+#endif
 
 static const char *ipv4_addr_to_string(const struct in_addr *addr,
 				       const struct in_addr *mask,
@@ -703,4 +735,43 @@ void command_jump(struct iptables_command_state *cs, const char *jumpto)
 	if (opts == NULL)
 		xtables_error(OTHER_PROBLEM, "can't alloc memory!");
 	xt_params->opts = opts;
+}
+
+char cmd2char(int option)
+{
+	/* cmdflags index corresponds with position of bit in CMD_* values */
+	static const char cmdflags[] = { 'I', 'D', 'D', 'R', 'A', 'L', 'F', 'Z',
+					 'N', 'X', 'P', 'E', 'S', 'Z', 'C' };
+	int i;
+
+	for (i = 0; option > 1; option >>= 1, i++)
+		;
+	if (i >= ARRAY_SIZE(cmdflags))
+		xtables_error(OTHER_PROBLEM,
+			      "cmd2char(): Invalid command number %u.\n",
+			      1 << i);
+	return cmdflags[i];
+}
+
+void add_command(unsigned int *cmd, const int newcmd,
+		 const int othercmds, int invert)
+{
+	if (invert)
+		xtables_error(PARAMETER_PROBLEM, "unexpected '!' flag");
+	if (*cmd & (~othercmds))
+		xtables_error(PARAMETER_PROBLEM, "Cannot use -%c with -%c\n",
+			   cmd2char(newcmd), cmd2char(*cmd & (~othercmds)));
+	*cmd |= newcmd;
+}
+
+/* Can't be zero. */
+int parse_rulenumber(const char *rule)
+{
+	unsigned int rulenum;
+
+	if (!xtables_strtoui(rule, NULL, &rulenum, 1, INT_MAX))
+		xtables_error(PARAMETER_PROBLEM,
+			   "Invalid rule number `%s'", rule);
+
+	return rulenum;
 }

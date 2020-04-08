@@ -24,7 +24,7 @@
  *	along with this program; if not, write to the Free Software
  *	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-
+#include "config.h"
 #include <getopt.h>
 #include <string.h>
 #include <netdb.h>
@@ -44,33 +44,6 @@
 #include <sys/socket.h>
 #include "ip6tables-multi.h"
 #include "xshared.h"
-
-#ifndef TRUE
-#define TRUE 1
-#endif
-#ifndef FALSE
-#define FALSE 0
-#endif
-
-#define CMD_NONE		0x0000U
-#define CMD_INSERT		0x0001U
-#define CMD_DELETE		0x0002U
-#define CMD_DELETE_NUM		0x0004U
-#define CMD_REPLACE		0x0008U
-#define CMD_APPEND		0x0010U
-#define CMD_LIST		0x0020U
-#define CMD_FLUSH		0x0040U
-#define CMD_ZERO		0x0080U
-#define CMD_NEW_CHAIN		0x0100U
-#define CMD_DELETE_CHAIN	0x0200U
-#define CMD_SET_POLICY		0x0400U
-#define CMD_RENAME_CHAIN	0x0800U
-#define CMD_LIST_RULES		0x1000U
-#define CMD_ZERO_NUM		0x2000U
-#define CMD_CHECK		0x4000U
-#define NUMBER_OF_CMD	16
-static const char cmdflags[] = { 'I', 'D', 'D', 'R', 'A', 'L', 'F', 'Z',
-				 'N', 'X', 'P', 'E', 'S', 'Z', 'C' };
 
 #define NUMBER_OF_OPT	ARRAY_SIZE(optflags)
 static const char optflags[]
@@ -121,7 +94,7 @@ static struct option original_opts[] = {
 void ip6tables_exit_error(enum xtables_exittype status, const char *msg, ...) __attribute__((noreturn, format(printf,2,3)));
 struct xtables_globals ip6tables_globals = {
 	.option_offset = 0,
-	.program_version = IPTABLES_VERSION,
+	.program_version = PACKAGE_VERSION,
 	.orig_opts = original_opts,
 	.exit_err = ip6tables_exit_error,
 	.compat_rev = xtables_compatible_revision,
@@ -175,12 +148,6 @@ static const unsigned int inverse_for_options[NUMBER_OF_OPT] =
 #define opts ip6tables_globals.opts
 #define prog_name ip6tables_globals.program_name
 #define prog_vers ip6tables_globals.program_version
-/* A few hardcoded protocols for 'all' and in case the user has no
-   /etc/protocols */
-struct pprot {
-	const char *name;
-	uint8_t num;
-};
 
 static void __attribute__((noreturn))
 exit_tryhelp(int status)
@@ -342,27 +309,6 @@ opt2char(int option)
 	return *ptr;
 }
 
-static char
-cmd2char(int option)
-{
-	const char *ptr;
-	for (ptr = cmdflags; option > 1; option >>= 1, ptr++);
-
-	return *ptr;
-}
-
-static void
-add_command(unsigned int *cmd, const int newcmd, const int othercmds,
-	    int invert)
-{
-	if (invert)
-		xtables_error(PARAMETER_PROBLEM, "unexpected '!' flag");
-	if (*cmd & (~othercmds))
-		xtables_error(PARAMETER_PROBLEM, "Cannot use -%c with -%c\n",
-			   cmd2char(newcmd), cmd2char(*cmd & (~othercmds)));
-	*cmd |= newcmd;
-}
-
 /*
  *	All functions starting with "parse" should succeed, otherwise
  *	the program fails.
@@ -379,19 +325,6 @@ static int is_exthdr(uint16_t proto)
 		proto == IPPROTO_FRAGMENT ||
 		proto == IPPROTO_AH ||
 		proto == IPPROTO_DSTOPTS);
-}
-
-/* Can't be zero. */
-static int
-parse_rulenumber(const char *rule)
-{
-	unsigned int rulenum;
-
-	if (!xtables_strtoui(rule, NULL, &rulenum, 1, INT_MAX))
-		xtables_error(PARAMETER_PROBLEM,
-			   "Invalid rule number `%s'", rule);
-
-	return rulenum;
 }
 
 static void
@@ -1228,6 +1161,7 @@ int do_command6(int argc, char *argv[], char **table,
 	struct xtables_rule_match *matchp;
 	struct xtables_target *t;
 	unsigned long long cnt;
+	bool table_set = false;
 
 	/* re-set optind to 0 in case do_command6 gets called
 	 * a second time */
@@ -1508,7 +1442,12 @@ int do_command6(int argc, char *argv[], char **table,
 			if (cs.invert)
 				xtables_error(PARAMETER_PROBLEM,
 					   "unexpected ! flag before --table");
+			if (restore && table_set)
+				xtables_error(PARAMETER_PROBLEM,
+					      "The -t option (seen in line %u) cannot be used in %s.\n",
+					      line, xt_params->program_name);
 			*table = optarg;
+			table_set = true;
 			break;
 
 		case 'x':
@@ -1578,7 +1517,7 @@ int do_command6(int argc, char *argv[], char **table,
 					xtables_error(PARAMETER_PROBLEM,
 						   "multiple consecutive ! not"
 						   " allowed");
-				cs.invert = TRUE;
+				cs.invert = true;
 				optarg[0] = '\0';
 				continue;
 			}
@@ -1590,12 +1529,12 @@ int do_command6(int argc, char *argv[], char **table,
 				/*
 				 * If new options were loaded, we must retry
 				 * getopt immediately and not allow
-				 * cs.invert=FALSE to be executed.
+				 * cs.invert=false to be executed.
 				 */
 				continue;
 			break;
 		}
-		cs.invert = FALSE;
+		cs.invert = false;
 	}
 
 	if (!wait && wait_interval_set)
