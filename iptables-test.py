@@ -109,7 +109,8 @@ def run_test(iptables, rule, rule_save, res, filename, lineno):
         elif splitted[0] == IP6TABLES:
             command = IP6TABLES_SAVE
     args = splitted[1:]
-    proc = subprocess.Popen(command, stdin=subprocess.PIPE,
+    proc = subprocess.Popen((os.path.abspath(os.path.curdir) + "/iptables/" + EXECUTEABLE, command),
+                            stdin=subprocess.PIPE,
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = proc.communicate()
 
@@ -143,6 +144,9 @@ def execute_cmd(cmd, filename, lineno):
     :param lineno: line number being tested (used for print_error purposes)
     '''
     global log_file
+    if cmd.startswith('iptables ') or cmd.startswith('ip6tables '):
+        cmd = os.path.abspath(os.path.curdir) + "/iptables/" + EXECUTEABLE + " " + cmd
+
     print >> log_file, "command: %s" % cmd
     ret = subprocess.call(cmd, shell=True, universal_newlines=True,
         stderr=subprocess.STDOUT, stdout=log_file)
@@ -265,8 +269,12 @@ def main():
     parser.add_argument('filename', nargs='?',
                         metavar='path/to/file.t',
                         help='Run only this test')
+    parser.add_argument('-l', '--legacy', action='store_true',
+                        help='Test iptables-legacy')
     parser.add_argument('-m', '--missing', action='store_true',
                         help='Check for missing tests')
+    parser.add_argument('-n', '--nftables', action='store_true',
+                        help='Test iptables-over-nftables')
     args = parser.parse_args()
 
     #
@@ -276,9 +284,17 @@ def main():
         show_missing()
         return
 
+    global EXECUTEABLE
+    EXECUTEABLE = "xtables-legacy-multi"
+    if args.nftables:
+        EXECUTEABLE = "xtables-nft-multi"
+
     if os.getuid() != 0:
         print "You need to be root to run this, sorry"
         return
+
+    os.putenv("XTABLES_LIBDIR", os.path.abspath(EXTENSIONS_PATH))
+    os.putenv("PATH", "%s/iptables:%s" % (os.path.abspath(os.path.curdir), os.getenv("PATH")))
 
     test_files = 0
     tests = 0

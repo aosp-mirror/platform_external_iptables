@@ -283,7 +283,7 @@ ip6tables_exit_error(enum xtables_exittype status, const char *msg, ...)
 	va_list args;
 
 	va_start(args, msg);
-	fprintf(stderr, "%s v%s: ", prog_name, prog_vers);
+	fprintf(stderr, "%s v%s (legacy): ", prog_name, prog_vers);
 	vfprintf(stderr, msg, args);
 	va_end(args);
 	fprintf(stderr, "\n");
@@ -518,19 +518,23 @@ print_match(const struct xt_entry_match *m,
 	    const struct ip6t_ip6 *ip,
 	    int numeric)
 {
-	const struct xtables_match *match =
-		xtables_find_match(m->u.user.name, XTF_TRY_LOAD, NULL);
+	const char *name = m->u.user.name;
+	const int revision = m->u.user.revision;
+	struct xtables_match *match, *mt;
 
+	match = xtables_find_match(name, XTF_TRY_LOAD, NULL);
 	if (match) {
-		if (match->print && m->u.user.revision == match->revision)
-			match->print(ip, m, numeric);
+		mt = xtables_find_match_revision(name, XTF_TRY_LOAD,
+						 match, revision);
+		if (mt && mt->print)
+			mt->print(ip, m, numeric);
 		else if (match->print)
 			printf("%s%s ", match->name, unsupported_rev);
 		else
 			printf("%s ", match->name);
 	} else {
-		if (m->u.user.name[0])
-			printf("UNKNOWN match `%s' ", m->u.user.name);
+		if (name[0])
+			printf("UNKNOWN match `%s' ", name);
 	}
 	/* Don't stop iterating. */
 	return 0;
@@ -544,7 +548,7 @@ print_firewall(const struct ip6t_entry *fw,
 	       unsigned int format,
 	       struct xtc_handle *const handle)
 {
-	const struct xtables_target *target = NULL;
+	struct xtables_target *target, *tg;
 	const struct xt_entry_target *t;
 	char buf[BUFSIZ];
 
@@ -651,9 +655,13 @@ print_firewall(const struct ip6t_entry *fw,
 	IP6T_MATCH_ITERATE(fw, print_match, &fw->ipv6, format & FMT_NUMERIC);
 
 	if (target) {
-		if (target->print && t->u.user.revision == target->revision)
+		const int revision = t->u.user.revision;
+
+		tg = xtables_find_target_revision(targname, XTF_TRY_LOAD,
+						  target, revision);
+		if (tg && tg->print)
 			/* Print the target information. */
-			target->print(&fw->ipv6, t, format & FMT_NUMERIC);
+			tg->print(&fw->ipv6, t, format & FMT_NUMERIC);
 		else if (target->print)
 			printf(" %s%s", target->name, unsupported_rev);
 	} else if (t->u.target_size != sizeof(*t))
@@ -1035,23 +1043,28 @@ static void print_proto(uint16_t proto, int invert)
 static int print_match_save(const struct xt_entry_match *e,
 			const struct ip6t_ip6 *ip)
 {
-	const struct xtables_match *match =
-		xtables_find_match(e->u.user.name, XTF_TRY_LOAD, NULL);
+	const char *name = e->u.user.name;
+	const int revision = e->u.user.revision;
+	struct xtables_match *match, *mt, *mt2;
 
+	match = xtables_find_match(name, XTF_TRY_LOAD, NULL);
 	if (match) {
-		printf(" -m %s",
-			match->alias ? match->alias(e) : e->u.user.name);
+		mt = mt2 = xtables_find_match_revision(name, XTF_TRY_LOAD,
+						       match, revision);
+		if (!mt2)
+			mt2 = match;
+		printf(" -m %s", mt2->alias ? mt2->alias(e) : name);
 
 		/* some matches don't provide a save function */
-		if (match->save && e->u.user.revision == match->revision)
-			match->save(ip, e);
+		if (mt && mt->save)
+			mt->save(ip, e);
 		else if (match->save)
 			printf(unsupported_rev);
 	} else {
 		if (e->u.match_size) {
 			fprintf(stderr,
 				"Can't find library for match `%s'\n",
-				e->u.user.name);
+				name);
 			exit(1);
 		}
 	}
@@ -1136,18 +1149,25 @@ void print_rule6(const struct ip6t_entry *e,
 	target_name = ip6tc_get_target(e, h);
 	t = ip6t_get_target((struct ip6t_entry *)e);
 	if (t->u.user.name[0]) {
-		struct xtables_target *target =
-			xtables_find_target(t->u.user.name, XTF_TRY_LOAD);
+		const char *name = t->u.user.name;
+		const int revision = t->u.user.revision;
+		struct xtables_target *target, *tg, *tg2;
 
+		target = xtables_find_target(name, XTF_TRY_LOAD);
 		if (!target) {
 			fprintf(stderr, "Can't find library for target `%s'\n",
-				t->u.user.name);
+				name);
 			exit(1);
 		}
 
-		printf(" -j %s", target->alias ? target->alias(t) : target_name);
-		if (target->save && t->u.user.revision == target->revision)
-			target->save(&e->ipv6, t);
+		tg = tg2 = xtables_find_target_revision(name, XTF_TRY_LOAD,
+							target, revision);
+		if (!tg2)
+			tg2 = target;
+		printf(" -j %s", tg2->alias ? tg2->alias(t) : target_name);
+
+		if (tg && tg->save)
+			tg->save(&e->ipv6, t);
 		else if (target->save)
 			printf(unsupported_rev);
 		else {
@@ -1158,7 +1178,7 @@ void print_rule6(const struct ip6t_entry *e,
 			    sizeof(struct xt_entry_target)) {
 				fprintf(stderr, "Target `%s' is missing "
 						"save function\n",
-					t->u.user.name);
+					name);
 				exit(1);
 			}
 		}
@@ -1647,7 +1667,7 @@ int do_command6(int argc, char *argv[], char **table,
 			if (cs.invert)
 				printf("Not %s ;-)\n", prog_vers);
 			else
-				printf("%s v%s\n",
+				printf("%s v%s (legacy)\n",
 				       prog_name, prog_vers);
 			exit(0);
 

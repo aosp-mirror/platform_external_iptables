@@ -67,8 +67,9 @@ static int nft_ipv6_add(struct nftnl_rule *r, void *data)
 		if (strcmp(matchp->match->name, "comment") == 0) {
 			ret = add_comment(r, (char *)matchp->match->m->data);
 			if (ret < 0)
-				return ret;
+				goto try_match;
 		} else {
+try_match:
 			ret = add_match(r, matchp->match->m);
 			if (ret < 0)
 				return ret;
@@ -140,7 +141,7 @@ static void nft_ipv6_parse_payload(struct nft_xt_ctx *ctx,
 			parse_mask_ipv6(ctx, &cs->fw6.ipv6.smsk);
 			ctx->flags &= ~NFT_XT_CTX_BITWISE;
 		} else {
-			memset(&cs->fw.ip.smsk, 0xff, sizeof(struct in6_addr));
+			memset(&cs->fw6.ipv6.smsk, 0xff, sizeof(struct in6_addr));
 		}
 
 		if (inv)
@@ -153,7 +154,7 @@ static void nft_ipv6_parse_payload(struct nft_xt_ctx *ctx,
 			parse_mask_ipv6(ctx, &cs->fw6.ipv6.dmsk);
 			ctx->flags &= ~NFT_XT_CTX_BITWISE;
 		} else {
-			memset(&cs->fw.ip.dmsk, 0xff, sizeof(struct in6_addr));
+			memset(&cs->fw6.ipv6.dmsk, 0xff, sizeof(struct in6_addr));
 		}
 
 		if (inv)
@@ -256,30 +257,38 @@ static void nft_ipv6_print_firewall(struct nftnl_rule *r, unsigned int num,
 }
 
 static void save_ipv6_addr(char letter, const struct in6_addr *addr,
+			   const struct in6_addr *mask,
 			   int invert)
 {
 	char addr_str[INET6_ADDRSTRLEN];
+	int l = xtables_ip6mask_to_cidr(mask);
 
-	if (!invert && IN6_IS_ADDR_UNSPECIFIED(addr))
+	if (!invert && l == 0)
 		return;
 
-	inet_ntop(AF_INET6, addr, addr_str, INET6_ADDRSTRLEN);
-	printf("%s-%c %s ", invert ? "! " : "", letter, addr_str);
+	printf("%s-%c %s",
+		invert ? " !" : "", letter,
+		inet_ntop(AF_INET6, addr, addr_str, sizeof(addr_str)));
+
+	if (l == -1)
+		printf("/%s ", inet_ntop(AF_INET6, mask, addr_str, sizeof(addr_str)));
+	else
+		printf("/%d ", l);
 }
 
 static void nft_ipv6_save_firewall(const void *data, unsigned int format)
 {
 	const struct iptables_command_state *cs = data;
 
+	save_ipv6_addr('s', &cs->fw6.ipv6.src, &cs->fw6.ipv6.smsk,
+		       cs->fw6.ipv6.invflags & IP6T_INV_SRCIP);
+	save_ipv6_addr('d', &cs->fw6.ipv6.dst, &cs->fw6.ipv6.dmsk,
+		       cs->fw6.ipv6.invflags & IP6T_INV_DSTIP);
+
 	save_firewall_details(cs, cs->fw6.ipv6.invflags, cs->fw6.ipv6.proto,
 			      cs->fw6.ipv6.iniface, cs->fw6.ipv6.iniface_mask,
 			      cs->fw6.ipv6.outiface,
 			      cs->fw6.ipv6.outiface_mask);
-
-	save_ipv6_addr('s', &cs->fw6.ipv6.src,
-		       cs->fw6.ipv6.invflags & IP6T_INV_SRCIP);
-	save_ipv6_addr('d', &cs->fw6.ipv6.dst,
-		       cs->fw6.ipv6.invflags & IP6T_INV_DSTIP);
 
 	save_matches_and_target(cs->matches, cs->target,
 				cs->jumpto, cs->fw6.ipv6.flags, &cs->fw6);
@@ -416,17 +425,20 @@ static int nft_ipv6_xlate(const void *data, struct xt_xlate *xl)
 	if (cs->fw6.ipv6.proto != 0) {
 		const struct protoent *pent =
 			getprotobynumber(cs->fw6.ipv6.proto);
-		char protonum[strlen("255") + 1];
+		char protonum[sizeof("65535")];
+		const char *name = protonum;
 
-		if (!xlate_find_match(cs, pent->p_name)) {
-			snprintf(protonum, sizeof(protonum), "%u",
-				 cs->fw6.ipv6.proto);
-			protonum[sizeof(protonum) - 1] = '\0';
+		snprintf(protonum, sizeof(protonum), "%u",
+			 cs->fw6.ipv6.proto);
+
+		if (!pent || !xlate_find_match(cs, pent->p_name)) {
+			if (pent)
+				name = pent->p_name;
 			xt_xlate_add(xl, "meta l4proto %s%s ",
 				   cs->fw6.ipv6.invflags & IP6T_INV_PROTO ?
-					"!= " : "",
-				   pent ? pent->p_name : protonum);
+					"!= " : "", name);
 		}
+
 	}
 
 	xlate_ipv6_addr("ip6 saddr", &cs->fw6.ipv6.src, &cs->fw6.ipv6.smsk,

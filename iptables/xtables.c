@@ -260,7 +260,7 @@ xtables_exit_error(enum xtables_exittype status, const char *msg, ...)
 	va_list args;
 
 	va_start(args, msg);
-	fprintf(stderr, "%s v%s: ", prog_name, prog_vers);
+	fprintf(stderr, "%s v%s (nf_tables): ", prog_name, prog_vers);
 	vfprintf(stderr, msg, args);
 	va_end(args);
 	fprintf(stderr, "\n");
@@ -991,7 +991,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 			if (cs->invert)
 				printf("Not %s ;-)\n", prog_vers);
 			else
-				printf("%s v%s\n",
+				printf("%s v%s (nf_tables)\n",
 				       prog_name, prog_vers);
 			exit(0);
 
@@ -1225,11 +1225,6 @@ int do_commandx(struct nft_handle *h, int argc, char *argv[], char **table,
 	case CMD_LIST:
 	case CMD_LIST|CMD_ZERO:
 	case CMD_LIST|CMD_ZERO_NUM:
-		if (nft_is_ruleset_compatible(h) == 1) {
-			printf("ERROR: You're using nft features that cannot be mapped to iptables, please keep using nft.\n");
-			exit(EXIT_FAILURE);
-		}
-
 		ret = list_entries(h, p.chain, p.table, p.rulenum,
 				   cs.options & OPT_VERBOSE,
 				   cs.options & OPT_NUMERIC,
@@ -1243,6 +1238,7 @@ int do_commandx(struct nft_handle *h, int argc, char *argv[], char **table,
 			ret = nft_rule_zero_counters(h, p.chain, p.table,
 						     p.rulenum - 1);
 		}
+		nft_check_xt_legacy(h->family, false);
 		break;
 	case CMD_LIST_RULES:
 	case CMD_LIST_RULES|CMD_ZERO:
@@ -1257,6 +1253,7 @@ int do_commandx(struct nft_handle *h, int argc, char *argv[], char **table,
 			ret = nft_rule_zero_counters(h, p.chain, p.table,
 						     p.rulenum - 1);
 		}
+		nft_check_xt_legacy(h->family, false);
 		break;
 	case CMD_NEW_CHAIN:
 		ret = nft_chain_user_add(h, p.chain, p.table);

@@ -176,6 +176,27 @@ static void brlog_print(const void *ip, const struct xt_entry_target *target,
 	printf(" ");
 }
 
+static int brlog_xlate(struct xt_xlate *xl,
+		       const struct xt_xlate_tg_params *params)
+{
+	const struct ebt_log_info *loginfo = (const void *)params->target->data;
+
+	xt_xlate_add(xl, "log");
+	if (loginfo->prefix[0]) {
+		if (params->escape_quotes)
+			xt_xlate_add(xl, " prefix \\\"%s\\\"", loginfo->prefix);
+		else
+			xt_xlate_add(xl, " prefix \"%s\"", loginfo->prefix);
+	}
+
+	if (loginfo->loglevel != LOG_DEFAULT_LEVEL)
+		xt_xlate_add(xl, " level %s", eight_priority[loginfo->loglevel].c_name);
+
+	xt_xlate_add(xl, " flags ether ");
+
+	return 1;
+}
+
 static struct xtables_target brlog_target = {
 	.name		= "log",
 	.revision	= 0,
@@ -188,6 +209,7 @@ static struct xtables_target brlog_target = {
 	.parse		= brlog_parse,
 	.final_check	= brlog_final_check,
 	.print		= brlog_print,
+	.xlate		= brlog_xlate,
 	.extra_opts	= brlog_opts,
 };
 

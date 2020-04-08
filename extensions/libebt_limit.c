@@ -133,8 +133,8 @@ static struct rates g_rates[] =
 {
 	{ "day",	EBT_LIMIT_SCALE*24*60*60 },
 	{ "hour",	EBT_LIMIT_SCALE*60*60 },
-	{ "min",	EBT_LIMIT_SCALE*60 },
-	{ "sec",	EBT_LIMIT_SCALE }
+	{ "minute",	EBT_LIMIT_SCALE*60 },
+	{ "second",	EBT_LIMIT_SCALE }
 };
 
 static void print_rate(uint32_t period)
@@ -159,6 +159,31 @@ static void brlimit_print(const void *ip, const struct xt_entry_match *match,
 	printf("--limit-burst %u ", r->burst);
 }
 
+static void print_rate_xlate(struct xt_xlate *xl, uint32_t period)
+{
+	unsigned int i;
+
+	for (i = 1; i < sizeof(g_rates)/sizeof(struct rates); i++)
+		if (period > g_rates[i].mult ||
+		    g_rates[i].mult/period < g_rates[i].mult%period)
+			break;
+
+	xt_xlate_add(xl, "%u/%s ", g_rates[i-1].mult / period, g_rates[i-1].name);
+}
+
+static int brlimit_xlate(struct xt_xlate *xl,
+			 const struct xt_xlate_mt_params *params)
+{
+	const struct ebt_limit_info *r = (const void *)params->match->data;
+
+	xt_xlate_add(xl, "limit rate ");
+	print_rate_xlate(xl, r->avg);
+	if (r->burst != 0)
+		xt_xlate_add(xl, "burst %u packets ", r->burst);
+
+	return 1;
+}
+
 static struct xtables_match brlimit_match = {
 	.name		= "limit",
 	.revision	= 0,
@@ -170,6 +195,7 @@ static struct xtables_match brlimit_match = {
 	.help		= brlimit_print_help,
 	.parse		= brlimit_parse,
 	.print		= brlimit_print,
+	.xlate		= brlimit_xlate,
 	.extra_opts	= brlimit_opts,
 };
 

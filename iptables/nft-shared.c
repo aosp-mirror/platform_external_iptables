@@ -20,6 +20,7 @@
 #include <xtables.h>
 
 #include <linux/netfilter/nf_tables.h>
+#include <linux/netfilter/xt_comment.h>
 
 #include <libmnl/libmnl.h>
 #include <libnftnl/rule.h>
@@ -83,7 +84,7 @@ void add_bitwise_u16(struct nftnl_rule *r, int mask, int xor)
 	nftnl_rule_add_expr(r, expr);
 }
 
-static void add_bitwise(struct nftnl_rule *r, uint8_t *mask, size_t len)
+void add_bitwise(struct nftnl_rule *r, uint8_t *mask, size_t len)
 {
 	struct nftnl_expr *expr;
 	uint32_t xor[4] = { 0 };
@@ -138,9 +139,10 @@ void add_iniface(struct nftnl_rule *r, char *iface, uint32_t op)
 	iface_len = strlen(iface);
 
 	add_meta(r, NFT_META_IIFNAME);
-	if (iface[iface_len - 1] == '+')
-		add_cmp_ptr(r, op, iface, iface_len - 1);
-	else
+	if (iface[iface_len - 1] == '+') {
+		if (iface_len > 1)
+			add_cmp_ptr(r, op, iface, iface_len - 1);
+	} else
 		add_cmp_ptr(r, op, iface, iface_len + 1);
 }
 
@@ -151,17 +153,28 @@ void add_outiface(struct nftnl_rule *r, char *iface, uint32_t op)
 	iface_len = strlen(iface);
 
 	add_meta(r, NFT_META_OIFNAME);
-	if (iface[iface_len - 1] == '+')
-		add_cmp_ptr(r, op, iface, iface_len - 1);
-	else
+	if (iface[iface_len - 1] == '+') {
+		if (iface_len > 1)
+			add_cmp_ptr(r, op, iface, iface_len - 1);
+	} else
 		add_cmp_ptr(r, op, iface, iface_len + 1);
 }
 
 void add_addr(struct nftnl_rule *r, int offset,
 	      void *data, void *mask, size_t len, uint32_t op)
 {
+	const char *m = mask;
+	int i;
+
 	add_payload(r, offset, len, NFT_PAYLOAD_NETWORK_HEADER);
-	add_bitwise(r, mask, len);
+
+	for (i = 0; i < len; i++) {
+		if (m[i] != 0xff)
+			break;
+	}
+
+	if (i != len)
+		add_bitwise(r, mask, len);
 
 	add_cmp_ptr(r, op, data, len);
 }
@@ -207,6 +220,30 @@ bool is_same_interfaces(const char *a_iniface, const char *a_outiface,
 	return true;
 }
 
+static void parse_ifname(const char *name, unsigned int len, char *dst, unsigned char *mask)
+{
+	if (len == 0)
+		return;
+
+	memcpy(dst, name, len);
+	if (name[len - 1] == '\0') {
+		if (mask)
+			memset(mask, 0xff, len);
+		return;
+	}
+
+	if (len >= IFNAMSIZ)
+		return;
+
+	/* wildcard */
+	dst[len++] = '+';
+	if (len >= IFNAMSIZ)
+		return;
+	dst[len++] = 0;
+	if (mask)
+		memset(mask, 0xff, len + 1);
+}
+
 int parse_meta(struct nftnl_expr *e, uint8_t key, char *iniface,
 		unsigned char *iniface_mask, char *outiface,
 		unsigned char *outiface_mask, uint8_t *invflags)
@@ -234,35 +271,21 @@ int parse_meta(struct nftnl_expr *e, uint8_t key, char *iniface,
 
 		memset(outiface_mask, 0xff, strlen(outiface)+1);
 		break;
+	case NFT_META_BRI_IIFNAME:
 	case NFT_META_IIFNAME:
 		ifname = nftnl_expr_get(e, NFTNL_EXPR_CMP_DATA, &len);
 		if (nftnl_expr_get_u32(e, NFTNL_EXPR_CMP_OP) == NFT_CMP_NEQ)
 			*invflags |= IPT_INV_VIA_IN;
 
-		memcpy(iniface, ifname, len);
-
-		if (iniface[len] == '\0')
-			memset(iniface_mask, 0xff, len);
-		else {
-			iniface[len] = '+';
-			iniface[len+1] = '\0';
-			memset(iniface_mask, 0xff, len + 1);
-		}
+		parse_ifname(ifname, len, iniface, iniface_mask);
 		break;
+	case NFT_META_BRI_OIFNAME:
 	case NFT_META_OIFNAME:
 		ifname = nftnl_expr_get(e, NFTNL_EXPR_CMP_DATA, &len);
 		if (nftnl_expr_get_u32(e, NFTNL_EXPR_CMP_OP) == NFT_CMP_NEQ)
 			*invflags |= IPT_INV_VIA_OUT;
 
-		memcpy(outiface, ifname, len);
-
-		if (outiface[len] == '\0')
-			memset(outiface_mask, 0xff, len);
-		else {
-			outiface[len] = '+';
-			outiface[len+1] = '\0';
-			memset(outiface_mask, 0xff, len + 1);
-		}
+		parse_ifname(ifname, len, outiface, outiface_mask);
 		break;
 	default:
 		return -1;
@@ -276,11 +299,10 @@ static void *nft_get_data(struct nft_xt_ctx *ctx)
 	switch(ctx->family) {
 	case NFPROTO_IPV4:
 	case NFPROTO_IPV6:
+	case NFPROTO_BRIDGE:
 		return ctx->state.cs;
 	case NFPROTO_ARP:
 		return ctx->state.cs_arp;
-	case NFPROTO_BRIDGE:
-		return ctx->state.cs_eb;
 	default:
 		/* Should not happen */
 		return NULL;
@@ -333,10 +355,8 @@ void nft_parse_match(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 	switch (ctx->family) {
 	case NFPROTO_IPV4:
 	case NFPROTO_IPV6:
-		matches = &ctx->state.cs->matches;
-		break;
 	case NFPROTO_BRIDGE:
-		matches = &ctx->state.cs_eb->matches;
+		matches = &ctx->state.cs->matches;
 		break;
 	default:
 		fprintf(stderr, "BUG: nft_parse_match() unknown family %d\n",
@@ -394,10 +414,54 @@ void get_cmp_data(struct nftnl_expr *e, void *data, size_t dlen, bool *inv)
 		*inv = false;
 }
 
+static void nft_meta_set_to_target(struct nft_xt_ctx *ctx)
+{
+	const struct nft_family_ops *ops;
+	struct xtables_target *target;
+	struct xt_entry_target *t;
+	unsigned int size;
+	const char *targname;
+
+	switch (ctx->meta.key) {
+	case NFT_META_NFTRACE:
+		if (ctx->immediate.data[0] == 0)
+			return;
+		targname = "TRACE";
+		break;
+	default:
+		return;
+	}
+
+	target = xtables_find_target(targname, XTF_TRY_LOAD);
+	if (target == NULL)
+		return;
+
+	size = XT_ALIGN(sizeof(struct xt_entry_target)) + target->size;
+
+	t = xtables_calloc(1, size);
+	t->u.target_size = size;
+	t->u.user.revision = target->revision;
+	strcpy(t->u.user.name, targname);
+
+	target->t = t;
+
+	ops = nft_family_ops_lookup(ctx->family);
+	ops->parse_target(target, nft_get_data(ctx));
+}
+
 void nft_parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 {
-	ctx->reg = nftnl_expr_get_u32(e, NFTNL_EXPR_META_DREG);
 	ctx->meta.key = nftnl_expr_get_u32(e, NFTNL_EXPR_META_KEY);
+
+	if (nftnl_expr_is_set(e, NFTNL_EXPR_META_SREG) &&
+	    (ctx->flags & NFT_XT_CTX_IMMEDIATE) &&
+	     nftnl_expr_get_u32(e, NFTNL_EXPR_META_SREG) == ctx->immediate.reg) {
+		ctx->flags &= ~NFT_XT_CTX_IMMEDIATE;
+		nft_meta_set_to_target(ctx);
+		return;
+	}
+
+	ctx->reg = nftnl_expr_get_u32(e, NFTNL_EXPR_META_DREG);
 	ctx->flags |= NFT_XT_CTX_META;
 }
 
@@ -453,13 +517,30 @@ void nft_parse_counter(struct nftnl_expr *e, struct xt_counters *counters)
 
 void nft_parse_immediate(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 {
-	int verdict = nftnl_expr_get_u32(e, NFTNL_EXPR_IMM_VERDICT);
 	const char *chain = nftnl_expr_get_str(e, NFTNL_EXPR_IMM_CHAIN);
 	struct nft_family_ops *ops;
 	const char *jumpto = NULL;
 	bool nft_goto = false;
 	void *data = nft_get_data(ctx);
+	int verdict;
 
+	if (nftnl_expr_is_set(e, NFTNL_EXPR_IMM_DATA)) {
+		const void *imm_data;
+		uint32_t len;
+
+		imm_data = nftnl_expr_get_data(e, NFTNL_EXPR_IMM_DATA, &len);
+
+		if (len > sizeof(ctx->immediate.data))
+			return;
+
+		memcpy(ctx->immediate.data, imm_data, len);
+		ctx->immediate.len = len;
+		ctx->immediate.reg = nftnl_expr_get_u32(e, NFTNL_EXPR_IMM_DREG);
+		ctx->flags |= NFT_XT_CTX_IMMEDIATE;
+		return;
+	}
+
+	verdict = nftnl_expr_get_u32(e, NFTNL_EXPR_IMM_VERDICT);
 	/* Standard target? */
 	switch(verdict) {
 	case NF_ACCEPT:
@@ -537,7 +618,8 @@ void nft_rule_to_iptables_command_state(struct nftnl_rule *r,
 		if (match == NULL)
 			return;
 
-		m = calloc(1, sizeof(struct xt_entry_match) + len);
+		m = calloc(1, sizeof(struct xt_entry_match) +
+			      sizeof(struct xt_comment_info));
 		if (m == NULL) {
 			fprintf(stderr, "OOM");
 			exit(EXIT_FAILURE);
@@ -838,7 +920,9 @@ bool compare_targets(struct xtables_target *tg1, struct xtables_target *tg2)
 	if (tg1 == NULL && tg2 == NULL)
 		return true;
 
-	if ((tg1 == NULL && tg2 != NULL) || (tg1 != NULL && tg2 == NULL))
+	if (tg1 == NULL || tg2 == NULL)
+		return false;
+	if (tg1->userspacesize != tg2->userspacesize)
 		return false;
 
 	if (strcmp(tg1->t->u.user.name, tg2->t->u.user.name) != 0)
@@ -880,4 +964,33 @@ bool nft_ipv46_rule_find(struct nft_family_ops *ops,
 	}
 
 	return true;
+}
+
+void nft_check_xt_legacy(int family, bool is_ipt_save)
+{
+	static const char tables6[] = "/proc/net/ip6_tables_names";
+	static const char tables4[] = "/proc/net/ip_tables_names";
+	const char *prefix = "ip";
+	FILE *fp = NULL;
+	char buf[1024];
+
+	switch (family) {
+	case NFPROTO_IPV4:
+		fp = fopen(tables4, "r");
+		break;
+	case NFPROTO_IPV6:
+		fp = fopen(tables6, "r");
+		prefix = "ip6";
+		break;
+	default:
+		break;
+	}
+
+	if (!fp)
+		return;
+
+	if (fgets(buf, sizeof(buf), fp))
+		fprintf(stderr, "# Warning: %stables-legacy tables present, use %stables-legacy%s to see them\n",
+			prefix, prefix, is_ipt_save ? "-save" : "");
+	fclose(fp);
 }

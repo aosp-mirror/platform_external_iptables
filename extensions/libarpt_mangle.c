@@ -32,7 +32,7 @@ static void arpmangle_print_help(void)
 #define MANGLE_DEVT   '4'
 #define MANGLE_TARGET '5'
 
-static struct option arpmangle_opts[] = {
+static const struct option arpmangle_opts[] = {
 	{ .name = "mangle-ip-s",	.has_arg = true, .val = MANGLE_IPS },
 	{ .name = "mangle-ip-d",	.has_arg = true, .val = MANGLE_IPT },
 	{ .name = "mangle-mac-s",	.has_arg = true, .val = MANGLE_DEVS },

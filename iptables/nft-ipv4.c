@@ -65,10 +65,13 @@ static int nft_ipv4_add(struct nftnl_rule *r, void *data)
 		add_payload(r, offsetof(struct iphdr, frag_off), 2,
 			    NFT_PAYLOAD_NETWORK_HEADER);
 		/* get the 13 bits that contain the fragment offset */
-		add_bitwise_u16(r, 0x1fff, !0x1fff);
+		add_bitwise_u16(r, 0x1fff, 0);
 
 		/* if offset is non-zero, this is a fragment */
-		op = nft_invflags2cmp(cs->fw.ip.invflags, IPT_INV_FRAG);
+		op = NFT_CMP_NEQ;
+		if (cs->fw.ip.invflags & IPT_INV_FRAG)
+			op = NFT_CMP_EQ;
+
 		add_cmp_u16(r, 0, op);
 	}
 
@@ -79,8 +82,9 @@ static int nft_ipv4_add(struct nftnl_rule *r, void *data)
 		if (strcmp(matchp->match->name, "comment") == 0) {
 			ret = add_comment(r, (char *)matchp->match->m->data);
 			if (ret < 0)
-				return ret;
+				goto try_match;
 		} else {
+try_match:
 			ret = add_match(r, matchp->match->m);
 			if (ret < 0)
 				return ret;
@@ -338,6 +342,11 @@ static void nft_ipv4_save_firewall(const void *data, unsigned int format)
 {
 	const struct iptables_command_state *cs = data;
 
+	save_ipv4_addr('s', &cs->fw.ip.src, cs->fw.ip.smsk.s_addr,
+		       cs->fw.ip.invflags & IPT_INV_SRCIP);
+	save_ipv4_addr('d', &cs->fw.ip.dst, cs->fw.ip.dmsk.s_addr,
+		       cs->fw.ip.invflags & IPT_INV_DSTIP);
+
 	save_firewall_details(cs, cs->fw.ip.invflags, cs->fw.ip.proto,
 			      cs->fw.ip.iniface, cs->fw.ip.iniface_mask,
 			      cs->fw.ip.outiface, cs->fw.ip.outiface_mask);
@@ -347,11 +356,6 @@ static void nft_ipv4_save_firewall(const void *data, unsigned int format)
 			printf("! ");
 		printf("-f ");
 	}
-
-	save_ipv4_addr('s', &cs->fw.ip.src, cs->fw.ip.smsk.s_addr,
-		       cs->fw.ip.invflags & IPT_INV_SRCIP);
-	save_ipv4_addr('d', &cs->fw.ip.dst, cs->fw.ip.dmsk.s_addr,
-		       cs->fw.ip.invflags & IPT_INV_DSTIP);
 
 	save_matches_and_target(cs->matches, cs->target,
 				cs->jumpto, cs->fw.ip.flags, &cs->fw);
@@ -452,23 +456,25 @@ static int nft_ipv4_xlate(const void *data, struct xt_xlate *xl)
 		     cs->fw.ip.invflags & IPT_INV_VIA_OUT);
 
 	if (cs->fw.ip.flags & IPT_F_FRAG) {
-		xt_xlate_add(xl, "ip frag-off %s%x ",
+		xt_xlate_add(xl, "ip frag-off & 0x1fff %s%x ",
 			   cs->fw.ip.invflags & IPT_INV_FRAG? "" : "!= ", 0);
 	}
 
 	if (cs->fw.ip.proto != 0) {
 		const struct protoent *pent =
 			getprotobynumber(cs->fw.ip.proto);
-		char protonum[strlen("255") + 1];
+		char protonum[sizeof("65535")];
+		const char *name = protonum;
 
-		if (!xlate_find_match(cs, pent->p_name)) {
-			snprintf(protonum, sizeof(protonum), "%u",
-				 cs->fw.ip.proto);
-			protonum[sizeof(protonum) - 1] = '\0';
+		snprintf(protonum, sizeof(protonum), "%u",
+			 cs->fw.ip.proto);
+
+		if (!pent || !xlate_find_match(cs, pent->p_name)) {
+			if (pent)
+				name = pent->p_name;
 			xt_xlate_add(xl, "ip protocol %s%s ",
 				   cs->fw.ip.invflags & IPT_INV_PROTO ?
-					"!= " : "",
-				   pent ? pent->p_name : protonum);
+					"!= " : "", name);
 		}
 	}
 

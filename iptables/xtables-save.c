@@ -26,10 +26,14 @@
 #include <dlfcn.h>
 #endif
 
+#define prog_name xtables_globals.program_name
+#define prog_vers xtables_globals.program_version
+
 static bool show_counters = false;
 
 static const struct option options[] = {
 	{.name = "counters", .has_arg = false, .val = 'c'},
+	{.name = "version",  .has_arg = false, .val = 'V'},
 	{.name = "dump",     .has_arg = false, .val = 'd'},
 	{.name = "table",    .has_arg = true,  .val = 't'},
 	{.name = "modprobe", .has_arg = true,  .val = 'M'},
@@ -40,15 +44,18 @@ static const struct option options[] = {
 };
 
 static int
-do_output(struct nft_handle *h, const char *tablename, bool counters)
+__do_output(struct nft_handle *h, const char *tablename, bool counters)
 {
 	struct nftnl_chain_list *chain_list;
 
-	if (!tablename)
-		return nft_for_each_table(h, do_output, counters);
 
 	if (!nft_table_find(h, tablename)) {
 		printf("Table `%s' does not exist\n", tablename);
+		return 1;
+	}
+
+	if (!nft_is_table_compatible(h, tablename)) {
+		printf("# Table `%s' is incompatible, use 'nft' tool.\n", tablename);
 		return 0;
 	}
 
@@ -68,8 +75,23 @@ do_output(struct nft_handle *h, const char *tablename, bool counters)
 	now = time(NULL);
 	printf("COMMIT\n");
 	printf("# Completed on %s", ctime(&now));
+	return 0;
+}
 
-	return 1;
+static int
+do_output(struct nft_handle *h, const char *tablename, bool counters)
+{
+	int ret;
+
+	if (!tablename) {
+		ret = nft_for_each_table(h, __do_output, counters);
+		nft_check_xt_legacy(h->family, true);
+		return !!ret;
+	}
+
+	ret = __do_output(h, tablename, counters);
+	nft_check_xt_legacy(h->family, true);
+	return ret;
 }
 
 /* Format:
@@ -79,6 +101,7 @@ do_output(struct nft_handle *h, const char *tablename, bool counters)
 static int
 xtables_save_main(int family, const char *progname, int argc, char *argv[])
 {
+	struct builtin_table *tables;
 	const char *tablename = NULL;
 	bool dump = false;
 	struct nft_handle h = {
@@ -95,19 +118,8 @@ xtables_save_main(int family, const char *progname, int argc, char *argv[])
 				xtables_globals.program_version);
 		exit(1);
 	}
-#if defined(ALL_INCLUSIVE) || defined(NO_SHARED_LIBS)
-	init_extensions();
-	init_extensions4();
-#endif
-	if (nft_init(&h, xtables_ipv4) < 0) {
-		fprintf(stderr, "%s/%s Failed to initialize nft: %s\n",
-				xtables_globals.program_name,
-				xtables_globals.program_version,
-				strerror(errno));
-		exit(EXIT_FAILURE);
-	}
 
-	while ((c = getopt_long(argc, argv, "bcdt:M:f:46", options, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "bcdt:M:f:46V", options, NULL)) != -1) {
 		switch (c) {
 		case 'b':
 			fprintf(stderr, "-b/--binary option is not implemented\n");
@@ -148,6 +160,9 @@ xtables_save_main(int family, const char *progname, int argc, char *argv[])
 			h.family = AF_INET6;
 			xtables_set_nfproto(AF_INET6);
 			break;
+		case 'V':
+			printf("%s v%s (nf_tables)\n", prog_name, prog_vers);
+			exit(0);
 		default:
 			fprintf(stderr,
 				"Look at manual page `xtables-save.8' for more information.\n");
@@ -160,8 +175,31 @@ xtables_save_main(int family, const char *progname, int argc, char *argv[])
 		exit(1);
 	}
 
-	if (nft_is_ruleset_compatible(&h) == 1) {
-		printf("ERROR: You're using nft features that cannot be mapped to iptables, please keep using nft.\n");
+	switch (family) {
+	case NFPROTO_IPV4:
+	case NFPROTO_IPV6: /* fallthough, same table */
+#if defined(ALL_INCLUSIVE) || defined(NO_SHARED_LIBS)
+		init_extensions();
+		init_extensions4();
+#endif
+		tables = xtables_ipv4;
+		break;
+	case NFPROTO_ARP:
+		tables = xtables_arp;
+		break;
+	case NFPROTO_BRIDGE:
+		tables = xtables_bridge;
+		break;
+	default:
+		fprintf(stderr, "Unknown family %d\n", family);
+		return 1;
+	}
+
+	if (nft_init(&h, tables) < 0) {
+		fprintf(stderr, "%s/%s Failed to initialize nft: %s\n",
+				xtables_globals.program_name,
+				xtables_globals.program_version,
+				strerror(errno));
 		exit(EXIT_FAILURE);
 	}
 
@@ -170,7 +208,7 @@ xtables_save_main(int family, const char *progname, int argc, char *argv[])
 		exit(0);
 	}
 
-	return !do_output(&h, tablename, show_counters);
+	return do_output(&h, tablename, show_counters);
 }
 
 int xtables_ip4_save_main(int argc, char *argv[])

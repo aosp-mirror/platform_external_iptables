@@ -1,5 +1,5 @@
 
-AC_INIT([iptables], [1.6.2])
+AC_INIT([iptables], [1.8.0])
 
 # See libtool.info "Libtool's versioning system"
 libxtables_vcurrent=12
@@ -136,7 +136,7 @@ if test "x$enable_nftables" = "xyes"; then
 		exit 1
 	fi
 
-	PKG_CHECK_MODULES([libnftnl], [libnftnl >= 1.0.5], [nftables=1], [nftables=0])
+	PKG_CHECK_MODULES([libnftnl], [libnftnl >= 1.1.1], [nftables=1], [nftables=0])
 
 	if test "$nftables" = 0;
 	then
@@ -197,6 +197,7 @@ AC_SUBST([blacklist_6_modules])
 
 regular_CFLAGS="-Wall -Waggregate-return -Wmissing-declarations \
 	-Wmissing-prototypes -Wredundant-decls -Wshadow -Wstrict-prototypes \
+	-Wlogical-op \
 	-Winline -pipe";
 regular_CPPFLAGS="${largefile_cppflags} -D_REENTRANT \
 	-DXTABLES_LIBDIR=\\\"\${xtlibdir}\\\" -DXTABLES_INTERNAL";
@@ -250,6 +251,7 @@ AC_CONFIG_FILES([Makefile extensions/GNUmakefile include/Makefile
 	libiptc/libip4tc.pc libiptc/libip6tc.pc
 	libxtables/Makefile utils/Makefile
 	include/xtables-version.h include/iptables/internal.h
+	iptables/xtables-monitor.8
 	utils/nfnl_osf.8])
 AC_OUTPUT
 

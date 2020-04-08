@@ -5,6 +5,8 @@
 #include <limits.h> /* INT_MAX in ip6_tables.h */
 #include <linux/netfilter_ipv4/ip_tables.h>
 
+#include "libxt_icmp.h"
+
 /* special hack for icmp-type 'any': 
  * Up to kernel <=2.4.20 the problem was:
  * '-p icmp ' matches all icmp packets
@@ -17,13 +19,7 @@ enum {
 	O_ICMP_TYPE = 0,
 };
 
-struct icmp_names {
-	const char *name;
-	uint8_t type;
-	uint8_t code_min, code_max;
-};
-
-static const struct icmp_names icmp_codes[] = {
+static const struct xt_icmp_names icmp_codes[] = {
 	{ "any", 0xFF, 0, 0xFF },
 	{ "echo-reply", 0, 0, 0xFF },
 	/* Alias */ { "pong", 0, 0, 0xFF },
@@ -78,34 +74,14 @@ static const struct icmp_names icmp_codes[] = {
 	{ "address-mask-reply", 18, 0, 0xFF }
 };
 
-static void
-print_icmptypes(void)
-{
-	unsigned int i;
-	printf("Valid ICMP Types:");
-
-	for (i = 0; i < ARRAY_SIZE(icmp_codes); ++i) {
-		if (i && icmp_codes[i].type == icmp_codes[i-1].type) {
-			if (icmp_codes[i].code_min == icmp_codes[i-1].code_min
-			    && (icmp_codes[i].code_max
-				== icmp_codes[i-1].code_max))
-				printf(" (%s)", icmp_codes[i].name);
-			else
-				printf("\n   %s", icmp_codes[i].name);
-		}
-		else
-			printf("\n%s", icmp_codes[i].name);
-	}
-	printf("\n");
-}
-
 static void icmp_help(void)
 {
 	printf(
 "icmp match options:\n"
 "[!] --icmp-type typename	match icmp type\n"
 "[!] --icmp-type type[/code]	(or numeric type or type/code)\n");
-	print_icmptypes();
+	printf("Valid ICMP Types:");
+	xt_print_icmp_types(icmp_codes, ARRAY_SIZE(icmp_codes));
 }
 
 static const struct xt_option_entry icmp_opts[] = {

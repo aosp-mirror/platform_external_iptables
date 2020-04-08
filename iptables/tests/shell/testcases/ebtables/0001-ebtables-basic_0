@@ -1,0 +1,52 @@
+#!/bin/sh
+
+set -x
+case "$XT_MULTI" in
+*/xtables-nft-multi)
+	for t in filter nat;do
+		$XT_MULTI ebtables -t $t -L || exit 1
+		$XT_MULTI ebtables -t $t -X || exit 1
+		$XT_MULTI ebtables -t $t -F || exit 1
+	done
+
+	for t in broute foobar ;do
+		$XT_MULTI ebtables -t $t -L &&
+		$XT_MULTI ebtables -t $t -X &&
+		$XT_MULTI ebtables -t $t -F
+		if [ $? -eq 0 ]; then
+			echo "Expect nonzero return for unsupported table"
+			exit 1
+		fi
+	done
+
+
+	$XT_MULTI ebtables -t filter -N FOO || exit 1
+	$XT_MULTI ebtables -t filter -N FOO
+	if [ $? -eq 0 ]; then
+		echo "Duplicate chain FOO"
+		$XT_MULTI ebtables -t filter -L
+		exit 1
+	fi
+
+	$XT_MULTI ebtables -t filter -N BAR || exit 1
+	$XT_MULTI ebtables -t filter -N BAZ || exit 1
+
+	$XT_MULTI ebtables -t filter -L | grep -q FOO || exit 1
+	$XT_MULTI ebtables -t filter -L | grep -q BAR || exit 1
+	$XT_MULTI ebtables -t filter -L | grep -q BAZ || exit 1
+
+	$XT_MULTI ebtables -t filter -L BAZ || exit 1
+	$XT_MULTI ebtables -t filter -X BAZ || exit 1
+	$XT_MULTI ebtables -t filter -L BAZ | grep -q BAZ
+	if [ $? -eq 0 ]; then
+		echo "Deleted chain -L BAZ ok, expected failure"
+		$XT_MULTI ebtables -t filter -L
+		exit 1
+	fi
+
+	$XT_MULTI ebtables -t $t -F || exit 0
+	;;
+*)
+	echo "skip $XT_MULTI"
+	;;
+esac

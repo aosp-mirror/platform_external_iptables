@@ -43,13 +43,13 @@ enum {
 	NFT_XT_CTX_PAYLOAD	= (1 << 0),
 	NFT_XT_CTX_META		= (1 << 1),
 	NFT_XT_CTX_BITWISE	= (1 << 2),
+	NFT_XT_CTX_IMMEDIATE	= (1 << 3),
 };
 
 struct nft_xt_ctx {
 	union {
 		struct iptables_command_state *cs;
 		struct arptables_command_state *cs_arp;
-		struct ebtables_command_state *cs_eb;
 	} state;
 	struct nftnl_expr_iter *iter;
 	int family;
@@ -63,6 +63,10 @@ struct nft_xt_ctx {
 	struct {
 		uint32_t key;
 	} meta;
+	struct {
+		uint32_t data[4];
+		uint32_t len, reg;
+	} immediate;
 	struct {
 		uint32_t mask[4];
 		uint32_t xor[4];
@@ -107,6 +111,7 @@ struct nft_family_ops {
 
 void add_meta(struct nftnl_rule *r, uint32_t key);
 void add_payload(struct nftnl_rule *r, int offset, int len, uint32_t base);
+void add_bitwise(struct nftnl_rule *r, uint8_t *mask, size_t len);
 void add_bitwise_u16(struct nftnl_rule *r, int mask, int xor);
 void add_cmp_ptr(struct nftnl_rule *r, uint32_t op, void *data, size_t len);
 void add_cmp_u8(struct nftnl_rule *r, uint8_t val, uint32_t op);
@@ -223,9 +228,9 @@ struct nft_xt_cmd_parse {
 	unsigned int			command;
 	unsigned int			rulenum;
 	char				*table;
-	char				*chain;
-	char				*newname;
-	char				*policy;
+	const char			*chain;
+	const char			*newname;
+	const char			*policy;
 	bool				restore;
 	int				verbose;
 };
@@ -245,17 +250,18 @@ struct nftnl_chain_list;
 struct nft_xt_restore_cb {
 	void (*table_new)(struct nft_handle *h, const char *table);
 	struct nftnl_chain_list *(*chain_list)(struct nft_handle *h);
-	int (*chains_purge)(struct nft_handle *h, const char *table,
-			    struct nftnl_chain_list *clist);
 	void (*chain_del)(struct nftnl_chain_list *clist, const char *curtable,
 			  const char *chain);
+	int (*chain_user_flush)(struct nft_handle *h,
+				struct nftnl_chain_list *clist,
+				const char *table, const char *chain);
 	int (*chain_set)(struct nft_handle *h, const char *table,
 			 const char *chain, const char *policy,
 			 const struct xt_counters *counters);
 	int (*chain_user_add)(struct nft_handle *h, const char *chain,
 			      const char *table);
 
-	int (*rule_flush)(struct nft_handle *h, const char *chain, const char *table);
+	int (*table_flush)(struct nft_handle *h, const char *table);
 
 	int (*do_command)(struct nft_handle *h, int argc, char *argv[],
 			  char **table, bool restore);
@@ -269,4 +275,5 @@ void xtables_restore_parse(struct nft_handle *h,
 			   struct nft_xt_restore_cb *cb,
 			   int argc, char *argv[]);
 
+void nft_check_xt_legacy(int family, bool is_ipt_save);
 #endif

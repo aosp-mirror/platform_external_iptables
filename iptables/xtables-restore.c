@@ -30,6 +30,7 @@ static int counters, verbose, noflush;
 static const struct option options[] = {
 	{.name = "counters", .has_arg = false, .val = 'c'},
 	{.name = "verbose",  .has_arg = false, .val = 'v'},
+	{.name = "version",       .has_arg = 0, .val = 'V'},
 	{.name = "test",     .has_arg = false, .val = 't'},
 	{.name = "help",     .has_arg = false, .val = 'h'},
 	{.name = "noflush",  .has_arg = false, .val = 'n'},
@@ -37,16 +38,20 @@ static const struct option options[] = {
 	{.name = "table",    .has_arg = true,  .val = 'T'},
 	{.name = "ipv4",     .has_arg = false, .val = '4'},
 	{.name = "ipv6",     .has_arg = false, .val = '6'},
+	{.name = "wait",          .has_arg = 2, .val = 'w'},
+	{.name = "wait-interval", .has_arg = 2, .val = 'W'},
 	{NULL},
 };
 
 #define prog_name xtables_globals.program_name
+#define prog_vers xtables_globals.program_version
 
 static void print_usage(const char *name, const char *version)
 {
-	fprintf(stderr, "Usage: %s [-c] [-v] [-t] [-h] [-n] [-T table] [-M command] [-4] [-6]\n"
+	fprintf(stderr, "Usage: %s [-c] [-v] [-V] [-t] [-h] [-n] [-T table] [-M command] [-4] [-6]\n"
 			"	   [ --counters ]\n"
 			"	   [ --verbose ]\n"
+			"	   [ --version]\n"
 			"	   [ --test ]\n"
 			"	   [ --help ]\n"
 			"	   [ --noflush ]\n"
@@ -190,8 +195,9 @@ struct nft_xt_restore_cb restore_cb = {
 	.chain_list	= get_chain_list,
 	.commit		= nft_commit,
 	.abort		= nft_abort,
-	.chains_purge	= nft_table_purge_chains,
-	.rule_flush	= nft_rule_flush,
+	.table_new	= nft_table_new,
+	.table_flush	= nft_table_flush,
+	.chain_user_flush = nft_chain_user_flush,
 	.chain_del	= chain_delete,
 	.do_command	= do_commandx,
 	.chain_set	= nft_chain_set,
@@ -223,6 +229,8 @@ void xtables_restore_parse(struct nft_handle *h,
 		int ret = 0;
 
 		line++;
+		h->error.lineno = line;
+
 		if (buffer[0] == '\n')
 			continue;
 		else if (buffer[0] == '#') {
@@ -245,10 +253,6 @@ void xtables_restore_parse(struct nft_handle *h,
 			}
 			in_table = 0;
 
-			/* Purge out unused chains in this table */
-			if (!p->testing && cb->chains_purge)
-				cb->chains_purge(h, curtable, chain_list);
-
 		} else if ((buffer[0] == '*') && (!in_table)) {
 			/* New table */
 			char *table;
@@ -270,8 +274,8 @@ void xtables_restore_parse(struct nft_handle *h,
 			if (noflush == 0) {
 				DEBUGP("Cleaning all chains of table '%s'\n",
 					table);
-				if (cb->rule_flush)
-					cb->rule_flush(h, NULL, table);
+				if (cb->table_flush)
+					cb->table_flush(h, table);
 			}
 
 			ret = 1;
@@ -294,8 +298,19 @@ void xtables_restore_parse(struct nft_handle *h,
 				exit(1);
 			}
 
-			if (cb->chain_del)
-				cb->chain_del(chain_list, curtable, chain);
+			if (noflush == 0) {
+				if (cb->chain_del)
+					cb->chain_del(chain_list, curtable,
+						      chain);
+			} else {
+				/* Apparently -n still flushes existing user
+				 * defined chains that are redefined. Otherwise,
+				 * leave them as is.
+				 */
+				if (cb->chain_user_flush)
+					cb->chain_user_flush(h, chain_list,
+							     curtable, chain);
+			}
 
 			if (strlen(chain) >= XT_EXTENSION_MAXNAMELEN)
 				xtables_error(PARAMETER_PROBLEM,
@@ -435,14 +450,12 @@ void xtables_restore_parse(struct nft_handle *h,
 				xt_params->program_name, line + 1);
 		exit(1);
 	}
-
-	if (chain_list)
-		nftnl_chain_list_free(chain_list);
 }
 
 static int
 xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 {
+	struct builtin_table *tables;
 	struct nft_handle h = {
 		.family = family,
 		.restore = true,
@@ -460,20 +473,8 @@ xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 				xtables_globals.program_version);
 		exit(1);
 	}
-#if defined(ALL_INCLUSIVE) || defined(NO_SHARED_LIBS)
-	init_extensions();
-	init_extensions4();
-#endif
 
-	if (nft_init(&h, xtables_ipv4) < 0) {
-		fprintf(stderr, "%s/%s Failed to initialize nft: %s\n",
-				xtables_globals.program_name,
-				xtables_globals.program_version,
-				strerror(errno));
-		exit(EXIT_FAILURE);
-	}
-
-	while ((c = getopt_long(argc, argv, "bcvthnM:T:46", options, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "bcvVthnM:T:46wW", options, NULL)) != -1) {
 		switch (c) {
 			case 'b':
 				fprintf(stderr, "-b/--binary option is not implemented\n");
@@ -484,6 +485,9 @@ xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 			case 'v':
 				verbose = 1;
 				break;
+			case 'V':
+				printf("%s v%s (nf_tables)\n", prog_name, prog_vers);
+				exit(0);
 			case 't':
 				p.testing = 1;
 				break;
@@ -507,6 +511,9 @@ xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 				h.family = AF_INET6;
 				xtables_set_nfproto(AF_INET6);
 				break;
+			case 'w': /* fallthrough.  Ignored by xt-restore */
+			case 'W':
+				break;
 			default:
 				fprintf(stderr,
 					"Try `xtables-restore -h' for more information.\n");
@@ -526,6 +533,34 @@ xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 		exit(1);
 	} else {
 		p.in = stdin;
+	}
+
+	switch (family) {
+	case NFPROTO_IPV4:
+	case NFPROTO_IPV6: /* fallthough, same table */
+		tables = xtables_ipv4;
+#if defined(ALL_INCLUSIVE) || defined(NO_SHARED_LIBS)
+		init_extensions();
+		init_extensions4();
+#endif
+		break;
+	case NFPROTO_ARP:
+		tables = xtables_arp;
+		break;
+	case NFPROTO_BRIDGE:
+		tables = xtables_bridge;
+		break;
+	default:
+		fprintf(stderr, "Unknown family %d\n", family);
+		return 1;
+	}
+
+	if (nft_init(&h, tables) < 0) {
+		fprintf(stderr, "%s/%s Failed to initialize nft: %s\n",
+				xtables_globals.program_name,
+				xtables_globals.program_version,
+				strerror(errno));
+		exit(EXIT_FAILURE);
 	}
 
 	xtables_restore_parse(&h, &p, &restore_cb, argc, argv);
