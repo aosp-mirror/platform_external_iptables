@@ -16,7 +16,7 @@ cc_defaults {
     required: ["xtables.lock"],
 
     srcs: [
-        "xtables-multi.c",
+        "xtables-legacy-multi.c",
         "iptables-xml.c",
         "xshared.c",
     ],
@@ -73,8 +73,8 @@ cc_binary {
     cflags: ["-UENABLE_IPV4"],
 
     srcs: [
-        "ip6tables-save.c",
-        "ip6tables-restore.c",
+        "iptables-save.c",
+        "iptables-restore.c",
         "ip6tables-standalone.c",
         "ip6tables.c",
     ],
