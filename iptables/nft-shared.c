@@ -1013,7 +1013,8 @@ bool nft_ipv46_rule_find(struct nft_handle *h, struct nftnl_rule *r, void *data)
 		goto out;
 	}
 
-	if (strcmp(cs->jumpto, this.jumpto) != 0) {
+	if ((!cs->target || !this.target) &&
+	    strcmp(cs->jumpto, this.jumpto) != 0) {
 		DEBUGP("Different verdict\n");
 		goto out;
 	}
