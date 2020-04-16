@@ -673,20 +673,20 @@ static void
 print_addr(const struct in_addr *addr, const struct in_addr *mask,
            int inv, int numeric)
 {
-	char buf[BUFSIZ];
-
 	if (inv)
 		printf(" !");
 
 	if (mask->s_addr == 0L && !numeric)
-		printf(" %s", "anywhere");
+		printf(" anywhere");
 	else {
 		if (numeric)
-			strcpy(buf, xtables_ipaddr_to_numeric(addr));
+			printf(" %s%s",
+			       xtables_ipaddr_to_numeric(addr),
+			       xtables_ipmask_to_numeric(mask));
 		else
-			strcpy(buf, xtables_ipaddr_to_anyname(addr));
-		strcat(buf, xtables_ipmask_to_numeric(mask));
-		printf(" %s", buf);
+			printf(" %s%s",
+			       xtables_ipaddr_to_anyname(addr),
+			       xtables_ipmask_to_numeric(mask));
 	}
 }
 
@@ -774,14 +774,6 @@ matchinfo_print(const void *ip, const struct xt_entry_match *match, int numeric,
         	else
 			printf("%lu:%lu", sinfo->expires_min, sinfo->expires_max);
 	}
-
-	if (sinfo->flags & XT_CONNTRACK_DIRECTION) {
-		if (sinfo->invflags & XT_CONNTRACK_DIRECTION)
-			printf(" %sctdir REPLY", optpfx);
-		else
-			printf(" %sctdir ORIGINAL", optpfx);
-	}
-
 }
 
 static void
@@ -1265,8 +1257,6 @@ static int _conntrack3_mt_xlate(struct xt_xlate *xl,
 	}
 
 	if (sinfo->match_flags & XT_CONNTRACK_STATUS) {
-		if (sinfo->status_mask == 1)
-			return 0;
 		xt_xlate_add(xl, "%sct status %s", space,
 			     sinfo->invert_flags & XT_CONNTRACK_STATUS ?
 			     "!= " : "");
@@ -1279,9 +1269,9 @@ static int _conntrack3_mt_xlate(struct xt_xlate *xl,
 			     sinfo->invert_flags & XT_CONNTRACK_EXPIRES ?
 			     "!= " : "");
 		if (sinfo->expires_max == sinfo->expires_min)
-			xt_xlate_add(xl, "%lu", sinfo->expires_min);
+			xt_xlate_add(xl, "%u", sinfo->expires_min);
 		else
-			xt_xlate_add(xl, "%lu-%lu", sinfo->expires_min,
+			xt_xlate_add(xl, "%u-%u", sinfo->expires_min,
 				     sinfo->expires_max);
 		space = " ";
 	}
@@ -1373,7 +1363,7 @@ static int _conntrack3_mt_xlate(struct xt_xlate *xl,
 	if (sinfo->match_flags & XT_CONNTRACK_REPLDST_PORT) {
 		xt_xlate_add(xl, "%sct reply proto-dst %s", space,
 			     sinfo->invert_flags & XT_CONNTRACK_REPLDST_PORT ?
-			     "!= " : "", sinfo->repldst_port);
+			     "!= " : "");
 		if (sinfo->repldst_port == sinfo->repldst_port_high)
 			xt_xlate_add(xl, "%u", sinfo->repldst_port);
 		else

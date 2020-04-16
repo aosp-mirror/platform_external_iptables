@@ -1,3 +1,6 @@
+iptables-translate -t mangle -A OUTPUT -j MARK --set-mark 0
+nft add rule ip mangle OUTPUT counter meta mark set 0x0
+
 iptables-translate -t mangle -A OUTPUT -j MARK --set-mark 64
 nft add rule ip mangle OUTPUT counter meta mark set 0x40
 

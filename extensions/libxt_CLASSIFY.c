@@ -74,10 +74,21 @@ CLASSIFY_save(const void *ip, const struct xt_entry_target *target)
 }
 
 static void
-arpCLASSIFY_print(const void *ip, const struct xt_entry_target *target,
-		  int numeric)
+CLASSIFY_arp_save(const void *ip, const struct xt_entry_target *target)
 {
-	CLASSIFY_save(ip, target);
+	const struct xt_classify_target_info *clinfo =
+		(const struct xt_classify_target_info *)target->data;
+
+	printf(" --set-class %x:%x",
+	       TC_H_MAJ(clinfo->priority)>>16, TC_H_MIN(clinfo->priority));
+}
+
+static void
+CLASSIFY_arp_print(const void *ip,
+      const struct xt_entry_target *target,
+      int numeric)
+{
+	CLASSIFY_arp_save(ip, target);
 }
 
 static int CLASSIFY_xlate(struct xt_xlate *xl,
@@ -105,7 +116,7 @@ static int CLASSIFY_xlate(struct xt_xlate *xl,
 	return 1;
 }
 
-static struct xtables_target classify_target[] = {
+static struct xtables_target classify_tg_reg[] = {
 	{
 		.family		= NFPROTO_UNSPEC,
 		.name		= "CLASSIFY",
@@ -117,7 +128,7 @@ static struct xtables_target classify_target[] = {
 		.save		= CLASSIFY_save,
 		.x6_parse	= CLASSIFY_parse,
 		.x6_options	= CLASSIFY_opts,
-		.xlate		= CLASSIFY_xlate,
+		.xlate          = CLASSIFY_xlate,
 	},
 	{
 		.family		= NFPROTO_ARP,
@@ -126,14 +137,15 @@ static struct xtables_target classify_target[] = {
 		.size		= XT_ALIGN(sizeof(struct xt_classify_target_info)),
 		.userspacesize	= XT_ALIGN(sizeof(struct xt_classify_target_info)),
 		.help		= CLASSIFY_help,
-		.print		= arpCLASSIFY_print,
+		.print		= CLASSIFY_arp_print,
+		.save		= CLASSIFY_arp_save,
 		.x6_parse	= CLASSIFY_parse,
 		.x6_options	= CLASSIFY_opts,
-		.xlate		= CLASSIFY_xlate,
-	},
+		.xlate          = CLASSIFY_xlate,
+	}
 };
 
 void _init(void)
 {
-	xtables_register_targets(classify_target, ARRAY_SIZE(classify_target));
+	xtables_register_targets(classify_tg_reg, ARRAY_SIZE(classify_tg_reg));
 }

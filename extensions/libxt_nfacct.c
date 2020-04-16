@@ -70,20 +70,36 @@ static void nfacct_save(const void *ip, const struct xt_entry_match *match)
 	nfacct_print_name(info, "--");
 }
 
-static struct xtables_match nfacct_match = {
-	.family		= NFPROTO_UNSPEC,
-	.name		= "nfacct",
-	.version	= XTABLES_VERSION,
-	.size		= XT_ALIGN(sizeof(struct xt_nfacct_match_info)),
-	.userspacesize	= offsetof(struct xt_nfacct_match_info, nfacct),
-	.help		= nfacct_help,
-	.x6_parse	= nfacct_parse,
-	.print		= nfacct_print,
-	.save		= nfacct_save,
-	.x6_options	= nfacct_opts,
+static struct xtables_match nfacct_matches[] = {
+	{
+		.family		= NFPROTO_UNSPEC,
+		.revision	= 0,
+		.name		= "nfacct",
+		.version	= XTABLES_VERSION,
+		.size		= XT_ALIGN(sizeof(struct xt_nfacct_match_info)),
+		.userspacesize	= offsetof(struct xt_nfacct_match_info, nfacct),
+		.help		= nfacct_help,
+		.x6_parse	= nfacct_parse,
+		.print		= nfacct_print,
+		.save		= nfacct_save,
+		.x6_options	= nfacct_opts,
+	},
+	{
+		.family		= NFPROTO_UNSPEC,
+		.revision	= 1,
+		.name		= "nfacct",
+		.version	= XTABLES_VERSION,
+		.size		= XT_ALIGN(sizeof(struct xt_nfacct_match_info_v1)),
+		.userspacesize	= offsetof(struct xt_nfacct_match_info_v1, nfacct),
+		.help		= nfacct_help,
+		.x6_parse	= nfacct_parse,
+		.print		= nfacct_print,
+		.save		= nfacct_save,
+		.x6_options	= nfacct_opts,
+	},
 };
 
 void _init(void)
 {
-	xtables_register_match(&nfacct_match);
+	xtables_register_matches(nfacct_matches, ARRAY_SIZE(nfacct_matches));
 }
