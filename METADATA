@@ -1,0 +1,17 @@
+name: "iptables"
+description:
+    "Linux netfilter subsystem iptables cli utility."
+
+third_party {
+  url {
+    type: HOMEPAGE
+    value: "https://netfilter.org/projects/iptables/index.html"
+  }
+  url {
+    type: GIT
+    value: "git://git.netfilter.org/iptables"
+  }
+  version: "v1.8.4"
+  last_upgrade_date { year: 2020 month: 4 day: 15 }
+  license_type: RESTRICTED
+}
