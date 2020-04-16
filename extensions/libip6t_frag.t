@@ -9,3 +9,5 @@
 -m frag --fragfirst --fragmore;=;OK
 -m frag --fragfirst --fraglast;=;OK
 -m frag --fraglast --fragmore;;FAIL
+-d ff02::fb/128 -p udp -m udp --dport 5353 -m frag --fragmore;=;OK
+-d fe80::/64 -p udp --dport 546 -m frag --fraglast;-d fe80::/64 -p udp -m udp --dport 546 -m frag --fraglast;OK

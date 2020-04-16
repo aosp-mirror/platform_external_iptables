@@ -13,13 +13,8 @@
 struct reject_names {
 	const char *name;
 	const char *alias;
-	enum ip6t_reject_with with;
 	const char *desc;
-};
-
-struct reject_names_xlate {
-	const char *name;
-	enum ip6t_reject_with with;
+	const char *xlate;
 };
 
 enum {
@@ -27,24 +22,50 @@ enum {
 };
 
 static const struct reject_names reject_table[] = {
-	{"icmp6-no-route", "no-route",
-		IP6T_ICMP6_NO_ROUTE, "ICMPv6 no route"},
-	{"icmp6-adm-prohibited", "adm-prohibited",
-		IP6T_ICMP6_ADM_PROHIBITED, "ICMPv6 administratively prohibited"},
+	[IP6T_ICMP6_NO_ROUTE] = {
+		"icmp6-no-route", "no-route",
+		"ICMPv6 no route",
+		"no-route",
+	},
+	[IP6T_ICMP6_ADM_PROHIBITED] = {
+		"icmp6-adm-prohibited", "adm-prohibited",
+		"ICMPv6 administratively prohibited",
+		"admin-prohibited",
+	},
 #if 0
-	{"icmp6-not-neighbor", "not-neighbor"},
-		IP6T_ICMP6_NOT_NEIGHBOR, "ICMPv6 not a neighbor"},
+	[IP6T_ICMP6_NOT_NEIGHBOR] = {
+		"icmp6-not-neighbor", "not-neighbor",
+		"ICMPv6 not a neighbor",
+	},
 #endif
-	{"icmp6-addr-unreachable", "addr-unreach",
-		IP6T_ICMP6_ADDR_UNREACH, "ICMPv6 address unreachable"},
-	{"icmp6-port-unreachable", "port-unreach",
-		IP6T_ICMP6_PORT_UNREACH, "ICMPv6 port unreachable"},
-	{"tcp-reset", "tcp-reset",
-		IP6T_TCP_RESET, "TCP RST packet"},
-	{"icmp6-policy-fail", "policy-fail",
-		IP6T_ICMP6_POLICY_FAIL, "ICMPv6 policy fail"},
-	{"icmp6-reject-route", "reject-route",
-		IP6T_ICMP6_REJECT_ROUTE, "ICMPv6 reject route"}
+	[IP6T_ICMP6_ADDR_UNREACH] = {
+		"icmp6-addr-unreachable", "addr-unreach",
+		"ICMPv6 address unreachable",
+		"addr-unreachable",
+	},
+	[IP6T_ICMP6_PORT_UNREACH] = {
+		"icmp6-port-unreachable", "port-unreach",
+		"ICMPv6 port unreachable",
+		"port-unreachable",
+	},
+#if 0
+	[IP6T_ICMP6_ECHOREPLY] = {},
+#endif
+	[IP6T_TCP_RESET] = {
+		"tcp-reset", "tcp-reset",
+		"TCP RST packet",
+		"tcp reset",
+	},
+	[IP6T_ICMP6_POLICY_FAIL] = {
+		"icmp6-policy-fail", "policy-fail",
+		"ICMPv6 policy fail",
+		"policy-fail",
+	},
+	[IP6T_ICMP6_REJECT_ROUTE] = {
+		"icmp6-reject-route", "reject-route",
+		"ICMPv6 reject route",
+		"reject-route",
+	},
 };
 
 static void
@@ -55,6 +76,8 @@ print_reject_types(void)
 	printf("Valid reject types:\n");
 
 	for (i = 0; i < ARRAY_SIZE(reject_table); ++i) {
+		if (!reject_table[i].name)
+			continue;
 		printf("    %-25s\t%s\n", reject_table[i].name, reject_table[i].desc);
 		printf("    %-25s\talias\n", reject_table[i].alias);
 	}
@@ -91,14 +114,17 @@ static void REJECT_parse(struct xt_option_call *cb)
 	unsigned int i;
 
 	xtables_option_parse(cb);
-	for (i = 0; i < ARRAY_SIZE(reject_table); ++i)
+	for (i = 0; i < ARRAY_SIZE(reject_table); ++i) {
+		if (!reject_table[i].name)
+			continue;
 		if (strncasecmp(reject_table[i].name,
 		      cb->arg, strlen(cb->arg)) == 0 ||
 		    strncasecmp(reject_table[i].alias,
 		      cb->arg, strlen(cb->arg)) == 0) {
-			reject->with = reject_table[i].with;
+			reject->with = i;
 			return;
 		}
+	}
 	xtables_error(PARAMETER_PROBLEM,
 		"unknown reject type \"%s\"", cb->arg);
 }
@@ -108,55 +134,32 @@ static void REJECT_print(const void *ip, const struct xt_entry_target *target,
 {
 	const struct ip6t_reject_info *reject
 		= (const struct ip6t_reject_info *)target->data;
-	unsigned int i;
 
-	for (i = 0; i < ARRAY_SIZE(reject_table); ++i)
-		if (reject_table[i].with == reject->with)
-			break;
-	printf(" reject-with %s", reject_table[i].name);
+	printf(" reject-with %s", reject_table[reject->with].name);
 }
 
 static void REJECT_save(const void *ip, const struct xt_entry_target *target)
 {
 	const struct ip6t_reject_info *reject
 		= (const struct ip6t_reject_info *)target->data;
-	unsigned int i;
 
-	for (i = 0; i < ARRAY_SIZE(reject_table); ++i)
-		if (reject_table[i].with == reject->with)
-			break;
-
-	printf(" --reject-with %s", reject_table[i].name);
+	printf(" --reject-with %s", reject_table[reject->with].name);
 }
-
-static const struct reject_names_xlate reject_table_xlate[] = {
-	{"no-route",		IP6T_ICMP6_NO_ROUTE},
-	{"admin-prohibited",	IP6T_ICMP6_ADM_PROHIBITED},
-	{"addr-unreachable",	IP6T_ICMP6_ADDR_UNREACH},
-	{"port-unreachable",	IP6T_ICMP6_PORT_UNREACH},
-	{"tcp reset",		IP6T_TCP_RESET},
-	{"policy-fail",		IP6T_ICMP6_POLICY_FAIL},
-	{"reject-route",	IP6T_ICMP6_REJECT_ROUTE}
-};
 
 static int REJECT_xlate(struct xt_xlate *xl,
 			const struct xt_xlate_tg_params *params)
 {
 	const struct ip6t_reject_info *reject =
 		(const struct ip6t_reject_info *)params->target->data;
-	unsigned int i;
-
-	for (i = 0; i < ARRAY_SIZE(reject_table_xlate); ++i)
-		if (reject_table_xlate[i].with == reject->with)
-			break;
 
 	if (reject->with == IP6T_ICMP6_PORT_UNREACH)
 		xt_xlate_add(xl, "reject");
 	else if (reject->with == IP6T_TCP_RESET)
-		xt_xlate_add(xl, "reject with %s", reject_table_xlate[i].name);
+		xt_xlate_add(xl, "reject with %s",
+			     reject_table[reject->with].xlate);
 	else
 		xt_xlate_add(xl, "reject with icmpv6 type %s",
-			   reject_table_xlate[i].name);
+			     reject_table[reject->with].xlate);
 
 	return 1;
 }
