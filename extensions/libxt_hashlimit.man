@@ -54,7 +54,7 @@ How many milliseconds between garbage collection intervals.
 .TP
 \fB\-\-hashlimit\-rate\-match\fP
 Classify the flow instead of rate-limiting it. This acts like a
-true/flase match on whether the rate is above/below a certain number
+true/false match on whether the rate is above/below a certain number
 .TP
 \fB\-\-hashlimit\-rate\-interval\fP \fIsec\fP
 Can be used with \-\-hashlimit\-rate\-match to specify the interval
