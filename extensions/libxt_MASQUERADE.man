@@ -24,6 +24,7 @@ Randomize source port mapping
 If option
 \fB\-\-random\fP
 is used then port mapping will be randomized (kernel >= 2.6.21).
+Since kernel 5.0, \fB\-\-random\fP is identical to \fB\-\-random-fully\fP.
 .TP
 \fB\-\-random-fully\fP
 Full randomize source port mapping

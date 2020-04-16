@@ -32,7 +32,7 @@ static void arpmangle_print_help(void)
 #define MANGLE_DEVT   '4'
 #define MANGLE_TARGET '5'
 
-static struct option arpmangle_opts[] = {
+static const struct option arpmangle_opts[] = {
 	{ .name = "mangle-ip-s",	.has_arg = true, .val = MANGLE_IPS },
 	{ .name = "mangle-ip-d",	.has_arg = true, .val = MANGLE_IPT },
 	{ .name = "mangle-mac-s",	.has_arg = true, .val = MANGLE_DEVS },
@@ -139,48 +139,45 @@ static void print_mac(const unsigned char *mac, int l)
 			(j==l-1) ? "" : ":");
 }
 
+static const char *ipaddr_to(const struct in_addr *addrp, int numeric)
+{
+	if (numeric)
+		return xtables_ipaddr_to_numeric(addrp);
+	else
+		return xtables_ipaddr_to_anyname(addrp);
+}
+
 static void
 arpmangle_print(const void *ip, const struct xt_entry_target *target,
 		int numeric)
 {
 	struct arpt_mangle *m = (struct arpt_mangle *)(target->data);
-	char buf[100];
 
 	if (m->flags & ARPT_MANGLE_SIP) {
-		if (numeric)
-			sprintf(buf, "%s",
-				xtables_ipaddr_to_numeric(&(m->u_s.src_ip)));
-		else
-			sprintf(buf, "%s",
-				xtables_ipaddr_to_anyname(&(m->u_s.src_ip)));
-		printf("--mangle-ip-s %s ", buf);
+		printf(" --mangle-ip-s %s",
+		       ipaddr_to(&(m->u_s.src_ip), numeric));
 	}
 	if (m->flags & ARPT_MANGLE_SDEV) {
-		printf("--mangle-mac-s ");
+		printf(" --mangle-mac-s ");
 		print_mac((unsigned char *)m->src_devaddr, 6);
-		printf(" ");
 	}
 	if (m->flags & ARPT_MANGLE_TIP) {
-		if (numeric)
-			sprintf(buf, "%s",
-				xtables_ipaddr_to_numeric(&(m->u_t.tgt_ip)));
-		else
-			sprintf(buf, "%s",
-				xtables_ipaddr_to_anyname(&(m->u_t.tgt_ip)));
-		printf("--mangle-ip-d %s ", buf);
+		printf(" --mangle-ip-d %s",
+		       ipaddr_to(&(m->u_t.tgt_ip), numeric));
 	}
 	if (m->flags & ARPT_MANGLE_TDEV) {
-		printf("--mangle-mac-d ");
+		printf(" --mangle-mac-d ");
 		print_mac((unsigned char *)m->tgt_devaddr, 6);
-		printf(" ");
 	}
 	if (m->target != NF_ACCEPT) {
-		printf("--mangle-target ");
-		if (m->target == NF_DROP)
-			printf("DROP ");
-		else
-			printf("CONTINUE ");
+		printf(" --mangle-target %s",
+		       m->target == NF_DROP ? "DROP" : "CONTINUE");
 	}
+}
+
+static void arpmangle_save(const void *ip, const struct xt_entry_target *target)
+{
+	arpmangle_print(ip, target, 0);
 }
 
 static struct xtables_target arpmangle_target = {
@@ -195,6 +192,7 @@ static struct xtables_target arpmangle_target = {
 	.parse		= arpmangle_parse,
 	.final_check	= arpmangle_final_check,
 	.print		= arpmangle_print,
+	.save		= arpmangle_save,
 	.extra_opts	= arpmangle_opts,
 };
 
