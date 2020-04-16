@@ -2,3 +2,5 @@
 -j IDLETIMER --timeout;;FAIL
 -j IDLETIMER --timeout 42;;FAIL
 -j IDLETIMER --timeout 42 --label foo;=;OK
+-j IDLETIMER --timeout 42 --label foo --alarm;;OK
+
