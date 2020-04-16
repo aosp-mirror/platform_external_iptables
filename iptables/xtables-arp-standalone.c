@@ -47,24 +47,11 @@ int xtables_arp_main(int argc, char *argv[])
 {
 	int ret;
 	char *table = "filter";
-	struct nft_handle h = {
-		.family = NFPROTO_ARP,
-	};
+	struct nft_handle h;
 
-	arptables_globals.program_name = "arptables";
-	ret = xtables_init_all(&arptables_globals, NFPROTO_ARP);
-	if (ret < 0) {
-		fprintf(stderr, "%s/%s Failed to initialize arptables-compat\n",
-			arptables_globals.program_name,
-			arptables_globals.program_version);
-		exit(1);
-	}
+	nft_init_arp(&h, "arptables");
 
-#if defined(ALL_INCLUSIVE) || defined(NO_SHARED_LIBS)
-	init_extensionsa();
-#endif
-
-	ret = do_commandarp(&h, argc, argv, &table);
+	ret = do_commandarp(&h, argc, argv, &table, false);
 	if (ret)
 		ret = nft_commit(&h);
 

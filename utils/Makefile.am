@@ -17,6 +17,7 @@ nfnl_osf_LDADD = ${libnfnetlink_LIBS}
 endif
 
 if ENABLE_BPFC
+man_MANS += nfbpf_compile.8
 sbin_PROGRAMS += nfbpf_compile
 nfbpf_compile_LDADD = -lpcap
 endif
@@ -26,4 +27,4 @@ sbin_PROGRAMS += nfsynproxy
 nfsynproxy_LDADD = -lpcap
 endif
 
-CLEANFILES = nfnl_osf.8
+CLEANFILES = nfnl_osf.8 nfbpf_compile.8

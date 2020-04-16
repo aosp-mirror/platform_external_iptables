@@ -1,6 +1,8 @@
 This target will process TCP three-way-handshake parallel in netfilter
 context to protect either local or backend system. This target requires
 connection tracking because sequence numbers need to be translated.
+The kernels ability to absorb SYNFLOOD was greatly improved starting with
+Linux 4.4, so this target should not be needed anymore to protect Linux servers.
 .TP
 \fB\-\-mss\fP \fImaximum segment size\fP
 Maximum segment size announced to clients. This must match the backend.
