@@ -41,34 +41,20 @@
 
 #include "xtables-multi.h"
 
-extern struct xtables_globals ebtables_globals;
-
 int xtables_eb_main(int argc, char *argv[])
 {
 	int ret;
 	char *table = "filter";
-	struct nft_handle h = {
-		.family = NFPROTO_BRIDGE,
-	};
+	struct nft_handle h;
 
-	ebtables_globals.program_name = "ebtables";
-	ret = xtables_init_all(&ebtables_globals, NFPROTO_BRIDGE);
-	if (ret < 0) {
-		fprintf(stderr, "%s/%s Failed to initialize ebtables-compat\n",
-			ebtables_globals.program_name,
-			ebtables_globals.program_version);
-		exit(1);
-	}
+	nft_init_eb(&h, "ebtables");
 
-#if defined(ALL_INCLUSIVE) || defined(NO_SHARED_LIBS)
-	init_extensionsb();
-#endif
-	ret = do_commandeb(&h, argc, argv, &table);
+	ret = do_commandeb(&h, argc, argv, &table, false);
 	if (ret)
-		ret = nft_commit(&h);
+		ret = nft_bridge_commit(&h);
 
 	if (!ret)
-		fprintf(stderr, "%s\n", nft_strerror(errno));
+		fprintf(stderr, "ebtables: %s\n", nft_strerror(errno));
 
 	exit(!ret);
 }

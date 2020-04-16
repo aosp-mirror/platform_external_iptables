@@ -772,7 +772,7 @@ static void hashlimit_mt_check(struct xt_fcheck_call *cb)
 		if (cb->xflags & F_BURST) {
 			if (info->cfg.burst < cost_to_bytes(info->cfg.avg))
 				xtables_error(PARAMETER_PROBLEM,
-					"burst cannot be smaller than %lub", cost_to_bytes(info->cfg.avg));
+					"burst cannot be smaller than %"PRIu64"b", cost_to_bytes(info->cfg.avg));
 
 			burst = info->cfg.burst;
 			burst /= cost_to_bytes(info->cfg.avg);
@@ -1221,7 +1221,7 @@ static void print_packets_rate_xlate(struct xt_xlate *xl, uint64_t avg,
 		    _rates[i].mult / avg < _rates[i].mult % avg)
 			break;
 
-	xt_xlate_add(xl, " %llu/%s ",
+	xt_xlate_add(xl, " %" PRIu64 "/%s ",
 		     _rates[i-1].mult / avg, _rates[i-1].name);
 }
 
@@ -1354,7 +1354,7 @@ static int hashlimit_mt_xlate(struct xt_xlate *xl, const char *name,
 	else {
 		print_packets_rate_xlate(xl, cfg->avg, revision);
 		if (cfg->burst != XT_HASHLIMIT_BURST)
-			xt_xlate_add(xl, "burst %lu packets", cfg->burst);
+			xt_xlate_add(xl, "burst %" PRIu64 " packets", (uint64_t)cfg->burst);
 
 	}
 	xt_xlate_add(xl, "}");
@@ -1372,7 +1372,7 @@ static int hashlimit_xlate(struct xt_xlate *xl,
 	ret = hashlimit_mode_xlate(xl, info->cfg.mode, NFPROTO_IPV4, 32, 32);
 	xt_xlate_add(xl, " timeout %us limit rate", info->cfg.expire / 1000);
 	print_packets_rate_xlate(xl, info->cfg.avg, 1);
-	xt_xlate_add(xl, " burst %lu packets", info->cfg.burst);
+	xt_xlate_add(xl, " burst %u packets", info->cfg.burst);
 	xt_xlate_add(xl, "}");
 
 	return ret;
