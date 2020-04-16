@@ -9,11 +9,7 @@
 Makefile
 Makefile.in
 
-/extensions/GNUmakefile
-/extensions/initext.c
-/extensions/initext?.c
-/extensions/matches?.man
-/extensions/targets?.man
+# pre-generated for Android: /include/xtables-version.h
 
 /aclocal.m4
 /autom4te.cache/
