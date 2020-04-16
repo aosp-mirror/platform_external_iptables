@@ -1,6 +1,8 @@
 :INPUT,FORWARD,OUTPUT
 -m comment;;FAIL
 -m comment --comment;;FAIL
+-p tcp -m tcp --dport 22 -m comment --comment foo;=;OK
+-p tcp -m comment --comment foo -m tcp --dport 22;=;OK
 #
 # it fails with 256 characters
 #

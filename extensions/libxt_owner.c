@@ -56,6 +56,7 @@ enum {
 	O_PROCESS,
 	O_SESSION,
 	O_COMM,
+	O_SUPPL_GROUPS,
 };
 
 static void owner_mt_help_v0(void)
@@ -87,7 +88,8 @@ static void owner_mt_help(void)
 "owner match options:\n"
 "[!] --uid-owner userid[-userid]      Match local UID\n"
 "[!] --gid-owner groupid[-groupid]    Match local GID\n"
-"[!] --socket-exists                  Match if socket exists\n");
+"[!] --socket-exists                  Match if socket exists\n"
+"    --suppl-groups                   Also match supplementary groups set with --gid-owner\n");
 }
 
 #define s struct ipt_owner_info
@@ -131,6 +133,7 @@ static const struct xt_option_entry owner_mt_opts[] = {
 	 .flags = XTOPT_INVERT},
 	{.name = "socket-exists", .id = O_SOCK_EXISTS, .type = XTTYPE_NONE,
 	 .flags = XTOPT_INVERT},
+	{.name = "suppl-groups", .id = O_SUPPL_GROUPS, .type = XTTYPE_NONE},
 	XTOPT_TABLEEND,
 };
 
@@ -274,6 +277,11 @@ static void owner_mt_parse(struct xt_option_call *cb)
 		if (cb->invert)
 			info->invert |= XT_OWNER_SOCKET;
 		info->match |= XT_OWNER_SOCKET;
+		break;
+	case O_SUPPL_GROUPS:
+		if (!(info->match & XT_OWNER_GID))
+			xtables_param_act(XTF_BAD_VALUE, "owner", "--suppl-groups", "you need to use --gid-owner first");
+		info->match |= XT_OWNER_SUPPL_GROUPS;
 		break;
 	}
 }
@@ -455,9 +463,10 @@ static void owner_mt_print(const void *ip, const struct xt_entry_match *match,
 {
 	const struct xt_owner_match_info *info = (void *)match->data;
 
-	owner_mt_print_item(info, "owner socket exists", XT_OWNER_SOCKET, numeric);
-	owner_mt_print_item(info, "owner UID match",     XT_OWNER_UID,    numeric);
-	owner_mt_print_item(info, "owner GID match",     XT_OWNER_GID,    numeric);
+	owner_mt_print_item(info, "owner socket exists", XT_OWNER_SOCKET,       numeric);
+	owner_mt_print_item(info, "owner UID match",     XT_OWNER_UID,          numeric);
+	owner_mt_print_item(info, "owner GID match",     XT_OWNER_GID,          numeric);
+	owner_mt_print_item(info, "incl. suppl. groups", XT_OWNER_SUPPL_GROUPS, numeric);
 }
 
 static void
@@ -487,9 +496,10 @@ static void owner_mt_save(const void *ip, const struct xt_entry_match *match)
 {
 	const struct xt_owner_match_info *info = (void *)match->data;
 
-	owner_mt_print_item(info, "--socket-exists",  XT_OWNER_SOCKET, true);
-	owner_mt_print_item(info, "--uid-owner",      XT_OWNER_UID,    true);
-	owner_mt_print_item(info, "--gid-owner",      XT_OWNER_GID,    true);
+	owner_mt_print_item(info, "--socket-exists",  XT_OWNER_SOCKET,       true);
+	owner_mt_print_item(info, "--uid-owner",      XT_OWNER_UID,          true);
+	owner_mt_print_item(info, "--gid-owner",      XT_OWNER_GID,          true);
+	owner_mt_print_item(info, "--suppl-groups",   XT_OWNER_SUPPL_GROUPS, true);
 }
 
 static int

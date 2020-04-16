@@ -20,13 +20,8 @@
 struct reject_names {
 	const char *name;
 	const char *alias;
-	enum ipt_reject_with with;
 	const char *desc;
-};
-
-struct reject_names_xlate {
-	const char *name;
-	enum ipt_reject_with with;
+	const char *xlate;
 };
 
 enum {
@@ -34,26 +29,53 @@ enum {
 };
 
 static const struct reject_names reject_table[] = {
-	{"icmp-net-unreachable", "net-unreach",
-		IPT_ICMP_NET_UNREACHABLE, "ICMP network unreachable"},
-	{"icmp-host-unreachable", "host-unreach",
-		IPT_ICMP_HOST_UNREACHABLE, "ICMP host unreachable"},
-	{"icmp-proto-unreachable", "proto-unreach",
-		IPT_ICMP_PROT_UNREACHABLE, "ICMP protocol unreachable"},
-	{"icmp-port-unreachable", "port-unreach",
-		IPT_ICMP_PORT_UNREACHABLE, "ICMP port unreachable (default)"},
+	[IPT_ICMP_NET_UNREACHABLE] = {
+		"icmp-net-unreachable", "net-unreach",
+		"ICMP network unreachable",
+		"net-unreachable",
+	},
+	[IPT_ICMP_HOST_UNREACHABLE] = {
+		"icmp-host-unreachable", "host-unreach",
+		"ICMP host unreachable",
+		"host-unreachable",
+	},
+	[IPT_ICMP_PROT_UNREACHABLE] = {
+		"icmp-proto-unreachable", "proto-unreach",
+		"ICMP protocol unreachable",
+		"prot-unreachable",
+	},
+	[IPT_ICMP_PORT_UNREACHABLE] = {
+		"icmp-port-unreachable", "port-unreach",
+		"ICMP port unreachable (default)",
+		"port-unreachable",
+	},
 #if 0
-	{"echo-reply", "echoreply",
-	 IPT_ICMP_ECHOREPLY, "for ICMP echo only: faked ICMP echo reply"},
+	[IPT_ICMP_ECHOREPLY] = {
+		"echo-reply", "echoreply",
+		"for ICMP echo only: faked ICMP echo reply",
+		"echo-reply",
+	},
 #endif
-	{"icmp-net-prohibited", "net-prohib",
-	 IPT_ICMP_NET_PROHIBITED, "ICMP network prohibited"},
-	{"icmp-host-prohibited", "host-prohib",
-	 IPT_ICMP_HOST_PROHIBITED, "ICMP host prohibited"},
-	{"tcp-reset", "tcp-rst",
-	 IPT_TCP_RESET, "TCP RST packet"},
-	{"icmp-admin-prohibited", "admin-prohib",
-	 IPT_ICMP_ADMIN_PROHIBITED, "ICMP administratively prohibited (*)"}
+	[IPT_ICMP_NET_PROHIBITED] = {
+		"icmp-net-prohibited", "net-prohib",
+		"ICMP network prohibited",
+		"net-prohibited",
+	},
+	[IPT_ICMP_HOST_PROHIBITED] = {
+		"icmp-host-prohibited", "host-prohib",
+		"ICMP host prohibited",
+		"host-prohibited",
+	},
+	[IPT_TCP_RESET] = {
+		"tcp-reset", "tcp-rst",
+		"TCP RST packet",
+		"tcp reset",
+	},
+	[IPT_ICMP_ADMIN_PROHIBITED] = {
+		"icmp-admin-prohibited", "admin-prohib",
+		"ICMP administratively prohibited (*)",
+		"admin-prohibited",
+	},
 };
 
 static void
@@ -64,6 +86,8 @@ print_reject_types(void)
 	printf("Valid reject types:\n");
 
 	for (i = 0; i < ARRAY_SIZE(reject_table); ++i) {
+		if (!reject_table[i].name)
+			continue;
 		printf("    %-25s\t%s\n", reject_table[i].name, reject_table[i].desc);
 		printf("    %-25s\talias\n", reject_table[i].alias);
 	}
@@ -102,14 +126,17 @@ static void REJECT_parse(struct xt_option_call *cb)
 	unsigned int i;
 
 	xtables_option_parse(cb);
-	for (i = 0; i < ARRAY_SIZE(reject_table); ++i)
+	for (i = 0; i < ARRAY_SIZE(reject_table); ++i) {
+		if (!reject_table[i].name)
+			continue;
 		if (strncasecmp(reject_table[i].name,
 		      cb->arg, strlen(cb->arg)) == 0 ||
 		    strncasecmp(reject_table[i].alias,
 		      cb->arg, strlen(cb->arg)) == 0) {
-			reject->with = reject_table[i].with;
+			reject->with = i;
 			return;
 		}
+	}
 	/* This due to be dropped late in 2.4 pre-release cycle --RR */
 	if (strncasecmp("echo-reply", cb->arg, strlen(cb->arg)) == 0 ||
 	    strncasecmp("echoreply", cb->arg, strlen(cb->arg)) == 0)
@@ -124,61 +151,32 @@ static void REJECT_print(const void *ip, const struct xt_entry_target *target,
 {
 	const struct ipt_reject_info *reject
 		= (const struct ipt_reject_info *)target->data;
-	unsigned int i;
 
-	for (i = 0; i < ARRAY_SIZE(reject_table); ++i)
-		if (reject_table[i].with == reject->with)
-			break;
-	printf(" reject-with %s", reject_table[i].name);
+	printf(" reject-with %s", reject_table[reject->with].name);
 }
 
 static void REJECT_save(const void *ip, const struct xt_entry_target *target)
 {
 	const struct ipt_reject_info *reject =
 		(const struct ipt_reject_info *)target->data;
-	unsigned int i;
 
-	for (i = 0; i < ARRAY_SIZE(reject_table); ++i)
-		if (reject_table[i].with == reject->with)
-			break;
-
-	printf(" --reject-with %s", reject_table[i].name);
+	printf(" --reject-with %s", reject_table[reject->with].name);
 }
-
-static const struct reject_names_xlate reject_table_xlate[] = {
-	{"net-unreachable",	IPT_ICMP_NET_UNREACHABLE},
-	{"host-unreachable",	IPT_ICMP_HOST_UNREACHABLE},
-	{"prot-unreachable",	IPT_ICMP_PROT_UNREACHABLE},
-	{"port-unreachable",	IPT_ICMP_PORT_UNREACHABLE},
-#if 0
-	{"echo-reply",		IPT_ICMP_ECHOREPLY},
-#endif
-	{"net-prohibited",	IPT_ICMP_NET_PROHIBITED},
-	{"host-prohibited",	IPT_ICMP_HOST_PROHIBITED},
-	{"tcp reset",		IPT_TCP_RESET},
-	{"admin-prohibited",	IPT_ICMP_ADMIN_PROHIBITED}
-};
 
 static int REJECT_xlate(struct xt_xlate *xl,
 			const struct xt_xlate_tg_params *params)
 {
 	const struct ipt_reject_info *reject =
 		(const struct ipt_reject_info *)params->target->data;
-	unsigned int i;
-
-	for (i = 0; i < ARRAY_SIZE(reject_table_xlate); ++i) {
-		if (reject_table_xlate[i].with == reject->with)
-			break;
-	}
 
 	if (reject->with == IPT_ICMP_PORT_UNREACHABLE)
 		xt_xlate_add(xl, "reject");
 	else if (reject->with == IPT_TCP_RESET)
 		xt_xlate_add(xl, "reject with %s",
-			   reject_table_xlate[i].name);
+			     reject_table[reject->with].xlate);
 	else
 		xt_xlate_add(xl, "reject with icmp type %s",
-			   reject_table_xlate[i].name);
+			     reject_table[reject->with].xlate);
 
 	return 1;
 }

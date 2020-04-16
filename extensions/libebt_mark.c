@@ -18,8 +18,6 @@
 #include "iptables/nft.h"
 #include "iptables/nft-bridge.h"
 
-static int mark_supplied;
-
 #define MARK_TARGET  '1'
 #define MARK_SETMARK '2'
 #define MARK_ORMARK  '3'
@@ -54,7 +52,6 @@ static void brmark_init(struct xt_entry_target *target)
 
 	info->target = EBT_ACCEPT;
 	info->mark = 0;
-	mark_supplied = 0;
 }
 
 #define OPT_MARK_TARGET   0x01
@@ -133,7 +130,6 @@ brmark_parse(int c, char **argv, int invert, unsigned int *flags,
 		xtables_error(PARAMETER_PROBLEM, "Bad MARK value '%s'",
 			      optarg);
 
-	mark_supplied = 1;
 	return 1;
 }
 
@@ -162,12 +158,52 @@ static void brmark_print(const void *ip, const struct xt_entry_target *target,
 
 static void brmark_final_check(unsigned int flags)
 {
-	if (mark_supplied == 0)
-		xtables_error(PARAMETER_PROBLEM, "No mark value supplied");
-
 	if (!flags)
 		xtables_error(PARAMETER_PROBLEM,
 			      "You must specify some option");
+}
+
+static const char* brmark_verdict(int verdict)
+{
+	switch (verdict) {
+	case EBT_ACCEPT: return "accept";
+	case EBT_DROP: return "drop";
+	case EBT_CONTINUE: return "continue";
+	case EBT_RETURN: return "return";
+	}
+
+	return "";
+}
+
+static int brmark_xlate(struct xt_xlate *xl,
+			const struct xt_xlate_tg_params *params)
+{
+	const struct ebt_mark_t_info *info = (const void*)params->target->data;
+	int tmp;
+
+	tmp = info->target & ~EBT_VERDICT_BITS;
+
+	xt_xlate_add(xl, "meta mark set ");
+
+	switch (tmp) {
+	case MARK_SET_VALUE:
+		break;
+	case MARK_OR_VALUE:
+		xt_xlate_add(xl, "meta mark or ");
+		break;
+	case MARK_XOR_VALUE:
+		xt_xlate_add(xl, "meta mark xor ");
+		break;
+	case MARK_AND_VALUE:
+		xt_xlate_add(xl, "meta mark and ");
+		break;
+	default:
+		return 0;
+	}
+
+	tmp = info->target & EBT_VERDICT_BITS;
+	xt_xlate_add(xl, "0x%lx %s ", info->mark, brmark_verdict(tmp));
+	return 1;
 }
 
 static struct xtables_target brmark_target = {
@@ -182,6 +218,7 @@ static struct xtables_target brmark_target = {
 	.parse		= brmark_parse,
 	.final_check	= brmark_final_check,
 	.print		= brmark_print,
+	.xlate		= brmark_xlate,
 	.extra_opts	= brmark_opts,
 };
 

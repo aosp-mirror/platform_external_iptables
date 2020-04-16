@@ -6,17 +6,13 @@
 #include <linux/netfilter_ipv6/ip6_tables.h>
 #include <netinet/icmp6.h>
 
+#include "libxt_icmp.h"
+
 enum {
 	O_ICMPV6_TYPE = 0,
 };
 
-struct icmpv6_names {
-	const char *name;
-	uint8_t type;
-	uint8_t code_min, code_max;
-};
-
-static const struct icmpv6_names icmpv6_codes[] = {
+static const struct xt_icmp_names icmpv6_codes[] = {
 	{ "destination-unreachable", 1, 0, 0xFF },
 	{   "no-route", 1, 0, 0 },
 	{   "communication-prohibited", 1, 1, 1 },
@@ -58,34 +54,14 @@ static const struct icmpv6_names icmpv6_codes[] = {
 
 };
 
-static void
-print_icmpv6types(void)
-{
-	unsigned int i;
-	printf("Valid ICMPv6 Types:");
-
-	for (i = 0; i < ARRAY_SIZE(icmpv6_codes); ++i) {
-		if (i && icmpv6_codes[i].type == icmpv6_codes[i-1].type) {
-			if (icmpv6_codes[i].code_min == icmpv6_codes[i-1].code_min
-			    && (icmpv6_codes[i].code_max
-				== icmpv6_codes[i-1].code_max))
-				printf(" (%s)", icmpv6_codes[i].name);
-			else
-				printf("\n   %s", icmpv6_codes[i].name);
-		}
-		else
-			printf("\n%s", icmpv6_codes[i].name);
-	}
-	printf("\n");
-}
-
 static void icmp6_help(void)
 {
 	printf(
 "icmpv6 match options:\n"
 "[!] --icmpv6-type typename	match icmpv6 type\n"
 "				(or numeric type or type/code)\n");
-	print_icmpv6types();
+	printf("Valid ICMPv6 Types:");
+	xt_print_icmp_types(icmpv6_codes, ARRAY_SIZE(icmpv6_codes));
 }
 
 static const struct xt_option_entry icmp6_opts[] = {
@@ -254,7 +230,7 @@ static unsigned int type_xlate_print(struct xt_xlate *xl, unsigned int icmptype,
 	type_name = icmp6_type_xlate(icmptype);
 
 	if (type_name) {
-		xt_xlate_add(xl, type_name);
+		xt_xlate_add(xl, "%s", type_name);
 	} else {
 		for (i = 0; i < ARRAY_SIZE(icmpv6_codes); ++i)
 			if (icmpv6_codes[i].type == icmptype &&
@@ -263,7 +239,7 @@ static unsigned int type_xlate_print(struct xt_xlate *xl, unsigned int icmptype,
 				break;
 
 		if (i != ARRAY_SIZE(icmpv6_codes))
-			xt_xlate_add(xl, icmpv6_codes[i].name);
+			xt_xlate_add(xl, "%s", icmpv6_codes[i].name);
 		else
 			return 0;
 	}
