@@ -10,6 +10,9 @@
 /* Define to 1 if you have the `pcap' library (-lpcap). */
 /* #undef HAVE_LIBPCAP */
 
+/* Define to 1 if you have the <linux/bpf.h> header file. */
+#define HAVE_LINUX_BPF_H 1
+
 /* Define to 1 if you have the <linux/dccp.h> header file. */
 #define HAVE_LINUX_DCCP_H 1
 
@@ -20,7 +23,7 @@
 #define HAVE_LINUX_MAGIC_H 1
 
 /* Define to 1 if you have the <linux/proc_fs.h> header file. */
-#define HAVE_LINUX_PROC_FS_H 1
+/* #undef HAVE_LINUX_PROC_FS_H */
 
 /* Define to 1 if you have the <memory.h> header file. */
 #define HAVE_MEMORY_H 1
@@ -46,12 +49,8 @@
 /* Define to 1 if you have the <unistd.h> header file. */
 #define HAVE_UNISTD_H 1
 
-/* Define to the sub-directory in which libtool stores uninstalled libraries.
-   */
+/* Define to the sub-directory where libtool stores uninstalled libraries. */
 #define LT_OBJDIR ".libs/"
-
-/* Define to 1 if your C compiler doesn't accept -c and -o together. */
-/* #undef NO_MINUS_C_MINUS_O */
 
 /* Name of package */
 #define PACKAGE "iptables"
@@ -63,7 +62,7 @@
 #define PACKAGE_NAME "iptables"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "iptables 1.6.2"
+#define PACKAGE_STRING "iptables 1.8.4"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "iptables"
@@ -72,7 +71,7 @@
 #define PACKAGE_URL ""
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "1.6.2"
+#define PACKAGE_VERSION "1.8.4"
 
 /* The size of `struct ip6_hdr', as computed by sizeof. */
 #define SIZEOF_STRUCT_IP6_HDR 40
@@ -81,10 +80,7 @@
 #define STDC_HEADERS 1
 
 /* Version number of package */
-#define VERSION "1.6.2"
+#define VERSION "1.8.4"
 
 /* Location of the iptables lock file */
 #define XT_LOCK_NAME "/system/etc/xtables.lock"
-
-/* Define to 1 if you have the <linux/bpf.h> header file. */
-#define HAVE_LINUX_BPF_H 1
