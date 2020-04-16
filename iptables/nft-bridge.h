@@ -15,9 +15,6 @@
 #define LIST_X	  0x10
 #define LIST_MAC2 0x20
 
-/* Be backwards compatible, so don't use '+' in kernel */
-#define IF_WILDCARD 1
-
 extern unsigned char eb_mac_type_unicast[ETH_ALEN];
 extern unsigned char eb_msk_type_unicast[ETH_ALEN];
 extern unsigned char eb_mac_type_multicast[ETH_ALEN];
@@ -35,7 +32,6 @@ int ebt_get_mac_and_mask(const char *from, unsigned char *to, unsigned char *mas
  */
 
 #define EBT_TABLE_MAXNAMELEN 32
-#define EBT_CHAIN_MAXNAMELEN EBT_TABLE_MAXNAMELEN
 #define EBT_FUNCTION_MAXNAMELEN EBT_TABLE_MAXNAMELEN
 
 /* verdicts >0 are "branches" */
@@ -70,56 +66,8 @@ int ebt_get_mac_and_mask(const char *from, unsigned char *to, unsigned char *mas
  */
 #define EBT_VERDICT_BITS 0x0000000F
 
-/* Fake ebt_entry */
-struct ebt_entry {
-	/* this needs to be the first field */
-	unsigned int bitmask;
-	unsigned int invflags;
-	uint16_t ethproto;
-	/* the physical in-dev */
-	char in[IFNAMSIZ];
-	/* the logical in-dev */
-	char logical_in[IFNAMSIZ];
-	/* the physical out-dev */
-	char out[IFNAMSIZ];
-	/* the logical out-dev */
-	char logical_out[IFNAMSIZ];
-	unsigned char sourcemac[ETH_ALEN];
-	unsigned char sourcemsk[ETH_ALEN];
-	unsigned char destmac[ETH_ALEN];
-	unsigned char destmsk[ETH_ALEN];
-
-	unsigned char in_mask[IFNAMSIZ];
-	unsigned char out_mask[IFNAMSIZ];
-};
-
-/* trick for ebtables-compat, since watchers are targets */
-struct ebt_match {
-	struct ebt_match				*next;
-	union {
-		struct xtables_match		*match;
-		struct xtables_target		*watcher;
-	} u;
-	bool					ismatch;
-};
-
-struct ebtables_command_state {
-	struct ebt_entry fw;
-	struct xtables_target *target;
-	struct xtables_rule_match *matches;
-	struct ebt_match *match_list;
-	const char *jumpto;
-	struct xt_counters counters;
-	int invert;
-	int c;
-	char **argv;
-	int proto_used;
-	char *protocol;
-	unsigned int options;
-};
-
-void nft_rule_to_ebtables_command_state(struct nftnl_rule *r,
-					struct ebtables_command_state *cs);
+struct nftnl_rule;
+struct iptables_command_state;
 
 static const char *ebt_standard_targets[NUM_STANDARD_TARGETS] = {
 	"ACCEPT",
@@ -130,7 +78,7 @@ static const char *ebt_standard_targets[NUM_STANDARD_TARGETS] = {
 
 static inline const char *nft_ebt_standard_target(unsigned int num)
 {
-	if (num > NUM_STANDARD_TARGETS)
+	if (num >= NUM_STANDARD_TARGETS)
 		return NULL;
 
 	return ebt_standard_targets[num];
@@ -166,6 +114,68 @@ static inline const char *ebt_target_name(unsigned int verdict)
 	*flags |= mask;						\
 })								\
 
-void ebt_cs_clean(struct ebtables_command_state *cs);
+void ebt_cs_clean(struct iptables_command_state *cs);
+void ebt_load_match_extensions(void);
+void ebt_add_match(struct xtables_match *m,
+			  struct iptables_command_state *cs);
+void ebt_add_watcher(struct xtables_target *watcher,
+                     struct iptables_command_state *cs);
+int ebt_command_default(struct iptables_command_state *cs);
+
+struct nft_among_pair {
+	struct ether_addr ether;
+	struct in_addr in __attribute__((aligned (4)));
+};
+
+struct nft_among_data {
+	struct {
+		size_t cnt;
+		bool inv;
+		bool ip;
+	} src, dst;
+	/* first source, then dest pairs */
+	struct nft_among_pair pairs[0];
+};
+
+/* initialize fields, return offset into pairs array to write pairs to */
+static inline size_t
+nft_among_prepare_data(struct nft_among_data *data, bool dst,
+		       size_t cnt, bool inv, bool ip)
+{
+	size_t poff;
+
+	if (dst) {
+		data->dst.cnt = cnt;
+		data->dst.inv = inv;
+		data->dst.ip = ip;
+		poff = data->src.cnt;
+	} else {
+		data->src.cnt = cnt;
+		data->src.inv = inv;
+		data->src.ip = ip;
+		poff = 0;
+		memmove(data->pairs + cnt, data->pairs,
+			data->dst.cnt * sizeof(*data->pairs));
+	}
+	return poff;
+}
+
+static inline void
+nft_among_insert_pair(struct nft_among_pair *pairs,
+		      size_t *pcount, const struct nft_among_pair *new)
+{
+	int i;
+
+	/* nftables automatically sorts set elements from smallest to largest,
+	 * insert sorted so extension comparison works */
+
+	for (i = 0; i < *pcount; i++) {
+		if (memcmp(new, &pairs[i], sizeof(*new)) < 0)
+			break;
+	}
+	memmove(&pairs[i + 1], &pairs[i], sizeof(*pairs) * (*pcount - i));
+	memcpy(&pairs[i], new, sizeof(*new));
+	(*pcount)++;
+}
 
 #endif

@@ -22,6 +22,7 @@
 #include <linux/bpf.h>
 #endif
 
+#include <linux/magic.h>
 #include <linux/unistd.h>
 
 #define BCODE_FILE_MAX_LEN_B	1024
@@ -62,7 +63,7 @@ static const struct xt_option_entry bpf_opts_v1[] = {
 
 static int bpf_obj_get(const char *filepath)
 {
-#if defined HAVE_LINUX_BPF_H && defined __NR_bpf
+#if defined HAVE_LINUX_BPF_H && defined __NR_bpf && defined BPF_FS_MAGIC
 	union bpf_attr attr;
 
 	memset(&attr, 0, sizeof(attr));
