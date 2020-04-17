@@ -40,8 +40,8 @@ endif
 #	Wildcard module list
 #
 pfx_build_mod := $(patsubst ${srcdir}/libxt_%.c,%,$(sort $(wildcard ${srcdir}/libxt_*.c)))
-pfb_build_mod := $(patsubst ${srcdir}/libebt_%.c,%,$(sort $(wildcard ${srcdir}/libebt_*.c)))
-pfa_build_mod := $(patsubst ${srcdir}/libarpt_%.c,%,$(sort $(wildcard ${srcdir}/libarpt_*.c)))
+@ENABLE_NFTABLES_TRUE@ pfb_build_mod := $(patsubst ${srcdir}/libebt_%.c,%,$(sort $(wildcard ${srcdir}/libebt_*.c)))
+@ENABLE_NFTABLES_TRUE@ pfa_build_mod := $(patsubst ${srcdir}/libarpt_%.c,%,$(sort $(wildcard ${srcdir}/libarpt_*.c)))
 pfx_symlinks  := NOTRACK state
 @ENABLE_IPV4_TRUE@ pf4_build_mod := $(patsubst ${srcdir}/libipt_%.c,%,$(sort $(wildcard ${srcdir}/libipt_*.c)))
 @ENABLE_IPV6_TRUE@ pf6_build_mod := $(patsubst ${srcdir}/libip6t_%.c,%,$(sort $(wildcard ${srcdir}/libip6t_*.c)))
@@ -55,11 +55,12 @@ pfb_objs      := $(patsubst %,libebt_%.o,${pfb_build_mod})
 pfa_objs      := $(patsubst %,libarpt_%.o,${pfa_build_mod})
 pf4_objs      := $(patsubst %,libipt_%.o,${pf4_build_mod})
 pf6_objs      := $(patsubst %,libip6t_%.o,${pf6_build_mod})
-pfx_solibs    := $(patsubst %,libxt_%.so,${pfx_build_mod} ${pfx_symlinks})
+pfx_solibs    := $(patsubst %,libxt_%.so,${pfx_build_mod})
 pfb_solibs    := $(patsubst %,libebt_%.so,${pfb_build_mod})
 pfa_solibs    := $(patsubst %,libarpt_%.so,${pfa_build_mod})
 pf4_solibs    := $(patsubst %,libipt_%.so,${pf4_build_mod})
 pf6_solibs    := $(patsubst %,libip6t_%.so,${pf6_build_mod})
+pfx_symlink_files := $(patsubst %,libxt_%.so,${pfx_symlinks})
 
 
 #
@@ -72,8 +73,9 @@ targets_install :=
 @ENABLE_STATIC_TRUE@ libext_arpt_objs := ${pfa_objs}
 @ENABLE_STATIC_TRUE@ libext4_objs := ${pf4_objs}
 @ENABLE_STATIC_TRUE@ libext6_objs := ${pf6_objs}
-@ENABLE_STATIC_FALSE@ targets += ${pfx_solibs} ${pfb_solibs} ${pf4_solibs} ${pf6_solibs} ${pfa_solibs}
+@ENABLE_STATIC_FALSE@ targets += ${pfx_solibs} ${pfb_solibs} ${pf4_solibs} ${pf6_solibs} ${pfa_solibs} ${pfx_symlink_files}
 @ENABLE_STATIC_FALSE@ targets_install += ${pfx_solibs} ${pfb_solibs} ${pf4_solibs} ${pf6_solibs} ${pfa_solibs}
+@ENABLE_STATIC_FALSE@ symlinks_install := ${pfx_symlink_files}
 
 .SECONDARY:
 
@@ -81,9 +83,14 @@ targets_install :=
 
 all: ${targets}
 
-install: ${targets_install}
+install: ${targets_install} ${symlinks_install}
 	@mkdir -p "${DESTDIR}${xtlibdir}";
-	if test -n "${targets_install}"; then install -pm0755 $^ "${DESTDIR}${xtlibdir}/"; fi;
+	if test -n "${targets_install}"; then \
+		install -pm0755 ${targets_install} "${DESTDIR}${xtlibdir}/"; \
+	fi;
+	if test -n "${symlinks_install}"; then \
+		cp -P ${symlinks_install} "${DESTDIR}${xtlibdir}/"; \
+	fi;
 
 clean:
 	rm -f *.o *.oo *.so *.a {matches,targets}.man initext.c initext4.c initext6.c initextb.c initexta.c;

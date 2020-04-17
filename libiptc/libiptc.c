@@ -167,7 +167,7 @@ static struct chain_head *iptcc_alloc_chain_head(const char *name, int hooknum)
 		return NULL;
 	memset(c, 0, sizeof(*c));
 
-	strncpy(c->name, name, TABLE_MAXNAMELEN);
+	strncpy(c->name, name, TABLE_MAXNAMELEN - 1);
 	c->hooknum = hooknum;
 	INIT_LIST_HEAD(&c->rules);
 
@@ -194,14 +194,6 @@ set_changed(struct xtc_handle *h)
 {
 	h->changed = 1;
 }
-
-#ifdef IPTC_DEBUG
-static void do_check(struct xtc_handle *h, unsigned int line);
-#define CHECK(h) do { if (!getenv("IPTC_NO_CHECK")) do_check((h), __LINE__); } while(0)
-#else
-#define CHECK(h)
-#endif
-
 
 /**********************************************************************
  * iptc blob utility functions (iptcb_*)
@@ -1122,8 +1114,9 @@ static inline int iptcc_compile_rule (struct xtc_handle *h, STRUCT_REPLACE *repl
 		STRUCT_STANDARD_TARGET *t;
 		t = (STRUCT_STANDARD_TARGET *)GET_TARGET(r->entry);
 		/* memset for memcmp convenience on delete/replace */
-		memset(t->target.u.user.name, 0, FUNCTION_MAXNAMELEN);
+		memset(t->target.u.user.name, 0, XT_EXTENSION_MAXNAMELEN);
 		strcpy(t->target.u.user.name, STANDARD_TARGET);
+		t->target.u.user.revision = 0;
 		/* Jumps can only happen to builtin chains, so we
 		 * can safely assume that they always have a header */
 		t->verdict = r->jump->head_offset + IPTCB_CHAIN_START_SIZE;
@@ -1156,7 +1149,8 @@ static int iptcc_compile_chain(struct xtc_handle *h, STRUCT_REPLACE *repl, struc
 		strcpy(head->name.target.u.user.name, ERROR_TARGET);
 		head->name.target.u.target_size =
 				ALIGN(sizeof(struct xt_error_target));
-		strcpy(head->name.errorname, c->name);
+		strncpy(head->name.errorname, c->name, XT_FUNCTION_MAXNAMELEN);
+		head->name.errorname[XT_FUNCTION_MAXNAMELEN - 1] = '\0';
 	} else {
 		repl->hook_entry[c->hooknum-1] = c->head_offset;
 		repl->underflow[c->hooknum-1] = c->foot_offset;
@@ -1276,7 +1270,7 @@ static int iptcc_compile_table(struct xtc_handle *h, STRUCT_REPLACE *repl)
 
 /* Allocate handle of given size */
 static struct xtc_handle *
-alloc_handle(const char *tablename, unsigned int size, unsigned int num_rules)
+alloc_handle(STRUCT_GETINFO *infop)
 {
 	struct xtc_handle *h;
 
@@ -1287,14 +1281,14 @@ alloc_handle(const char *tablename, unsigned int size, unsigned int num_rules)
 	}
 	memset(h, 0, sizeof(*h));
 	INIT_LIST_HEAD(&h->chains);
-	strcpy(h->info.name, tablename);
+	strcpy(h->info.name, infop->name);
 
-	h->entries = malloc(sizeof(STRUCT_GET_ENTRIES) + size);
+	h->entries = malloc(sizeof(STRUCT_GET_ENTRIES) + infop->size);
 	if (!h->entries)
 		goto out_free_handle;
 
-	strcpy(h->entries->name, tablename);
-	h->entries->size = size;
+	strcpy(h->entries->name, infop->name);
+	h->entries->size = infop->size;
 
 	return h;
 
@@ -1343,8 +1337,8 @@ retry:
 	DEBUGP("valid_hooks=0x%08x, num_entries=%u, size=%u\n",
 		info.valid_hooks, info.num_entries, info.size);
 
-	if ((h = alloc_handle(info.name, info.size, info.num_entries))
-	    == NULL) {
+	h = alloc_handle(&info);
+	if (h == NULL) {
 		close(sockfd);
 		return NULL;
 	}
@@ -1375,7 +1369,6 @@ retry:
 	if (parse_table(h) < 0)
 		goto error;
 
-	CHECK(h);
 	return h;
 error:
 	TC_FREE(h);
@@ -1422,7 +1415,6 @@ void
 TC_DUMP_ENTRIES(struct xtc_handle *const handle)
 {
 	iptc_fn = TC_DUMP_ENTRIES;
-	CHECK(handle);
 
 	printf("libiptc v%s. %u bytes.\n",
 	       XTABLES_VERSION, handle->entries->size);
@@ -1682,8 +1674,9 @@ iptcc_standard_map(struct rule_head *r, int verdict)
 		return 0;
 	}
 	/* memset for memcmp convenience on delete/replace */
-	memset(t->target.u.user.name, 0, FUNCTION_MAXNAMELEN);
+	memset(t->target.u.user.name, 0, XT_EXTENSION_MAXNAMELEN);
 	strcpy(t->target.u.user.name, STANDARD_TARGET);
+	t->target.u.user.revision = 0;
 	t->verdict = verdict;
 
 	r->type = IPTCC_R_STANDARD;
@@ -2156,7 +2149,6 @@ TC_READ_COUNTER(const IPT_CHAINLABEL chain,
 	struct rule_head *r;
 
 	iptc_fn = TC_READ_COUNTER;
-	CHECK(*handle);
 
 	if (!(c = iptcc_find_label(chain, handle))) {
 		errno = ENOENT;
@@ -2180,7 +2172,6 @@ TC_ZERO_COUNTER(const IPT_CHAINLABEL chain,
 	struct rule_head *r;
 
 	iptc_fn = TC_ZERO_COUNTER;
-	CHECK(handle);
 
 	if (!(c = iptcc_find_label(chain, handle))) {
 		errno = ENOENT;
@@ -2211,7 +2202,6 @@ TC_SET_COUNTER(const IPT_CHAINLABEL chain,
 	STRUCT_ENTRY *e;
 
 	iptc_fn = TC_SET_COUNTER;
-	CHECK(handle);
 
 	if (!(c = iptcc_find_label(chain, handle))) {
 		errno = ENOENT;
@@ -2402,7 +2392,7 @@ int TC_RENAME_CHAIN(const IPT_CHAINLABEL oldname,
 	iptcc_chain_index_delete_chain(c, handle);
 
 	/* Change the name of the chain */
-	strncpy(c->name, newname, sizeof(IPT_CHAINLABEL));
+	strncpy(c->name, newname, sizeof(IPT_CHAINLABEL) - 1);
 
 	/* Insert sorted into to list again */
 	iptc_insert_chain(handle, c);
@@ -2536,7 +2526,6 @@ TC_COMMIT(struct xtc_handle *handle)
 	unsigned int new_size;
 
 	iptc_fn = TC_COMMIT;
-	CHECK(*handle);
 
 	/* Don't commit if nothing changed. */
 	if (!handle->changed)
@@ -2755,11 +2744,15 @@ TC_STRERROR(int err)
 
 const struct xtc_ops TC_OPS = {
 	.commit        = TC_COMMIT,
+	.init          = TC_INIT,
 	.free          = TC_FREE,
 	.builtin       = TC_BUILTIN,
 	.is_chain      = TC_IS_CHAIN,
 	.flush_entries = TC_FLUSH_ENTRIES,
 	.create_chain  = TC_CREATE_CHAIN,
+	.first_chain   = TC_FIRST_CHAIN,
+	.next_chain    = TC_NEXT_CHAIN,
+	.get_policy    = TC_GET_POLICY,
 	.set_policy    = TC_SET_POLICY,
 	.strerror      = TC_STRERROR,
 };

@@ -27,7 +27,7 @@ enum {
 static const struct xt_option_entry ipvs_mt_opts[] = {
 	{.name = "ipvs", .id = O_IPVS, .type = XTTYPE_NONE,
 	 .flags = XTOPT_INVERT},
-	{.name = "vproto", .id = O_VPROTO, .type = XTTYPE_STRING,
+	{.name = "vproto", .id = O_VPROTO, .type = XTTYPE_PROTOCOL,
 	 .flags = XTOPT_INVERT | XTOPT_PUT, XTOPT_POINTER(s, l4proto)},
 	{.name = "vaddr", .id = O_VADDR, .type = XTTYPE_HOSTMASK,
 	 .flags = XTOPT_INVERT},
@@ -69,9 +69,6 @@ static void ipvs_mt_parse(struct xt_option_call *cb)
 
 	xtables_option_parse(cb);
 	switch (cb->entry->id) {
-	case O_VPROTO:
-		data->l4proto = cb->val.protocol;
-		break;
 	case O_VADDR:
 		memcpy(&data->vaddr, &cb->val.haddr, sizeof(cb->val.haddr));
 		memcpy(&data->vmask, &cb->val.hmask, sizeof(cb->val.hmask));
@@ -126,19 +123,19 @@ static void ipvs_mt_dump_addr(const union nf_inet_addr *addr,
 			      const union nf_inet_addr *mask,
 			      unsigned int family, bool numeric)
 {
-	char buf[BUFSIZ];
-
 	if (family == NFPROTO_IPV4) {
 		if (!numeric && addr->ip == 0) {
 			printf(" anywhere");
 			return;
 		}
 		if (numeric)
-			strcpy(buf, xtables_ipaddr_to_numeric(&addr->in));
+			printf(" %s%s",
+			       xtables_ipaddr_to_numeric(&addr->in),
+			       xtables_ipmask_to_numeric(&mask->in));
 		else
-			strcpy(buf, xtables_ipaddr_to_anyname(&addr->in));
-		strcat(buf, xtables_ipmask_to_numeric(&mask->in));
-		printf(" %s", buf);
+			printf(" %s%s",
+			       xtables_ipaddr_to_anyname(&addr->in),
+			       xtables_ipmask_to_numeric(&mask->in));
 	} else if (family == NFPROTO_IPV6) {
 		if (!numeric && addr->ip6[0] == 0 && addr->ip6[1] == 0 &&
 		    addr->ip6[2] == 0 && addr->ip6[3] == 0) {
@@ -146,11 +143,13 @@ static void ipvs_mt_dump_addr(const union nf_inet_addr *addr,
 			return;
 		}
 		if (numeric)
-			strcpy(buf, xtables_ip6addr_to_numeric(&addr->in6));
+			printf(" %s%s",
+			       xtables_ip6addr_to_numeric(&addr->in6),
+			       xtables_ip6mask_to_numeric(&mask->in6));
 		else
-			strcpy(buf, xtables_ip6addr_to_anyname(&addr->in6));
-		strcat(buf, xtables_ip6mask_to_numeric(&mask->in6));
-		printf(" %s", buf);
+			printf(" %s%s",
+			       xtables_ip6addr_to_anyname(&addr->in6),
+			       xtables_ip6mask_to_numeric(&mask->in6));
 	}
 }
 
@@ -166,7 +165,7 @@ static void ipvs_mt_dump(const void *ip, const struct xt_ipvs_mtinfo *data,
 	if (data->bitmask & XT_IPVS_PROTO) {
 		if (data->invert & XT_IPVS_PROTO)
 			printf(" !");
-		printf(" %sproto %u", prefix, data->l4proto);
+		printf(" %svproto %u", prefix, data->l4proto);
 	}
 
 	if (data->bitmask & XT_IPVS_VADDR) {
