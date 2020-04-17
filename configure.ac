@@ -1,9 +1,9 @@
 
-AC_INIT([iptables], [1.6.2])
+AC_INIT([iptables], [1.8.4])
 
 # See libtool.info "Libtool's versioning system"
-libxtables_vcurrent=12
-libxtables_vage=0
+libxtables_vcurrent=14
+libxtables_vage=2
 
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -73,11 +73,6 @@ AC_ARG_WITH([xt-lock-name], AS_HELP_STRING([--with-xt-lock-name=PATH],
 	[xt_lock_name="$withval"],
 	[xt_lock_name="/run/xtables.lock"])
 
-libiptc_LDFLAGS2="";
-AX_CHECK_LINKER_FLAGS([-Wl,--no-as-needed],
-	[libiptc_LDFLAGS2="-Wl,--no-as-needed"])
-AC_SUBST([libiptc_LDFLAGS2])
-
 AC_MSG_CHECKING([whether $LD knows -Wl,--no-undefined])
 saved_LDFLAGS="$LDFLAGS";
 LDFLAGS="-Wl,--no-undefined";
@@ -136,7 +131,7 @@ if test "x$enable_nftables" = "xyes"; then
 		exit 1
 	fi
 
-	PKG_CHECK_MODULES([libnftnl], [libnftnl >= 1.0.5], [nftables=1], [nftables=0])
+	PKG_CHECK_MODULES([libnftnl], [libnftnl >= 1.1.3], [nftables=1], [nftables=0])
 
 	if test "$nftables" = 0;
 	then
@@ -145,22 +140,6 @@ if test "x$enable_nftables" = "xyes"; then
 		echo "    Or consider --disable-nftables to skip"
 		echo "    iptables-compat over nftables support."
 		exit 1
-	fi
-
-	AM_PROG_LEX
-	AC_PROG_YACC
-
-	if test -z "$ac_cv_prog_YACC"
-	then
-		echo "*** Error: No suitable bison/yacc found. ***"
-		echo "    Please install the 'bison' package."
-		exit 1
-	fi
-	if test -z "$ac_cv_prog_LEX"
-	then
-	        echo "*** Error: No suitable flex/lex found. ***"
-	        echo "    Please install the 'flex' package."
-	        exit 1
 	fi
 fi
 
@@ -197,6 +176,7 @@ AC_SUBST([blacklist_6_modules])
 
 regular_CFLAGS="-Wall -Waggregate-return -Wmissing-declarations \
 	-Wmissing-prototypes -Wredundant-decls -Wshadow -Wstrict-prototypes \
+	-Wlogical-op \
 	-Winline -pipe";
 regular_CPPFLAGS="${largefile_cppflags} -D_REENTRANT \
 	-DXTABLES_LIBDIR=\\\"\${xtlibdir}\\\" -DXTABLES_INTERNAL";
@@ -249,8 +229,10 @@ AC_CONFIG_FILES([Makefile extensions/GNUmakefile include/Makefile
 	libiptc/Makefile libiptc/libiptc.pc
 	libiptc/libip4tc.pc libiptc/libip6tc.pc
 	libxtables/Makefile utils/Makefile
-	include/xtables-version.h include/iptables/internal.h
-	utils/nfnl_osf.8])
+	include/xtables-version.h
+	iptables/xtables-monitor.8
+	utils/nfnl_osf.8
+	utils/nfbpf_compile.8])
 AC_OUTPUT
 
 

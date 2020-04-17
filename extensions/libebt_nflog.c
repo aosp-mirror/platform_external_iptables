@@ -124,6 +124,29 @@ brnflog_print(const void *ip, const struct xt_entry_target *target,
 		printf("--nflog-threshold %d ", info->threshold);
 }
 
+static int brnflog_xlate(struct xt_xlate *xl,
+			 const struct xt_xlate_tg_params *params)
+{
+	const struct ebt_nflog_info *info = (void *)params->target->data;
+
+	xt_xlate_add(xl, "log ");
+	if (info->prefix[0] != '\0') {
+		if (params->escape_quotes)
+			xt_xlate_add(xl, "prefix \\\"%s\\\" ", info->prefix);
+		else
+			xt_xlate_add(xl, "prefix \"%s\" ", info->prefix);
+	}
+
+	xt_xlate_add(xl, "group %u ", info->group);
+
+	if (info->len)
+		xt_xlate_add(xl, "snaplen %u ", info->len);
+	if (info->threshold != EBT_NFLOG_DEFAULT_THRESHOLD)
+		xt_xlate_add(xl, "queue-threshold %u ", info->threshold);
+
+	return 1;
+}
+
 static struct xtables_target brnflog_watcher = {
 	.name		= "nflog",
 	.revision	= 0,
@@ -135,6 +158,7 @@ static struct xtables_target brnflog_watcher = {
 	.help		= brnflog_help,
 	.parse		= brnflog_parse,
 	.print		= brnflog_print,
+	.xlate		= brnflog_xlate,
 	.extra_opts	= brnflog_opts,
 };
 
