@@ -106,6 +106,28 @@ static void SYNPROXY_save(const void *ip, const struct xt_entry_target *target)
 		printf(" --ecn");
 }
 
+static int SYNPROXY_xlate(struct xt_xlate *xl,
+		          const struct xt_xlate_tg_params *params)
+{
+	const struct xt_synproxy_info *info =
+		(const struct xt_synproxy_info *)params->target->data;
+
+	xt_xlate_add(xl, "synproxy ");
+
+	if (info->options & XT_SYNPROXY_OPT_SACK_PERM)
+		xt_xlate_add(xl, "sack-perm ");
+	if (info->options & XT_SYNPROXY_OPT_TIMESTAMP)
+		xt_xlate_add(xl, "timestamp ");
+	if (info->options & XT_SYNPROXY_OPT_WSCALE)
+		xt_xlate_add(xl, "wscale %u ", info->wscale);
+	if (info->options & XT_SYNPROXY_OPT_MSS)
+		xt_xlate_add(xl, "mss %u ", info->mss);
+	if (info->options & XT_SYNPROXY_OPT_ECN)
+		xt_xlate_add(xl, "ecn ");
+
+	return 1;
+}
+
 static struct xtables_target synproxy_tg_reg = {
 	.family        = NFPROTO_UNSPEC,
 	.name          = "SYNPROXY",
@@ -119,6 +141,7 @@ static struct xtables_target synproxy_tg_reg = {
 	.x6_parse      = SYNPROXY_parse,
 	.x6_fcheck     = SYNPROXY_check,
 	.x6_options    = SYNPROXY_opts,
+	.xlate         = SYNPROXY_xlate,
 };
 
 void _init(void)

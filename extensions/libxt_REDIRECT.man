@@ -8,7 +8,8 @@ chains, and user-defined chains which are only called from those
 chains.  It redirects the packet to the machine itself by changing the
 destination IP to the primary address of the incoming interface
 (locally-generated packets are mapped to the localhost address,
-127.0.0.1 for IPv4 and ::1 for IPv6).
+127.0.0.1 for IPv4 and ::1 for IPv6, and packets arriving on
+interfaces that don't have an IP address configured are dropped).
 .TP
 \fB\-\-to\-ports\fP \fIport\fP[\fB\-\fP\fIport\fP]
 This specifies a destination port or range of ports to use: without
