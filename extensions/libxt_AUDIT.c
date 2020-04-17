@@ -82,6 +82,16 @@ static void audit_save(const void *ip, const struct xt_entry_target *target)
 	}
 }
 
+static int audit_xlate(struct xt_xlate *xl,
+		       const struct xt_xlate_tg_params *params)
+{
+	/* audit type is merely sanity checked by xt_AUDIT.ko,
+	 * so nftables doesn't even support it */
+
+	xt_xlate_add(xl, "log level audit");
+	return 1;
+}
+
 static struct xtables_target audit_tg_reg = {
 	.name		= "AUDIT",
 	.version	= XTABLES_VERSION,
@@ -93,6 +103,7 @@ static struct xtables_target audit_tg_reg = {
 	.save		= audit_save,
 	.x6_parse	= audit_parse,
 	.x6_options	= audit_opts,
+	.xlate		= audit_xlate,
 };
 
 void _init(void)

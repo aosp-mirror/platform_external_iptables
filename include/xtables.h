@@ -464,8 +464,14 @@ extern struct option *xtables_merge_options(struct option *origopts,
 extern int xtables_init_all(struct xtables_globals *xtp, uint8_t nfproto);
 extern struct xtables_match *xtables_find_match(const char *name,
 	enum xtables_tryload, struct xtables_rule_match **match);
+extern struct xtables_match *xtables_find_match_revision(const char *name,
+	enum xtables_tryload tryload, struct xtables_match *match,
+	int revision);
 extern struct xtables_target *xtables_find_target(const char *name,
 	enum xtables_tryload);
+struct xtables_target *xtables_find_target_revision(const char *name,
+	enum xtables_tryload tryload, struct xtables_target *target,
+	int revision);
 extern int xtables_compatible_revision(const char *name, uint8_t revision,
 				       int opt);
 
@@ -515,6 +521,18 @@ extern void xtables_ip6parse_any(const char *, struct in6_addr **,
 extern void xtables_ip6parse_multiple(const char *, struct in6_addr **,
 	struct in6_addr **, unsigned int *);
 
+/* Absolute file name for network data base files.  */
+#define XT_PATH_ETHERTYPES     "/etc/ethertypes"
+
+struct xt_ethertypeent {
+	char *e_name;           /* Official ethernet type name.  */
+	char **e_aliases;       /* Alias list.  */
+	int e_ethertype;        /* Ethernet type number.  */
+};
+
+extern struct xt_ethertypeent *xtables_getethertypebyname(const char *name);
+extern struct xt_ethertypeent *xtables_getethertypebynumber(int ethertype);
+
 /**
  * Print the specified value to standard output, quoting dangerous
  * characters if required.
@@ -530,12 +548,37 @@ extern void xtables_save_string(const char *value);
 #define FMT_VIA			0x0040
 #define FMT_NONEWLINE		0x0080
 #define FMT_LINENUMBERS		0x0100
+#define FMT_EBT_SAVE		0x0200
+#define FMT_C_COUNTS		0x0400
 
 #define FMT_PRINT_RULE (FMT_NOCOUNTS | FMT_OPTIONS | FMT_VIA \
                         | FMT_NUMERIC | FMT_NOTABLE)
 #define FMT(tab,notab) ((format) & FMT_NOTABLE ? (notab) : (tab))
 
 extern void xtables_print_num(uint64_t number, unsigned int format);
+extern void xtables_print_mac(const unsigned char *macaddress);
+extern void xtables_print_mac_and_mask(const unsigned char *mac,
+				       const unsigned char *mask);
+
+extern void xtables_parse_val_mask(struct xt_option_call *cb,
+				   unsigned int *val, unsigned int *mask,
+				   const struct xtables_lmap *lmap);
+
+static inline void xtables_parse_mark_mask(struct xt_option_call *cb,
+					   unsigned int *mark,
+					   unsigned int *mask)
+{
+	xtables_parse_val_mask(cb, mark, mask, NULL);
+}
+
+extern void xtables_print_val_mask(unsigned int val, unsigned int mask,
+				   const struct xtables_lmap *lmap);
+
+static inline void xtables_print_mark_mask(unsigned int mark,
+					   unsigned int mask)
+{
+	xtables_print_val_mask(mark, mask, NULL);
+}
 
 #if defined(ALL_INCLUSIVE) || defined(NO_SHARED_LIBS)
 #	ifdef _INIT
@@ -584,7 +627,7 @@ extern const char *xtables_lmap_id2name(const struct xtables_lmap *, int);
 /* xlate infrastructure */
 struct xt_xlate *xt_xlate_alloc(int size);
 void xt_xlate_free(struct xt_xlate *xl);
-void xt_xlate_add(struct xt_xlate *xl, const char *fmt, ...);
+void xt_xlate_add(struct xt_xlate *xl, const char *fmt, ...) __attribute__((format(printf,2,3)));
 void xt_xlate_add_comment(struct xt_xlate *xl, const char *comment);
 const char *xt_xlate_get_comment(struct xt_xlate *xl);
 const char *xt_xlate_get(struct xt_xlate *xl);

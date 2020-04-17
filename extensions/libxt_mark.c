@@ -47,14 +47,6 @@ static void mark_parse(struct xt_option_call *cb)
 	markinfo->mask = cb->val.mask;
 }
 
-static void print_mark(unsigned int mark, unsigned int mask)
-{
-	if (mask != 0xffffffffU)
-		printf(" 0x%x/0x%x", mark, mask);
-	else
-		printf(" 0x%x", mark);
-}
-
 static void
 mark_mt_print(const void *ip, const struct xt_entry_match *match, int numeric)
 {
@@ -63,7 +55,8 @@ mark_mt_print(const void *ip, const struct xt_entry_match *match, int numeric)
 	printf(" mark match");
 	if (info->invert)
 		printf(" !");
-	print_mark(info->mark, info->mask);
+
+	xtables_print_mark_mask(info->mark, info->mask);
 }
 
 static void
@@ -76,7 +69,7 @@ mark_print(const void *ip, const struct xt_entry_match *match, int numeric)
 	if (info->invert)
 		printf(" !");
 
-	print_mark(info->mark, info->mask);
+	xtables_print_mark_mask(info->mark, info->mask);
 }
 
 static void mark_mt_save(const void *ip, const struct xt_entry_match *match)
@@ -87,7 +80,7 @@ static void mark_mt_save(const void *ip, const struct xt_entry_match *match)
 		printf(" !");
 
 	printf(" --mark");
-	print_mark(info->mark, info->mask);
+	xtables_print_mark_mask(info->mark, info->mask);
 }
 
 static void
@@ -99,7 +92,7 @@ mark_save(const void *ip, const struct xt_entry_match *match)
 		printf(" !");
 
 	printf(" --mark");
-	print_mark(info->mark, info->mask);
+	xtables_print_mark_mask(info->mark, info->mask);
 }
 
 static void
