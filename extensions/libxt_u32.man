@@ -40,18 +40,23 @@ A is of type \fBchar *\fP, initially the address of the IP header
 B and C are unsigned 32 bit integers, initially zero
 .PP
 The instructions are:
-.IP
-number B = number;
+.TP
+.B number
+B = number;
 .IP
 C = (*(A+B)<<24) + (*(A+B+1)<<16) + (*(A+B+2)<<8) + *(A+B+3)
-.IP
-&number C = C & number
-.IP
-<< number C = C << number
-.IP
->> number C = C >> number
-.IP
-@number A = A + C; then do the instruction number
+.TP
+.B &number
+C = C & number
+.TP
+.B << number
+C = C << number
+.TP
+.B >> number
+C = C >> number
+.TP
+.B @number
+A = A + C; then do the instruction number
 .PP
 Any access of memory outside [skb\->data,skb\->end] causes the match to fail.
 Otherwise the result of the computation is the final value of C.
