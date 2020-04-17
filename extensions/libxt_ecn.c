@@ -124,26 +124,39 @@ static int ecn_xlate(struct xt_xlate *xl,
 	const struct xt_ecn_info *einfo =
 		(const struct xt_ecn_info *)params->match->data;
 
-	if (!(einfo->operation & XT_ECN_OP_MATCH_IP))
-		return 0;
+	if (einfo->operation & XT_ECN_OP_MATCH_ECE) {
+		xt_xlate_add(xl, "tcp flags ");
+		if (einfo->invert)
+			xt_xlate_add(xl,"!= ");
+		xt_xlate_add(xl, "ecn");
+	}
 
-	xt_xlate_add(xl, "ip ecn ");
-	if (einfo->invert)
-		xt_xlate_add(xl,"!= ");
+	if (einfo->operation & XT_ECN_OP_MATCH_CWR) {
+		xt_xlate_add(xl, "tcp flags ");
+		if (einfo->invert)
+			xt_xlate_add(xl,"!= ");
+		xt_xlate_add(xl, "cwr");
+	}
 
-	switch (einfo->ip_ect) {
-	case 0:
-		xt_xlate_add(xl, "not-ect");
-		break;
-	case 1:
-		xt_xlate_add(xl, "ect1");
-		break;
-	case 2:
-		xt_xlate_add(xl, "ect0");
-		break;
-	case 3:
-		xt_xlate_add(xl, "ce");
-		break;
+	if (einfo->operation & XT_ECN_OP_MATCH_IP) {
+		xt_xlate_add(xl, "ip ecn ");
+		if (einfo->invert)
+			xt_xlate_add(xl,"!= ");
+
+		switch (einfo->ip_ect) {
+		case 0:
+			xt_xlate_add(xl, "not-ect");
+			break;
+		case 1:
+			xt_xlate_add(xl, "ect1");
+			break;
+		case 2:
+			xt_xlate_add(xl, "ect0");
+			break;
+		case 3:
+			xt_xlate_add(xl, "ce");
+			break;
+		}
 	}
 	return 1;
 }

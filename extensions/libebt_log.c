@@ -92,6 +92,14 @@ static void brlog_init(struct xt_entry_target *t)
 	loginfo->loglevel = LOG_NOTICE;
 }
 
+static unsigned int log_chk_inv(int inv, unsigned int bit, const char *suffix)
+{
+	if (inv)
+		xtables_error(PARAMETER_PROBLEM,
+			      "Unexpected `!' after --log%s", suffix);
+	return bit;
+}
+
 static int brlog_parse(int c, char **argv, int invert, unsigned int *flags,
 		       const void *entry, struct xt_entry_target **target)
 {
@@ -125,26 +133,16 @@ static int brlog_parse(int c, char **argv, int invert, unsigned int *flags,
 				      "Problem with the log-level");
 		break;
 	case LOG_IP:
-		if (invert)
-			xtables_error(PARAMETER_PROBLEM,
-				      "Unexpected `!' after --log-ip");
-		loginfo->bitmask |= EBT_LOG_IP;
+		loginfo->bitmask |= log_chk_inv(invert, EBT_LOG_IP, "-ip");
 		break;
 	case LOG_ARP:
-		if (invert)
-			xtables_error(PARAMETER_PROBLEM,
-				      "Unexpected `!' after --log-arp");
-		loginfo->bitmask |= EBT_LOG_ARP;
+		loginfo->bitmask |= log_chk_inv(invert, EBT_LOG_ARP, "-arp");
+		break;
 	case LOG_LOG:
-		if (invert)
-			xtables_error(PARAMETER_PROBLEM,
-				      "Unexpected `!' after --log");
+		loginfo->bitmask |= log_chk_inv(invert, 0, "");
 		break;
 	case LOG_IP6:
-		if (invert)
-			xtables_error(PARAMETER_PROBLEM,
-				      "Unexpected `!' after --log-ip6");
-		loginfo->bitmask |= EBT_LOG_IP6;
+		loginfo->bitmask |= log_chk_inv(invert, EBT_LOG_IP6, "-ip6");
 		break;
 	default:
 		return 0;
@@ -176,6 +174,27 @@ static void brlog_print(const void *ip, const struct xt_entry_target *target,
 	printf(" ");
 }
 
+static int brlog_xlate(struct xt_xlate *xl,
+		       const struct xt_xlate_tg_params *params)
+{
+	const struct ebt_log_info *loginfo = (const void *)params->target->data;
+
+	xt_xlate_add(xl, "log");
+	if (loginfo->prefix[0]) {
+		if (params->escape_quotes)
+			xt_xlate_add(xl, " prefix \\\"%s\\\"", loginfo->prefix);
+		else
+			xt_xlate_add(xl, " prefix \"%s\"", loginfo->prefix);
+	}
+
+	if (loginfo->loglevel != LOG_DEFAULT_LEVEL)
+		xt_xlate_add(xl, " level %s", eight_priority[loginfo->loglevel].c_name);
+
+	xt_xlate_add(xl, " flags ether ");
+
+	return 1;
+}
+
 static struct xtables_target brlog_target = {
 	.name		= "log",
 	.revision	= 0,
@@ -188,6 +207,7 @@ static struct xtables_target brlog_target = {
 	.parse		= brlog_parse,
 	.final_check	= brlog_final_check,
 	.print		= brlog_print,
+	.xlate		= brlog_xlate,
 	.extra_opts	= brlog_opts,
 };
 

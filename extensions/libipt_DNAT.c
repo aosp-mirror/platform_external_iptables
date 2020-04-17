@@ -35,6 +35,15 @@ static void DNAT_help(void)
 "[--random] [--persistent]\n");
 }
 
+static void DNAT_help_v2(void)
+{
+	printf(
+"DNAT target options:\n"
+" --to-destination [<ipaddr>[-<ipaddr>]][:port[-port[/port]]]\n"
+"				Address to map destination to.\n"
+"[--random] [--persistent]\n");
+}
+
 static const struct xt_option_entry DNAT_opts[] = {
 	{.name = "to-destination", .id = O_TO_DEST, .type = XTTYPE_STRING,
 	 .flags = XTOPT_MAND | XTOPT_MULTI},
@@ -287,22 +296,260 @@ static int DNAT_xlate(struct xt_xlate *xl,
 	return 1;
 }
 
-static struct xtables_target dnat_tg_reg = {
-	.name		= "DNAT",
-	.version	= XTABLES_VERSION,
-	.family		= NFPROTO_IPV4,
-	.size		= XT_ALIGN(sizeof(struct nf_nat_ipv4_multi_range_compat)),
-	.userspacesize	= XT_ALIGN(sizeof(struct nf_nat_ipv4_multi_range_compat)),
-	.help		= DNAT_help,
-	.x6_parse	= DNAT_parse,
-	.x6_fcheck	= DNAT_fcheck,
-	.print		= DNAT_print,
-	.save		= DNAT_save,
-	.x6_options	= DNAT_opts,
-	.xlate		= DNAT_xlate,
+static void
+parse_to_v2(const char *orig_arg, int portok, struct nf_nat_range2 *range)
+{
+	char *arg, *colon, *dash, *error;
+	const struct in_addr *ip;
+
+	arg = strdup(orig_arg);
+	if (arg == NULL)
+		xtables_error(RESOURCE_PROBLEM, "strdup");
+
+	colon = strchr(arg, ':');
+	if (colon) {
+		int port;
+
+		if (!portok)
+			xtables_error(PARAMETER_PROBLEM,
+				   "Need TCP, UDP, SCTP or DCCP with port specification");
+
+		range->flags |= NF_NAT_RANGE_PROTO_SPECIFIED;
+
+		port = atoi(colon+1);
+		if (port <= 0 || port > 65535)
+			xtables_error(PARAMETER_PROBLEM,
+				   "Port `%s' not valid\n", colon+1);
+
+		error = strchr(colon+1, ':');
+		if (error)
+			xtables_error(PARAMETER_PROBLEM,
+				   "Invalid port:port syntax - use dash\n");
+
+		dash = strchr(colon, '-');
+		if (!dash) {
+			range->min_proto.tcp.port
+				= range->max_proto.tcp.port
+				= htons(port);
+		} else {
+			int maxport;
+			char *slash;
+
+			maxport = atoi(dash + 1);
+			if (maxport <= 0 || maxport > 65535)
+				xtables_error(PARAMETER_PROBLEM,
+					   "Port `%s' not valid\n", dash+1);
+			if (maxport < port)
+				/* People are stupid. */
+				xtables_error(PARAMETER_PROBLEM,
+					   "Port range `%s' funky\n", colon+1);
+			range->min_proto.tcp.port = htons(port);
+			range->max_proto.tcp.port = htons(maxport);
+
+			slash = strchr(dash, '/');
+			if (slash) {
+				int baseport;
+
+				baseport = atoi(slash + 1);
+				if (baseport <= 0 || baseport > 65535)
+					xtables_error(PARAMETER_PROBLEM,
+							 "Port `%s' not valid\n", slash+1);
+				range->flags |= NF_NAT_RANGE_PROTO_OFFSET;
+				range->base_proto.tcp.port = htons(baseport);
+			}
+		}
+		/* Starts with a colon? No IP info...*/
+		if (colon == arg) {
+			free(arg);
+			return;
+		}
+		*colon = '\0';
+	}
+
+	range->flags |= NF_NAT_RANGE_MAP_IPS;
+	dash = strchr(arg, '-');
+	if (colon && dash && dash > colon)
+		dash = NULL;
+
+	if (dash)
+		*dash = '\0';
+
+	ip = xtables_numeric_to_ipaddr(arg);
+	if (!ip)
+		xtables_error(PARAMETER_PROBLEM, "Bad IP address \"%s\"\n",
+			   arg);
+	range->min_addr.in = *ip;
+	if (dash) {
+		ip = xtables_numeric_to_ipaddr(dash+1);
+		if (!ip)
+			xtables_error(PARAMETER_PROBLEM, "Bad IP address \"%s\"\n",
+				   dash+1);
+		range->max_addr.in = *ip;
+	} else
+		range->max_addr = range->min_addr;
+
+	free(arg);
+	return;
+}
+
+static void DNAT_parse_v2(struct xt_option_call *cb)
+{
+	const struct ipt_entry *entry = cb->xt_entry;
+	struct nf_nat_range2 *range = cb->data;
+	int portok;
+
+	if (entry->ip.proto == IPPROTO_TCP
+	    || entry->ip.proto == IPPROTO_UDP
+	    || entry->ip.proto == IPPROTO_SCTP
+	    || entry->ip.proto == IPPROTO_DCCP
+	    || entry->ip.proto == IPPROTO_ICMP)
+		portok = 1;
+	else
+		portok = 0;
+
+	xtables_option_parse(cb);
+	switch (cb->entry->id) {
+	case O_TO_DEST:
+		if (cb->xflags & F_X_TO_DEST) {
+			xtables_error(PARAMETER_PROBLEM,
+				   "DNAT: Multiple --to-destination not supported");
+		}
+		parse_to_v2(cb->arg, portok, range);
+		cb->xflags |= F_X_TO_DEST;
+		break;
+	case O_PERSISTENT:
+		range->flags |= NF_NAT_RANGE_PERSISTENT;
+		break;
+	}
+}
+
+static void DNAT_fcheck_v2(struct xt_fcheck_call *cb)
+{
+	static const unsigned int f = F_TO_DEST | F_RANDOM;
+	struct nf_nat_range2 *range = cb->data;
+
+	if ((cb->xflags & f) == f)
+		range->flags |= NF_NAT_RANGE_PROTO_RANDOM;
+}
+
+static void print_range_v2(const struct nf_nat_range2 *range)
+{
+	if (range->flags & NF_NAT_RANGE_MAP_IPS) {
+		printf("%s", xtables_ipaddr_to_numeric(&range->min_addr.in));
+		if (memcmp(&range->min_addr, &range->max_addr,
+			   sizeof(range->min_addr)))
+			printf("-%s", xtables_ipaddr_to_numeric(&range->max_addr.in));
+	}
+	if (range->flags & NF_NAT_RANGE_PROTO_SPECIFIED) {
+		printf(":");
+		printf("%hu", ntohs(range->min_proto.tcp.port));
+		if (range->max_proto.tcp.port != range->min_proto.tcp.port)
+			printf("-%hu", ntohs(range->max_proto.tcp.port));
+		if (range->flags & NF_NAT_RANGE_PROTO_OFFSET)
+			printf("/%hu", ntohs(range->base_proto.tcp.port));
+	}
+}
+
+static void DNAT_print_v2(const void *ip, const struct xt_entry_target *target,
+                       int numeric)
+{
+	const struct nf_nat_range2 *range = (const void *)target->data;
+
+	printf(" to:");
+	print_range_v2(range);
+	if (range->flags & NF_NAT_RANGE_PROTO_RANDOM)
+		printf(" random");
+	if (range->flags & NF_NAT_RANGE_PERSISTENT)
+		printf(" persistent");
+}
+
+static void DNAT_save_v2(const void *ip, const struct xt_entry_target *target)
+{
+	const struct nf_nat_range2 *range = (const void *)target->data;
+
+	printf(" --to-destination ");
+	print_range_v2(range);
+	if (range->flags & NF_NAT_RANGE_PROTO_RANDOM)
+		printf(" --random");
+	if (range->flags & NF_NAT_RANGE_PERSISTENT)
+		printf(" --persistent");
+}
+
+static void print_range_xlate_v2(const struct nf_nat_range2 *range,
+			      struct xt_xlate *xl)
+{
+	if (range->flags & NF_NAT_RANGE_MAP_IPS) {
+		xt_xlate_add(xl, "%s", xtables_ipaddr_to_numeric(&range->min_addr.in));
+		if (memcmp(&range->min_addr, &range->max_addr,
+			   sizeof(range->min_addr))) {
+			xt_xlate_add(xl, "-%s", xtables_ipaddr_to_numeric(&range->max_addr.in));
+		}
+	}
+	if (range->flags & NF_NAT_RANGE_PROTO_SPECIFIED) {
+		xt_xlate_add(xl, ":%hu", ntohs(range->min_proto.tcp.port));
+		if (range->max_proto.tcp.port != range->min_proto.tcp.port)
+			xt_xlate_add(xl, "-%hu", ntohs(range->max_proto.tcp.port));
+		if (range->flags & NF_NAT_RANGE_PROTO_OFFSET)
+			xt_xlate_add(xl, ";%hu", ntohs(range->base_proto.tcp.port));
+	}
+}
+
+static int DNAT_xlate_v2(struct xt_xlate *xl,
+		      const struct xt_xlate_tg_params *params)
+{
+	const struct nf_nat_range2 *range = (const void *)params->target->data;
+	bool sep_need = false;
+	const char *sep = " ";
+
+	xt_xlate_add(xl, "dnat to ");
+	print_range_xlate_v2(range, xl);
+	if (range->flags & NF_NAT_RANGE_PROTO_RANDOM) {
+		xt_xlate_add(xl, " random");
+		sep_need = true;
+	}
+	if (range->flags & NF_NAT_RANGE_PERSISTENT) {
+		if (sep_need)
+			sep = ",";
+		xt_xlate_add(xl, "%spersistent", sep);
+	}
+
+	return 1;
+}
+
+static struct xtables_target dnat_tg_reg[] = {
+	{
+		.name		= "DNAT",
+		.version	= XTABLES_VERSION,
+		.family		= NFPROTO_IPV4,
+		.revision	= 0,
+		.size		= XT_ALIGN(sizeof(struct nf_nat_ipv4_multi_range_compat)),
+		.userspacesize	= XT_ALIGN(sizeof(struct nf_nat_ipv4_multi_range_compat)),
+		.help		= DNAT_help,
+		.print		= DNAT_print,
+		.save		= DNAT_save,
+		.x6_parse	= DNAT_parse,
+		.x6_fcheck	= DNAT_fcheck,
+		.x6_options	= DNAT_opts,
+		.xlate		= DNAT_xlate,
+	},
+	{
+		.name		= "DNAT",
+		.version	= XTABLES_VERSION,
+		.family		= NFPROTO_IPV4,
+		.revision	= 2,
+		.size		= XT_ALIGN(sizeof(struct nf_nat_range2)),
+		.userspacesize	= XT_ALIGN(sizeof(struct nf_nat_range2)),
+		.help		= DNAT_help_v2,
+		.print		= DNAT_print_v2,
+		.save		= DNAT_save_v2,
+		.x6_parse	= DNAT_parse_v2,
+		.x6_fcheck	= DNAT_fcheck_v2,
+		.x6_options	= DNAT_opts,
+		.xlate		= DNAT_xlate_v2,
+	},
 };
 
 void _init(void)
 {
-	xtables_register_target(&dnat_tg_reg);
+	xtables_register_targets(dnat_tg_reg, ARRAY_SIZE(dnat_tg_reg));
 }

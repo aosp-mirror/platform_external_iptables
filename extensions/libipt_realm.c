@@ -28,61 +28,23 @@ static const struct xt_option_entry realm_opts[] = {
 	XTOPT_TABLEEND,
 };
 
-/* array of realms from /etc/iproute2/rt_realms */
+static const char f_realms[] = "/etc/iproute2/rt_realms";
+/* array of realms from f_realms[] */
 static struct xtables_lmap *realms;
-
-static void realm_init(struct xt_entry_match *m)
-{
-	const char file[] = "/etc/iproute2/rt_realms";
-
-	realms = xtables_lmap_init(file);
-	if (realms == NULL && errno != ENOENT)
-		fprintf(stderr, "Warning: %s: %s\n", file, strerror(errno));
-}
 
 static void realm_parse(struct xt_option_call *cb)
 {
-	struct xt_realm_info *realminfo = cb->data;
-	int id;
-	char *end;
+	struct xt_realm_info *ri = cb->data;
+	unsigned int id, mask;
 
 	xtables_option_parse(cb);
-	realminfo->id = strtoul(cb->arg, &end, 0);
-	if (end != cb->arg && (*end == '/' || *end == '\0')) {
-		if (*end == '/')
-			realminfo->mask = strtoul(end+1, &end, 0);
-		else
-			realminfo->mask = 0xffffffff;
-		if (*end != '\0' || end == cb->arg)
-			xtables_error(PARAMETER_PROBLEM,
-				   "Bad realm value \"%s\"", cb->arg);
-	} else {
-		id = xtables_lmap_name2id(realms, cb->arg);
-		if (id == -1)
-			xtables_error(PARAMETER_PROBLEM,
-				   "Realm \"%s\" not found", cb->arg);
-		realminfo->id = id;
-		realminfo->mask = 0xffffffff;
-	}
+	xtables_parse_val_mask(cb, &id, &mask, realms);
+
+	ri->id = id;
+	ri->mask = mask;
+
 	if (cb->invert)
-		realminfo->invert = 1;
-}
-
-static void
-print_realm(unsigned long id, unsigned long mask, int numeric)
-{
-	const char *name = NULL;
-
-	if (mask != 0xffffffff)
-		printf(" 0x%lx/0x%lx", id, mask);
-	else {
-		if (numeric == 0)
-			name = xtables_lmap_id2name(realms, id);
-		if (name)
-			printf(" %s", name);
-		else
-			printf(" 0x%lx", id);
-	}
+		ri->invert = 1;
 }
 
 static void realm_print(const void *ip, const struct xt_entry_match *match,
@@ -94,7 +56,7 @@ static void realm_print(const void *ip, const struct xt_entry_match *match,
 		printf(" !");
 
 	printf(" realm");
-	print_realm(ri->id, ri->mask, numeric);
+	xtables_print_val_mask(ri->id, ri->mask, numeric ? NULL : realms);
 }
 
 static void realm_save(const void *ip, const struct xt_entry_match *match)
@@ -105,7 +67,7 @@ static void realm_save(const void *ip, const struct xt_entry_match *match)
 		printf(" !");
 
 	printf(" --realm");
-	print_realm(ri->id, ri->mask, 0);
+	xtables_print_val_mask(ri->id, ri->mask, realms);
 }
 
 static void
@@ -151,7 +113,6 @@ static struct xtables_match realm_mt_reg = {
 	.size		= XT_ALIGN(sizeof(struct xt_realm_info)),
 	.userspacesize	= XT_ALIGN(sizeof(struct xt_realm_info)),
 	.help		= realm_help,
-	.init		= realm_init,
 	.print		= realm_print,
 	.save		= realm_save,
 	.x6_parse	= realm_parse,
@@ -161,5 +122,10 @@ static struct xtables_match realm_mt_reg = {
 
 void _init(void)
 {
+	realms = xtables_lmap_init(f_realms);
+	if (realms == NULL && errno != ENOENT)
+		fprintf(stderr, "Warning: %s: %s\n", f_realms,
+			strerror(errno));
+
 	xtables_register_match(&realm_mt_reg);
 }
