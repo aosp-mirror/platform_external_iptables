@@ -66,7 +66,7 @@ static void idletimer_tg_help_v1(void)
 "IDLETIMER target options:\n"
 " --timeout time	Timeout until the notification is sent (in seconds)\n"
 " --label string	Unique rule identifier\n"
-" --alarm none	    Use alarm instead of default timer\n"
+" --alarm	Use alarm instead of default timer\n"
 "\n");
 }
 
