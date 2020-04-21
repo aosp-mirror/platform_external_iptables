@@ -11,6 +11,7 @@
  */
 #include <stdio.h>
 #include <string.h>
+#include <strings.h>
 #include <xtables.h>
 /* For 64bit kernel / 32bit userspace */
 #include <linux/netfilter_ipv4/ipt_ULOG.h>
