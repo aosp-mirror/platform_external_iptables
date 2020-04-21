@@ -85,8 +85,10 @@ static void xtables_restore_parse_line(struct nft_handle *h,
 	if (buffer[0] == '\n')
 		return;
 	else if (buffer[0] == '#') {
-		if (verbose)
+		if (verbose) {
 			fputs(buffer, stdout);
+			fflush(stdout);
+		}
 		return;
 	} else if (state->in_table &&
 		   (strncmp(buffer, "COMMIT", 6) == 0) &&

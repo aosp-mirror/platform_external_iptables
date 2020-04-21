@@ -178,8 +178,10 @@ ip46tables_restore_main(const struct iptables_restore_cb *cb,
 		if (buffer[0] == '\n')
 			continue;
 		else if (buffer[0] == '#') {
-			if (verbose)
+			if (verbose) {
 				fputs(buffer, stdout);
+				fflush(stdout);
+			}
 			continue;
 		} else if ((strcmp(buffer, "COMMIT\n") == 0) && (in_table)) {
 			if (!testing) {
