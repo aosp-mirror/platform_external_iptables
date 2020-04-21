@@ -61,14 +61,26 @@ static const struct xt_option_entry bpf_opts_v1[] = {
 	XTOPT_TABLEEND,
 };
 
-static int bpf_obj_get(const char *filepath)
+static int bpf_obj_get_readonly(const char *filepath)
 {
 #if defined HAVE_LINUX_BPF_H && defined __NR_bpf && defined BPF_FS_MAGIC
-	union bpf_attr attr;
+	/* union bpf_attr includes this in an anonymous struct, but the
+	 * file_flags field and the BPF_F_RDONLY constant are only present
+	 * in Linux 4.15+ kernel headers (include/uapi/linux/bpf.h)
+	 */
+	struct {   // this part of union bpf_attr is for BPF_OBJ_* commands
+		__aligned_u64	pathname;
+		__u32		bpf_fd;
+		__u32		file_flags;
+	} attr = {
+		.pathname = (__u64)filepath,
+		.file_flags = (1U << 3),   // BPF_F_RDONLY
+	};
+	int fd = syscall(__NR_bpf, BPF_OBJ_GET, &attr, sizeof(attr));
+	if (fd >= 0) return fd;
 
-	memset(&attr, 0, sizeof(attr));
-	attr.pathname = (__u64) filepath;
-
+	/* on any error fallback to default R/W access for pre-4.15-rc1 kernels */
+	attr.file_flags = 0;
 	return syscall(__NR_bpf, BPF_OBJ_GET, &attr, sizeof(attr));
 #else
 	xtables_error(OTHER_PROBLEM,
@@ -125,7 +137,7 @@ static void bpf_parse_string(struct sock_filter *pc, __u16 *lenp, __u16 len_max,
 static void bpf_parse_obj_pinned(struct xt_bpf_info_v1 *bi,
 				 const char *filepath)
 {
-	bi->fd = bpf_obj_get(filepath);
+	bi->fd = bpf_obj_get_readonly(filepath);
 	if (bi->fd < 0)
 		xtables_error(PARAMETER_PROBLEM,
 			      "bpf: failed to get bpf object");
