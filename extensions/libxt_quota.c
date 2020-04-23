@@ -48,7 +48,6 @@ static void quota_parse(struct xt_option_call *cb)
 	xtables_option_parse(cb);
 	if (cb->invert)
 		info->flags |= XT_QUOTA_INVERT;
-	info->quota = cb->val.u64;
 }
 
 static int quota_xlate(struct xt_xlate *xl,
