@@ -67,13 +67,6 @@ static const char *hooknames[] = {
 };
 
 /* Convenience structures */
-#undef ipt_error_target /* uapi includes this already. */
-struct ipt_error_target
-{
-	STRUCT_ENTRY_TARGET t;
-	char error[TABLE_MAXNAMELEN];
-};
-
 struct chain_head;
 struct rule_head;
 
