@@ -160,7 +160,6 @@ uint32_t nft_invflags2cmp(uint32_t invflags, uint32_t flag);
 int nft_commit(struct nft_handle *h);
 int nft_bridge_commit(struct nft_handle *h);
 int nft_abort(struct nft_handle *h);
-int nft_abort_policy_rule(struct nft_handle *h, const char *table);
 
 /*
  * revision compatibility.

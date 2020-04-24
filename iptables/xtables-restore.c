@@ -486,17 +486,10 @@ int xtables_ip6_restore_main(int argc, char *argv[])
 				    argc, argv);
 }
 
-static int ebt_table_flush(struct nft_handle *h, const char *table)
-{
-	/* drop any pending policy rule add/removal jobs */
-	nft_abort_policy_rule(h, table);
-	return nft_table_flush(h, table);
-}
-
 static const struct nft_xt_restore_cb ebt_restore_cb = {
 	.commit		= nft_bridge_commit,
 	.table_new	= nft_table_new,
-	.table_flush	= ebt_table_flush,
+	.table_flush	= nft_table_flush,
 	.do_command	= do_commandeb,
 	.chain_set	= nft_chain_set,
 	.chain_restore  = nft_chain_restore,

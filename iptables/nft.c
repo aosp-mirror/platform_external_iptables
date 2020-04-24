@@ -2985,27 +2985,6 @@ int nft_abort(struct nft_handle *h)
 	return nft_action(h, NFT_COMPAT_ABORT);
 }
 
-int nft_abort_policy_rule(struct nft_handle *h, const char *table)
-{
-	struct obj_update *n, *tmp;
-
-	list_for_each_entry_safe(n, tmp, &h->obj_list, head) {
-		if (n->type != NFT_COMPAT_RULE_APPEND &&
-		    n->type != NFT_COMPAT_RULE_DELETE)
-			continue;
-
-		if (strcmp(table,
-			   nftnl_rule_get_str(n->rule, NFTNL_RULE_TABLE)))
-			continue;
-
-		if (!nft_rule_is_policy_rule(n->rule))
-			continue;
-
-		batch_obj_del(h, n);
-	}
-	return 0;
-}
-
 int nft_compatible_revision(const char *name, uint8_t rev, int opt)
 {
 	struct mnl_socket *nl;
