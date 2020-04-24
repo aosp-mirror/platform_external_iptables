@@ -402,6 +402,38 @@ batch_rule_add(struct nft_handle *h, enum obj_update_type type,
 	return batch_add(h, type, r);
 }
 
+static void batch_obj_del(struct nft_handle *h, struct obj_update *o);
+
+static void batch_chain_flush(struct nft_handle *h,
+			      const char *table, const char *chain)
+{
+	struct obj_update *obj, *tmp;
+
+	list_for_each_entry_safe(obj, tmp, &h->obj_list, head) {
+		struct nftnl_rule *r = obj->ptr;
+
+		switch (obj->type) {
+		case NFT_COMPAT_RULE_APPEND:
+		case NFT_COMPAT_RULE_INSERT:
+		case NFT_COMPAT_RULE_REPLACE:
+		case NFT_COMPAT_RULE_DELETE:
+			break;
+		default:
+			continue;
+		}
+
+		if (table &&
+		    strcmp(table, nftnl_rule_get_str(r, NFTNL_RULE_TABLE)))
+			continue;
+
+		if (chain &&
+		    strcmp(chain, nftnl_rule_get_str(r, NFTNL_RULE_CHAIN)))
+			continue;
+
+		batch_obj_del(h, obj);
+	}
+}
+
 const struct builtin_table xtables_ipv4[NFT_TABLE_MAX] = {
 	[NFT_TABLE_RAW] = {
 		.name	= "raw",
@@ -1681,6 +1713,7 @@ int nft_rule_flush(struct nft_handle *h, const char *chain, const char *table,
 	}
 
 	if (chain || !verbose) {
+		batch_chain_flush(h, table, chain);
 		__nft_rule_flush(h, table, chain, verbose, false);
 		flush_rule_cache(h, table, c);
 		return 1;
@@ -1696,6 +1729,7 @@ int nft_rule_flush(struct nft_handle *h, const char *chain, const char *table,
 	while (c != NULL) {
 		chain = nftnl_chain_get_str(c, NFTNL_CHAIN_NAME);
 
+		batch_chain_flush(h, table, chain);
 		__nft_rule_flush(h, table, chain, verbose, false);
 		flush_rule_cache(h, table, c);
 		c = nftnl_chain_list_iter_next(iter);
