@@ -737,6 +737,9 @@ static int nft_xt_builtin_init(struct nft_handle *h, const char *table)
 {
 	const struct builtin_table *t;
 
+	if (!h->cache_init)
+		return 0;
+
 	t = nft_table_builtin_find(h, table);
 	if (t == NULL)
 		return -1;
@@ -746,6 +749,9 @@ static int nft_xt_builtin_init(struct nft_handle *h, const char *table)
 
 	if (nft_table_builtin_add(h, t) < 0)
 		return -1;
+
+	if (h->cache_req.level < NFT_CL_CHAINS)
+		return 0;
 
 	nft_chain_builtin_init(h, t);
 

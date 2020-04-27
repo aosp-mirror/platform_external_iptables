@@ -167,7 +167,10 @@ int nft_cmd_rule_flush(struct nft_handle *h, const char *chain,
 	if (!cmd)
 		return 0;
 
-	nft_cache_level_set(h, NFT_CL_CHAINS, cmd);
+	if (chain || verbose)
+		nft_cache_level_set(h, NFT_CL_CHAINS, cmd);
+	else
+		nft_cache_level_set(h, NFT_CL_TABLES, cmd);
 
 	return 1;
 }
