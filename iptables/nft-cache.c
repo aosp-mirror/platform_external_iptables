@@ -484,12 +484,16 @@ static int fetch_rule_cache(struct nft_handle *h,
 	return 0;
 }
 
+static int flush_cache(struct nft_handle *h, struct nft_cache *c,
+		       const char *tablename);
+
 static void
 __nft_build_cache(struct nft_handle *h)
 {
 	struct nft_cache_req *req = &h->cache_req;
 	const struct builtin_table *t = NULL;
 	struct list_head *chains = NULL;
+	uint32_t genid_check;
 
 	if (h->cache_init)
 		return;
@@ -501,6 +505,7 @@ __nft_build_cache(struct nft_handle *h)
 	}
 
 	h->cache_init = true;
+retry:
 	mnl_genid_get(h, &h->nft_genid);
 
 	if (req->level >= NFT_CL_TABLES)
@@ -513,6 +518,12 @@ __nft_build_cache(struct nft_handle *h)
 		fetch_set_cache(h, t, NULL);
 	if (req->level >= NFT_CL_RULES)
 		fetch_rule_cache(h, t);
+
+	mnl_genid_get(h, &genid_check);
+	if (h->nft_genid != genid_check) {
+		flush_cache(h, h->cache, NULL);
+		goto retry;
+	}
 }
 
 static void __nft_flush_cache(struct nft_handle *h)
