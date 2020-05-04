@@ -850,10 +850,16 @@ int nft_init(struct nft_handle *h, int family, const struct builtin_table *t)
 
 void nft_fini(struct nft_handle *h)
 {
-	struct nft_cmd *cmd, *next;
+	struct list_head *pos, *n;
 
-	list_for_each_entry_safe(cmd, next, &h->cmd_list, head)
-		nft_cmd_free(cmd);
+	list_for_each_safe(pos, n, &h->cmd_list)
+		nft_cmd_free(list_entry(pos, struct nft_cmd, head));
+
+	list_for_each_safe(pos, n, &h->obj_list)
+		batch_obj_del(h, list_entry(pos, struct obj_update, head));
+
+	list_for_each_safe(pos, n, &h->err_list)
+		mnl_err_list_free(list_entry(pos, struct mnl_err, head));
 
 	nft_release_cache(h);
 	mnl_socket_close(h->nl);
