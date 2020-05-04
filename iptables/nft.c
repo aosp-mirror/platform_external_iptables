@@ -2970,27 +2970,33 @@ static int ebt_add_policy_rule(struct nftnl_chain *c, void *data)
 
 	r = nft_rule_new(h, nftnl_chain_get_str(c, NFTNL_CHAIN_NAME),
 			 nftnl_chain_get_str(c, NFTNL_CHAIN_TABLE), &cs);
+	ebt_cs_clean(&cs);
+
 	if (!r)
 		return -1;
 
 	udata = nftnl_udata_buf_alloc(NFT_USERDATA_MAXLEN);
 	if (!udata)
-		return -1;
+		goto err_free_rule;
 
 	if (!nftnl_udata_put_u32(udata, UDATA_TYPE_EBTABLES_POLICY, 1))
-		return -1;
+		goto err_free_rule;
 
 	nftnl_rule_set_data(r, NFTNL_RULE_USERDATA,
 			    nftnl_udata_buf_data(udata),
 			    nftnl_udata_buf_len(udata));
 	nftnl_udata_buf_free(udata);
 
-	if (!batch_rule_add(h, NFT_COMPAT_RULE_APPEND, r)) {
-		nftnl_rule_free(r);
-		return -1;
-	}
+	if (!batch_rule_add(h, NFT_COMPAT_RULE_APPEND, r))
+		goto err_free_rule;
+
+	/* add the rule to chain so it is freed later */
+	nftnl_chain_rule_add_tail(r, c);
 
 	return 0;
+err_free_rule:
+	nftnl_rule_free(r);
+	return -1;
 }
 
 int ebt_set_user_chain_policy(struct nft_handle *h, const char *table,
