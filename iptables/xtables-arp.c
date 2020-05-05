@@ -1019,9 +1019,7 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table,
 	free(daddrs);
 	free(dmasks);
 
-	if (cs.target)
-		free(cs.target->t);
-
+	nft_clear_iptables_command_state(&cs);
 	xtables_free_opts(1);
 
 /*	if (verbose > 1)

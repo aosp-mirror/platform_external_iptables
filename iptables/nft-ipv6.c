@@ -217,7 +217,7 @@ static void nft_ipv6_print_rule(struct nft_handle *h, struct nftnl_rule *r,
 	if (!(format & FMT_NONEWLINE))
 		fputc('\n', stdout);
 
-	xtables_rule_matches_free(&cs.matches);
+	nft_clear_iptables_command_state(&cs);
 }
 
 static void save_ipv6_addr(char letter, const struct in6_addr *addr,
