@@ -752,6 +752,23 @@ int nft_init_eb(struct nft_handle *h, const char *pname)
 	return 0;
 }
 
+void nft_fini_eb(struct nft_handle *h)
+{
+	struct xtables_match *match;
+	struct xtables_target *target;
+
+	for (match = xtables_matches; match; match = match->next) {
+		free(match->m);
+	}
+	for (target = xtables_targets; target; target = target->next) {
+		free(target->t);
+	}
+
+	free(opts);
+
+	nft_fini(h);
+}
+
 int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table,
 		 bool restore)
 {

@@ -53,7 +53,7 @@ int xtables_eb_main(int argc, char *argv[])
 	if (ret)
 		ret = nft_bridge_commit(&h);
 
-	nft_fini(&h);
+	nft_fini_eb(&h);
 
 	if (!ret)
 		fprintf(stderr, "ebtables: %s\n", nft_strerror(errno));

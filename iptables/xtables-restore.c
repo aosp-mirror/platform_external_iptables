@@ -448,7 +448,7 @@ int xtables_eb_restore_main(int argc, char *argv[])
 	nft_init_eb(&h, "ebtables-restore");
 	h.noflush = noflush;
 	xtables_restore_parse(&h, &p);
-	nft_fini(&h);
+	nft_fini_eb(&h);
 
 	return 0;
 }
