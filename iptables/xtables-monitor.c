@@ -688,6 +688,8 @@ int xtables_monitor_main(int argc, char *argv[])
 	}
 	mnl_socket_close(nl);
 
+	xtables_fini();
+
 	return EXIT_SUCCESS;
 }
 

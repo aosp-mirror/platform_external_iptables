@@ -767,6 +767,7 @@ void nft_fini_eb(struct nft_handle *h)
 	free(opts);
 
 	nft_fini(h);
+	xtables_fini();
 }
 
 int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table,

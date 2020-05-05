@@ -244,6 +244,7 @@ xtables_save_main(int family, int argc, char *argv[],
 
 	ret = do_output(&h, tablename, &d);
 	nft_fini(&h);
+	xtables_fini();
 	if (dump)
 		exit(0);
 

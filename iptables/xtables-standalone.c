@@ -72,6 +72,7 @@ xtables_main(int family, const char *progname, int argc, char *argv[])
 		ret = nft_commit(&h);
 
 	nft_fini(&h);
+	xtables_fini();
 
 	if (!ret) {
 		if (errno == EINVAL) {

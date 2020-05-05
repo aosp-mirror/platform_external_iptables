@@ -391,6 +391,7 @@ xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 	xtables_restore_parse(&h, &p);
 
 	nft_fini(&h);
+	xtables_fini();
 	fclose(p.in);
 	return 0;
 }
@@ -473,6 +474,7 @@ int xtables_arp_restore_main(int argc, char *argv[])
 	nft_init_arp(&h, "arptables-restore");
 	xtables_restore_parse(&h, &p);
 	nft_fini(&h);
+	xtables_fini();
 
 	return 0;
 }
