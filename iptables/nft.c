@@ -1429,7 +1429,8 @@ nft_rule_append(struct nft_handle *h, const char *chain, const char *table,
 
 	if (ref) {
 		nftnl_chain_rule_insert_at(r, ref);
-		nftnl_chain_rule_del(r);
+		nftnl_chain_rule_del(ref);
+		nftnl_rule_free(ref);
 	} else {
 		c = nft_chain_find(h, table, chain);
 		if (!c) {
