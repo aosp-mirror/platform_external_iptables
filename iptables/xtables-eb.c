@@ -1218,7 +1218,7 @@ print_zero:
 
 	if (command == 'h' && !(flags & OPT_ZERO)) {
 		print_help(cs.target, cs.matches, *table);
-		exit(0);
+		ret = 1;
 	}
 
 	/* Do the final checks */

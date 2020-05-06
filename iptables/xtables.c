@@ -161,7 +161,7 @@ exit_tryhelp(int status)
 }
 
 static void
-exit_printhelp(const struct xtables_rule_match *matches)
+printhelp(const struct xtables_rule_match *matches)
 {
 	printf("%s v%s\n\n"
 "Usage: %s -[ACD] chain rule-specification [options]\n"
@@ -240,7 +240,6 @@ exit_printhelp(const struct xtables_rule_match *matches)
 "[!] --version	-V		print package version.\n");
 
 	print_extension_helps(xtables_targets, matches);
-	exit(0);
 }
 
 void
@@ -724,7 +723,9 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 				xtables_find_match(cs->protocol,
 					XTF_TRY_LOAD, &cs->matches);
 
-			exit_printhelp(cs->matches);
+			printhelp(cs->matches);
+			p->command = CMD_NONE;
+			return;
 
 			/*
 			 * Option selection

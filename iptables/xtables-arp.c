@@ -235,7 +235,7 @@ exit_tryhelp(int status)
 }
 
 static void
-exit_printhelp(void)
+printhelp(void)
 {
 	struct xtables_target *t = NULL;
 	int i;
@@ -325,7 +325,6 @@ exit_printhelp(void)
 		printf("\n");
 		t->help();
 	}
-	exit(0);
 }
 
 static char
@@ -666,7 +665,8 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table,
 			if (!optarg)
 				optarg = argv[optind];
 
-			exit_printhelp();
+			printhelp();
+			command = CMD_NONE;
 			break;
 		case 's':
 			check_inverse(optarg, &invert, &optind, argc);
@@ -881,8 +881,6 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table,
 	if (optind < argc)
 		xtables_error(PARAMETER_PROBLEM,
 			      "unknown arguments found on commandline");
-	if (!command)
-		xtables_error(PARAMETER_PROBLEM, "no command specified");
 	if (invert)
 		xtables_error(PARAMETER_PROBLEM,
 			      "nothing appropriate following !");
@@ -1008,6 +1006,8 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table,
 		if (ret < 0)
 			xtables_error(PARAMETER_PROBLEM, "Wrong policy `%s'\n",
 				      policy);
+		break;
+	case CMD_NONE:
 		break;
 	default:
 		/* We should never reach this... */
