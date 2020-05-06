@@ -604,6 +604,8 @@ nft_arp_print_rule(struct nft_handle *h, struct nftnl_rule *r,
 
 	if (!(format & FMT_NONEWLINE))
 		fputc('\n', stdout);
+
+	nft_clear_iptables_command_state(&cs);
 }
 
 static bool nft_arp_is_same(const void *data_a,
