@@ -2120,6 +2120,45 @@ static int __nft_rule_del(struct nft_handle *h, struct nftnl_rule *r)
 	return 1;
 }
 
+static bool nft_rule_cmp(struct nft_handle *h, struct nftnl_rule *r,
+			 struct nftnl_rule *rule)
+{
+	struct iptables_command_state _cs = {}, this = {}, *cs = &_cs;
+	bool ret = false;
+
+	h->ops->rule_to_cs(h, r, &this);
+	h->ops->rule_to_cs(h, rule, cs);
+
+	DEBUGP("comparing with... ");
+#ifdef DEBUG_DEL
+	nft_rule_print_save(h, r, NFT_RULE_APPEND, 0);
+#endif
+	if (!h->ops->is_same(cs, &this))
+		goto out;
+
+	if (!compare_matches(cs->matches, this.matches)) {
+		DEBUGP("Different matches\n");
+		goto out;
+	}
+
+	if (!compare_targets(cs->target, this.target)) {
+		DEBUGP("Different target\n");
+		goto out;
+	}
+
+	if ((!cs->target || !this.target) &&
+	    strcmp(cs->jumpto, this.jumpto) != 0) {
+		DEBUGP("Different verdict\n");
+		goto out;
+	}
+
+	ret = true;
+out:
+	h->ops->clear_cs(&this);
+	h->ops->clear_cs(cs);
+	return ret;
+}
+
 static struct nftnl_rule *
 nft_rule_find(struct nft_handle *h, struct nftnl_chain *c,
 	      struct nftnl_rule *rule, int rulenum)
@@ -2138,7 +2177,7 @@ nft_rule_find(struct nft_handle *h, struct nftnl_chain *c,
 
 	r = nftnl_rule_iter_next(iter);
 	while (r != NULL) {
-		found = h->ops->rule_find(h, r, rule);
+		found = nft_rule_cmp(h, r, rule);
 		if (found)
 			break;
 		r = nftnl_rule_iter_next(iter);

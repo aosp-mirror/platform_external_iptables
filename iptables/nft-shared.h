@@ -109,8 +109,6 @@ struct nft_family_ops {
 	void (*rule_to_cs)(struct nft_handle *h, const struct nftnl_rule *r,
 			   struct iptables_command_state *cs);
 	void (*clear_cs)(struct iptables_command_state *cs);
-	bool (*rule_find)(struct nft_handle *h, struct nftnl_rule *r,
-			  struct nftnl_rule *rule);
 	int (*xlate)(const void *data, struct xt_xlate *xl);
 };
 
@@ -171,8 +169,6 @@ void save_matches_and_target(const struct iptables_command_state *cs,
 struct nft_family_ops *nft_family_ops_lookup(int family);
 
 void nft_ipv46_parse_target(struct xtables_target *t, void *data);
-bool nft_ipv46_rule_find(struct nft_handle *h, struct nftnl_rule *r,
-			 struct nftnl_rule *rule);
 
 bool compare_matches(struct xtables_rule_match *mt1, struct xtables_rule_match *mt2);
 bool compare_targets(struct xtables_target *tg1, struct xtables_target *tg2);
