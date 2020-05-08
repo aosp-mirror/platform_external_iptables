@@ -221,7 +221,7 @@ def run_test_file(filename, netns):
         execute_cmd("ip netns add ____iptables-container-test", filename, 0)
 
     for lineno, line in enumerate(f):
-        if line[0] == "#":
+        if line[0] == "#" or len(line.strip()) == 0:
             continue
 
         if line[0] == ":":
