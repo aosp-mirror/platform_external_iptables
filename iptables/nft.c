@@ -1453,8 +1453,9 @@ nft_rule_print_save(struct nft_handle *h, const struct nftnl_rule *r,
 
 	ops->rule_to_cs(h, r, &cs);
 
-	if (!(format & (FMT_NOCOUNTS | FMT_C_COUNTS)) && ops->save_counters)
-		ops->save_counters(&cs);
+	if (!(format & (FMT_NOCOUNTS | FMT_C_COUNTS)))
+		printf("[%llu:%llu] ", (unsigned long long)cs.counters.pcnt,
+				       (unsigned long long)cs.counters.bcnt);
 
 	/* print chain name */
 	switch(type) {

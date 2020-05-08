@@ -831,14 +831,6 @@ void save_rule_details(const struct iptables_command_state *cs,
 	}
 }
 
-void save_counters(const void *data)
-{
-	const struct iptables_command_state *cs = data;
-
-	printf("[%llu:%llu] ", (unsigned long long)cs->counters.pcnt,
-			       (unsigned long long)cs->counters.bcnt);
-}
-
 void nft_ipv46_save_chain(const struct nftnl_chain *c, const char *policy)
 {
 	const char *chain = nftnl_chain_get_str(c, NFTNL_CHAIN_NAME);

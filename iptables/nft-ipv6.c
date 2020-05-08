@@ -402,7 +402,6 @@ struct nft_family_ops nft_family_ops_ipv6 = {
 	.print_header		= print_header,
 	.print_rule		= nft_ipv6_print_rule,
 	.save_rule		= nft_ipv6_save_rule,
-	.save_counters		= save_counters,
 	.save_chain		= nft_ipv46_save_chain,
 	.proto_parse		= nft_ipv6_proto_parse,
 	.post_parse		= nft_ipv6_post_parse,
