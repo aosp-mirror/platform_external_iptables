@@ -392,7 +392,7 @@ static int osf_load_line(char *buffer, int len, int del)
 static int osf_load_entries(char *path, int del)
 {
 	FILE *inf;
-	int err = 0;
+	int err = 0, lineno = 0;
 	char buf[1024];
 
 	inf = fopen(path, "r");
@@ -402,7 +402,9 @@ static int osf_load_entries(char *path, int del)
 	}
 
 	while(fgets(buf, sizeof(buf), inf)) {
-		int len;
+		int len, rc;
+
+		lineno++;
 
 		if (buf[0] == '#' || buf[0] == '\n' || buf[0] == '\r')
 			continue;
@@ -414,9 +416,11 @@ static int osf_load_entries(char *path, int del)
 
 		buf[len] = '\0';
 
-		err = osf_load_line(buf, len, del);
-		if (err)
-			break;
+		rc = osf_load_line(buf, len, del);
+		if (rc && (!del || errno != ENOENT)) {
+			ulog_err("Failed to load line %d", lineno);
+			err = rc;
+		}
 
 		memset(buf, 0, sizeof(buf));
 	}
@@ -448,6 +452,7 @@ int main(int argc, char *argv[])
 
 	if (!fingerprints) {
 		err = -ENOENT;
+		ulog("Missing fingerprints file argument.\n");
 		goto err_out_exit;
 	}
 
