@@ -293,4 +293,8 @@ void ipv6_post_parse(int command, struct iptables_command_state *cs,
 extern char *arp_opcodes[];
 #define ARP_NUMOPCODES 9
 
+unsigned char *make_delete_mask(const struct xtables_rule_match *matches,
+				const struct xtables_target *target,
+				size_t entry_size);
+
 #endif /* IPTABLES_XSHARED_H */

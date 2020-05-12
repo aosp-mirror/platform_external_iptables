@@ -276,40 +276,6 @@ insert_entry(const xt_chainlabel chain,
 	return ret;
 }
 
-static unsigned char *
-make_delete_mask(const struct xtables_rule_match *matches,
-		 const struct xtables_target *target)
-{
-	/* Establish mask for comparison */
-	unsigned int size;
-	const struct xtables_rule_match *matchp;
-	unsigned char *mask, *mptr;
-
-	size = sizeof(struct ipt_entry);
-	for (matchp = matches; matchp; matchp = matchp->next)
-		size += XT_ALIGN(sizeof(struct xt_entry_match)) + matchp->match->size;
-
-	mask = xtables_calloc(1, size
-			 + XT_ALIGN(sizeof(struct xt_entry_target))
-			 + target->size);
-
-	memset(mask, 0xFF, sizeof(struct ipt_entry));
-	mptr = mask + sizeof(struct ipt_entry);
-
-	for (matchp = matches; matchp; matchp = matchp->next) {
-		memset(mptr, 0xFF,
-		       XT_ALIGN(sizeof(struct xt_entry_match))
-		       + matchp->match->userspacesize);
-		mptr += XT_ALIGN(sizeof(struct xt_entry_match)) + matchp->match->size;
-	}
-
-	memset(mptr, 0xFF,
-	       XT_ALIGN(sizeof(struct xt_entry_target))
-	       + target->userspacesize);
-
-	return mask;
-}
-
 static int
 delete_entry(const xt_chainlabel chain,
 	     struct ipt_entry *fw,
@@ -328,7 +294,7 @@ delete_entry(const xt_chainlabel chain,
 	int ret = 1;
 	unsigned char *mask;
 
-	mask = make_delete_mask(matches, target);
+	mask = make_delete_mask(matches, target, sizeof(*fw));
 	for (i = 0; i < nsaddrs; i++) {
 		fw->ip.src.s_addr = saddrs[i].s_addr;
 		fw->ip.smsk.s_addr = smasks[i].s_addr;
@@ -358,7 +324,7 @@ check_entry(const xt_chainlabel chain, struct ipt_entry *fw,
 	int ret = 1;
 	unsigned char *mask;
 
-	mask = make_delete_mask(matches, target);
+	mask = make_delete_mask(matches, target, sizeof(*fw));
 	for (i = 0; i < nsaddrs; i++) {
 		fw->ip.src.s_addr = saddrs[i].s_addr;
 		fw->ip.smsk.s_addr = smasks[i].s_addr;

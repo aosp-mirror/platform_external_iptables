@@ -2000,3 +2000,37 @@ void ipv6_post_parse(int command, struct iptables_command_state *cs,
 			      "! not allowed with multiple"
 			      " source or destination IP addresses");
 }
+
+unsigned char *
+make_delete_mask(const struct xtables_rule_match *matches,
+		 const struct xtables_target *target,
+		 size_t entry_size)
+{
+	/* Establish mask for comparison */
+	unsigned int size = entry_size;
+	const struct xtables_rule_match *matchp;
+	unsigned char *mask, *mptr;
+
+	for (matchp = matches; matchp; matchp = matchp->next)
+		size += XT_ALIGN(sizeof(struct xt_entry_match)) + matchp->match->size;
+
+	mask = xtables_calloc(1, size
+			 + XT_ALIGN(sizeof(struct xt_entry_target))
+			 + target->size);
+
+	memset(mask, 0xFF, entry_size);
+	mptr = mask + entry_size;
+
+	for (matchp = matches; matchp; matchp = matchp->next) {
+		memset(mptr, 0xFF,
+		       XT_ALIGN(sizeof(struct xt_entry_match))
+		       + matchp->match->userspacesize);
+		mptr += XT_ALIGN(sizeof(struct xt_entry_match)) + matchp->match->size;
+	}
+
+	memset(mptr, 0xFF,
+	       XT_ALIGN(sizeof(struct xt_entry_target))
+	       + target->userspacesize);
+
+	return mask;
+}
