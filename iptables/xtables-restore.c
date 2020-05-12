@@ -135,7 +135,7 @@ static void xtables_restore_parse_line(struct nft_handle *h,
 		if (h->noflush == 0) {
 			DEBUGP("Cleaning all chains of table '%s'\n", table);
 			if (cb->table_flush)
-				cb->table_flush(h, table);
+				cb->table_flush(h, table, verbose);
 		}
 
 		ret = 1;
@@ -260,7 +260,7 @@ void xtables_restore_parse(struct nft_handle *h,
 	struct nft_xt_restore_state state = {};
 	char buffer[10240] = {};
 
-	if (!h->noflush)
+	if (!verbose && !h->noflush)
 		nft_cache_level_set(h, NFT_CL_FAKE, NULL);
 
 	line = 0;

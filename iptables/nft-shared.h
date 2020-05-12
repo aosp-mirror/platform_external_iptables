@@ -225,7 +225,8 @@ struct nft_xt_restore_cb {
 	int (*chain_restore)(struct nft_handle *h, const char *chain,
 			     const char *table);
 
-	int (*table_flush)(struct nft_handle *h, const char *table);
+	int (*table_flush)(struct nft_handle *h, const char *table,
+			   bool verbose);
 
 	int (*do_command)(struct nft_handle *h, int argc, char *argv[],
 			  char **table, bool restore);
