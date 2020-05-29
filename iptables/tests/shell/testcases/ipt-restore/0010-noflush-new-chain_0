@@ -8,3 +8,4 @@ $XT_MULTI iptables-restore --noflush <<EOF
 :foobar - [0:0]
 -A foobar -j ACCEPT
 COMMIT
+EOF
