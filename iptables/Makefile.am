@@ -111,3 +111,26 @@ install-exec-hook:
 	for i in ${v6_sbin_links}; do ${LN_S} -f xtables-legacy-multi "${DESTDIR}${sbindir}/$$i"; done;
 	for i in ${x_sbin_links}; do ${LN_S} -f xtables-nft-multi "${DESTDIR}${sbindir}/$$i"; done;
 	${LN_S} -f iptables-apply "${DESTDIR}${sbindir}/ip6tables-apply"
+
+uninstall-hook:
+	dir=${DESTDIR}${bindir}; { \
+		test ! -d "$$dir" && test ! -f "$$dir" && test ! -r "$$dir"; \
+	} || { \
+		test -z "${vx_bin_links}" || ( \
+			cd "$$dir" && rm -f ${vx_bin_links} \
+		) \
+	}
+	dir=${DESTDIR}${sbindir}; { \
+		test ! -d "$$dir" && test ! -f "$$dir" && test ! -r "$$dir"; \
+	} || { \
+		test -z "${v4_sbin_links}" || ( \
+			cd "$$dir" && rm -f ${v4_sbin_links} \
+		); \
+		test -z "${v6_sbin_links}" || ( \
+			cd "$$dir" && rm -f ${v6_sbin_links} \
+		); \
+		test -z "${x_sbin_links}" || ( \
+			cd "$$dir" && rm -f ${x_sbin_links} \
+		); \
+		( cd "$$dir" && rm -f ip6tables-apply ); \
+	}
