@@ -64,22 +64,6 @@ static int parse_rule_number(const char *rule)
 	return rule_nr;
 }
 
-static int get_current_chain(const char *chain)
-{
-	if (strcmp(chain, "PREROUTING") == 0)
-		return NF_BR_PRE_ROUTING;
-	else if (strcmp(chain, "INPUT") == 0)
-		return NF_BR_LOCAL_IN;
-	else if (strcmp(chain, "FORWARD") == 0)
-		return NF_BR_FORWARD;
-	else if (strcmp(chain, "OUTPUT") == 0)
-		return NF_BR_LOCAL_OUT;
-	else if (strcmp(chain, "POSTROUTING") == 0)
-		return NF_BR_POST_ROUTING;
-
-	return -1;
-}
-
 /*
  * The original ebtables parser
  */
@@ -240,7 +224,7 @@ static int do_commandeb_xlate(struct nft_handle *h, int argc, char *argv[], char
 					      "Multiple commands are not allowed");
 			command = c;
 			chain = optarg;
-			selected_chain = get_current_chain(chain);
+			selected_chain = ebt_get_current_chain(chain);
 			p.chain = chain;
 			flags |= OPT_COMMAND;
 
