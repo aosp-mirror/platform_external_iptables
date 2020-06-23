@@ -206,6 +206,7 @@ struct xtables_target *xtables_targets;
 static bool xtables_fully_register_pending_match(struct xtables_match *me);
 static bool xtables_fully_register_pending_target(struct xtables_target *me);
 
+#ifndef NO_SHARED_LIBS
 /* registry for loaded shared objects to close later */
 struct dlreg {
 	struct dlreg *next;
@@ -237,6 +238,7 @@ static void dlreg_free(void)
 		dlreg = next;
 	}
 }
+#endif
 
 void xtables_init(void)
 {
@@ -267,7 +269,9 @@ void xtables_init(void)
 
 void xtables_fini(void)
 {
+#ifndef NO_SHARED_LIBS
 	dlreg_free();
+#endif
 }
 
 void xtables_set_nfproto(uint8_t nfproto)
