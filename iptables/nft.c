@@ -2396,11 +2396,21 @@ int nft_chain_foreach(struct nft_handle *h, const char *table,
 	const struct builtin_table *t;
 	struct nft_chain_list *list;
 	struct nft_chain *c, *c_bak;
-	int ret;
+	int i, ret;
 
 	t = nft_table_builtin_find(h, table);
 	if (!t)
 		return -1;
+
+	for (i = 0; i < NF_INET_NUMHOOKS; i++) {
+		c = h->cache->table[t->type].base_chains[i];
+		if (!c)
+			continue;
+
+		ret = cb(c, data);
+		if (ret < 0)
+			return ret;
+	}
 
 	list = h->cache->table[t->type].chains;
 	if (!list)

@@ -208,7 +208,24 @@ int nft_cache_add_chain(struct nft_handle *h, const struct builtin_table *t,
 	const char *cname = nftnl_chain_get_str(c, NFTNL_CHAIN_NAME);
 	struct nft_chain *nc = nft_chain_alloc(c);
 
-	list_add_tail(&nc->head, &h->cache->table[t->type].chains->list);
+	if (nftnl_chain_is_set(c, NFTNL_CHAIN_HOOKNUM)) {
+		uint32_t hooknum = nftnl_chain_get_u32(c, NFTNL_CHAIN_HOOKNUM);
+
+		if (hooknum >= NF_INET_NUMHOOKS) {
+			nft_chain_free(nc);
+			return -EINVAL;
+		}
+
+		if (h->cache->table[t->type].base_chains[hooknum]) {
+			nft_chain_free(nc);
+			return -EEXIST;
+		}
+
+		h->cache->table[t->type].base_chains[hooknum] = nc;
+	} else {
+		list_add_tail(&nc->head,
+			      &h->cache->table[t->type].chains->list);
+	}
 	hlist_add_head(&nc->hnode, chain_name_hlist(h, t, cname));
 	return 0;
 }
@@ -609,6 +626,19 @@ static int __flush_set_cache(struct nftnl_set *s, void *data)
 	return 0;
 }
 
+static void flush_base_chain_cache(struct nft_chain **base_chains)
+{
+	int i;
+
+	for (i = 0; i < NF_INET_NUMHOOKS; i++) {
+		if (!base_chains[i])
+			continue;
+		hlist_del(&base_chains[i]->hnode);
+		nft_chain_free(base_chains[i]);
+		base_chains[i] = NULL;
+	}
+}
+
 static int flush_cache(struct nft_handle *h, struct nft_cache *c,
 		       const char *tablename)
 {
@@ -620,6 +650,7 @@ static int flush_cache(struct nft_handle *h, struct nft_cache *c,
 		if (!table)
 			return 0;
 
+		flush_base_chain_cache(c->table[table->type].base_chains);
 		nft_chain_foreach(h, tablename, __flush_chain_cache, NULL);
 
 		if (c->table[table->type].sets)
@@ -632,6 +663,7 @@ static int flush_cache(struct nft_handle *h, struct nft_cache *c,
 		if (h->tables[i].name == NULL)
 			continue;
 
+		flush_base_chain_cache(c->table[i].base_chains);
 		if (c->table[i].chains) {
 			nft_chain_list_free(c->table[i].chains);
 			c->table[i].chains = NULL;

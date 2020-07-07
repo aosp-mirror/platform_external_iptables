@@ -40,6 +40,7 @@ enum nft_cache_level {
 
 struct nft_cache {
 	struct {
+		struct nft_chain	*base_chains[NF_INET_NUMHOOKS];
 		struct nft_chain_list	*chains;
 		struct nftnl_set_list	*sets;
 		bool			exists;
