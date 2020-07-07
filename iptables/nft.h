@@ -8,10 +8,10 @@
 #include <libiptc/linux_list.h>
 
 enum nft_table_type {
-	NFT_TABLE_FILTER	= 0,
-	NFT_TABLE_MANGLE,
-	NFT_TABLE_RAW,
+	NFT_TABLE_MANGLE	= 0,
 	NFT_TABLE_SECURITY,
+	NFT_TABLE_RAW,
+	NFT_TABLE_FILTER,
 	NFT_TABLE_NAT,
 };
 #define NFT_TABLE_MAX	(NFT_TABLE_NAT + 1)
