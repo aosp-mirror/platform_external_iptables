@@ -1558,46 +1558,23 @@ static const char *policy_name[NF_ACCEPT+1] = {
 	[NF_ACCEPT] = "ACCEPT",
 };
 
-int nft_chain_save(struct nft_handle *h, struct nftnl_chain_list *list)
+int nft_chain_save(struct nftnl_chain *c, void *data)
 {
-	struct nft_family_ops *ops = h->ops;
-	struct nftnl_chain_list_iter *iter;
-	struct nftnl_chain *c;
+	struct nft_handle *h = data;
+	const char *policy = NULL;
 
-	iter = nftnl_chain_list_iter_create(list);
-	if (iter == NULL)
-		return 0;
-
-	c = nftnl_chain_list_iter_next(iter);
-	while (c != NULL) {
-		const char *policy = NULL;
-
-		if (nft_chain_builtin(c)) {
-			uint32_t pol = NF_ACCEPT;
-
-			if (nftnl_chain_get(c, NFTNL_CHAIN_POLICY))
-				pol = nftnl_chain_get_u32(c, NFTNL_CHAIN_POLICY);
-			policy = policy_name[pol];
-		} else if (h->family == NFPROTO_BRIDGE) {
-			if (nftnl_chain_is_set(c, NFTNL_CHAIN_POLICY)) {
-				uint32_t pol;
-
-				pol = nftnl_chain_get_u32(c, NFTNL_CHAIN_POLICY);
-				policy = policy_name[pol];
-			} else {
-				policy = "RETURN";
-			}
-		}
-
-		if (ops->save_chain)
-			ops->save_chain(c, policy);
-
-		c = nftnl_chain_list_iter_next(iter);
+	if (nftnl_chain_is_set(c, NFTNL_CHAIN_POLICY)) {
+		policy = policy_name[nftnl_chain_get_u32(c, NFTNL_CHAIN_POLICY)];
+	} else if (nft_chain_builtin(c)) {
+		policy = "ACCEPT";
+	} else if (h->family == NFPROTO_BRIDGE) {
+		policy = "RETURN";
 	}
 
-	nftnl_chain_list_iter_destroy(iter);
+	if (h->ops->save_chain)
+		h->ops->save_chain(c, policy);
 
-	return 1;
+	return 0;
 }
 
 static int nft_chain_save_rules(struct nft_handle *h,
