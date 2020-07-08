@@ -2423,7 +2423,7 @@ list_save(struct nft_handle *h, struct nftnl_rule *r,
 	nft_rule_print_save(h, r, NFT_RULE_APPEND, format);
 }
 
-static int __nftnl_rule_list_chain_save(struct nftnl_chain *c, void *data)
+static int nft_rule_list_chain_save(struct nftnl_chain *c, void *data)
 {
 	const char *chain_name = nftnl_chain_get_str(c, NFTNL_CHAIN_NAME);
 	uint32_t policy = nftnl_chain_get_u32(c, NFTNL_CHAIN_POLICY);
@@ -2443,25 +2443,6 @@ static int __nftnl_rule_list_chain_save(struct nftnl_chain *c, void *data)
 		       nftnl_chain_get_u64(c, NFTNL_CHAIN_BYTES));
 	printf("\n");
 	return 0;
-}
-
-static int
-nftnl_rule_list_chain_save(struct nft_handle *h, const char *chain,
-			   struct nftnl_chain_list *list, int counters)
-{
-	struct nftnl_chain *c;
-
-	if (chain) {
-		c = nftnl_chain_list_lookup_byname(list, chain);
-		if (!c)
-			return 0;
-
-		__nftnl_rule_list_chain_save(c, &counters);
-		return 1;
-	}
-
-	nftnl_chain_list_foreach(list, __nftnl_rule_list_chain_save, &counters);
-	return 1;
 }
 
 int nft_rule_list_save(struct nft_handle *h, const char *chain,
@@ -2484,10 +2465,6 @@ int nft_rule_list_save(struct nft_handle *h, const char *chain,
 	if (!list)
 		return 0;
 
-	/* Dump policies and custom chains first */
-	if (!rulenum)
-		nftnl_rule_list_chain_save(h, chain, list, counters);
-
 	if (counters < 0)
 		d.format = FMT_C_COUNTS;
 	else if (counters == 0)
@@ -2498,8 +2475,14 @@ int nft_rule_list_save(struct nft_handle *h, const char *chain,
 		if (!c)
 			return 0;
 
+		if (!rulenum)
+			nft_rule_list_chain_save(c, &counters);
+
 		return nft_rule_list_cb(c, &d);
 	}
+
+	/* Dump policies and custom chains first */
+	nftnl_chain_list_foreach(list, nft_rule_list_chain_save, &counters);
 
 	/* Now dump out rules in this table */
 	ret = nftnl_chain_list_foreach(list, nft_rule_list_cb, &d);
