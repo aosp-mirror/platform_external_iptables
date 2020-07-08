@@ -461,21 +461,16 @@ static int fetch_rule_cache(struct nft_handle *h,
 {
 	int i;
 
-	if (t) {
-		struct nftnl_chain_list *list =
-			h->cache->table[t->type].chains;
-
-		return nftnl_chain_list_foreach(list, nft_rule_list_update, h);
-	}
+	if (t)
+		return nft_chain_foreach(h, t->name, nft_rule_list_update, h);
 
 	for (i = 0; i < NFT_TABLE_MAX; i++) {
-		enum nft_table_type type = h->tables[i].type;
 
 		if (!h->tables[i].name)
 			continue;
 
-		if (nftnl_chain_list_foreach(h->cache->table[type].chains,
-					     nft_rule_list_update, h))
+		if (nft_chain_foreach(h, h->tables[i].name,
+				      nft_rule_list_update, h))
 			return -1;
 	}
 	return 0;
@@ -549,17 +544,11 @@ static int __flush_rule_cache(struct nftnl_chain *c, void *data)
 int flush_rule_cache(struct nft_handle *h, const char *table,
 		     struct nftnl_chain *c)
 {
-	const struct builtin_table *t;
-
 	if (c)
 		return __flush_rule_cache(c, NULL);
 
-	t = nft_table_builtin_find(h, table);
-	if (!t || !h->cache->table[t->type].chains)
-		return 0;
-
-	return nftnl_chain_list_foreach(h->cache->table[t->type].chains,
-					__flush_rule_cache, NULL);
+	nft_chain_foreach(h, table, __flush_rule_cache, NULL);
+	return 0;
 }
 
 static int __flush_chain_cache(struct nftnl_chain *c, void *data)
@@ -588,9 +577,9 @@ static int flush_cache(struct nft_handle *h, struct nft_cache *c,
 		table = nft_table_builtin_find(h, tablename);
 		if (!table)
 			return 0;
-		if (c->table[table->type].chains)
-			nftnl_chain_list_foreach(c->table[table->type].chains,
-						 __flush_chain_cache, NULL);
+
+		nft_chain_foreach(h, tablename, __flush_chain_cache, NULL);
+
 		if (c->table[table->type].sets)
 			nftnl_set_list_foreach(c->table[table->type].sets,
 					       __flush_set_cache, NULL);
@@ -695,16 +684,3 @@ nft_set_list_get(struct nft_handle *h, const char *table, const char *set)
 
 	return h->cache->table[t->type].sets;
 }
-
-struct nftnl_chain_list *
-nft_chain_list_get(struct nft_handle *h, const char *table, const char *chain)
-{
-	const struct builtin_table *t;
-
-	t = nft_table_builtin_find(h, table);
-	if (!t)
-		return NULL;
-
-	return h->cache->table[t->type].chains;
-}
-

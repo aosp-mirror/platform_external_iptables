@@ -151,6 +151,9 @@ const struct builtin_chain *nft_chain_builtin_find(const struct builtin_table *t
 bool nft_chain_exists(struct nft_handle *h, const char *table, const char *chain);
 void nft_bridge_chain_postprocess(struct nft_handle *h,
 				  struct nftnl_chain *c);
+int nft_chain_foreach(struct nft_handle *h, const char *table,
+		      int (*cb)(struct nftnl_chain *c, void *data),
+		      void *data);
 
 
 /*
