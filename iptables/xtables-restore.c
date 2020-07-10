@@ -61,7 +61,6 @@ static void print_usage(const char *name, const char *version)
 static const struct nft_xt_restore_cb restore_cb = {
 	.commit		= nft_commit,
 	.abort		= nft_abort,
-	.table_new	= nft_cmd_table_new,
 	.table_flush	= nft_cmd_table_flush,
 	.do_command	= do_commandx,
 	.chain_set	= nft_cmd_chain_set,
@@ -410,7 +409,6 @@ int xtables_ip6_restore_main(int argc, char *argv[])
 
 static const struct nft_xt_restore_cb ebt_restore_cb = {
 	.commit		= nft_bridge_commit,
-	.table_new	= nft_cmd_table_new,
 	.table_flush	= nft_cmd_table_flush,
 	.do_command	= do_commandeb,
 	.chain_set	= nft_cmd_chain_set,
@@ -456,7 +454,6 @@ int xtables_eb_restore_main(int argc, char *argv[])
 
 static const struct nft_xt_restore_cb arp_restore_cb = {
 	.commit		= nft_commit,
-	.table_new	= nft_cmd_table_new,
 	.table_flush	= nft_cmd_table_flush,
 	.do_command	= do_commandarp,
 	.chain_set	= nft_cmd_chain_set,

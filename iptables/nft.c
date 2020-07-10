@@ -350,7 +350,6 @@ static int mnl_append_error(const struct nft_handle *h,
 	case NFT_COMPAT_RULE_SAVE:
 	case NFT_COMPAT_RULE_ZERO:
 	case NFT_COMPAT_BRIDGE_USER_CHAIN_UPDATE:
-	case NFT_COMPAT_TABLE_NEW:
 		assert(0);
 		break;
 	}
@@ -892,7 +891,7 @@ static struct nftnl_chain *nft_chain_new(struct nft_handle *h,
 	}
 
 	/* if this built-in table does not exists, create it */
-	nft_table_builtin_add(h, _t);
+	nft_xt_builtin_init(h, table);
 
 	_c = nft_chain_builtin_find(_t, chain);
 	if (_c != NULL) {
@@ -1789,6 +1788,8 @@ int nft_chain_restore(struct nft_handle *h, const char *chain, const char *table
 	bool created = false;
 	int ret;
 
+	nft_xt_builtin_init(h, table);
+
 	c = nft_chain_find(h, table, chain);
 	if (c) {
 		/* Apparently -n still flushes existing user defined
@@ -2097,11 +2098,6 @@ err_table_list:
 err_out:
 	/* the core expects 1 for success and 0 for error */
 	return ret == 0 ? 1 : 0;
-}
-
-void nft_table_new(struct nft_handle *h, const char *table)
-{
-	nft_xt_builtin_init(h, table);
 }
 
 static int __nft_rule_del(struct nft_handle *h, struct nftnl_rule *r)
@@ -2735,7 +2731,6 @@ static void batch_obj_del(struct nft_handle *h, struct obj_update *o)
 	case NFT_COMPAT_RULE_SAVE:
 	case NFT_COMPAT_RULE_ZERO:
 	case NFT_COMPAT_BRIDGE_USER_CHAIN_UPDATE:
-	case NFT_COMPAT_TABLE_NEW:
 		assert(0);
 		break;
 	}
@@ -2811,7 +2806,6 @@ static void nft_refresh_transaction(struct nft_handle *h)
 		case NFT_COMPAT_RULE_SAVE:
 		case NFT_COMPAT_RULE_ZERO:
 		case NFT_COMPAT_BRIDGE_USER_CHAIN_UPDATE:
-		case NFT_COMPAT_TABLE_NEW:
 			break;
 		}
 	}
@@ -2915,7 +2909,6 @@ retry:
 		case NFT_COMPAT_RULE_SAVE:
 		case NFT_COMPAT_RULE_ZERO:
 		case NFT_COMPAT_BRIDGE_USER_CHAIN_UPDATE:
-		case NFT_COMPAT_TABLE_NEW:
 			assert(0);
 		}
 
@@ -3177,10 +3170,6 @@ static int nft_prepare(struct nft_handle *h)
 		case NFT_COMPAT_BRIDGE_USER_CHAIN_UPDATE:
 			ret = ebt_set_user_chain_policy(h, cmd->table,
 							cmd->chain, cmd->policy);
-			break;
-		case NFT_COMPAT_TABLE_NEW:
-			nft_xt_builtin_init(h, cmd->table);
-			ret = 1;
 			break;
 		case NFT_COMPAT_SET_ADD:
 			nft_xt_builtin_init(h, cmd->table);

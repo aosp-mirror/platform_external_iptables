@@ -393,8 +393,3 @@ int ebt_cmd_user_chain_policy(struct nft_handle *h, const char *table,
 
 	return 1;
 }
-
-void nft_cmd_table_new(struct nft_handle *h, const char *table)
-{
-	nft_cmd_new(h, NFT_COMPAT_TABLE_NEW, table, NULL, NULL, -1, false);
-}
