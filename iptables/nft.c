@@ -1699,16 +1699,18 @@ int nft_rule_flush(struct nft_handle *h, const char *chain, const char *table,
 	struct nftnl_chain *c = NULL;
 	int ret = 0;
 
-	nft_xt_builtin_init(h, table);
-
 	nft_fn = nft_rule_flush;
 
 	if (chain || verbose) {
+		nft_xt_builtin_init(h, table);
+
 		list = nft_chain_list_get(h, table, chain);
 		if (list == NULL) {
 			ret = 1;
 			goto err;
 		}
+	} else if (!nft_table_find(h, table)) {
+		return 1;
 	}
 
 	if (chain) {
