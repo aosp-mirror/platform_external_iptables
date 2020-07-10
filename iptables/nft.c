@@ -1937,8 +1937,6 @@ int nft_chain_user_rename(struct nft_handle *h,const char *chain,
 		return 0;
 	}
 
-	nft_xt_builtin_init(h, table);
-
 	/* Config load changed errno. Ensure genuine info for our callers. */
 	errno = 0;
 
