@@ -697,7 +697,7 @@ static void nft_chain_builtin_add(struct nft_handle *h,
 		return;
 
 	batch_chain_add(h, NFT_COMPAT_CHAIN_ADD, c);
-	nftnl_chain_list_add_tail(c, h->cache->table[table->type].chains);
+	nft_cache_add_chain(h, table, c);
 }
 
 /* find if built-in table already exists */
@@ -1712,7 +1712,7 @@ err:
 
 int nft_chain_user_add(struct nft_handle *h, const char *chain, const char *table)
 {
-	struct nftnl_chain_list *list;
+	const struct builtin_table *t;
 	struct nftnl_chain *c;
 
 	nft_fn = nft_chain_user_add;
@@ -1736,9 +1736,8 @@ int nft_chain_user_add(struct nft_handle *h, const char *chain, const char *tabl
 	if (!batch_chain_add(h, NFT_COMPAT_CHAIN_USER_ADD, c))
 		return 0;
 
-	list = nft_chain_list_get(h, table, chain);
-	if (list)
-		nftnl_chain_list_add(c, list);
+	t = nft_table_builtin_find(h, table);
+	nft_cache_add_chain(h, t, c);
 
 	/* the core expects 1 for success and 0 for error */
 	return 1;
@@ -1746,7 +1745,7 @@ int nft_chain_user_add(struct nft_handle *h, const char *chain, const char *tabl
 
 int nft_chain_restore(struct nft_handle *h, const char *chain, const char *table)
 {
-	struct nftnl_chain_list *list;
+	const struct builtin_table *t;
 	struct obj_update *obj;
 	struct nftnl_chain *c;
 	bool created = false;
@@ -1763,9 +1762,8 @@ int nft_chain_restore(struct nft_handle *h, const char *chain, const char *table
 		nftnl_chain_set_str(c, NFTNL_CHAIN_NAME, chain);
 		created = true;
 
-		list = nft_chain_list_get(h, table, chain);
-		if (list)
-			nftnl_chain_list_add(c, list);
+		t = nft_table_builtin_find(h, table);
+		nft_cache_add_chain(h, t, c);
 	} else {
 		/* If the chain should vanish meanwhile, kernel genid changes
 		 * and the transaction is refreshed enabling the chain add

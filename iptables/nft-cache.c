@@ -165,6 +165,13 @@ static int fetch_table_cache(struct nft_handle *h)
 	return 1;
 }
 
+int nft_cache_add_chain(struct nft_handle *h, const struct builtin_table *t,
+			struct nftnl_chain *c)
+{
+	nftnl_chain_list_add_tail(c, h->cache->table[t->type].chains);
+	return 0;
+}
+
 struct nftnl_chain_list_cb_data {
 	struct nft_handle *h;
 	const struct builtin_table *t;
@@ -174,7 +181,6 @@ static int nftnl_chain_list_cb(const struct nlmsghdr *nlh, void *data)
 {
 	struct nftnl_chain_list_cb_data *d = data;
 	const struct builtin_table *t = d->t;
-	struct nftnl_chain_list *list;
 	struct nft_handle *h = d->h;
 	struct nftnl_chain *c;
 	const char *tname;
@@ -196,8 +202,8 @@ static int nftnl_chain_list_cb(const struct nlmsghdr *nlh, void *data)
 		goto out;
 	}
 
-	list = h->cache->table[t->type].chains;
-	nftnl_chain_list_add_tail(c, list);
+	if (nft_cache_add_chain(h, t, c))
+		goto out;
 
 	return MNL_CB_OK;
 out:
