@@ -136,6 +136,7 @@ bool nft_table_find(struct nft_handle *h, const char *tablename);
 int nft_table_purge_chains(struct nft_handle *h, const char *table, struct nftnl_chain_list *list);
 int nft_table_flush(struct nft_handle *h, const char *table);
 const struct builtin_table *nft_table_builtin_find(struct nft_handle *h, const char *table);
+int nft_xt_fake_builtin_chains(struct nft_handle *h, const char *table, const char *chain);
 
 /*
  * Operations with chains.

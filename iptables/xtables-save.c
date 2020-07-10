@@ -236,6 +236,7 @@ xtables_save_main(int family, int argc, char *argv[],
 
 	nft_cache_level_set(&h, NFT_CL_RULES, NULL);
 	nft_cache_build(&h);
+	nft_xt_fake_builtin_chains(&h, tablename, NULL);
 
 	ret = do_output(&h, tablename, &d);
 	nft_fini(&h);
