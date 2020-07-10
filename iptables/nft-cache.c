@@ -180,8 +180,8 @@ static int nftnl_chain_list_cb(const struct nlmsghdr *nlh, void *data)
 	const struct builtin_table *t = d->t;
 	struct nftnl_chain_list *list;
 	struct nft_handle *h = d->h;
-	const char *tname, *cname;
 	struct nftnl_chain *c;
+	const char *tname;
 
 	c = nftnl_chain_alloc();
 	if (c == NULL)
@@ -201,11 +201,6 @@ static int nftnl_chain_list_cb(const struct nlmsghdr *nlh, void *data)
 	}
 
 	list = h->cache->table[t->type].chains;
-	cname = nftnl_chain_get_str(c, NFTNL_CHAIN_NAME);
-
-	if (nftnl_chain_list_lookup_byname(list, cname))
-		goto out;
-
 	nftnl_chain_list_add_tail(c, list);
 
 	return MNL_CB_OK;
