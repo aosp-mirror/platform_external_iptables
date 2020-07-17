@@ -219,6 +219,7 @@ AC_SUBST([libxtables_vmajor])
 
 AC_DEFINE_UNQUOTED([XT_LOCK_NAME], "${xt_lock_name}",
 	[Location of the iptables lock file])
+AC_SUBST([XT_LOCK_NAME], "${xt_lock_name}")
 
 AC_CONFIG_FILES([Makefile extensions/GNUmakefile include/Makefile
 	iptables/Makefile iptables/xtables.pc
