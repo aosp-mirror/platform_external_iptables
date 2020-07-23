@@ -1,6 +1,8 @@
 #ifndef _NFT_CACHE_H_
 #define _NFT_CACHE_H_
 
+#include <libiptc/linux_list.h>
+
 struct nft_handle;
 struct nft_cmd;
 
@@ -17,6 +19,12 @@ struct nftnl_chain_list *
 nft_chain_list_get(struct nft_handle *h, const char *table, const char *chain);
 struct nftnl_set_list *
 nft_set_list_get(struct nft_handle *h, const char *table, const char *set);
-struct nftnl_table_list *nftnl_table_list_get(struct nft_handle *h);
+struct list_head *nft_table_list_get(struct nft_handle *h);
+
+struct nft_table {
+	struct list_head        list;
+	struct nftnl_table      *nftnl;
+};
+
 
 #endif /* _NFT_CACHE_H_ */

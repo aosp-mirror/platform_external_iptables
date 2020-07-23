@@ -842,6 +842,8 @@ int nft_init(struct nft_handle *h, int family, const struct builtin_table *t)
 	INIT_LIST_HEAD(&h->obj_list);
 	INIT_LIST_HEAD(&h->err_list);
 	INIT_LIST_HEAD(&h->cmd_list);
+	INIT_LIST_HEAD(&h->__cache[0].tables);
+	INIT_LIST_HEAD(&h->__cache[1].tables);
 	INIT_LIST_HEAD(&h->cache_req.chain_list);
 
 	return 0;
@@ -1941,35 +1943,22 @@ int nft_chain_user_rename(struct nft_handle *h,const char *chain,
 
 bool nft_table_find(struct nft_handle *h, const char *tablename)
 {
-	struct nftnl_table_list_iter *iter;
-	struct nftnl_table_list *list;
-	struct nftnl_table *t;
+	struct list_head *list;
+	struct nft_table *t;
 	bool ret = false;
 
-	list = nftnl_table_list_get(h);
-	if (list == NULL)
-		goto err;
+	list = nft_table_list_get(h);
 
-	iter = nftnl_table_list_iter_create(list);
-	if (iter == NULL)
-		goto err;
-
-	t = nftnl_table_list_iter_next(iter);
-	while (t != NULL) {
+	list_for_each_entry(t, list, list) {
 		const char *this_tablename =
-			nftnl_table_get(t, NFTNL_TABLE_NAME);
+			nftnl_table_get(t->nftnl, NFTNL_TABLE_NAME);
 
 		if (strcmp(tablename, this_tablename) == 0) {
 			ret = true;
 			break;
 		}
-
-		t = nftnl_table_list_iter_next(iter);
 	}
 
-	nftnl_table_list_iter_destroy(iter);
-
-err:
 	return ret;
 }
 
@@ -1977,29 +1966,18 @@ int nft_for_each_table(struct nft_handle *h,
 		       int (*func)(struct nft_handle *h, const char *tablename, void *data),
 		       void *data)
 {
-	struct nftnl_table_list *list;
-	struct nftnl_table_list_iter *iter;
-	struct nftnl_table *t;
+	struct list_head *list;
+	struct nft_table *t;
 
-	list = nftnl_table_list_get(h);
-	if (list == NULL)
-		return -1;
+	list = nft_table_list_get(h);
 
-	iter = nftnl_table_list_iter_create(list);
-	if (iter == NULL)
-		return -1;
-
-	t = nftnl_table_list_iter_next(iter);
-	while (t != NULL) {
+	list_for_each_entry(t, list, list) {
 		const char *tablename =
-			nftnl_table_get(t, NFTNL_TABLE_NAME);
+			nftnl_table_get(t->nftnl, NFTNL_TABLE_NAME);
 
 		func(h, tablename, data);
-
-		t = nftnl_table_list_iter_next(iter);
 	}
 
-	nftnl_table_list_iter_destroy(iter);
 	return 0;
 }
 
@@ -2035,43 +2013,27 @@ static int __nft_table_flush(struct nft_handle *h, const char *table, bool exist
 
 int nft_table_flush(struct nft_handle *h, const char *table)
 {
-	struct nftnl_table_list_iter *iter;
-	struct nftnl_table_list *list;
-	struct nftnl_table *t;
+	struct list_head *list;
+	struct nft_table *t;
 	bool exists = false;
 	int ret = 0;
 
 	nft_fn = nft_table_flush;
 
-	list = nftnl_table_list_get(h);
-	if (list == NULL) {
-		ret = -1;
-		goto err_out;
-	}
+	list = nft_table_list_get(h);
 
-	iter = nftnl_table_list_iter_create(list);
-	if (iter == NULL) {
-		ret = -1;
-		goto err_table_list;
-	}
-
-	t = nftnl_table_list_iter_next(iter);
-	while (t != NULL) {
+	list_for_each_entry(t, list, list) {
 		const char *table_name =
-			nftnl_table_get_str(t, NFTNL_TABLE_NAME);
+			nftnl_table_get_str(t->nftnl, NFTNL_TABLE_NAME);
 
 		if (strcmp(table_name, table) == 0) {
 			exists = true;
 			break;
 		}
-
-		t = nftnl_table_list_iter_next(iter);
 	}
 
 	ret = __nft_table_flush(h, table, exists);
-	nftnl_table_list_iter_destroy(iter);
-err_table_list:
-err_out:
+
 	/* the core expects 1 for success and 0 for error */
 	return ret == 0 ? 1 : 0;
 }

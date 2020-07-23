@@ -38,7 +38,7 @@ enum nft_cache_level {
 };
 
 struct nft_cache {
-	struct nftnl_table_list		*tables;
+	struct list_head		tables;
 	struct {
 		struct nftnl_chain_list *chains;
 		struct nftnl_set_list	*sets;
