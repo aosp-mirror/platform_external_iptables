@@ -502,14 +502,14 @@ retry:
 	if (req->level >= NFT_CL_TABLES)
 		fetch_table_cache(h);
 	if (req->level == NFT_CL_FAKE)
-		return;
+		goto genid_check;
 	if (req->level >= NFT_CL_CHAINS)
 		fetch_chain_cache(h, t, chains);
 	if (req->level >= NFT_CL_SETS)
 		fetch_set_cache(h, t, NULL);
 	if (req->level >= NFT_CL_RULES)
 		fetch_rule_cache(h, t);
-
+genid_check:
 	mnl_genid_get(h, &genid_check);
 	if (h->nft_genid != genid_check) {
 		flush_cache(h, h->cache, NULL);
