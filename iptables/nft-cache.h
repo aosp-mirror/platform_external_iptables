@@ -2,6 +2,7 @@
 #define _NFT_CACHE_H_
 
 struct nft_handle;
+struct nft_chain;
 struct nft_cmd;
 struct builtin_table;
 
@@ -11,12 +12,12 @@ void nft_rebuild_cache(struct nft_handle *h);
 void nft_release_cache(struct nft_handle *h);
 void flush_chain_cache(struct nft_handle *h, const char *tablename);
 int flush_rule_cache(struct nft_handle *h, const char *table,
-		     struct nftnl_chain *c);
+		     struct nft_chain *c);
 void nft_cache_build(struct nft_handle *h);
 int nft_cache_add_chain(struct nft_handle *h, const struct builtin_table *t,
 			struct nftnl_chain *c);
 
-struct nftnl_chain *
+struct nft_chain *
 nft_chain_find(struct nft_handle *h, const char *table, const char *chain);
 
 struct nftnl_set_list *
