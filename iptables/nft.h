@@ -38,11 +38,11 @@ enum nft_cache_level {
 };
 
 struct nft_cache {
-	struct list_head		tables;
 	struct {
 		struct nftnl_chain_list *chains;
 		struct nftnl_set_list	*sets;
 		bool			initialized;
+		bool			exists;
 	} table[NFT_TABLE_MAX];
 };
 

@@ -842,8 +842,6 @@ int nft_init(struct nft_handle *h, int family, const struct builtin_table *t)
 	INIT_LIST_HEAD(&h->obj_list);
 	INIT_LIST_HEAD(&h->err_list);
 	INIT_LIST_HEAD(&h->cmd_list);
-	INIT_LIST_HEAD(&h->__cache[0].tables);
-	INIT_LIST_HEAD(&h->__cache[1].tables);
 	INIT_LIST_HEAD(&h->cache_req.chain_list);
 
 	return 0;
@@ -1943,39 +1941,26 @@ int nft_chain_user_rename(struct nft_handle *h,const char *chain,
 
 bool nft_table_find(struct nft_handle *h, const char *tablename)
 {
-	struct list_head *list;
-	struct nft_table *t;
-	bool ret = false;
+	const struct builtin_table *t;
 
-	list = nft_table_list_get(h);
-
-	list_for_each_entry(t, list, list) {
-		const char *this_tablename =
-			nftnl_table_get(t->nftnl, NFTNL_TABLE_NAME);
-
-		if (strcmp(tablename, this_tablename) == 0) {
-			ret = true;
-			break;
-		}
-	}
-
-	return ret;
+	t = nft_table_builtin_find(h, tablename);
+	return t ? h->cache->table[t->type].exists : false;
 }
 
 int nft_for_each_table(struct nft_handle *h,
 		       int (*func)(struct nft_handle *h, const char *tablename, void *data),
 		       void *data)
 {
-	struct list_head *list;
-	struct nft_table *t;
+	int i;
 
-	list = nft_table_list_get(h);
+	for (i = 0; i < NFT_TABLE_MAX; i++) {
+		if (h->tables[i].name == NULL)
+			continue;
 
-	list_for_each_entry(t, list, list) {
-		const char *tablename =
-			nftnl_table_get(t->nftnl, NFTNL_TABLE_NAME);
+		if (!h->cache->table[h->tables[i].type].exists)
+			continue;
 
-		func(h, tablename, data);
+		func(h, h->tables[i].name, data);
 	}
 
 	return 0;
@@ -2013,26 +1998,16 @@ static int __nft_table_flush(struct nft_handle *h, const char *table, bool exist
 
 int nft_table_flush(struct nft_handle *h, const char *table)
 {
-	struct list_head *list;
-	struct nft_table *t;
-	bool exists = false;
+	const struct builtin_table *t;
 	int ret = 0;
 
 	nft_fn = nft_table_flush;
 
-	list = nft_table_list_get(h);
+	t = nft_table_builtin_find(h, table);
+	if (!t)
+		return 0;
 
-	list_for_each_entry(t, list, list) {
-		const char *table_name =
-			nftnl_table_get_str(t->nftnl, NFTNL_TABLE_NAME);
-
-		if (strcmp(table_name, table) == 0) {
-			exists = true;
-			break;
-		}
-	}
-
-	ret = __nft_table_flush(h, table, exists);
+	ret = __nft_table_flush(h, table, h->cache->table[t->type].exists);
 
 	/* the core expects 1 for success and 0 for error */
 	return ret == 0 ? 1 : 0;

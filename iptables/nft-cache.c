@@ -107,59 +107,30 @@ static void mnl_genid_get(struct nft_handle *h, uint32_t *genid)
 		      "Could not fetch rule set generation id: %s\n", nft_strerror(errno));
 }
 
-static struct nft_table *nft_table_alloc(void)
-{
-	struct nftnl_table *nftnl;
-	struct nft_table *table;
-
-	table = malloc(sizeof(struct nft_table));
-	if (!table)
-		return NULL;
-
-	nftnl = nftnl_table_alloc();
-	if (!nftnl) {
-		free(table);
-		return NULL;
-	}
-	table->nftnl = nftnl;
-
-	return table;
-}
-
-static void nft_table_free(struct nft_table *table)
-{
-	nftnl_table_free(table->nftnl);
-	free(table);
-}
-
-static void nft_table_list_free(struct list_head *table_list)
-{
-	struct nft_table *table, *next;
-
-	list_for_each_entry_safe(table, next, table_list, list) {
-		list_del(&table->list);
-		nft_table_free(table);
-	}
-}
-
 static int nftnl_table_list_cb(const struct nlmsghdr *nlh, void *data)
 {
-	struct list_head *list = data;
-	struct nft_table *t;
+	struct nftnl_table *nftnl = nftnl_table_alloc();
+	const struct builtin_table *t;
+	struct nft_handle *h = data;
+	const char *name;
 
-	t = nft_table_alloc();
-	if (!t)
-		goto err;
+	if (!nftnl)
+		return MNL_CB_OK;
 
-	if (nftnl_table_nlmsg_parse(nlh, t->nftnl) < 0)
+	if (nftnl_table_nlmsg_parse(nlh, nftnl) < 0)
 		goto out;
 
-	list_add_tail(&t->list, list);
+	name = nftnl_table_get_str(nftnl, NFTNL_TABLE_NAME);
+	if (!name)
+		goto out;
 
-	return MNL_CB_OK;
+	t = nft_table_builtin_find(h, name);
+	if (!t)
+		goto out;
+
+	h->cache->table[t->type].exists = true;
 out:
-	nft_table_free(t);
-err:
+	nftnl_table_free(nftnl);
 	return MNL_CB_OK;
 }
 
@@ -169,13 +140,10 @@ static int fetch_table_cache(struct nft_handle *h)
 	char buf[16536];
 	int i, ret;
 
-	if (!list_empty(&h->cache->tables))
-		return 0;
-
 	nlh = nftnl_rule_nlmsg_build_hdr(buf, NFT_MSG_GETTABLE, h->family,
 					NLM_F_DUMP, h->seq);
 
-	ret = mnl_talk(h, nlh, nftnl_table_list_cb, &h->cache->tables);
+	ret = mnl_talk(h, nlh, nftnl_table_list_cb, h);
 	if (ret < 0 && errno == EINTR)
 		assert(nft_restart(h) >= 0);
 
@@ -635,9 +603,9 @@ static int flush_cache(struct nft_handle *h, struct nft_cache *c,
 			nftnl_set_list_free(c->table[i].sets);
 			c->table[i].sets = NULL;
 		}
+
+		c->table[i].exists = false;
 	}
-	if (!list_empty(&c->tables))
-		nft_table_list_free(&c->tables);
 
 	return 1;
 }
@@ -708,11 +676,6 @@ void nft_release_cache(struct nft_handle *h)
 		free(cc->name);
 		free(cc);
 	}
-}
-
-struct list_head *nft_table_list_get(struct nft_handle *h)
-{
-	return &h->cache->tables;
 }
 
 struct nftnl_set_list *
