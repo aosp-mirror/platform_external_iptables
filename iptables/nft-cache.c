@@ -223,8 +223,19 @@ int nft_cache_add_chain(struct nft_handle *h, const struct builtin_table *t,
 
 		h->cache->table[t->type].base_chains[hooknum] = nc;
 	} else {
-		list_add_tail(&nc->head,
-			      &h->cache->table[t->type].chains->list);
+		struct nft_chain_list *clist = h->cache->table[t->type].chains;
+		struct list_head *pos = &clist->list;
+		struct nft_chain *cur;
+		const char *n;
+
+		list_for_each_entry(cur, &clist->list, head) {
+			n = nftnl_chain_get_str(cur->nftnl, NFTNL_CHAIN_NAME);
+			if (strcmp(cname, n) <= 0) {
+				pos = &cur->head;
+				break;
+			}
+		}
+		list_add_tail(&nc->head, pos);
 	}
 	hlist_add_head(&nc->hnode, chain_name_hlist(h, t, cname));
 	return 0;
