@@ -644,19 +644,13 @@ const struct builtin_table xtables_bridge[NFT_TABLE_MAX] = {
 	},
 };
 
-static bool nft_table_initialized(const struct nft_handle *h,
-				  enum nft_table_type type)
-{
-	return h->cache->table[type].initialized;
-}
-
 static int nft_table_builtin_add(struct nft_handle *h,
 				 const struct builtin_table *_t)
 {
 	struct nftnl_table *t;
 	int ret;
 
-	if (nft_table_initialized(h, _t->type))
+	if (h->cache->table[_t->type].exists)
 		return 0;
 
 	t = nftnl_table_alloc();
@@ -775,9 +769,6 @@ static int nft_xt_builtin_init(struct nft_handle *h, const char *table)
 	if (t == NULL)
 		return -1;
 
-	if (nft_table_initialized(h, t->type))
-		return 0;
-
 	if (nft_table_builtin_add(h, t) < 0)
 		return -1;
 
@@ -785,8 +776,6 @@ static int nft_xt_builtin_init(struct nft_handle *h, const char *table)
 		return 0;
 
 	nft_chain_builtin_init(h, t);
-
-	h->cache->table[t->type].initialized = true;
 
 	return 0;
 }
@@ -1989,7 +1978,7 @@ static int __nft_table_flush(struct nft_handle *h, const char *table, bool exist
 
 	_t = nft_table_builtin_find(h, table);
 	assert(_t);
-	h->cache->table[_t->type].initialized = false;
+	h->cache->table[_t->type].exists = false;
 
 	flush_chain_cache(h, table);
 
