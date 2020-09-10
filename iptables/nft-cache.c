@@ -165,6 +165,20 @@ static int fetch_table_cache(struct nft_handle *h)
 	return 1;
 }
 
+struct nftnl_chain *
+nft_chain_find(struct nft_handle *h, const char *table, const char *chain)
+{
+	const struct builtin_table *t;
+	struct nftnl_chain_list *list;
+
+	t = nft_table_builtin_find(h, table);
+	if (!t)
+		return NULL;
+
+	list = h->cache->table[t->type].chains;
+	return list ? nftnl_chain_list_lookup_byname(list, chain) : NULL;
+}
+
 int nft_cache_add_chain(struct nft_handle *h, const struct builtin_table *t,
 			struct nftnl_chain *c)
 {

@@ -738,9 +738,6 @@ nft_chain_builtin_find(const struct builtin_table *t, const char *chain)
 	return found ? &t->chains[i] : NULL;
 }
 
-static struct nftnl_chain *
-nft_chain_find(struct nft_handle *h, const char *table, const char *chain);
-
 static void nft_chain_builtin_init(struct nft_handle *h,
 				   const struct builtin_table *table)
 {
@@ -1835,20 +1832,6 @@ int nft_chain_user_del(struct nft_handle *h, const char *chain,
 out:
 	/* the core expects 1 for success and 0 for error */
 	return ret == 0 ? 1 : 0;
-}
-
-static struct nftnl_chain *
-nft_chain_find(struct nft_handle *h, const char *table, const char *chain)
-{
-	const struct builtin_table *t;
-	struct nftnl_chain_list *list;
-
-	t = nft_table_builtin_find(h, table);
-	if (!t)
-		return NULL;
-
-	list = h->cache->table[t->type].chains;
-	return list ? nftnl_chain_list_lookup_byname(list, chain) : NULL;
 }
 
 bool nft_chain_exists(struct nft_handle *h,

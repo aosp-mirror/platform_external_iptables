@@ -16,6 +16,9 @@ void nft_cache_build(struct nft_handle *h);
 int nft_cache_add_chain(struct nft_handle *h, const struct builtin_table *t,
 			struct nftnl_chain *c);
 
+struct nftnl_chain *
+nft_chain_find(struct nft_handle *h, const char *table, const char *chain);
+
 struct nftnl_set_list *
 nft_set_list_get(struct nft_handle *h, const char *table, const char *set);
 
