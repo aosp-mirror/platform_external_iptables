@@ -203,8 +203,10 @@ struct xtables_match *xtables_matches;
 struct xtables_target *xtables_targets;
 
 /* Fully register a match/target which was previously partially registered. */
-static bool xtables_fully_register_pending_match(struct xtables_match *me);
-static bool xtables_fully_register_pending_target(struct xtables_target *me);
+static bool xtables_fully_register_pending_match(struct xtables_match *me,
+						 struct xtables_match *prev);
+static bool xtables_fully_register_pending_target(struct xtables_target *me,
+						  struct xtables_target *prev);
 
 #ifndef NO_SHARED_LIBS
 /* registry for loaded shared objects to close later */
@@ -662,6 +664,7 @@ struct xtables_match *
 xtables_find_match(const char *name, enum xtables_tryload tryload,
 		   struct xtables_rule_match **matches)
 {
+	struct xtables_match *prev = NULL;
 	struct xtables_match **dptr;
 	struct xtables_match *ptr;
 	const char *icmp6 = "icmp6";
@@ -683,8 +686,12 @@ xtables_find_match(const char *name, enum xtables_tryload tryload,
 		if (extension_cmp(name, (*dptr)->name, (*dptr)->family)) {
 			ptr = *dptr;
 			*dptr = (*dptr)->next;
-			if (xtables_fully_register_pending_match(ptr))
+			if (xtables_fully_register_pending_match(ptr, prev)) {
+				prev = ptr;
 				continue;
+			} else if (prev) {
+				continue;
+			}
 			*dptr = ptr;
 		}
 		dptr = &((*dptr)->next);
@@ -778,6 +785,7 @@ xtables_find_match_revision(const char *name, enum xtables_tryload tryload,
 struct xtables_target *
 xtables_find_target(const char *name, enum xtables_tryload tryload)
 {
+	struct xtables_target *prev = NULL;
 	struct xtables_target **dptr;
 	struct xtables_target *ptr;
 
@@ -794,8 +802,12 @@ xtables_find_target(const char *name, enum xtables_tryload tryload)
 		if (extension_cmp(name, (*dptr)->name, (*dptr)->family)) {
 			ptr = *dptr;
 			*dptr = (*dptr)->next;
-			if (xtables_fully_register_pending_target(ptr))
+			if (xtables_fully_register_pending_target(ptr, prev)) {
+				prev = ptr;
 				continue;
+			} else if (prev) {
+				continue;
+			}
 			*dptr = ptr;
 		}
 		dptr = &((*dptr)->next);
@@ -1098,64 +1110,27 @@ static int xtables_target_prefer(const struct xtables_target *a,
 				 b->revision, b->family);
 }
 
-static bool xtables_fully_register_pending_match(struct xtables_match *me)
+static bool xtables_fully_register_pending_match(struct xtables_match *me,
+						 struct xtables_match *prev)
 {
-	struct xtables_match **i, *old, *pos = NULL;
+	struct xtables_match **i;
 	const char *rn;
-	int compare;
 
 	/* See if new match can be used. */
 	rn = (me->real_name != NULL) ? me->real_name : me->name;
 	if (!compatible_match_revision(rn, me->revision))
 		return false;
 
-	old = xtables_find_match(me->name, XTF_DURING_LOAD, NULL);
-	while (old) {
-		compare = xtables_match_prefer(old, me);
-		if (compare == 0) {
-			fprintf(stderr,
-				"%s: match `%s' already registered.\n",
-				xt_params->program_name, me->name);
-			exit(1);
-		}
-
-		/* Now we have two (or more) options, check compatibility. */
-		rn = (old->real_name != NULL) ? old->real_name : old->name;
-		if (compare > 0) {
-			/* Kernel tells old isn't compatible anymore??? */
-			if (!compatible_match_revision(rn, old->revision)) {
-				/* Delete old one. */
-				for (i = &xtables_matches; *i != old;)
-				     i = &(*i)->next;
-				*i = old->next;
-			}
-			pos = old;
-			old = old->next;
-			if (!old)
-				break;
-			if (!extension_cmp(me->name, old->name, old->family))
-				break;
-			continue;
-		}
-
-		/* Found right old */
-		pos = old;
-		break;
-	}
-
-	if (!pos) {
+	if (!prev) {
 		/* Append to list. */
 		for (i = &xtables_matches; *i; i = &(*i)->next);
-	} else if (compare < 0) {
-		/* Prepend it */
-		for (i = &xtables_matches; *i != pos; i = &(*i)->next);
-	} else if (compare > 0) {
+	} else {
 		/* Append it */
-		i = &pos->next;
-		pos = pos->next;
+		i = &prev->next;
+		prev = prev->next;
 	}
 
-	me->next = pos;
+	me->next = prev;
 	*i = me;
 
 	me->m = NULL;
@@ -1260,11 +1235,11 @@ void xtables_register_target(struct xtables_target *me)
 #endif
 }
 
-static bool xtables_fully_register_pending_target(struct xtables_target *me)
+static bool xtables_fully_register_pending_target(struct xtables_target *me,
+						  struct xtables_target *prev)
 {
-	struct xtables_target **i, *old, *pos = NULL;
+	struct xtables_target **i;
 	const char *rn;
-	int compare;
 
 	if (strcmp(me->name, "standard") != 0) {
 		/* See if new target can be used. */
@@ -1273,54 +1248,17 @@ static bool xtables_fully_register_pending_target(struct xtables_target *me)
 			return false;
 	}
 
-	old = xtables_find_target(me->name, XTF_DURING_LOAD);
-	while (old) {
-		compare = xtables_target_prefer(old, me);
-		if (compare == 0) {
-			fprintf(stderr,
-				"%s: target `%s' already registered.\n",
-				xt_params->program_name, me->name);
-			exit(1);
-		}
-
-		/* Now we have two (or more) options, check compatibility. */
-		rn = (old->real_name != NULL) ? old->real_name : old->name;
-		if (compare > 0) {
-			/* Kernel tells old isn't compatible anymore??? */
-			if (!compatible_target_revision(rn, old->revision)) {
-				/* Delete old one. */
-				for (i = &xtables_targets; *i != old;)
-				     i = &(*i)->next;
-				*i = old->next;
-			}
-			pos = old;
-			old = old->next;
-			if (!old)
-				break;
-			if (!extension_cmp(me->name, old->name, old->family))
-				break;
-			continue;
-		}
-
-		/* Found right old */
-		pos = old;
-		break;
-	}
-
-	if (!pos) {
+	if (!prev) {
 		/* Prepend to list. */
 		i = &xtables_targets;
-		pos = xtables_targets;
-	} else if (compare < 0) {
-		/* Prepend it */
-		for (i = &xtables_targets; *i != pos; i = &(*i)->next);
-	} else if (compare > 0) {
+		prev = xtables_targets;
+	} else {
 		/* Append it */
-		i = &pos->next;
-		pos = pos->next;
+		i = &prev->next;
+		prev = prev->next;
 	}
 
-	me->next = pos;
+	me->next = prev;
 	*i = me;
 
 	me->t = NULL;
