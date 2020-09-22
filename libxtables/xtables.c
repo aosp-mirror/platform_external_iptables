@@ -1141,9 +1141,10 @@ static bool xtables_fully_register_pending_match(struct xtables_match *me,
 
 void xtables_register_matches(struct xtables_match *match, unsigned int n)
 {
-	do {
-		xtables_register_match(&match[--n]);
-	} while (n > 0);
+	int i;
+
+	for (i = 0; i < n; i++)
+		xtables_register_match(&match[i]);
 }
 
 void xtables_register_target(struct xtables_target *me)
@@ -1269,9 +1270,10 @@ static bool xtables_fully_register_pending_target(struct xtables_target *me,
 
 void xtables_register_targets(struct xtables_target *target, unsigned int n)
 {
-	do {
-		xtables_register_target(&target[--n]);
-	} while (n > 0);
+	int i;
+
+	for (i = 0; i < n; i++)
+		xtables_register_target(&target[i]);
 }
 
 /* receives a list of xtables_rule_match, release them */
