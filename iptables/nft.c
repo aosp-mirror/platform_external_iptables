@@ -3456,6 +3456,12 @@ bool nft_is_table_compatible(struct nft_handle *h,
 {
 	struct nftnl_chain_list *clist;
 
+	if (chain) {
+		struct nftnl_chain *c = nft_chain_find(h, table, chain);
+
+		return c && !nft_is_chain_compatible(c, h);
+	}
+
 	clist = nft_chain_list_get(h, table, chain);
 	if (clist == NULL)
 		return false;
