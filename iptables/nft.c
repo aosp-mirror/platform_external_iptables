@@ -679,7 +679,9 @@ nft_chain_builtin_alloc(const struct builtin_table *table,
 	nftnl_chain_set_str(c, NFTNL_CHAIN_NAME, chain->name);
 	nftnl_chain_set_u32(c, NFTNL_CHAIN_HOOKNUM, chain->hook);
 	nftnl_chain_set_u32(c, NFTNL_CHAIN_PRIO, chain->prio);
-	nftnl_chain_set_u32(c, NFTNL_CHAIN_POLICY, policy);
+	if (policy >= 0)
+		nftnl_chain_set_u32(c, NFTNL_CHAIN_POLICY, policy);
+
 	nftnl_chain_set_str(c, NFTNL_CHAIN_TYPE, chain->type);
 
 	return c;
@@ -911,6 +913,8 @@ int nft_chain_set(struct nft_handle *h, const char *table,
 		c = nft_chain_new(h, table, chain, NF_DROP, counters);
 	else if (strcmp(policy, "ACCEPT") == 0)
 		c = nft_chain_new(h, table, chain, NF_ACCEPT, counters);
+	else if (strcmp(policy, "-") == 0)
+		c = nft_chain_new(h, table, chain, -1, counters);
 	else
 		errno = EINVAL;
 
