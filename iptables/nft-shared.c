@@ -166,16 +166,22 @@ void add_addr(struct nftnl_rule *r, int offset,
 	      void *data, void *mask, size_t len, uint32_t op)
 {
 	const unsigned char *m = mask;
+	bool bitwise = false;
 	int i;
+
+	for (i = 0; i < len; i++) {
+		if (m[i] != 0xff) {
+			bitwise = m[i] != 0;
+			break;
+		}
+	}
+
+	if (!bitwise)
+		len = i;
 
 	add_payload(r, offset, len, NFT_PAYLOAD_NETWORK_HEADER);
 
-	for (i = 0; i < len; i++) {
-		if (m[i] != 0xff)
-			break;
-	}
-
-	if (i != len)
+	if (bitwise)
 		add_bitwise(r, mask, len);
 
 	add_cmp_ptr(r, op, data, len);

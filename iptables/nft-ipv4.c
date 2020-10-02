@@ -199,7 +199,8 @@ static void nft_ipv4_parse_payload(struct nft_xt_ctx *ctx,
 			parse_mask_ipv4(ctx, &cs->fw.ip.smsk);
 			ctx->flags &= ~NFT_XT_CTX_BITWISE;
 		} else {
-			cs->fw.ip.smsk.s_addr = 0xffffffff;
+			memset(&cs->fw.ip.smsk, 0xff,
+			       min(ctx->payload.len, sizeof(struct in_addr)));
 		}
 
 		if (inv)
@@ -212,7 +213,8 @@ static void nft_ipv4_parse_payload(struct nft_xt_ctx *ctx,
 			parse_mask_ipv4(ctx, &cs->fw.ip.dmsk);
 			ctx->flags &= ~NFT_XT_CTX_BITWISE;
 		} else {
-			cs->fw.ip.dmsk.s_addr = 0xffffffff;
+			memset(&cs->fw.ip.dmsk, 0xff,
+			       min(ctx->payload.len, sizeof(struct in_addr)));
 		}
 
 		if (inv)

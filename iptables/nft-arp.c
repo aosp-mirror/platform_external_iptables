@@ -303,7 +303,8 @@ static bool nft_arp_parse_devaddr(struct nft_xt_ctx *ctx,
 		memcpy(info->mask, ctx->bitwise.mask, ETH_ALEN);
 		ctx->flags &= ~NFT_XT_CTX_BITWISE;
 	} else {
-		memset(info->mask, 0xff, ETH_ALEN);
+		memset(info->mask, 0xff,
+		       min(ctx->payload.len, ETH_ALEN));
 	}
 
 	return inv;
@@ -360,7 +361,9 @@ static void nft_arp_parse_payload(struct nft_xt_ctx *ctx,
 				parse_mask_ipv4(ctx, &fw->arp.smsk);
 				ctx->flags &= ~NFT_XT_CTX_BITWISE;
 			} else {
-				fw->arp.smsk.s_addr = 0xffffffff;
+				memset(&fw->arp.smsk, 0xff,
+				       min(ctx->payload.len,
+					   sizeof(struct in_addr)));
 			}
 
 			if (inv)
@@ -380,7 +383,9 @@ static void nft_arp_parse_payload(struct nft_xt_ctx *ctx,
 				parse_mask_ipv4(ctx, &fw->arp.tmsk);
 				ctx->flags &= ~NFT_XT_CTX_BITWISE;
 			} else {
-				fw->arp.tmsk.s_addr = 0xffffffff;
+				memset(&fw->arp.tmsk, 0xff,
+				       min(ctx->payload.len,
+					   sizeof(struct in_addr)));
 			}
 
 			if (inv)
