@@ -388,10 +388,11 @@ batch_set_add(struct nft_handle *h, enum obj_update_type type,
 	return batch_add(h, type, s);
 }
 
-static int batch_chain_add(struct nft_handle *h, enum obj_update_type type,
+static struct obj_update *
+batch_chain_add(struct nft_handle *h, enum obj_update_type type,
 			   struct nftnl_chain *c)
 {
-	return batch_add(h, type, c) ? 0 : -1;
+	return batch_add(h, type, c);
 }
 
 static struct obj_update *
@@ -903,7 +904,6 @@ int nft_chain_set(struct nft_handle *h, const char *table,
 		  const struct xt_counters *counters)
 {
 	struct nftnl_chain *c = NULL;
-	int ret;
 
 	nft_fn = nft_chain_set;
 
@@ -917,10 +917,11 @@ int nft_chain_set(struct nft_handle *h, const char *table,
 	if (c == NULL)
 		return 0;
 
-	ret = batch_chain_add(h, NFT_COMPAT_CHAIN_UPDATE, c);
+	if (!batch_chain_add(h, NFT_COMPAT_CHAIN_UPDATE, c))
+		return 0;
 
 	/* the core expects 1 for success and 0 for error */
-	return ret == 0 ? 1 : 0;
+	return 1;
 }
 
 static int __add_match(struct nftnl_expr *e, struct xt_entry_match *m)
@@ -1710,7 +1711,6 @@ int nft_chain_user_add(struct nft_handle *h, const char *chain, const char *tabl
 {
 	struct nftnl_chain_list *list;
 	struct nftnl_chain *c;
-	int ret;
 
 	nft_fn = nft_chain_user_add;
 
@@ -1730,14 +1730,15 @@ int nft_chain_user_add(struct nft_handle *h, const char *chain, const char *tabl
 	if (h->family == NFPROTO_BRIDGE)
 		nftnl_chain_set_u32(c, NFTNL_CHAIN_POLICY, NF_ACCEPT);
 
-	ret = batch_chain_add(h, NFT_COMPAT_CHAIN_USER_ADD, c);
+	if (!batch_chain_add(h, NFT_COMPAT_CHAIN_USER_ADD, c))
+		return 0;
 
 	list = nft_chain_list_get(h, table, chain);
 	if (list)
 		nftnl_chain_list_add(c, list);
 
 	/* the core expects 1 for success and 0 for error */
-	return ret == 0 ? 1 : 0;
+	return 1;
 }
 
 int nft_chain_restore(struct nft_handle *h, const char *chain, const char *table)
@@ -1745,7 +1746,6 @@ int nft_chain_restore(struct nft_handle *h, const char *chain, const char *table
 	struct nftnl_chain_list *list;
 	struct nftnl_chain *c;
 	bool created = false;
-	int ret;
 
 	nft_xt_builtin_init(h, table);
 
@@ -1772,14 +1772,15 @@ int nft_chain_restore(struct nft_handle *h, const char *chain, const char *table
 	if (!created)
 		return 1;
 
-	ret = batch_chain_add(h, NFT_COMPAT_CHAIN_USER_ADD, c);
+	if (!batch_chain_add(h, NFT_COMPAT_CHAIN_USER_ADD, c))
+		return 0;
 
 	list = nft_chain_list_get(h, table, chain);
 	if (list)
 		nftnl_chain_list_add(c, list);
 
 	/* the core expects 1 for success and 0 for error */
-	return ret == 0 ? 1 : 0;
+	return 1;
 }
 
 /* From linux/netlink.h */
@@ -1797,7 +1798,6 @@ static int __nft_chain_user_del(struct nftnl_chain *c, void *data)
 {
 	struct chain_user_del_data *d = data;
 	struct nft_handle *h = d->handle;
-	int ret;
 
 	/* don't delete built-in chain */
 	if (nft_chain_builtin(c))
@@ -1809,8 +1809,7 @@ static int __nft_chain_user_del(struct nftnl_chain *c, void *data)
 
 	/* XXX This triggers a fast lookup from the kernel. */
 	nftnl_chain_unset(c, NFTNL_CHAIN_HANDLE);
-	ret = batch_chain_add(h, NFT_COMPAT_CHAIN_USER_DEL, c);
-	if (ret)
+	if (!batch_chain_add(h, NFT_COMPAT_CHAIN_USER_DEL, c))
 		return -1;
 
 	nftnl_chain_list_del(c);
@@ -1885,7 +1884,6 @@ int nft_chain_user_rename(struct nft_handle *h,const char *chain,
 {
 	struct nftnl_chain *c;
 	uint64_t handle;
-	int ret;
 
 	nft_fn = nft_chain_user_rename;
 
@@ -1914,10 +1912,11 @@ int nft_chain_user_rename(struct nft_handle *h,const char *chain,
 	nftnl_chain_set_str(c, NFTNL_CHAIN_NAME, newname);
 	nftnl_chain_set_u64(c, NFTNL_CHAIN_HANDLE, handle);
 
-	ret = batch_chain_add(h, NFT_COMPAT_CHAIN_RENAME, c);
+	if (!batch_chain_add(h, NFT_COMPAT_CHAIN_RENAME, c))
+		return 0;
 
 	/* the core expects 1 for success and 0 for error */
-	return ret == 0 ? 1 : 0;
+	return 1;
 }
 
 bool nft_table_find(struct nft_handle *h, const char *tablename)
@@ -3281,7 +3280,7 @@ static int __nft_chain_zero_counters(struct nftnl_chain *c, void *data)
 		nftnl_chain_set_u64(c, NFTNL_CHAIN_PACKETS, 0);
 		nftnl_chain_set_u64(c, NFTNL_CHAIN_BYTES, 0);
 		nftnl_chain_unset(c, NFTNL_CHAIN_HANDLE);
-		if (batch_chain_add(h, NFT_COMPAT_CHAIN_ZERO, c))
+		if (!batch_chain_add(h, NFT_COMPAT_CHAIN_ZERO, c))
 			return -1;
 	}
 
