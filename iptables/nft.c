@@ -265,7 +265,6 @@ struct obj_update {
 	struct list_head	head;
 	enum obj_update_type	type:8;
 	uint8_t			skip:1;
-	uint8_t			implicit:1;
 	unsigned int		seq;
 	union {
 		struct nftnl_table	*table;
@@ -1623,7 +1622,7 @@ struct nftnl_set *nft_set_batch_lookup_byid(struct nft_handle *h,
 
 static void
 __nft_rule_flush(struct nft_handle *h, const char *table,
-		 const char *chain, bool verbose, bool implicit)
+		 const char *chain, bool verbose, bool skip)
 {
 	struct obj_update *obj;
 	struct nftnl_rule *r;
@@ -1645,7 +1644,7 @@ __nft_rule_flush(struct nft_handle *h, const char *table,
 		return;
 	}
 
-	obj->implicit = implicit;
+	obj->skip = skip;
 }
 
 struct nft_rule_flush_data {
@@ -1748,19 +1747,14 @@ int nft_chain_user_add(struct nft_handle *h, const char *chain, const char *tabl
 int nft_chain_restore(struct nft_handle *h, const char *chain, const char *table)
 {
 	struct nftnl_chain_list *list;
+	struct obj_update *obj;
 	struct nftnl_chain *c;
 	bool created = false;
 
 	nft_xt_builtin_init(h, table);
 
 	c = nft_chain_find(h, table, chain);
-	if (c) {
-		/* Apparently -n still flushes existing user defined
-		 * chains that are redefined.
-		 */
-		if (h->noflush)
-			__nft_rule_flush(h, table, chain, false, true);
-	} else {
+	if (!c) {
 		c = nftnl_chain_alloc();
 		if (!c)
 			return 0;
@@ -1768,20 +1762,26 @@ int nft_chain_restore(struct nft_handle *h, const char *chain, const char *table
 		nftnl_chain_set_str(c, NFTNL_CHAIN_TABLE, table);
 		nftnl_chain_set_str(c, NFTNL_CHAIN_NAME, chain);
 		created = true;
+
+		list = nft_chain_list_get(h, table, chain);
+		if (list)
+			nftnl_chain_list_add(c, list);
+	} else {
+		/* If the chain should vanish meanwhile, kernel genid changes
+		 * and the transaction is refreshed enabling the chain add
+		 * object. With the handle still set, kernel interprets it as a
+		 * chain replace job and errors since it is not found anymore.
+		 */
+		nftnl_chain_unset(c, NFTNL_CHAIN_HANDLE);
 	}
 
-	if (h->family == NFPROTO_BRIDGE)
-		nftnl_chain_set_u32(c, NFTNL_CHAIN_POLICY, NF_ACCEPT);
+	__nft_rule_flush(h, table, chain, false, created);
 
-	if (!created)
-		return 1;
-
-	if (!batch_chain_add(h, NFT_COMPAT_CHAIN_USER_ADD, c))
+	obj = batch_chain_add(h, NFT_COMPAT_CHAIN_USER_ADD, c);
+	if (!obj)
 		return 0;
 
-	list = nft_chain_list_get(h, table, chain);
-	if (list)
-		nftnl_chain_list_add(c, list);
+	obj->skip = !created;
 
 	/* the core expects 1 for success and 0 for error */
 	return 1;
@@ -2638,11 +2638,6 @@ static void nft_refresh_transaction(struct nft_handle *h)
 	h->error.lineno = 0;
 
 	list_for_each_entry_safe(n, tmp, &h->obj_list, head) {
-		if (n->implicit) {
-			batch_obj_del(h, n);
-			continue;
-		}
-
 		switch (n->type) {
 		case NFT_COMPAT_TABLE_FLUSH:
 			tablename = nftnl_table_get_str(n->table, NFTNL_TABLE_NAME);
@@ -2668,13 +2663,21 @@ static void nft_refresh_transaction(struct nft_handle *h)
 
 			c = nft_chain_find(h, tablename, chainname);
 			if (c) {
-				/* -restore -n flushes existing rules from redefined user-chain */
-				__nft_rule_flush(h, tablename,
-						 chainname, false, true);
 				n->skip = 1;
 			} else if (!c) {
 				n->skip = 0;
 			}
+			break;
+		case NFT_COMPAT_RULE_FLUSH:
+			tablename = nftnl_rule_get_str(n->rule, NFTNL_RULE_TABLE);
+			if (!tablename)
+				continue;
+
+			chainname = nftnl_rule_get_str(n->rule, NFTNL_RULE_CHAIN);
+			if (!chainname)
+				continue;
+
+			n->skip = !nft_chain_find(h, tablename, chainname);
 			break;
 		case NFT_COMPAT_TABLE_ADD:
 		case NFT_COMPAT_CHAIN_ADD:
@@ -2687,7 +2690,6 @@ static void nft_refresh_transaction(struct nft_handle *h)
 		case NFT_COMPAT_RULE_INSERT:
 		case NFT_COMPAT_RULE_REPLACE:
 		case NFT_COMPAT_RULE_DELETE:
-		case NFT_COMPAT_RULE_FLUSH:
 		case NFT_COMPAT_SET_ADD:
 		case NFT_COMPAT_RULE_LIST:
 		case NFT_COMPAT_RULE_CHECK:
