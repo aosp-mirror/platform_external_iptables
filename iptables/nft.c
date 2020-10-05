@@ -2714,9 +2714,10 @@ retry:
 	h->nft_genid++;
 
 	list_for_each_entry(n, &h->obj_list, head) {
-
-		if (n->skip)
+		if (n->skip) {
+			n->seq = 0;
 			continue;
+		}
 
 		n->seq = seq++;
 		switch (n->type) {
