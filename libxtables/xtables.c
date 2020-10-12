@@ -757,6 +757,7 @@ xtables_find_target(const char *name, enum xtables_tryload tryload)
 
 	for (ptr = xtables_targets; ptr; ptr = ptr->next) {
 		if (extension_cmp(name, ptr->name, ptr->family)) {
+#if 0			/* Code block below causes memory leak.  (Bugs 162925719 and 168688680) */
 			struct xtables_target *clone;
 
 			/* First target of this type: */
@@ -772,6 +773,7 @@ xtables_find_target(const char *name, enum xtables_tryload tryload)
 			clone->next = clone;
 
 			ptr = clone;
+#endif
 			break;
 		}
 	}
