@@ -1,5 +1,14 @@
 #!/bin/bash
 
+# test for iptables-restore --noflush skipping an explicitly requested chain
+# flush because the chain did not exist when cache was fetched. In order to
+# expect for that chain to appear when refreshing the transaction (due to a
+# concurrent ruleset change), the chain flush job has to be present in batch
+# job list (although disabled at first).
+# The input line requesting chain flush is ':FOO - [0:0]'. RS1 and RS2 contents
+# are crafted to cause EBUSY when deleting the BAR* chains if FOO is not
+# flushed in the same transaction.
+
 set -e
 
 RS="*filter
@@ -45,7 +54,12 @@ RS2="$RS
 COMMIT
 "
 
+NORS="*filter
+COMMIT
+"
+
 for n in $(seq 1 10); do
+	$XT_MULTI iptables-restore <<< "$NORS"
 	$XT_MULTI iptables-restore --noflush -w <<< "$RS1" &
 	$XT_MULTI iptables-restore --noflush -w <<< "$RS2" &
 	wait -n
