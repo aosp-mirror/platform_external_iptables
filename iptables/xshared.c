@@ -779,3 +779,77 @@ int parse_rulenumber(const char *rule)
 
 	return rulenum;
 }
+
+/* Table of legal combinations of commands and options.  If any of the
+ * given commands make an option legal, that option is legal (applies to
+ * CMD_LIST and CMD_ZERO only).
+ * Key:
+ *  +  compulsory
+ *  x  illegal
+ *     optional
+ */
+static const char commands_v_options[NUMBER_OF_CMD][NUMBER_OF_OPT] =
+/* Well, it's better than "Re: Linux vs FreeBSD" */
+{
+	/*     -n  -s  -d  -p  -j  -v  -x  -i  -o --line -c -f 2 3 l 4 5 6 */
+/*INSERT*/    {'x',' ',' ',' ',' ',' ','x',' ',' ','x',' ',' ',' ',' ',' ',' ',' ',' '},
+/*DELETE*/    {'x',' ',' ',' ',' ',' ','x',' ',' ','x','x',' ',' ',' ',' ',' ',' ',' '},
+/*DELETE_NUM*/{'x','x','x','x','x',' ','x','x','x','x','x','x','x','x','x','x','x','x'},
+/*REPLACE*/   {'x',' ',' ',' ',' ',' ','x',' ',' ','x',' ',' ',' ',' ',' ',' ',' ',' '},
+/*APPEND*/    {'x',' ',' ',' ',' ',' ','x',' ',' ','x',' ',' ',' ',' ',' ',' ',' ',' '},
+/*LIST*/      {' ','x','x','x','x',' ',' ','x','x',' ','x','x','x','x','x','x','x','x'},
+/*FLUSH*/     {'x','x','x','x','x',' ','x','x','x','x','x','x','x','x','x','x','x','x'},
+/*ZERO*/      {'x','x','x','x','x',' ','x','x','x','x','x','x','x','x','x','x','x','x'},
+/*NEW_CHAIN*/ {'x','x','x','x','x',' ','x','x','x','x','x','x','x','x','x','x','x','x'},
+/*DEL_CHAIN*/ {'x','x','x','x','x',' ','x','x','x','x','x','x','x','x','x','x','x','x'},
+/*SET_POLICY*/{'x','x','x','x','x',' ','x','x','x','x',' ','x','x','x','x','x','x','x'},
+/*RENAME*/    {'x','x','x','x','x',' ','x','x','x','x','x','x','x','x','x','x','x','x'},
+/*LIST_RULES*/{'x','x','x','x','x',' ','x','x','x','x','x','x','x','x','x','x','x','x'},
+/*ZERO_NUM*/  {'x','x','x','x','x',' ','x','x','x','x','x','x','x','x','x','x','x','x'},
+/*CHECK*/     {'x',' ',' ',' ',' ',' ','x',' ',' ','x','x',' ',' ',' ',' ',' ',' ',' '},
+};
+
+void generic_opt_check(int command, int options)
+{
+	int i, j, legal = 0;
+
+	/* Check that commands are valid with options. Complicated by the
+	 * fact that if an option is legal with *any* command given, it is
+	 * legal overall (ie. -z and -l).
+	 */
+	for (i = 0; i < NUMBER_OF_OPT; i++) {
+		legal = 0; /* -1 => illegal, 1 => legal, 0 => undecided. */
+
+		for (j = 0; j < NUMBER_OF_CMD; j++) {
+			if (!(command & (1<<j)))
+				continue;
+
+			if (!(options & (1<<i))) {
+				if (commands_v_options[j][i] == '+')
+					xtables_error(PARAMETER_PROBLEM,
+						   "You need to supply the `-%c' "
+						   "option for this command\n",
+						   optflags[i]);
+			} else {
+				if (commands_v_options[j][i] != 'x')
+					legal = 1;
+				else if (legal == 0)
+					legal = -1;
+			}
+		}
+		if (legal == -1)
+			xtables_error(PARAMETER_PROBLEM,
+				   "Illegal option `-%c' with this command\n",
+				   optflags[i]);
+	}
+}
+
+char opt2char(int option)
+{
+	const char *ptr;
+
+	for (ptr = optflags; option > 1; option >>= 1, ptr++)
+		;
+
+	return *ptr;
+}

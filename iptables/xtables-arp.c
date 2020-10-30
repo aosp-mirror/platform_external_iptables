@@ -53,10 +53,6 @@
 #include "nft-arp.h"
 #include <linux/netfilter_arp/arp_tables.h>
 
-#define NUMBER_OF_OPT	16
-static const char optflags[NUMBER_OF_OPT]
-= { 'n', 's', 'd', 2, 3, 7, 8, 4, 5, 6, 'j', 'v', 'i', 'o', '0', 'c'};
-
 static struct option original_opts[] = {
 	{ "append", 1, 0, 'A' },
 	{ "delete", 1, 0,  'D' },
@@ -123,6 +119,7 @@ static int inverse_for_options[] =
 /* -o */ IPT_INV_VIA_OUT,
 /*--line*/ 0,
 /* -c */ 0,
+/* -f */ 0,
 /* 2 */ IPT_INV_SRCDEVADDR,
 /* 3 */ IPT_INV_TGTDEVADDR,
 /* -l */ IPT_INV_ARPHLN,
@@ -279,15 +276,6 @@ printhelp(void)
 		printf("\n");
 		t->help();
 	}
-}
-
-static char
-opt2char(int option)
-{
-	const char *ptr;
-	for (ptr = optflags; option > 1; option >>= 1, ptr++);
-
-	return *ptr;
 }
 
 static int
