@@ -178,7 +178,8 @@ static int nft_arp_add(struct nft_handle *h, struct nftnl_rule *r, void *data)
 
 	if (need_devaddr(&fw->arp.src_devaddr)) {
 		op = nft_invflags2cmp(fw->arp.invflags, ARPT_INV_SRCDEVADDR);
-		add_addr(r, sizeof(struct arphdr),
+		add_addr(r, NFT_PAYLOAD_NETWORK_HEADER,
+			 sizeof(struct arphdr),
 			 &fw->arp.src_devaddr.addr,
 			 &fw->arp.src_devaddr.mask,
 			 fw->arp.arhln, op);
@@ -189,7 +190,8 @@ static int nft_arp_add(struct nft_handle *h, struct nftnl_rule *r, void *data)
 	    fw->arp.smsk.s_addr != 0 ||
 	    fw->arp.invflags & ARPT_INV_SRCIP) {
 		op = nft_invflags2cmp(fw->arp.invflags, ARPT_INV_SRCIP);
-		add_addr(r, sizeof(struct arphdr) + fw->arp.arhln,
+		add_addr(r, NFT_PAYLOAD_NETWORK_HEADER,
+			 sizeof(struct arphdr) + fw->arp.arhln,
 			 &fw->arp.src.s_addr, &fw->arp.smsk.s_addr,
 			 sizeof(struct in_addr), op);
 	}
@@ -197,7 +199,8 @@ static int nft_arp_add(struct nft_handle *h, struct nftnl_rule *r, void *data)
 
 	if (need_devaddr(&fw->arp.tgt_devaddr)) {
 		op = nft_invflags2cmp(fw->arp.invflags, ARPT_INV_TGTDEVADDR);
-		add_addr(r, sizeof(struct arphdr) + fw->arp.arhln + sizeof(struct in_addr),
+		add_addr(r, NFT_PAYLOAD_NETWORK_HEADER,
+			 sizeof(struct arphdr) + fw->arp.arhln + sizeof(struct in_addr),
 			 &fw->arp.tgt_devaddr.addr,
 			 &fw->arp.tgt_devaddr.mask,
 			 fw->arp.arhln, op);
@@ -207,7 +210,8 @@ static int nft_arp_add(struct nft_handle *h, struct nftnl_rule *r, void *data)
 	    fw->arp.tmsk.s_addr != 0 ||
 	    fw->arp.invflags & ARPT_INV_TGTIP) {
 		op = nft_invflags2cmp(fw->arp.invflags, ARPT_INV_TGTIP);
-		add_addr(r, sizeof(struct arphdr) + fw->arp.arhln + sizeof(struct in_addr) + fw->arp.arhln,
+		add_addr(r, NFT_PAYLOAD_NETWORK_HEADER,
+			 sizeof(struct arphdr) + fw->arp.arhln + sizeof(struct in_addr) + fw->arp.arhln,
 			 &fw->arp.tgt.s_addr, &fw->arp.tmsk.s_addr,
 			 sizeof(struct in_addr), op);
 	}

@@ -8,6 +8,7 @@
 #include <libnftnl/chain.h>
 
 #include <linux/netfilter_arp/arp_tables.h>
+#include <linux/netfilter/nf_tables.h>
 
 #include "xshared.h"
 
@@ -121,7 +122,7 @@ void add_cmp_u16(struct nftnl_rule *r, uint16_t val, uint32_t op);
 void add_cmp_u32(struct nftnl_rule *r, uint32_t val, uint32_t op);
 void add_iniface(struct nftnl_rule *r, char *iface, uint32_t op);
 void add_outiface(struct nftnl_rule *r, char *iface, uint32_t op);
-void add_addr(struct nftnl_rule *r, int offset,
+void add_addr(struct nftnl_rule *r, enum nft_payload_bases base, int offset,
 	      void *data, void *mask, size_t len, uint32_t op);
 void add_proto(struct nftnl_rule *r, int offset, size_t len,
 	       uint8_t proto, uint32_t op);

@@ -51,7 +51,8 @@ static int nft_ipv6_add(struct nft_handle *h, struct nftnl_rule *r, void *data)
 	    !IN6_IS_ADDR_UNSPECIFIED(&cs->fw6.ipv6.smsk) ||
 	    (cs->fw6.ipv6.invflags & IPT_INV_SRCIP)) {
 		op = nft_invflags2cmp(cs->fw6.ipv6.invflags, IPT_INV_SRCIP);
-		add_addr(r, offsetof(struct ip6_hdr, ip6_src),
+		add_addr(r, NFT_PAYLOAD_NETWORK_HEADER,
+			 offsetof(struct ip6_hdr, ip6_src),
 			 &cs->fw6.ipv6.src, &cs->fw6.ipv6.smsk,
 			 sizeof(struct in6_addr), op);
 	}
@@ -59,7 +60,8 @@ static int nft_ipv6_add(struct nft_handle *h, struct nftnl_rule *r, void *data)
 	    !IN6_IS_ADDR_UNSPECIFIED(&cs->fw6.ipv6.dmsk) ||
 	    (cs->fw6.ipv6.invflags & IPT_INV_DSTIP)) {
 		op = nft_invflags2cmp(cs->fw6.ipv6.invflags, IPT_INV_DSTIP);
-		add_addr(r, offsetof(struct ip6_hdr, ip6_dst),
+		add_addr(r, NFT_PAYLOAD_NETWORK_HEADER,
+			 offsetof(struct ip6_hdr, ip6_dst),
 			 &cs->fw6.ipv6.dst, &cs->fw6.ipv6.dmsk,
 			 sizeof(struct in6_addr), op);
 	}

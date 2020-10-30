@@ -20,7 +20,6 @@
 
 #include <xtables.h>
 
-#include <linux/netfilter/nf_tables.h>
 #include <linux/netfilter/xt_comment.h>
 #include <linux/netfilter/xt_limit.h>
 
@@ -162,7 +161,7 @@ void add_outiface(struct nftnl_rule *r, char *iface, uint32_t op)
 		add_cmp_ptr(r, op, iface, iface_len + 1);
 }
 
-void add_addr(struct nftnl_rule *r, int offset,
+void add_addr(struct nftnl_rule *r, enum nft_payload_bases base, int offset,
 	      void *data, void *mask, size_t len, uint32_t op)
 {
 	const unsigned char *m = mask;
@@ -179,7 +178,7 @@ void add_addr(struct nftnl_rule *r, int offset,
 	if (!bitwise)
 		len = i;
 
-	add_payload(r, offset, len, NFT_PAYLOAD_NETWORK_HEADER);
+	add_payload(r, offset, len, base);
 
 	if (bitwise)
 		add_bitwise(r, mask, len);

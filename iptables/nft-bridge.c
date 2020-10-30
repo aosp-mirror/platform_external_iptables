@@ -159,20 +159,16 @@ static int nft_bridge_add(struct nft_handle *h,
 
 	if (fw->bitmask & EBT_ISOURCE) {
 		op = nft_invflags2cmp(fw->invflags, EBT_ISOURCE);
-		add_payload(r, offsetof(struct ethhdr, h_source), 6,
-			    NFT_PAYLOAD_LL_HEADER);
-		if (!mac_all_ones(fw->sourcemsk))
-			add_bitwise(r, fw->sourcemsk, 6);
-		add_cmp_ptr(r, op, fw->sourcemac, 6);
+		add_addr(r, NFT_PAYLOAD_LL_HEADER,
+			 offsetof(struct ethhdr, h_source),
+			 fw->sourcemac, fw->sourcemsk, ETH_ALEN, op);
 	}
 
 	if (fw->bitmask & EBT_IDEST) {
 		op = nft_invflags2cmp(fw->invflags, EBT_IDEST);
-		add_payload(r, offsetof(struct ethhdr, h_dest), 6,
-			    NFT_PAYLOAD_LL_HEADER);
-		if (!mac_all_ones(fw->destmsk))
-			add_bitwise(r, fw->destmsk, 6);
-		add_cmp_ptr(r, op, fw->destmac, 6);
+		add_addr(r, NFT_PAYLOAD_LL_HEADER,
+			 offsetof(struct ethhdr, h_dest),
+			 fw->destmac, fw->destmsk, ETH_ALEN, op);
 	}
 
 	if ((fw->bitmask & EBT_NOPROTO) == 0) {
@@ -258,7 +254,8 @@ static void nft_bridge_parse_payload(struct nft_xt_ctx *ctx,
                         memcpy(fw->destmsk, ctx->bitwise.mask, ETH_ALEN);
                         ctx->flags &= ~NFT_XT_CTX_BITWISE;
                 } else {
-                        memset(&fw->destmsk, 0xff, ETH_ALEN);
+			memset(&fw->destmsk, 0xff,
+			       min(ctx->payload.len, ETH_ALEN));
                 }
 		fw->bitmask |= EBT_IDEST;
 		break;
@@ -272,7 +269,8 @@ static void nft_bridge_parse_payload(struct nft_xt_ctx *ctx,
                         memcpy(fw->sourcemsk, ctx->bitwise.mask, ETH_ALEN);
                         ctx->flags &= ~NFT_XT_CTX_BITWISE;
                 } else {
-                        memset(&fw->sourcemsk, 0xff, ETH_ALEN);
+			memset(&fw->sourcemsk, 0xff,
+			       min(ctx->payload.len, ETH_ALEN));
                 }
 		fw->bitmask |= EBT_ISOURCE;
 		break;
