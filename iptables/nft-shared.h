@@ -190,7 +190,7 @@ struct xtables_args {
 	int		family;
 	uint16_t	proto;
 	uint8_t		flags;
-	uint8_t		invflags;
+	uint16_t	invflags;
 	char		iniface[IFNAMSIZ], outiface[IFNAMSIZ];
 	unsigned char	iniface_mask[IFNAMSIZ], outiface_mask[IFNAMSIZ];
 	bool		goto_set;

@@ -239,7 +239,7 @@ xtables_exit_error(enum xtables_exittype status, const char *msg, ...)
 /* Christophe Burki wants `-p 6' to imply `-m tcp'.  */
 
 static void
-set_option(unsigned int *options, unsigned int option, uint8_t *invflg,
+set_option(unsigned int *options, unsigned int option, u_int16_t *invflg,
 	   int invert)
 {
 	if (*options & option)
@@ -692,7 +692,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 #endif
 
 		case 'j':
-			set_option(&cs->options, OPT_JUMP, &cs->fw.ip.invflags,
+			set_option(&cs->options, OPT_JUMP, &args->invflags,
 				   cs->invert);
 			command_jump(cs, optarg);
 			break;
