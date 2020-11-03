@@ -113,22 +113,22 @@ struct xtables_globals arptables_globals = {
 static int inverse_for_options[] =
 {
 /* -n */ 0,
-/* -s */ ARPT_INV_SRCIP,
-/* -d */ ARPT_INV_TGTIP,
+/* -s */ IPT_INV_SRCIP,
+/* -d */ IPT_INV_DSTIP,
 /* -p */ 0,
 /* -j */ 0,
 /* -v */ 0,
 /* -x */ 0,
-/* -i */ ARPT_INV_VIA_IN,
-/* -o */ ARPT_INV_VIA_OUT,
+/* -i */ IPT_INV_VIA_IN,
+/* -o */ IPT_INV_VIA_OUT,
 /*--line*/ 0,
 /* -c */ 0,
-/* 2 */ ARPT_INV_SRCDEVADDR,
-/* 3 */ ARPT_INV_TGTDEVADDR,
-/* -l */ ARPT_INV_ARPHLN,
-/* 4 */ ARPT_INV_ARPOP,
-/* 5 */ ARPT_INV_ARPHRD,
-/* 6 */ ARPT_INV_ARPPRO,
+/* 2 */ IPT_INV_SRCDEVADDR,
+/* 3 */ IPT_INV_TGTDEVADDR,
+/* -l */ IPT_INV_ARPHLN,
+/* 4 */ IPT_INV_ARPOP,
+/* 5 */ IPT_INV_ARPHRD,
+/* 6 */ IPT_INV_PROTO,
 };
 
 /***********************************************/
@@ -855,7 +855,7 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table,
 					 &dmasks, &ndaddrs);
 
 	if ((nsaddrs > 1 || ndaddrs > 1) &&
-	    (cs.arp.arp.invflags & (ARPT_INV_SRCIP | ARPT_INV_TGTIP)))
+	    (cs.arp.arp.invflags & (IPT_INV_SRCIP | IPT_INV_DSTIP)))
 		xtables_error(PARAMETER_PROBLEM, "! not allowed with multiple"
 				" source or destination IP addresses");
 

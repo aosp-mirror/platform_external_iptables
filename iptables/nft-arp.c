@@ -134,34 +134,34 @@ static int nft_arp_add(struct nft_handle *h, struct nftnl_rule *r, void *data)
 	int ret = 0;
 
 	if (fw->arp.iniface[0] != '\0') {
-		op = nft_invflags2cmp(fw->arp.invflags, ARPT_INV_VIA_IN);
+		op = nft_invflags2cmp(fw->arp.invflags, IPT_INV_VIA_IN);
 		add_iniface(r, fw->arp.iniface, op);
 	}
 
 	if (fw->arp.outiface[0] != '\0') {
-		op = nft_invflags2cmp(fw->arp.invflags, ARPT_INV_VIA_OUT);
+		op = nft_invflags2cmp(fw->arp.invflags, IPT_INV_VIA_OUT);
 		add_outiface(r, fw->arp.outiface, op);
 	}
 
 	if (fw->arp.arhrd != 0 ||
-	    fw->arp.invflags & ARPT_INV_ARPHRD) {
-		op = nft_invflags2cmp(fw->arp.invflags, ARPT_INV_ARPHRD);
+	    fw->arp.invflags & IPT_INV_ARPHRD) {
+		op = nft_invflags2cmp(fw->arp.invflags, IPT_INV_ARPHRD);
 		add_payload(r, offsetof(struct arphdr, ar_hrd), 2,
 			    NFT_PAYLOAD_NETWORK_HEADER);
 		add_cmp_u16(r, fw->arp.arhrd, op);
 	}
 
 	if (fw->arp.arpro != 0 ||
-	    fw->arp.invflags & ARPT_INV_ARPPRO) {
-		op = nft_invflags2cmp(fw->arp.invflags, ARPT_INV_ARPPRO);
+	    fw->arp.invflags & IPT_INV_PROTO) {
+		op = nft_invflags2cmp(fw->arp.invflags, IPT_INV_PROTO);
 	        add_payload(r, offsetof(struct arphdr, ar_pro), 2,
 			    NFT_PAYLOAD_NETWORK_HEADER);
 		add_cmp_u16(r, fw->arp.arpro, op);
 	}
 
 	if (fw->arp.arhln != 0 ||
-	    fw->arp.invflags & ARPT_INV_ARPHLN) {
-		op = nft_invflags2cmp(fw->arp.invflags, ARPT_INV_ARPHLN);
+	    fw->arp.invflags & IPT_INV_ARPHLN) {
+		op = nft_invflags2cmp(fw->arp.invflags, IPT_INV_ARPHLN);
 		add_proto(r, offsetof(struct arphdr, ar_hln), 1,
 			  fw->arp.arhln, op);
 	}
@@ -169,15 +169,15 @@ static int nft_arp_add(struct nft_handle *h, struct nftnl_rule *r, void *data)
 	add_proto(r, offsetof(struct arphdr, ar_pln), 1, 4, NFT_CMP_EQ);
 
 	if (fw->arp.arpop != 0 ||
-	    fw->arp.invflags & ARPT_INV_ARPOP) {
-		op = nft_invflags2cmp(fw->arp.invflags, ARPT_INV_ARPOP);
+	    fw->arp.invflags & IPT_INV_ARPOP) {
+		op = nft_invflags2cmp(fw->arp.invflags, IPT_INV_ARPOP);
 		add_payload(r, offsetof(struct arphdr, ar_op), 2,
 			    NFT_PAYLOAD_NETWORK_HEADER);
 		add_cmp_u16(r, fw->arp.arpop, op);
 	}
 
 	if (need_devaddr(&fw->arp.src_devaddr)) {
-		op = nft_invflags2cmp(fw->arp.invflags, ARPT_INV_SRCDEVADDR);
+		op = nft_invflags2cmp(fw->arp.invflags, IPT_INV_SRCDEVADDR);
 		add_addr(r, NFT_PAYLOAD_NETWORK_HEADER,
 			 sizeof(struct arphdr),
 			 &fw->arp.src_devaddr.addr,
@@ -188,8 +188,8 @@ static int nft_arp_add(struct nft_handle *h, struct nftnl_rule *r, void *data)
 
 	if (fw->arp.src.s_addr != 0 ||
 	    fw->arp.smsk.s_addr != 0 ||
-	    fw->arp.invflags & ARPT_INV_SRCIP) {
-		op = nft_invflags2cmp(fw->arp.invflags, ARPT_INV_SRCIP);
+	    fw->arp.invflags & IPT_INV_SRCIP) {
+		op = nft_invflags2cmp(fw->arp.invflags, IPT_INV_SRCIP);
 		add_addr(r, NFT_PAYLOAD_NETWORK_HEADER,
 			 sizeof(struct arphdr) + fw->arp.arhln,
 			 &fw->arp.src.s_addr, &fw->arp.smsk.s_addr,
@@ -198,7 +198,7 @@ static int nft_arp_add(struct nft_handle *h, struct nftnl_rule *r, void *data)
 
 
 	if (need_devaddr(&fw->arp.tgt_devaddr)) {
-		op = nft_invflags2cmp(fw->arp.invflags, ARPT_INV_TGTDEVADDR);
+		op = nft_invflags2cmp(fw->arp.invflags, IPT_INV_TGTDEVADDR);
 		add_addr(r, NFT_PAYLOAD_NETWORK_HEADER,
 			 sizeof(struct arphdr) + fw->arp.arhln + sizeof(struct in_addr),
 			 &fw->arp.tgt_devaddr.addr,
@@ -208,8 +208,8 @@ static int nft_arp_add(struct nft_handle *h, struct nftnl_rule *r, void *data)
 
 	if (fw->arp.tgt.s_addr != 0 ||
 	    fw->arp.tmsk.s_addr != 0 ||
-	    fw->arp.invflags & ARPT_INV_TGTIP) {
-		op = nft_invflags2cmp(fw->arp.invflags, ARPT_INV_TGTIP);
+	    fw->arp.invflags & IPT_INV_DSTIP) {
+		op = nft_invflags2cmp(fw->arp.invflags, IPT_INV_DSTIP);
 		add_addr(r, NFT_PAYLOAD_NETWORK_HEADER,
 			 sizeof(struct arphdr) + fw->arp.arhln + sizeof(struct in_addr) + fw->arp.arhln,
 			 &fw->arp.tgt.s_addr, &fw->arp.tmsk.s_addr,
@@ -240,28 +240,6 @@ static int nft_arp_add(struct nft_handle *h, struct nftnl_rule *r, void *data)
 	return ret;
 }
 
-static uint16_t ipt_to_arpt_flags(uint8_t invflags)
-{
-	uint16_t result = 0;
-
-	if (invflags & IPT_INV_VIA_IN)
-		result |= ARPT_INV_VIA_IN;
-
-	if (invflags & IPT_INV_VIA_OUT)
-		result |= ARPT_INV_VIA_OUT;
-
-	if (invflags & IPT_INV_SRCIP)
-		result |= ARPT_INV_SRCIP;
-
-	if (invflags & IPT_INV_DSTIP)
-		result |= ARPT_INV_TGTIP;
-
-	if (invflags & IPT_INV_PROTO)
-		result |= ARPT_INV_ARPPRO;
-
-	return result;
-}
-
 static void nft_arp_parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e,
 			       void *data)
 {
@@ -273,7 +251,7 @@ static void nft_arp_parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e,
 		   fw->arp.outiface, fw->arp.outiface_mask,
 		   &flags);
 
-	fw->arp.invflags |= ipt_to_arpt_flags(flags);
+	fw->arp.invflags |= flags;
 }
 
 static void nft_arp_parse_immediate(const char *jumpto, bool nft_goto,
@@ -330,33 +308,33 @@ static void nft_arp_parse_payload(struct nft_xt_ctx *ctx,
 		fw->arp.arhrd = ar_hrd;
 		fw->arp.arhrd_mask = 0xffff;
 		if (inv)
-			fw->arp.invflags |= ARPT_INV_ARPHRD;
+			fw->arp.invflags |= IPT_INV_ARPHRD;
 		break;
 	case offsetof(struct arphdr, ar_pro):
 		get_cmp_data(e, &ar_pro, sizeof(ar_pro), &inv);
 		fw->arp.arpro = ar_pro;
 		fw->arp.arpro_mask = 0xffff;
 		if (inv)
-			fw->arp.invflags |= ARPT_INV_ARPPRO;
+			fw->arp.invflags |= IPT_INV_PROTO;
 		break;
 	case offsetof(struct arphdr, ar_op):
 		get_cmp_data(e, &ar_op, sizeof(ar_op), &inv);
 		fw->arp.arpop = ar_op;
 		fw->arp.arpop_mask = 0xffff;
 		if (inv)
-			fw->arp.invflags |= ARPT_INV_ARPOP;
+			fw->arp.invflags |= IPT_INV_ARPOP;
 		break;
 	case offsetof(struct arphdr, ar_hln):
 		get_cmp_data(e, &ar_hln, sizeof(ar_hln), &inv);
 		fw->arp.arhln = ar_hln;
 		fw->arp.arhln_mask = 0xff;
 		if (inv)
-			fw->arp.invflags |= ARPT_INV_ARPOP;
+			fw->arp.invflags |= IPT_INV_ARPOP;
 		break;
 	default:
 		if (ctx->payload.offset == sizeof(struct arphdr)) {
 			if (nft_arp_parse_devaddr(ctx, e, &fw->arp.src_devaddr))
-				fw->arp.invflags |= ARPT_INV_SRCDEVADDR;
+				fw->arp.invflags |= IPT_INV_SRCDEVADDR;
 		} else if (ctx->payload.offset == sizeof(struct arphdr) +
 					   fw->arp.arhln) {
 			get_cmp_data(e, &addr, sizeof(addr), &inv);
@@ -371,12 +349,12 @@ static void nft_arp_parse_payload(struct nft_xt_ctx *ctx,
 			}
 
 			if (inv)
-				fw->arp.invflags |= ARPT_INV_SRCIP;
+				fw->arp.invflags |= IPT_INV_SRCIP;
 		} else if (ctx->payload.offset == sizeof(struct arphdr) +
 						  fw->arp.arhln +
 						  sizeof(struct in_addr)) {
 			if (nft_arp_parse_devaddr(ctx, e, &fw->arp.tgt_devaddr))
-				fw->arp.invflags |= ARPT_INV_TGTDEVADDR;
+				fw->arp.invflags |= IPT_INV_TGTDEVADDR;
 		} else if (ctx->payload.offset == sizeof(struct arphdr) +
 						  fw->arp.arhln +
 						  sizeof(struct in_addr) +
@@ -393,7 +371,7 @@ static void nft_arp_parse_payload(struct nft_xt_ctx *ctx,
 			}
 
 			if (inv)
-				fw->arp.invflags |= ARPT_INV_TGTIP;
+				fw->arp.invflags |= IPT_INV_DSTIP;
 		}
 		break;
 	}
@@ -448,7 +426,7 @@ static void nft_arp_print_rule_details(const struct iptables_command_state *cs,
 		else strcat(iface, "any");
 	}
 	if (print_iface) {
-		printf("%s%s-i %s", sep, fw->arp.invflags & ARPT_INV_VIA_IN ?
+		printf("%s%s-i %s", sep, fw->arp.invflags & IPT_INV_VIA_IN ?
 				   "! " : "", iface);
 		sep = " ";
 	}
@@ -466,13 +444,13 @@ static void nft_arp_print_rule_details(const struct iptables_command_state *cs,
 		else strcat(iface, "any");
 	}
 	if (print_iface) {
-		printf("%s%s-o %s", sep, fw->arp.invflags & ARPT_INV_VIA_OUT ?
+		printf("%s%s-o %s", sep, fw->arp.invflags & IPT_INV_VIA_OUT ?
 				   "! " : "", iface);
 		sep = " ";
 	}
 
 	if (fw->arp.smsk.s_addr != 0L) {
-		printf("%s%s", sep, fw->arp.invflags & ARPT_INV_SRCIP
+		printf("%s%s", sep, fw->arp.invflags & IPT_INV_SRCIP
 			? "! " : "");
 		if (format & FMT_NUMERIC)
 			sprintf(buf, "%s", addr_to_dotted(&(fw->arp.src)));
@@ -489,7 +467,7 @@ static void nft_arp_print_rule_details(const struct iptables_command_state *cs,
 			break;
 	if (i == ARPT_DEV_ADDR_LEN_MAX)
 		goto after_devsrc;
-	printf("%s%s", sep, fw->arp.invflags & ARPT_INV_SRCDEVADDR
+	printf("%s%s", sep, fw->arp.invflags & IPT_INV_SRCDEVADDR
 		? "! " : "");
 	printf("--src-mac ");
 	xtables_print_mac_and_mask((unsigned char *)fw->arp.src_devaddr.addr,
@@ -498,7 +476,7 @@ static void nft_arp_print_rule_details(const struct iptables_command_state *cs,
 after_devsrc:
 
 	if (fw->arp.tmsk.s_addr != 0L) {
-		printf("%s%s", sep, fw->arp.invflags & ARPT_INV_TGTIP
+		printf("%s%s", sep, fw->arp.invflags & IPT_INV_DSTIP
 			? "! " : "");
 		if (format & FMT_NUMERIC)
 			sprintf(buf, "%s", addr_to_dotted(&(fw->arp.tgt)));
@@ -515,7 +493,7 @@ after_devsrc:
 			break;
 	if (i == ARPT_DEV_ADDR_LEN_MAX)
 		goto after_devdst;
-	printf("%s%s", sep, fw->arp.invflags & ARPT_INV_TGTDEVADDR
+	printf("%s%s", sep, fw->arp.invflags & IPT_INV_TGTDEVADDR
 		? "! " : "");
 	printf("--dst-mac ");
 	xtables_print_mac_and_mask((unsigned char *)fw->arp.tgt_devaddr.addr,
@@ -525,7 +503,7 @@ after_devsrc:
 after_devdst:
 
 	if (fw->arp.arhln_mask != 255 || fw->arp.arhln != 6) {
-		printf("%s%s", sep, fw->arp.invflags & ARPT_INV_ARPHLN
+		printf("%s%s", sep, fw->arp.invflags & IPT_INV_ARPHLN
 			? "! " : "");
 		printf("--h-length %d", fw->arp.arhln);
 		if (fw->arp.arhln_mask != 255)
@@ -536,7 +514,7 @@ after_devdst:
 	if (fw->arp.arpop_mask != 0) {
 		int tmp = ntohs(fw->arp.arpop);
 
-		printf("%s%s", sep, fw->arp.invflags & ARPT_INV_ARPOP
+		printf("%s%s", sep, fw->arp.invflags & IPT_INV_ARPOP
 			? "! " : "");
 		if (tmp <= NUMOPCODES && !(format & FMT_NUMERIC))
 			printf("--opcode %s", arp_opcodes[tmp-1]);
@@ -551,7 +529,7 @@ after_devdst:
 	if (fw->arp.arhrd_mask != 65535 || fw->arp.arhrd != htons(1)) {
 		uint16_t tmp = ntohs(fw->arp.arhrd);
 
-		printf("%s%s", sep, fw->arp.invflags & ARPT_INV_ARPHRD
+		printf("%s%s", sep, fw->arp.invflags & IPT_INV_ARPHRD
 			? "! " : "");
 		if (tmp == 1 && !(format & FMT_NUMERIC))
 			printf("--h-type %s", "Ethernet");
@@ -565,7 +543,7 @@ after_devdst:
 	if (fw->arp.arpro_mask != 0) {
 		int tmp = ntohs(fw->arp.arpro);
 
-		printf("%s%s", sep, fw->arp.invflags & ARPT_INV_ARPPRO
+		printf("%s%s", sep, fw->arp.invflags & IPT_INV_PROTO
 			? "! " : "");
 		if (tmp == 0x0800 && !(format & FMT_NUMERIC))
 			printf("--proto-type %s", "IPv4");
