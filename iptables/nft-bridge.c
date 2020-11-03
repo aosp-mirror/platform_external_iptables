@@ -58,44 +58,11 @@ void ebt_cs_clean(struct iptables_command_state *cs)
 	}
 }
 
-static void ebt_print_mac(const unsigned char *mac)
-{
-	int j;
-
-	for (j = 0; j < ETH_ALEN; j++)
-		printf("%02x%s", mac[j], (j==ETH_ALEN-1) ? "" : ":");
-}
-
-static bool mac_all_ones(const unsigned char *mac)
-{
-	static const char hlpmsk[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
-
-	return memcmp(mac, hlpmsk, sizeof(hlpmsk)) == 0;
-}
-
 /* Put the mac address into 6 (ETH_ALEN) bytes returns 0 on success. */
 static void ebt_print_mac_and_mask(const unsigned char *mac, const unsigned char *mask)
 {
-
-	if (!memcmp(mac, eb_mac_type_unicast, 6) &&
-	    !memcmp(mask, eb_msk_type_unicast, 6))
-		printf("Unicast");
-	else if (!memcmp(mac, eb_mac_type_multicast, 6) &&
-	         !memcmp(mask, eb_msk_type_multicast, 6))
-		printf("Multicast");
-	else if (!memcmp(mac, eb_mac_type_broadcast, 6) &&
-	         !memcmp(mask, eb_msk_type_broadcast, 6))
-		printf("Broadcast");
-	else if (!memcmp(mac, eb_mac_type_bridge_group, 6) &&
-	         !memcmp(mask, eb_msk_type_bridge_group, 6))
-		printf("BGA");
-	else {
-		ebt_print_mac(mac);
-		if (!mac_all_ones(mask)) {
-			printf("/");
-			ebt_print_mac(mask);
-		}
-	}
+	if (xtables_print_well_known_mac_and_mask(mac, mask))
+		xtables_print_mac_and_mask(mac, mask);
 }
 
 static void add_logical_iniface(struct nftnl_rule *r, char *iface, uint32_t op)
