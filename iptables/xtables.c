@@ -240,7 +240,7 @@ xtables_exit_error(enum xtables_exittype status, const char *msg, ...)
 
 static void
 set_option(unsigned int *options, unsigned int option, u_int16_t *invflg,
-	   int invert)
+	   bool invert)
 {
 	if (*options & option)
 		xtables_error(PARAMETER_PROBLEM, "multiple -%c flags not allowed",
@@ -466,6 +466,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 	struct timeval wait_interval;
 	struct xtables_target *t;
 	bool table_set = false;
+	bool invert = false;
 	int wait = 0;
 
 	memset(cs, 0, sizeof(*cs));
@@ -499,20 +500,17 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 			 * Command selection
 			 */
 		case 'A':
-			add_command(&p->command, CMD_APPEND, CMD_NONE,
-				    cs->invert);
+			add_command(&p->command, CMD_APPEND, CMD_NONE, invert);
 			p->chain = optarg;
 			break;
 
 		case 'C':
-			add_command(&p->command, CMD_CHECK, CMD_NONE,
-				    cs->invert);
+			add_command(&p->command, CMD_CHECK, CMD_NONE, invert);
 			p->chain = optarg;
 			break;
 
 		case 'D':
-			add_command(&p->command, CMD_DELETE, CMD_NONE,
-				    cs->invert);
+			add_command(&p->command, CMD_DELETE, CMD_NONE, invert);
 			p->chain = optarg;
 			if (xs_has_arg(argc, argv)) {
 				p->rulenum = parse_rulenumber(argv[optind++]);
@@ -521,8 +519,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 			break;
 
 		case 'R':
-			add_command(&p->command, CMD_REPLACE, CMD_NONE,
-				    cs->invert);
+			add_command(&p->command, CMD_REPLACE, CMD_NONE, invert);
 			p->chain = optarg;
 			if (xs_has_arg(argc, argv))
 				p->rulenum = parse_rulenumber(argv[optind++]);
@@ -533,8 +530,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 			break;
 
 		case 'I':
-			add_command(&p->command, CMD_INSERT, CMD_NONE,
-				    cs->invert);
+			add_command(&p->command, CMD_INSERT, CMD_NONE, invert);
 			p->chain = optarg;
 			if (xs_has_arg(argc, argv))
 				p->rulenum = parse_rulenumber(argv[optind++]);
@@ -544,7 +540,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 
 		case 'L':
 			add_command(&p->command, CMD_LIST,
-				    CMD_ZERO | CMD_ZERO_NUM, cs->invert);
+				    CMD_ZERO | CMD_ZERO_NUM, invert);
 			if (optarg)
 				p->chain = optarg;
 			else if (xs_has_arg(argc, argv))
@@ -555,7 +551,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 
 		case 'S':
 			add_command(&p->command, CMD_LIST_RULES,
-				    CMD_ZERO|CMD_ZERO_NUM, cs->invert);
+				    CMD_ZERO|CMD_ZERO_NUM, invert);
 			if (optarg)
 				p->chain = optarg;
 			else if (xs_has_arg(argc, argv))
@@ -565,8 +561,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 			break;
 
 		case 'F':
-			add_command(&p->command, CMD_FLUSH, CMD_NONE,
-				    cs->invert);
+			add_command(&p->command, CMD_FLUSH, CMD_NONE, invert);
 			if (optarg)
 				p->chain = optarg;
 			else if (xs_has_arg(argc, argv))
@@ -575,7 +570,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 
 		case 'Z':
 			add_command(&p->command, CMD_ZERO,
-				    CMD_LIST|CMD_LIST_RULES, cs->invert);
+				    CMD_LIST|CMD_LIST_RULES, invert);
 			if (optarg)
 				p->chain = optarg;
 			else if (xs_has_arg(argc, argv))
@@ -596,13 +591,13 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 					   "chain name may not clash "
 					   "with target name\n");
 			add_command(&p->command, CMD_NEW_CHAIN, CMD_NONE,
-				    cs->invert);
+				    invert);
 			p->chain = optarg;
 			break;
 
 		case 'X':
 			add_command(&p->command, CMD_DELETE_CHAIN, CMD_NONE,
-				    cs->invert);
+				    invert);
 			if (optarg)
 				p->chain = optarg;
 			else if (xs_has_arg(argc, argv))
@@ -611,7 +606,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 
 		case 'E':
 			add_command(&p->command, CMD_RENAME_CHAIN, CMD_NONE,
-				    cs->invert);
+				    invert);
 			p->chain = optarg;
 			if (xs_has_arg(argc, argv))
 				p->newname = argv[optind++];
@@ -624,7 +619,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 
 		case 'P':
 			add_command(&p->command, CMD_SET_POLICY, CMD_NONE,
-				    cs->invert);
+				    invert);
 			p->chain = optarg;
 			if (xs_has_arg(argc, argv))
 				p->policy = argv[optind++];
@@ -652,7 +647,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 			 */
 		case 'p':
 			set_option(&cs->options, OPT_PROTOCOL,
-				   &args->invflags, cs->invert);
+				   &args->invflags, invert);
 
 			/* Canonicalize into lower case */
 			for (cs->protocol = optarg; *cs->protocol; cs->protocol++)
@@ -672,20 +667,20 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 
 		case 's':
 			set_option(&cs->options, OPT_SOURCE,
-				   &args->invflags, cs->invert);
+				   &args->invflags, invert);
 			args->shostnetworkmask = optarg;
 			break;
 
 		case 'd':
 			set_option(&cs->options, OPT_DESTINATION,
-				   &args->invflags, cs->invert);
+				   &args->invflags, invert);
 			args->dhostnetworkmask = optarg;
 			break;
 
 #ifdef IPT_F_GOTO
 		case 'g':
 			set_option(&cs->options, OPT_JUMP, &args->invflags,
-				   cs->invert);
+				   invert);
 			args->goto_set = true;
 			cs->jumpto = xt_parse_target(optarg);
 			break;
@@ -693,7 +688,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 
 		case 'j':
 			set_option(&cs->options, OPT_JUMP, &args->invflags,
-				   cs->invert);
+				   invert);
 			command_jump(cs, optarg);
 			break;
 
@@ -704,7 +699,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 					"Empty interface is likely to be "
 					"undesired");
 			set_option(&cs->options, OPT_VIANAMEIN,
-				   &args->invflags, cs->invert);
+				   &args->invflags, invert);
 			xtables_parse_interface(optarg,
 						args->iniface,
 						args->iniface_mask);
@@ -716,7 +711,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 					"Empty interface is likely to be "
 					"undesired");
 			set_option(&cs->options, OPT_VIANAMEOUT,
-				   &args->invflags, cs->invert);
+				   &args->invflags, invert);
 			xtables_parse_interface(optarg,
 						args->outiface,
 						args->outiface_mask);
@@ -729,28 +724,28 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 					"use -m frag instead");
 			}
 			set_option(&cs->options, OPT_FRAGMENT, &args->invflags,
-				   cs->invert);
+				   invert);
 			args->flags |= IPT_F_FRAG;
 			break;
 
 		case 'v':
 			if (!p->verbose)
 				set_option(&cs->options, OPT_VERBOSE,
-					   &args->invflags, cs->invert);
+					   &args->invflags, invert);
 			p->verbose++;
 			break;
 
 		case 'm':
-			command_match(cs);
+			command_match(cs, invert);
 			break;
 
 		case 'n':
 			set_option(&cs->options, OPT_NUMERIC, &args->invflags,
-				   cs->invert);
+				   invert);
 			break;
 
 		case 't':
-			if (cs->invert)
+			if (invert)
 				xtables_error(PARAMETER_PROBLEM,
 					   "unexpected ! flag before --table");
 			if (p->restore && table_set)
@@ -767,11 +762,11 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 
 		case 'x':
 			set_option(&cs->options, OPT_EXPANDED, &args->invflags,
-				   cs->invert);
+				   invert);
 			break;
 
 		case 'V':
-			if (cs->invert)
+			if (invert)
 				printf("Not %s ;-)\n", prog_vers);
 			else
 				printf("%s v%s (nf_tables)\n",
@@ -801,7 +796,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 
 		case '0':
 			set_option(&cs->options, OPT_LINENUMBERS,
-				   &args->invflags, cs->invert);
+				   &args->invflags, invert);
 			break;
 
 		case 'M':
@@ -810,7 +805,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 
 		case 'c':
 			set_option(&cs->options, OPT_COUNTERS, &args->invflags,
-				   cs->invert);
+				   invert);
 			args->pcnt = optarg;
 			args->bcnt = strchr(args->pcnt + 1, ',');
 			if (args->bcnt)
@@ -853,11 +848,11 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 
 		case 1: /* non option */
 			if (optarg[0] == '!' && optarg[1] == '\0') {
-				if (cs->invert)
+				if (invert)
 					xtables_error(PARAMETER_PROBLEM,
 						   "multiple consecutive ! not"
 						   " allowed");
-				cs->invert = true;
+				invert = true;
 				optarg[0] = '\0';
 				continue;
 			}
@@ -865,12 +860,12 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 			exit_tryhelp(2);
 
 		default:
-			if (command_default(cs, &xtables_globals) == 1)
+			if (command_default(cs, &xtables_globals, invert))
 				/* cf. ip6tables.c */
 				continue;
 			break;
 		}
-		cs->invert = false;
+		invert = false;
 	}
 
 	if (strcmp(p->table, "nat") == 0 &&
@@ -896,7 +891,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 			   "unknown arguments found on commandline");
 	if (!p->command)
 		xtables_error(PARAMETER_PROBLEM, "no command specified");
-	if (cs->invert)
+	if (invert)
 		xtables_error(PARAMETER_PROBLEM,
 			   "nothing appropriate following !");
 

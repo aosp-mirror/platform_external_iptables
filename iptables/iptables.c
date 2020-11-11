@@ -1078,6 +1078,7 @@ int do_command4(int argc, char *argv[], char **table,
 	struct xtables_target *t;
 	unsigned long long cnt;
 	bool table_set = false;
+	bool invert = false;
 
 	/* re-set optind to 0 in case do_command4 gets called
 	 * a second time */
@@ -1105,20 +1106,17 @@ int do_command4(int argc, char *argv[], char **table,
 			 * Command selection
 			 */
 		case 'A':
-			add_command(&command, CMD_APPEND, CMD_NONE,
-				    cs.invert);
+			add_command(&command, CMD_APPEND, CMD_NONE, invert);
 			chain = optarg;
 			break;
 
 		case 'C':
-			add_command(&command, CMD_CHECK, CMD_NONE,
-				    cs.invert);
+			add_command(&command, CMD_CHECK, CMD_NONE, invert);
 			chain = optarg;
 			break;
 
 		case 'D':
-			add_command(&command, CMD_DELETE, CMD_NONE,
-				    cs.invert);
+			add_command(&command, CMD_DELETE, CMD_NONE, invert);
 			chain = optarg;
 			if (xs_has_arg(argc, argv)) {
 				rulenum = parse_rulenumber(argv[optind++]);
@@ -1127,8 +1125,7 @@ int do_command4(int argc, char *argv[], char **table,
 			break;
 
 		case 'R':
-			add_command(&command, CMD_REPLACE, CMD_NONE,
-				    cs.invert);
+			add_command(&command, CMD_REPLACE, CMD_NONE, invert);
 			chain = optarg;
 			if (xs_has_arg(argc, argv))
 				rulenum = parse_rulenumber(argv[optind++]);
@@ -1139,8 +1136,7 @@ int do_command4(int argc, char *argv[], char **table,
 			break;
 
 		case 'I':
-			add_command(&command, CMD_INSERT, CMD_NONE,
-				    cs.invert);
+			add_command(&command, CMD_INSERT, CMD_NONE, invert);
 			chain = optarg;
 			if (xs_has_arg(argc, argv))
 				rulenum = parse_rulenumber(argv[optind++]);
@@ -1149,7 +1145,7 @@ int do_command4(int argc, char *argv[], char **table,
 
 		case 'L':
 			add_command(&command, CMD_LIST,
-				    CMD_ZERO | CMD_ZERO_NUM, cs.invert);
+				    CMD_ZERO | CMD_ZERO_NUM, invert);
 			if (optarg) chain = optarg;
 			else if (xs_has_arg(argc, argv))
 				chain = argv[optind++];
@@ -1159,7 +1155,7 @@ int do_command4(int argc, char *argv[], char **table,
 
 		case 'S':
 			add_command(&command, CMD_LIST_RULES,
-				    CMD_ZERO|CMD_ZERO_NUM, cs.invert);
+				    CMD_ZERO|CMD_ZERO_NUM, invert);
 			if (optarg) chain = optarg;
 			else if (xs_has_arg(argc, argv))
 				chain = argv[optind++];
@@ -1168,8 +1164,7 @@ int do_command4(int argc, char *argv[], char **table,
 			break;
 
 		case 'F':
-			add_command(&command, CMD_FLUSH, CMD_NONE,
-				    cs.invert);
+			add_command(&command, CMD_FLUSH, CMD_NONE, invert);
 			if (optarg) chain = optarg;
 			else if (xs_has_arg(argc, argv))
 				chain = argv[optind++];
@@ -1177,7 +1172,7 @@ int do_command4(int argc, char *argv[], char **table,
 
 		case 'Z':
 			add_command(&command, CMD_ZERO, CMD_LIST|CMD_LIST_RULES,
-				    cs.invert);
+				    invert);
 			if (optarg) chain = optarg;
 			else if (xs_has_arg(argc, argv))
 				chain = argv[optind++];
@@ -1189,14 +1184,13 @@ int do_command4(int argc, char *argv[], char **table,
 
 		case 'N':
 			parse_chain(optarg);
-			add_command(&command, CMD_NEW_CHAIN, CMD_NONE,
-				    cs.invert);
+			add_command(&command, CMD_NEW_CHAIN, CMD_NONE, invert);
 			chain = optarg;
 			break;
 
 		case 'X':
 			add_command(&command, CMD_DELETE_CHAIN, CMD_NONE,
-				    cs.invert);
+				    invert);
 			if (optarg) chain = optarg;
 			else if (xs_has_arg(argc, argv))
 				chain = argv[optind++];
@@ -1204,7 +1198,7 @@ int do_command4(int argc, char *argv[], char **table,
 
 		case 'E':
 			add_command(&command, CMD_RENAME_CHAIN, CMD_NONE,
-				    cs.invert);
+				    invert);
 			chain = optarg;
 			if (xs_has_arg(argc, argv))
 				newname = argv[optind++];
@@ -1217,7 +1211,7 @@ int do_command4(int argc, char *argv[], char **table,
 
 		case 'P':
 			add_command(&command, CMD_SET_POLICY, CMD_NONE,
-				    cs.invert);
+				    invert);
 			chain = optarg;
 			if (xs_has_arg(argc, argv))
 				policy = argv[optind++];
@@ -1243,7 +1237,7 @@ int do_command4(int argc, char *argv[], char **table,
 			 */
 		case 'p':
 			set_option(&cs.options, OPT_PROTOCOL, &cs.fw.ip.invflags,
-				   cs.invert);
+				   invert);
 
 			/* Canonicalize into lower case */
 			for (cs.protocol = optarg; *cs.protocol; cs.protocol++)
@@ -1260,20 +1254,20 @@ int do_command4(int argc, char *argv[], char **table,
 
 		case 's':
 			set_option(&cs.options, OPT_SOURCE, &cs.fw.ip.invflags,
-				   cs.invert);
+				   invert);
 			shostnetworkmask = optarg;
 			break;
 
 		case 'd':
 			set_option(&cs.options, OPT_DESTINATION, &cs.fw.ip.invflags,
-				   cs.invert);
+				   invert);
 			dhostnetworkmask = optarg;
 			break;
 
 #ifdef IPT_F_GOTO
 		case 'g':
 			set_option(&cs.options, OPT_JUMP, &cs.fw.ip.invflags,
-				   cs.invert);
+				   invert);
 			cs.fw.ip.flags |= IPT_F_GOTO;
 			cs.jumpto = xt_parse_target(optarg);
 			break;
@@ -1281,7 +1275,7 @@ int do_command4(int argc, char *argv[], char **table,
 
 		case 'j':
 			set_option(&cs.options, OPT_JUMP, &cs.fw.ip.invflags,
-				   cs.invert);
+				   invert);
 			command_jump(&cs, optarg);
 			break;
 
@@ -1292,7 +1286,7 @@ int do_command4(int argc, char *argv[], char **table,
 					"Empty interface is likely to be "
 					"undesired");
 			set_option(&cs.options, OPT_VIANAMEIN, &cs.fw.ip.invflags,
-				   cs.invert);
+				   invert);
 			xtables_parse_interface(optarg,
 					cs.fw.ip.iniface,
 					cs.fw.ip.iniface_mask);
@@ -1304,7 +1298,7 @@ int do_command4(int argc, char *argv[], char **table,
 					"Empty interface is likely to be "
 					"undesired");
 			set_option(&cs.options, OPT_VIANAMEOUT, &cs.fw.ip.invflags,
-				   cs.invert);
+				   invert);
 			xtables_parse_interface(optarg,
 					cs.fw.ip.outiface,
 					cs.fw.ip.outiface_mask);
@@ -1312,14 +1306,14 @@ int do_command4(int argc, char *argv[], char **table,
 
 		case 'f':
 			set_option(&cs.options, OPT_FRAGMENT, &cs.fw.ip.invflags,
-				   cs.invert);
+				   invert);
 			cs.fw.ip.flags |= IPT_F_FRAG;
 			break;
 
 		case 'v':
 			if (!verbose)
 				set_option(&cs.options, OPT_VERBOSE,
-					   &cs.fw.ip.invflags, cs.invert);
+					   &cs.fw.ip.invflags, invert);
 			verbose++;
 			break;
 
@@ -1343,16 +1337,16 @@ int do_command4(int argc, char *argv[], char **table,
 			break;
 
 		case 'm':
-			command_match(&cs);
+			command_match(&cs, invert);
 			break;
 
 		case 'n':
 			set_option(&cs.options, OPT_NUMERIC, &cs.fw.ip.invflags,
-				   cs.invert);
+				   invert);
 			break;
 
 		case 't':
-			if (cs.invert)
+			if (invert)
 				xtables_error(PARAMETER_PROBLEM,
 					   "unexpected ! flag before --table");
 			if (restore && table_set)
@@ -1365,11 +1359,11 @@ int do_command4(int argc, char *argv[], char **table,
 
 		case 'x':
 			set_option(&cs.options, OPT_EXPANDED, &cs.fw.ip.invflags,
-				   cs.invert);
+				   invert);
 			break;
 
 		case 'V':
-			if (cs.invert)
+			if (invert)
 				printf("Not %s ;-)\n", prog_vers);
 			else
 				printf("%s v%s (legacy)\n",
@@ -1378,7 +1372,7 @@ int do_command4(int argc, char *argv[], char **table,
 
 		case '0':
 			set_option(&cs.options, OPT_LINENUMBERS, &cs.fw.ip.invflags,
-				   cs.invert);
+				   invert);
 			break;
 
 		case 'M':
@@ -1388,7 +1382,7 @@ int do_command4(int argc, char *argv[], char **table,
 		case 'c':
 
 			set_option(&cs.options, OPT_COUNTERS, &cs.fw.ip.invflags,
-				   cs.invert);
+				   invert);
 			pcnt = optarg;
 			bcnt = strchr(pcnt + 1, ',');
 			if (bcnt)
@@ -1426,11 +1420,11 @@ int do_command4(int argc, char *argv[], char **table,
 
 		case 1: /* non option */
 			if (optarg[0] == '!' && optarg[1] == '\0') {
-				if (cs.invert)
+				if (invert)
 					xtables_error(PARAMETER_PROBLEM,
 						   "multiple consecutive ! not"
 						   " allowed");
-				cs.invert = true;
+				invert = true;
 				optarg[0] = '\0';
 				continue;
 			}
@@ -1438,12 +1432,12 @@ int do_command4(int argc, char *argv[], char **table,
 			exit_tryhelp(2);
 
 		default:
-			if (command_default(&cs, &iptables_globals) == 1)
+			if (command_default(&cs, &iptables_globals, invert))
 				/* cf. ip6tables.c */
 				continue;
 			break;
 		}
-		cs.invert = false;
+		invert = false;
 	}
 
 	if (!wait && wait_interval_set)
@@ -1469,7 +1463,7 @@ int do_command4(int argc, char *argv[], char **table,
 			   "unknown arguments found on commandline");
 	if (!command)
 		xtables_error(PARAMETER_PROBLEM, "no command specified");
-	if (cs.invert)
+	if (invert)
 		xtables_error(PARAMETER_PROBLEM,
 			   "nothing appropriate following !");
 

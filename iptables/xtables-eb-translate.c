@@ -220,7 +220,6 @@ static int do_commandeb_xlate(struct nft_handle *h, int argc, char *argv[], char
 	while ((c = getopt_long(argc, argv,
 	   "-A:D:I:N:E:X::L::Z::F::P:Vhi:o:j:c:p:s:d:t:M:", opts, NULL)) != -1) {
 		cs.c = c;
-		cs.invert = ebt_invert;
 		switch (c) {
 		case 'A': /* Add a rule */
 		case 'D': /* Delete a rule */

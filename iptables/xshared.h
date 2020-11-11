@@ -125,7 +125,6 @@ struct iptables_command_state {
 		struct ip6t_entry fw6;
 		struct arpt_entry arp;
 	};
-	int invert;
 	int c;
 	unsigned int options;
 	struct xtables_rule_match *matches;
@@ -154,7 +153,7 @@ extern void print_extension_helps(const struct xtables_target *,
 	const struct xtables_rule_match *);
 extern const char *proto_to_name(uint8_t, int);
 extern int command_default(struct iptables_command_state *,
-	struct xtables_globals *);
+	struct xtables_globals *, bool invert);
 extern struct xtables_match *load_proto(struct iptables_command_state *);
 extern int subcmd_main(int, char **, const struct subcommand *);
 extern void xs_init_target(struct xtables_target *);
@@ -215,7 +214,7 @@ void print_ipv6_addresses(const struct ip6t_entry *fw6, unsigned int format);
 void print_ifaces(const char *iniface, const char *outiface, uint8_t invflags,
 		  unsigned int format);
 
-void command_match(struct iptables_command_state *cs);
+void command_match(struct iptables_command_state *cs, bool invert);
 const char *xt_parse_target(const char *targetname);
 void command_jump(struct iptables_command_state *cs, const char *jumpto);
 

@@ -115,7 +115,7 @@ struct xtables_match *load_proto(struct iptables_command_state *cs)
 }
 
 int command_default(struct iptables_command_state *cs,
-		    struct xtables_globals *gl)
+		    struct xtables_globals *gl, bool invert)
 {
 	struct xtables_rule_match *matchp;
 	struct xtables_match *m;
@@ -124,7 +124,7 @@ int command_default(struct iptables_command_state *cs,
 	    (cs->target->parse != NULL || cs->target->x6_parse != NULL) &&
 	    cs->c >= cs->target->option_offset &&
 	    cs->c < cs->target->option_offset + XT_OPTION_OFFSET_SCALE) {
-		xtables_option_tpcall(cs->c, cs->argv, cs->invert,
+		xtables_option_tpcall(cs->c, cs->argv, invert,
 				      cs->target, &cs->fw);
 		return 0;
 	}
@@ -138,7 +138,7 @@ int command_default(struct iptables_command_state *cs,
 		if (cs->c < matchp->match->option_offset ||
 		    cs->c >= matchp->match->option_offset + XT_OPTION_OFFSET_SCALE)
 			continue;
-		xtables_option_mpcall(cs->c, cs->argv, cs->invert, m, &cs->fw);
+		xtables_option_mpcall(cs->c, cs->argv, invert, m, &cs->fw);
 		return 0;
 	}
 
@@ -641,13 +641,13 @@ void print_ifaces(const char *iniface, const char *outiface, uint8_t invflags,
 	printf(FMT("%-6s ", "out %s "), iface);
 }
 
-void command_match(struct iptables_command_state *cs)
+void command_match(struct iptables_command_state *cs, bool invert)
 {
 	struct option *opts = xt_params->opts;
 	struct xtables_match *m;
 	size_t size;
 
-	if (cs->invert)
+	if (invert)
 		xtables_error(PARAMETER_PROBLEM,
 			   "unexpected ! flag before --match");
 

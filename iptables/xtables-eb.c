@@ -751,7 +751,6 @@ int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table,
 	while ((c = getopt_long(argc, argv,
 	   "-A:D:C:I:N:E:X::L::Z::F::P:Vhi:o:j:c:p:s:d:t:M:", opts, NULL)) != -1) {
 		cs.c = c;
-		cs.invert = ebt_invert;
 		switch (c) {
 
 		case 'A': /* Add a rule */
