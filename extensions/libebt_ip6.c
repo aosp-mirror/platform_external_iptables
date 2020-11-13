@@ -250,9 +250,8 @@ static void brip6_init(struct xt_entry_match *match)
 static struct in6_addr *numeric_to_addr(const char *num)
 {
 	static struct in6_addr ap;
-	int err;
 
-	if ((err=inet_pton(AF_INET6, num, &ap)) == 1)
+	if (inet_pton(AF_INET6, num, &ap) == 1)
 		return &ap;
 	return (struct in6_addr *)NULL;
 }
@@ -292,7 +291,6 @@ static void ebt_parse_ip6_address(char *address, struct in6_addr *addr, struct i
 	char buf[256];
 	char *p;
 	int i;
-	int err;
 
 	strncpy(buf, address, sizeof(buf) - 1);
 	/* first the mask */
@@ -309,7 +307,7 @@ static void ebt_parse_ip6_address(char *address, struct in6_addr *addr, struct i
 	if (!memcmp(msk, &in6addr_any, sizeof(in6addr_any)))
 		strcpy(buf, "::");
 
-	if ((err=inet_pton(AF_INET6, buf, addr)) < 1) {
+	if (inet_pton(AF_INET6, buf, addr) < 1) {
 		xtables_error(PARAMETER_PROBLEM, "Invalid IPv6 Address '%s' specified", buf);
 		return;
 	}
