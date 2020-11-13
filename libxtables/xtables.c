@@ -1808,9 +1808,8 @@ const char *xtables_ip6mask_to_numeric(const struct in6_addr *addrp)
 struct in6_addr *xtables_numeric_to_ip6addr(const char *num)
 {
 	static struct in6_addr ap;
-	int err;
 
-	if ((err = inet_pton(AF_INET6, num, &ap)) == 1)
+	if (inet_pton(AF_INET6, num, &ap) == 1)
 		return &ap;
 
 	return NULL;
