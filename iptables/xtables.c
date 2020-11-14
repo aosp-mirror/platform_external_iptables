@@ -260,6 +260,19 @@ list_rules(struct nft_handle *h, const char *chain, const char *table,
 	return nft_cmd_rule_list_save(h, chain, table, rulenum, counters);
 }
 
+static void check_empty_interface(struct nft_handle *h, const char *arg)
+{
+	const char *msg = "Empty interface is likely to be undesired";
+
+	if (*arg != '\0')
+		return;
+
+	if (h->family != NFPROTO_ARP)
+		xtables_error(PARAMETER_PROBLEM, msg);
+
+	fprintf(stderr, "%s", msg);
+}
+
 void do_parse(struct nft_handle *h, int argc, char *argv[],
 	      struct nft_xt_cmd_parse *p, struct iptables_command_state *cs,
 	      struct xtables_args *args)
@@ -493,10 +506,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 
 
 		case 'i':
-			if (*optarg == '\0')
-				xtables_error(PARAMETER_PROBLEM,
-					"Empty interface is likely to be "
-					"undesired");
+			check_empty_interface(h, optarg);
 			set_option(&cs->options, OPT_VIANAMEIN,
 				   &args->invflags, invert);
 			xtables_parse_interface(optarg,
@@ -505,10 +515,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 			break;
 
 		case 'o':
-			if (*optarg == '\0')
-				xtables_error(PARAMETER_PROBLEM,
-					"Empty interface is likely to be "
-					"undesired");
+			check_empty_interface(h, optarg);
 			set_option(&cs->options, OPT_VIANAMEOUT,
 				   &args->invflags, invert);
 			xtables_parse_interface(optarg,
