@@ -68,6 +68,17 @@ struct xtables_globals;
 struct xtables_rule_match;
 struct xtables_target;
 
+/* define invflags which won't collide with IPT ones */
+#define IPT_INV_SRCDEVADDR	0x0080
+#define IPT_INV_TGTDEVADDR	0x0100
+#define IPT_INV_ARPHLN		0x0200
+#define IPT_INV_ARPOP		0x0400
+#define IPT_INV_ARPHRD		0x0800
+
+void
+set_option(unsigned int *options, unsigned int option, u_int16_t *invflg,
+	   bool invert);
+
 /**
  * xtables_afinfo - protocol family dependent information
  * @kmod:		kernel module basename (e.g. "ip_tables")

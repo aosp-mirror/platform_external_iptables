@@ -94,22 +94,6 @@ struct xtables_globals iptables_globals = {
 	.compat_rev = xtables_compatible_revision,
 };
 
-static const int inverse_for_options[NUMBER_OF_OPT] =
-{
-/* -n */ 0,
-/* -s */ IPT_INV_SRCIP,
-/* -d */ IPT_INV_DSTIP,
-/* -p */ XT_INV_PROTO,
-/* -j */ 0,
-/* -v */ 0,
-/* -x */ 0,
-/* -i */ IPT_INV_VIA_IN,
-/* -o */ IPT_INV_VIA_OUT,
-/*--line*/ 0,
-/* -c */ 0,
-/* -f */ IPT_INV_FRAG,
-};
-
 #define opts iptables_globals.opts
 #define prog_name iptables_globals.program_name
 #define prog_vers iptables_globals.program_version
@@ -263,27 +247,6 @@ parse_chain(const char *chainname)
 		if (isspace(*ptr))
 			xtables_error(PARAMETER_PROBLEM,
 				   "Invalid chain name `%s'", chainname);
-}
-
-static void
-set_option(unsigned int *options, unsigned int option, uint8_t *invflg,
-	   int invert)
-{
-	if (*options & option)
-		xtables_error(PARAMETER_PROBLEM, "multiple -%c flags not allowed",
-			   opt2char(option));
-	*options |= option;
-
-	if (invert) {
-		unsigned int i;
-		for (i = 0; 1 << i != option; i++);
-
-		if (!inverse_for_options[i])
-			xtables_error(PARAMETER_PROBLEM,
-				   "cannot have ! before -%c",
-				   opt2char(option));
-		*invflg |= inverse_for_options[i];
-	}
 }
 
 static void
@@ -1078,6 +1041,7 @@ int do_command4(int argc, char *argv[], char **table,
 	struct xtables_target *t;
 	unsigned long long cnt;
 	bool table_set = false;
+	uint16_t invflags = 0;
 	bool invert = false;
 
 	/* re-set optind to 0 in case do_command4 gets called
@@ -1236,7 +1200,7 @@ int do_command4(int argc, char *argv[], char **table,
 			 * Option selection
 			 */
 		case 'p':
-			set_option(&cs.options, OPT_PROTOCOL, &cs.fw.ip.invflags,
+			set_option(&cs.options, OPT_PROTOCOL, &invflags,
 				   invert);
 
 			/* Canonicalize into lower case */
@@ -1246,36 +1210,32 @@ int do_command4(int argc, char *argv[], char **table,
 			cs.protocol = optarg;
 			cs.fw.ip.proto = xtables_parse_protocol(cs.protocol);
 
-			if (cs.fw.ip.proto == 0
-			    && (cs.fw.ip.invflags & XT_INV_PROTO))
+			if (cs.fw.ip.proto == 0 && (invflags & XT_INV_PROTO))
 				xtables_error(PARAMETER_PROBLEM,
 					   "rule would never match protocol");
 			break;
 
 		case 's':
-			set_option(&cs.options, OPT_SOURCE, &cs.fw.ip.invflags,
-				   invert);
+			set_option(&cs.options, OPT_SOURCE, &invflags, invert);
 			shostnetworkmask = optarg;
 			break;
 
 		case 'd':
-			set_option(&cs.options, OPT_DESTINATION, &cs.fw.ip.invflags,
+			set_option(&cs.options, OPT_DESTINATION, &invflags,
 				   invert);
 			dhostnetworkmask = optarg;
 			break;
 
 #ifdef IPT_F_GOTO
 		case 'g':
-			set_option(&cs.options, OPT_JUMP, &cs.fw.ip.invflags,
-				   invert);
+			set_option(&cs.options, OPT_JUMP, &invflags, invert);
 			cs.fw.ip.flags |= IPT_F_GOTO;
 			cs.jumpto = xt_parse_target(optarg);
 			break;
 #endif
 
 		case 'j':
-			set_option(&cs.options, OPT_JUMP, &cs.fw.ip.invflags,
-				   invert);
+			set_option(&cs.options, OPT_JUMP, &invflags, invert);
 			command_jump(&cs, optarg);
 			break;
 
@@ -1285,7 +1245,7 @@ int do_command4(int argc, char *argv[], char **table,
 				xtables_error(PARAMETER_PROBLEM,
 					"Empty interface is likely to be "
 					"undesired");
-			set_option(&cs.options, OPT_VIANAMEIN, &cs.fw.ip.invflags,
+			set_option(&cs.options, OPT_VIANAMEIN, &invflags,
 				   invert);
 			xtables_parse_interface(optarg,
 					cs.fw.ip.iniface,
@@ -1297,7 +1257,7 @@ int do_command4(int argc, char *argv[], char **table,
 				xtables_error(PARAMETER_PROBLEM,
 					"Empty interface is likely to be "
 					"undesired");
-			set_option(&cs.options, OPT_VIANAMEOUT, &cs.fw.ip.invflags,
+			set_option(&cs.options, OPT_VIANAMEOUT, &invflags,
 				   invert);
 			xtables_parse_interface(optarg,
 					cs.fw.ip.outiface,
@@ -1305,7 +1265,7 @@ int do_command4(int argc, char *argv[], char **table,
 			break;
 
 		case 'f':
-			set_option(&cs.options, OPT_FRAGMENT, &cs.fw.ip.invflags,
+			set_option(&cs.options, OPT_FRAGMENT, &invflags,
 				   invert);
 			cs.fw.ip.flags |= IPT_F_FRAG;
 			break;
@@ -1313,7 +1273,7 @@ int do_command4(int argc, char *argv[], char **table,
 		case 'v':
 			if (!verbose)
 				set_option(&cs.options, OPT_VERBOSE,
-					   &cs.fw.ip.invflags, invert);
+					   &invflags, invert);
 			verbose++;
 			break;
 
@@ -1341,7 +1301,7 @@ int do_command4(int argc, char *argv[], char **table,
 			break;
 
 		case 'n':
-			set_option(&cs.options, OPT_NUMERIC, &cs.fw.ip.invflags,
+			set_option(&cs.options, OPT_NUMERIC, &invflags,
 				   invert);
 			break;
 
@@ -1358,7 +1318,7 @@ int do_command4(int argc, char *argv[], char **table,
 			break;
 
 		case 'x':
-			set_option(&cs.options, OPT_EXPANDED, &cs.fw.ip.invflags,
+			set_option(&cs.options, OPT_EXPANDED, &invflags,
 				   invert);
 			break;
 
@@ -1371,7 +1331,7 @@ int do_command4(int argc, char *argv[], char **table,
 			exit(0);
 
 		case '0':
-			set_option(&cs.options, OPT_LINENUMBERS, &cs.fw.ip.invflags,
+			set_option(&cs.options, OPT_LINENUMBERS, &invflags,
 				   invert);
 			break;
 
@@ -1381,7 +1341,7 @@ int do_command4(int argc, char *argv[], char **table,
 
 		case 'c':
 
-			set_option(&cs.options, OPT_COUNTERS, &cs.fw.ip.invflags,
+			set_option(&cs.options, OPT_COUNTERS, &invflags,
 				   invert);
 			pcnt = optarg;
 			bcnt = strchr(pcnt + 1, ',');
@@ -1466,6 +1426,8 @@ int do_command4(int argc, char *argv[], char **table,
 	if (invert)
 		xtables_error(PARAMETER_PROBLEM,
 			   "nothing appropriate following !");
+
+	cs.fw.ip.invflags = invflags;
 
 	if (command & (CMD_REPLACE | CMD_INSERT | CMD_DELETE | CMD_APPEND | CMD_CHECK)) {
 		if (!(cs.options & OPT_DESTINATION))

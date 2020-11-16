@@ -96,21 +96,6 @@ struct xtables_globals ip6tables_globals = {
 	.compat_rev = xtables_compatible_revision,
 };
 
-static const unsigned int inverse_for_options[NUMBER_OF_OPT] =
-{
-/* -n */ 0,
-/* -s */ IP6T_INV_SRCIP,
-/* -d */ IP6T_INV_DSTIP,
-/* -p */ XT_INV_PROTO,
-/* -j */ 0,
-/* -v */ 0,
-/* -x */ 0,
-/* -i */ IP6T_INV_VIA_IN,
-/* -o */ IP6T_INV_VIA_OUT,
-/*--line*/ 0,
-/* -c */ 0,
-};
-
 #define opts ip6tables_globals.opts
 #define prog_name ip6tables_globals.program_name
 #define prog_vers ip6tables_globals.program_version
@@ -273,28 +258,6 @@ parse_chain(const char *chainname)
 			xtables_error(PARAMETER_PROBLEM,
 				   "Invalid chain name `%s'", chainname);
 }
-
-static void
-set_option(unsigned int *options, unsigned int option, uint8_t *invflg,
-	   int invert)
-{
-	if (*options & option)
-		xtables_error(PARAMETER_PROBLEM, "multiple -%c flags not allowed",
-			   opt2char(option));
-	*options |= option;
-
-	if (invert) {
-		unsigned int i;
-		for (i = 0; 1 << i != option; i++);
-
-		if (!inverse_for_options[i])
-			xtables_error(PARAMETER_PROBLEM,
-				   "cannot have ! before -%c",
-				   opt2char(option));
-		*invflg |= inverse_for_options[i];
-	}
-}
-
 
 static void
 print_header(unsigned int format, const char *chain, struct xtc_handle *handle)
@@ -1083,6 +1046,7 @@ int do_command6(int argc, char *argv[], char **table,
 	struct xtables_target *t;
 	unsigned long long cnt;
 	bool table_set = false;
+	uint16_t invflags = 0;
 	bool invert = false;
 
 	/* re-set optind to 0 in case do_command6 gets called
@@ -1242,7 +1206,7 @@ int do_command6(int argc, char *argv[], char **table,
 			 * Option selection
 			 */
 		case 'p':
-			set_option(&cs.options, OPT_PROTOCOL, &cs.fw6.ipv6.invflags,
+			set_option(&cs.options, OPT_PROTOCOL, &invflags,
 				   invert);
 
 			/* Canonicalize into lower case */
@@ -1253,13 +1217,12 @@ int do_command6(int argc, char *argv[], char **table,
 			cs.fw6.ipv6.proto = xtables_parse_protocol(cs.protocol);
 			cs.fw6.ipv6.flags |= IP6T_F_PROTO;
 
-			if (cs.fw6.ipv6.proto == 0
-			    && (cs.fw6.ipv6.invflags & XT_INV_PROTO))
+			if (cs.fw6.ipv6.proto == 0 && (invflags & XT_INV_PROTO))
 				xtables_error(PARAMETER_PROBLEM,
 					   "rule would never match protocol");
 
 			if (is_exthdr(cs.fw6.ipv6.proto)
-			    && (cs.fw6.ipv6.invflags & XT_INV_PROTO) == 0)
+			    && (invflags & XT_INV_PROTO) == 0)
 				fprintf(stderr,
 					"Warning: never matched protocol: %s. "
 					"use extension match instead.\n",
@@ -1267,29 +1230,26 @@ int do_command6(int argc, char *argv[], char **table,
 			break;
 
 		case 's':
-			set_option(&cs.options, OPT_SOURCE, &cs.fw6.ipv6.invflags,
-				   invert);
+			set_option(&cs.options, OPT_SOURCE, &invflags, invert);
 			shostnetworkmask = optarg;
 			break;
 
 		case 'd':
-			set_option(&cs.options, OPT_DESTINATION, &cs.fw6.ipv6.invflags,
+			set_option(&cs.options, OPT_DESTINATION, &invflags,
 				   invert);
 			dhostnetworkmask = optarg;
 			break;
 
 #ifdef IP6T_F_GOTO
 		case 'g':
-			set_option(&cs.options, OPT_JUMP, &cs.fw6.ipv6.invflags,
-					invert);
+			set_option(&cs.options, OPT_JUMP, &invflags, invert);
 			cs.fw6.ipv6.flags |= IP6T_F_GOTO;
 			cs.jumpto = xt_parse_target(optarg);
 			break;
 #endif
 
 		case 'j':
-			set_option(&cs.options, OPT_JUMP, &cs.fw6.ipv6.invflags,
-					invert);
+			set_option(&cs.options, OPT_JUMP, &invflags, invert);
 			command_jump(&cs, optarg);
 			break;
 
@@ -1299,7 +1259,7 @@ int do_command6(int argc, char *argv[], char **table,
 				xtables_error(PARAMETER_PROBLEM,
 					"Empty interface is likely to be "
 					"undesired");
-			set_option(&cs.options, OPT_VIANAMEIN, &cs.fw6.ipv6.invflags,
+			set_option(&cs.options, OPT_VIANAMEIN, &invflags,
 				   invert);
 			xtables_parse_interface(optarg,
 					cs.fw6.ipv6.iniface,
@@ -1311,7 +1271,7 @@ int do_command6(int argc, char *argv[], char **table,
 				xtables_error(PARAMETER_PROBLEM,
 					"Empty interface is likely to be "
 					"undesired");
-			set_option(&cs.options, OPT_VIANAMEOUT, &cs.fw6.ipv6.invflags,
+			set_option(&cs.options, OPT_VIANAMEOUT, &invflags,
 				   invert);
 			xtables_parse_interface(optarg,
 					cs.fw6.ipv6.outiface,
@@ -1321,7 +1281,7 @@ int do_command6(int argc, char *argv[], char **table,
 		case 'v':
 			if (!verbose)
 				set_option(&cs.options, OPT_VERBOSE,
-					   &cs.fw6.ipv6.invflags, invert);
+					   &invflags, invert);
 			verbose++;
 			break;
 
@@ -1349,8 +1309,7 @@ int do_command6(int argc, char *argv[], char **table,
 			break;
 
 		case 'n':
-			set_option(&cs.options, OPT_NUMERIC, &cs.fw6.ipv6.invflags,
-				   invert);
+			set_option(&cs.options, OPT_NUMERIC, &invflags, invert);
 			break;
 
 		case 't':
@@ -1366,7 +1325,7 @@ int do_command6(int argc, char *argv[], char **table,
 			break;
 
 		case 'x':
-			set_option(&cs.options, OPT_EXPANDED, &cs.fw6.ipv6.invflags,
+			set_option(&cs.options, OPT_EXPANDED, &invflags,
 				   invert);
 			break;
 
@@ -1379,7 +1338,7 @@ int do_command6(int argc, char *argv[], char **table,
 			exit(0);
 
 		case '0':
-			set_option(&cs.options, OPT_LINENUMBERS, &cs.fw6.ipv6.invflags,
+			set_option(&cs.options, OPT_LINENUMBERS, &invflags,
 				   invert);
 			break;
 
@@ -1389,7 +1348,7 @@ int do_command6(int argc, char *argv[], char **table,
 
 		case 'c':
 
-			set_option(&cs.options, OPT_COUNTERS, &cs.fw6.ipv6.invflags,
+			set_option(&cs.options, OPT_COUNTERS, &invflags,
 				   invert);
 			pcnt = optarg;
 			bcnt = strchr(pcnt + 1, ',');
@@ -1478,6 +1437,8 @@ int do_command6(int argc, char *argv[], char **table,
 	if (invert)
 		xtables_error(PARAMETER_PROBLEM,
 			   "nothing appropriate following !");
+
+	cs.fw6.ipv6.invflags = invflags;
 
 	if (command & (CMD_REPLACE | CMD_INSERT | CMD_DELETE | CMD_APPEND | CMD_CHECK)) {
 		if (!(cs.options & OPT_DESTINATION))

@@ -853,3 +853,46 @@ char opt2char(int option)
 
 	return *ptr;
 }
+
+static const int inverse_for_options[NUMBER_OF_OPT] =
+{
+/* -n */ 0,
+/* -s */ IPT_INV_SRCIP,
+/* -d */ IPT_INV_DSTIP,
+/* -p */ XT_INV_PROTO,
+/* -j */ 0,
+/* -v */ 0,
+/* -x */ 0,
+/* -i */ IPT_INV_VIA_IN,
+/* -o */ IPT_INV_VIA_OUT,
+/*--line*/ 0,
+/* -c */ 0,
+/* -f */ IPT_INV_FRAG,
+/* 2 */ IPT_INV_SRCDEVADDR,
+/* 3 */ IPT_INV_TGTDEVADDR,
+/* -l */ IPT_INV_ARPHLN,
+/* 4 */ IPT_INV_ARPOP,
+/* 5 */ IPT_INV_ARPHRD,
+/* 6 */ IPT_INV_PROTO,
+};
+
+void
+set_option(unsigned int *options, unsigned int option, u_int16_t *invflg,
+	   bool invert)
+{
+	if (*options & option)
+		xtables_error(PARAMETER_PROBLEM, "multiple -%c flags not allowed",
+			   opt2char(option));
+	*options |= option;
+
+	if (invert) {
+		unsigned int i;
+		for (i = 0; 1 << i != option; i++);
+
+		if (!inverse_for_options[i])
+			xtables_error(PARAMETER_PROBLEM,
+				   "cannot have ! before -%c",
+				   opt2char(option));
+		*invflg |= inverse_for_options[i];
+	}
+}

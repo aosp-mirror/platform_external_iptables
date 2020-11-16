@@ -105,29 +105,6 @@ struct xtables_globals arptables_globals = {
 	.compat_rev		= nft_compatible_revision,
 };
 
-/* index relates to bit of each OPT_* value */
-static int inverse_for_options[] =
-{
-/* -n */ 0,
-/* -s */ IPT_INV_SRCIP,
-/* -d */ IPT_INV_DSTIP,
-/* -p */ 0,
-/* -j */ 0,
-/* -v */ 0,
-/* -x */ 0,
-/* -i */ IPT_INV_VIA_IN,
-/* -o */ IPT_INV_VIA_OUT,
-/*--line*/ 0,
-/* -c */ 0,
-/* -f */ 0,
-/* 2 */ IPT_INV_SRCDEVADDR,
-/* 3 */ IPT_INV_TGTDEVADDR,
-/* -l */ IPT_INV_ARPHLN,
-/* 4 */ IPT_INV_ARPOP,
-/* 5 */ IPT_INV_ARPHRD,
-/* 6 */ IPT_INV_PROTO,
-};
-
 /***********************************************/
 /* ARPTABLES SPECIFIC NEW FUNCTIONS ADDED HERE */
 /***********************************************/
@@ -296,27 +273,6 @@ check_inverse(const char option[], int *invert, int *optidx, int argc)
 		return true;
 	}
 	return false;
-}
-
-static void
-set_option(unsigned int *options, unsigned int option, u_int16_t *invflg,
-	   int invert)
-{
-	if (*options & option)
-		xtables_error(PARAMETER_PROBLEM, "multiple -%c flags not allowed",
-			      opt2char(option));
-	*options |= option;
-
-	if (invert) {
-		unsigned int i;
-		for (i = 0; 1 << i != option; i++);
-
-		if (!inverse_for_options[i])
-			xtables_error(PARAMETER_PROBLEM,
-				      "cannot have ! before -%c",
-				      opt2char(option));
-		*invflg |= inverse_for_options[i];
-	}
 }
 
 static int

@@ -94,22 +94,6 @@ struct xtables_globals xtables_globals = {
 	.compat_rev = nft_compatible_revision,
 };
 
-static const int inverse_for_options[NUMBER_OF_OPT] =
-{
-/* -n */ 0,
-/* -s */ IPT_INV_SRCIP,
-/* -d */ IPT_INV_DSTIP,
-/* -p */ XT_INV_PROTO,
-/* -j */ 0,
-/* -v */ 0,
-/* -x */ 0,
-/* -i */ IPT_INV_VIA_IN,
-/* -o */ IPT_INV_VIA_OUT,
-/*--line*/ 0,
-/* -c */ 0,
-/* -f */ IPT_INV_FRAG,
-};
-
 #define opts xt_params->opts
 #define prog_name xt_params->program_name
 #define prog_vers xt_params->program_version
@@ -237,27 +221,6 @@ xtables_exit_error(enum xtables_exittype status, const char *msg, ...)
 */
 
 /* Christophe Burki wants `-p 6' to imply `-m tcp'.  */
-
-static void
-set_option(unsigned int *options, unsigned int option, u_int16_t *invflg,
-	   bool invert)
-{
-	if (*options & option)
-		xtables_error(PARAMETER_PROBLEM, "multiple -%c flags not allowed",
-			   opt2char(option));
-	*options |= option;
-
-	if (invert) {
-		unsigned int i;
-		for (i = 0; 1 << i != option; i++);
-
-		if (!inverse_for_options[i])
-			xtables_error(PARAMETER_PROBLEM,
-				   "cannot have ! before -%c",
-				   opt2char(option));
-		*invflg |= inverse_for_options[i];
-	}
-}
 
 static int
 add_entry(const char *chain,
