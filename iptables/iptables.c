@@ -727,23 +727,13 @@ list_entries(const xt_chainlabel chain, int rulenum, int verbose, int numeric,
 static void print_proto(uint16_t proto, int invert)
 {
 	if (proto) {
-		unsigned int i;
+		const char *pname = proto_to_name(proto, 0);
 		const char *invertstr = invert ? " !" : "";
 
-		const struct protoent *pent = getprotobynumber(proto);
-		if (pent) {
-			printf("%s -p %s", invertstr, pent->p_name);
-			return;
-		}
-
-		for (i = 0; xtables_chain_protos[i].name != NULL; ++i)
-			if (xtables_chain_protos[i].num == proto) {
-				printf("%s -p %s",
-				       invertstr, xtables_chain_protos[i].name);
-				return;
-			}
-
-		printf("%s -p %u", invertstr, proto);
+		if (pname)
+			printf("%s -p %s", invertstr, pname);
+		else
+			printf("%s -p %u", invertstr, proto);
 	}
 }
 

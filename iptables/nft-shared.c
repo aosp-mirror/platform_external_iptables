@@ -826,13 +826,13 @@ void save_rule_details(const struct iptables_command_state *cs,
 	}
 
 	if (proto > 0) {
-		const struct protoent *pent = getprotobynumber(proto);
+		const char *pname = proto_to_name(proto, 0);
 
 		if (invflags & XT_INV_PROTO)
 			printf("! ");
 
-		if (pent)
-			printf("-p %s ", pent->p_name);
+		if (pname)
+			printf("-p %s ", pname);
 		else
 			printf("-p %u ", proto);
 	}

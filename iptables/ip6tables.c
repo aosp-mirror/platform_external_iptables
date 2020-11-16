@@ -759,28 +759,16 @@ print_iface(char letter, const char *iface, const unsigned char *mask,
 	}
 }
 
-/* The ip6tables looks up the /etc/protocols. */
 static void print_proto(uint16_t proto, int invert)
 {
 	if (proto) {
-		unsigned int i;
+		const char *pname = proto_to_name(proto, 0);
 		const char *invertstr = invert ? " !" : "";
 
-		const struct protoent *pent = getprotobynumber(proto);
-		if (pent) {
-			printf("%s -p %s",
-			       invertstr, pent->p_name);
-			return;
-		}
-
-		for (i = 0; xtables_chain_protos[i].name != NULL; ++i)
-			if (xtables_chain_protos[i].num == proto) {
-				printf("%s -p %s",
-				       invertstr, xtables_chain_protos[i].name);
-				return;
-			}
-
-		printf("%s -p %u", invertstr, proto);
+		if (pname)
+			printf("%s -p %s", invertstr, pname);
+		else
+			printf("%s -p %u", invertstr, proto);
 	}
 }
 

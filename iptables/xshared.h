@@ -162,7 +162,7 @@ enum {
 
 extern void print_extension_helps(const struct xtables_target *,
 	const struct xtables_rule_match *);
-extern const char *proto_to_name(uint8_t, int);
+extern const char *proto_to_name(uint16_t, int);
 extern int command_default(struct iptables_command_state *,
 	struct xtables_globals *, bool invert);
 extern struct xtables_match *load_proto(struct iptables_command_state *);

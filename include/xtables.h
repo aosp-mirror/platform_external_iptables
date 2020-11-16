@@ -395,7 +395,7 @@ struct xtables_rule_match {
  */
 struct xtables_pprot {
 	const char *name;
-	uint8_t num;
+	uint16_t num;
 };
 
 enum xtables_tryload {

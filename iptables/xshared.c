@@ -48,7 +48,7 @@ void print_extension_helps(const struct xtables_target *t,
 }
 
 const char *
-proto_to_name(uint8_t proto, int nolookup)
+proto_to_name(uint16_t proto, int nolookup)
 {
 	unsigned int i;
 
