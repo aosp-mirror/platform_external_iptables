@@ -64,7 +64,7 @@ ip filter OUTPUT 5 4
 
 ip filter OUTPUT 6 5
   [ payload load 4b @ network header + 16 => reg 1 ]
-  [ bitwise reg 1 = (reg=1 & 0xfcffffff ) ^ 0x00000000 ]
+  [ bitwise reg 1 = ( reg 1 & 0xfcffffff ) ^ 0x00000000 ]
   [ cmp eq reg 1 0x0002010a ]
   [ counter pkts 0 bytes 0 ]
 
@@ -98,7 +98,7 @@ ip6 filter OUTPUT 5 4
 
 ip6 filter OUTPUT 6 5
   [ payload load 16b @ network header + 24 => reg 1 ]
-  [ bitwise reg 1 = (reg=1 & 0xffffffff 0xffffffff 0xffffffff 0xf0ffffff ) ^ 0x00000000 0x00000000 0x00000000 0x00000000 ]
+  [ bitwise reg 1 = ( reg 1 & 0xffffffff 0xffffffff 0xffffffff 0xf0ffffff ) ^ 0x00000000 0x00000000 0x00000000 0x00000000 ]
   [ cmp eq reg 1 0xffc0edfe 0x020100ee 0x06050403 0x00090807 ]
   [ counter pkts 0 bytes 0 ]
 
@@ -175,7 +175,7 @@ arp filter OUTPUT 5 4
   [ payload load 1b @ network header + 5 => reg 1 ]
   [ cmp eq reg 1 0x00000004 ]
   [ payload load 4b @ network header + 24 => reg 1 ]
-  [ bitwise reg 1 = (reg=1 & 0xfcffffff ) ^ 0x00000000 ]
+  [ bitwise reg 1 = ( reg 1 & 0xfcffffff ) ^ 0x00000000 ]
   [ cmp eq reg 1 0x0002010a ]
   [ counter pkts 0 bytes 0 ]
 
@@ -240,7 +240,7 @@ arp filter OUTPUT 11 10
   [ payload load 1b @ network header + 5 => reg 1 ]
   [ cmp eq reg 1 0x00000004 ]
   [ payload load 6b @ network header + 18 => reg 1 ]
-  [ bitwise reg 1 = (reg=1 & 0xffffffff 0x0000f0ff ) ^ 0x00000000 0x00000000 ]
+  [ bitwise reg 1 = ( reg 1 & 0xffffffff 0x0000f0ff ) ^ 0x00000000 0x00000000 ]
   [ cmp eq reg 1 0xc000edfe 0x0000e0ff ]
   [ counter pkts 0 bytes 0 ]
 
@@ -306,7 +306,7 @@ bridge filter OUTPUT 4
 
 bridge filter OUTPUT 5 4
   [ payload load 6b @ link header + 0 => reg 1 ]
-  [ bitwise reg 1 = (reg=1 & 0xffffffff 0x0000f0ff ) ^ 0x00000000 0x00000000 ]
+  [ bitwise reg 1 = ( reg 1 & 0xffffffff 0x0000f0ff ) ^ 0x00000000 0x00000000 ]
   [ cmp eq reg 1 0xc000edfe 0x0000e0ff ]
   [ counter pkts 0 bytes 0 ]
 
