@@ -310,7 +310,7 @@ def show_missing():
 #
 def main():
     parser = argparse.ArgumentParser(description='Run iptables tests')
-    parser.add_argument('filename', nargs='?',
+    parser.add_argument('filename', nargs='*',
                         metavar='path/to/file.t',
                         help='Run only this test')
     parser.add_argument('-H', '--host', action='store_true',
@@ -359,7 +359,7 @@ def main():
         return
 
     if args.filename:
-        file_list = [args.filename]
+        file_list = args.filename
     else:
         file_list = [os.path.join(EXTENSIONS_PATH, i)
                      for i in os.listdir(EXTENSIONS_PATH)
