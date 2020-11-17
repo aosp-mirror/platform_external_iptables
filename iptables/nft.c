@@ -2398,7 +2398,6 @@ static void __nft_print_header(struct nft_handle *h,
 {
 	struct nftnl_chain *c = nc->nftnl;
 	const char *chain_name = nftnl_chain_get_str(c, NFTNL_CHAIN_NAME);
-	bool basechain = !!nftnl_chain_get(c, NFTNL_CHAIN_HOOKNUM);
 	uint32_t refs = nftnl_chain_get_u32(c, NFTNL_CHAIN_USE);
 	uint32_t entries = nft_rule_count(h, c);
 	struct xt_counters ctrs = {
@@ -2407,11 +2406,12 @@ static void __nft_print_header(struct nft_handle *h,
 	};
 	const char *pname = NULL;
 
-	if (nftnl_chain_is_set(c, NFTNL_CHAIN_POLICY))
+	if (nftnl_chain_get(c, NFTNL_CHAIN_HOOKNUM) &&
+	    nftnl_chain_is_set(c, NFTNL_CHAIN_POLICY))
 		pname = policy_name[nftnl_chain_get_u32(c, NFTNL_CHAIN_POLICY)];
 
 	h->ops->print_header(format, chain_name, pname,
-			&ctrs, basechain, refs - entries, entries);
+			     &ctrs, refs - entries, entries);
 }
 
 struct nft_rule_list_cb_data {

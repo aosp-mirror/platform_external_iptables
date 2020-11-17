@@ -714,50 +714,6 @@ void nft_clear_iptables_command_state(struct iptables_command_state *cs)
 	}
 }
 
-void print_header(unsigned int format, const char *chain, const char *pol,
-		  const struct xt_counters *counters, bool basechain,
-		  uint32_t refs, uint32_t entries)
-{
-	printf("Chain %s", chain);
-	if (basechain) {
-		printf(" (policy %s", pol);
-		if (!(format & FMT_NOCOUNTS)) {
-			fputc(' ', stdout);
-			xtables_print_num(counters->pcnt, (format|FMT_NOTABLE));
-			fputs("packets, ", stdout);
-			xtables_print_num(counters->bcnt, (format|FMT_NOTABLE));
-			fputs("bytes", stdout);
-		}
-		printf(")\n");
-	} else {
-		printf(" (%u references)\n", refs);
-	}
-
-	if (format & FMT_LINENUMBERS)
-		printf(FMT("%-4s ", "%s "), "num");
-	if (!(format & FMT_NOCOUNTS)) {
-		if (format & FMT_KILOMEGAGIGA) {
-			printf(FMT("%5s ","%s "), "pkts");
-			printf(FMT("%5s ","%s "), "bytes");
-		} else {
-			printf(FMT("%8s ","%s "), "pkts");
-			printf(FMT("%10s ","%s "), "bytes");
-		}
-	}
-	if (!(format & FMT_NOTARGET))
-		printf(FMT("%-9s ","%s "), "target");
-	fputs(" prot ", stdout);
-	if (format & FMT_OPTIONS)
-		fputs("opt", stdout);
-	if (format & FMT_VIA) {
-		printf(FMT(" %-6s ","%s "), "in");
-		printf(FMT("%-6s ","%s "), "out");
-	}
-	printf(FMT(" %-19s ","%s "), "source");
-	printf(FMT(" %-19s "," %s "), "destination");
-	printf("\n");
-}
-
 void nft_ipv46_save_chain(const struct nftnl_chain *c, const char *policy)
 {
 	const char *chain = nftnl_chain_get_str(c, NFTNL_CHAIN_NAME);

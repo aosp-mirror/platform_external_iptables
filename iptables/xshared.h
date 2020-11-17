@@ -220,6 +220,9 @@ void debug_print_argv(struct argv_store *store);
 const char *ipv4_addr_to_string(const struct in_addr *addr,
 				const struct in_addr *mask,
 				unsigned int format);
+void print_header(unsigned int format, const char *chain, const char *pol,
+		  const struct xt_counters *counters,
+		  int refs, uint32_t entries);
 void print_ipv4_addresses(const struct ipt_entry *fw, unsigned int format);
 void save_ipv4_addr(char letter, const struct in_addr *addr,
 		    const struct in_addr *mask, int invert);

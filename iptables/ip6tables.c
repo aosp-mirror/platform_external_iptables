@@ -233,56 +233,6 @@ static int is_exthdr(uint16_t proto)
 		proto == IPPROTO_DSTOPTS);
 }
 
-static void
-print_header(unsigned int format, const char *chain, struct xtc_handle *handle)
-{
-	struct xt_counters counters;
-	const char *pol = ip6tc_get_policy(chain, &counters, handle);
-	printf("Chain %s", chain);
-	if (pol) {
-		printf(" (policy %s", pol);
-		if (!(format & FMT_NOCOUNTS)) {
-			fputc(' ', stdout);
-			xtables_print_num(counters.pcnt, (format|FMT_NOTABLE));
-			fputs("packets, ", stdout);
-			xtables_print_num(counters.bcnt, (format|FMT_NOTABLE));
-			fputs("bytes", stdout);
-		}
-		printf(")\n");
-	} else {
-		unsigned int refs;
-		if (!ip6tc_get_references(&refs, chain, handle))
-			printf(" (ERROR obtaining refs)\n");
-		else
-			printf(" (%u references)\n", refs);
-	}
-
-	if (format & FMT_LINENUMBERS)
-		printf(FMT("%-4s ", "%s "), "num");
-	if (!(format & FMT_NOCOUNTS)) {
-		if (format & FMT_KILOMEGAGIGA) {
-			printf(FMT("%5s ","%s "), "pkts");
-			printf(FMT("%5s ","%s "), "bytes");
-		} else {
-			printf(FMT("%8s ","%s "), "pkts");
-			printf(FMT("%10s ","%s "), "bytes");
-		}
-	}
-	if (!(format & FMT_NOTARGET))
-		printf(FMT("%-9s ","%s "), "target");
-	fputs(" prot ", stdout);
-	if (format & FMT_OPTIONS)
-		fputs("opt", stdout);
-	if (format & FMT_VIA) {
-		printf(FMT(" %-6s ","%s "), "in");
-		printf(FMT("%-6s ","%s "), "out");
-	}
-	printf(FMT(" %-19s ","%s "), "source");
-	printf(FMT(" %-19s "," %s "), "destination");
-	printf("\n");
-}
-
-
 static int
 print_match(const struct xt_entry_match *m,
 	    const struct ip6t_ip6 *ip,
@@ -662,8 +612,18 @@ list_entries(const xt_chainlabel chain, int rulenum, int verbose, int numeric,
 
 		if (found) printf("\n");
 
-		if (!rulenum)
-		    print_header(format, this, handle);
+		if (!rulenum) {
+			struct xt_counters counters;
+			unsigned int urefs;
+			const char *pol;
+			int refs = - 1;
+
+			pol = ip6tc_get_policy(this, &counters, handle);
+			if (!pol && ip6tc_get_references(&urefs, this, handle))
+				refs = urefs;
+
+			print_header(format, this, pol, &counters, refs, 0);
+		}
 		i = ip6tc_first_rule(this, handle);
 
 		num = 0;

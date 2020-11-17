@@ -308,11 +308,10 @@ static void nft_arp_parse_payload(struct nft_xt_ctx *ctx,
 static void nft_arp_print_header(unsigned int format, const char *chain,
 				 const char *pol,
 				 const struct xt_counters *counters,
-				 bool basechain, uint32_t refs,
-				 uint32_t entries)
+				 int refs, uint32_t entries)
 {
 	printf("Chain %s", chain);
-	if (basechain && pol) {
+	if (pol) {
 		printf(" (policy %s", pol);
 		if (!(format & FMT_NOCOUNTS)) {
 			fputc(' ', stdout);
@@ -323,7 +322,7 @@ static void nft_arp_print_header(unsigned int format, const char *chain,
 		}
 		printf(")\n");
 	} else {
-		printf(" (%u references)\n", refs);
+		printf(" (%d references)\n", refs);
 	}
 }
 

@@ -547,6 +547,52 @@ void debug_print_argv(struct argv_store *store)
 }
 #endif
 
+void print_header(unsigned int format, const char *chain, const char *pol,
+		  const struct xt_counters *counters,
+		  int refs, uint32_t entries)
+{
+	printf("Chain %s", chain);
+	if (pol) {
+		printf(" (policy %s", pol);
+		if (!(format & FMT_NOCOUNTS)) {
+			fputc(' ', stdout);
+			xtables_print_num(counters->pcnt, (format|FMT_NOTABLE));
+			fputs("packets, ", stdout);
+			xtables_print_num(counters->bcnt, (format|FMT_NOTABLE));
+			fputs("bytes", stdout);
+		}
+		printf(")\n");
+	} else if (refs < 0) {
+		printf(" (ERROR obtaining refs)\n");
+	} else {
+		printf(" (%d references)\n", refs);
+	}
+
+	if (format & FMT_LINENUMBERS)
+		printf(FMT("%-4s ", "%s "), "num");
+	if (!(format & FMT_NOCOUNTS)) {
+		if (format & FMT_KILOMEGAGIGA) {
+			printf(FMT("%5s ","%s "), "pkts");
+			printf(FMT("%5s ","%s "), "bytes");
+		} else {
+			printf(FMT("%8s ","%s "), "pkts");
+			printf(FMT("%10s ","%s "), "bytes");
+		}
+	}
+	if (!(format & FMT_NOTARGET))
+		printf(FMT("%-9s ","%s "), "target");
+	fputs(" prot ", stdout);
+	if (format & FMT_OPTIONS)
+		fputs("opt", stdout);
+	if (format & FMT_VIA) {
+		printf(FMT(" %-6s ","%s "), "in");
+		printf(FMT("%-6s ","%s "), "out");
+	}
+	printf(FMT(" %-19s ","%s "), "source");
+	printf(FMT(" %-19s "," %s "), "destination");
+	printf("\n");
+}
+
 const char *ipv4_addr_to_string(const struct in_addr *addr,
 				const struct in_addr *mask,
 				unsigned int format)

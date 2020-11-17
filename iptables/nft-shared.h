@@ -94,8 +94,8 @@ struct nft_family_ops {
 	void (*print_table_header)(const char *tablename);
 	void (*print_header)(unsigned int format, const char *chain,
 			     const char *pol,
-			     const struct xt_counters *counters, bool basechain,
-			     uint32_t refs, uint32_t entries);
+			     const struct xt_counters *counters,
+			     int refs, uint32_t entries);
 	void (*print_rule)(struct nft_handle *h, struct nftnl_rule *r,
 			   unsigned int num, unsigned int format);
 	void (*save_rule)(const void *data, unsigned int format);
@@ -164,9 +164,6 @@ void nft_rule_to_iptables_command_state(struct nft_handle *h,
 					const struct nftnl_rule *r,
 					struct iptables_command_state *cs);
 void nft_clear_iptables_command_state(struct iptables_command_state *cs);
-void print_header(unsigned int format, const char *chain, const char *pol,
-		  const struct xt_counters *counters, bool basechain,
-		  uint32_t refs, uint32_t entries);
 void print_matches_and_target(struct iptables_command_state *cs,
 			      unsigned int format);
 void nft_ipv46_save_chain(const struct nftnl_chain *c, const char *policy);

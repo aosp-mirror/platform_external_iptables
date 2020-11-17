@@ -534,7 +534,7 @@ static void nft_bridge_print_table_header(const char *tablename)
 static void nft_bridge_print_header(unsigned int format, const char *chain,
 				    const char *pol,
 				    const struct xt_counters *counters,
-				    bool basechain, uint32_t refs, uint32_t entries)
+				    int refs, uint32_t entries)
 {
 	printf("Bridge chain: %s, entries: %u, policy: %s\n",
 	       chain, entries, pol ?: "RETURN");
