@@ -1896,9 +1896,6 @@ int nft_chain_user_rename(struct nft_handle *h,const char *chain,
 		return 0;
 	}
 
-	/* Config load changed errno. Ensure genuine info for our callers. */
-	errno = 0;
-
 	/* Find the old chain to be renamed */
 	c = nft_chain_find(h, table, chain);
 	if (c == NULL) {
