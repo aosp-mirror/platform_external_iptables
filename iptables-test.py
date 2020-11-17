@@ -366,6 +366,13 @@ def main():
                      if i.endswith('.t')]
         file_list.sort()
 
+    if not args.netns:
+        try:
+            import unshare
+            unshare.unshare(unshare.CLONE_NEWNET)
+        except:
+            print("Cannot run in own namespace, connectivity might break")
+
     for filename in file_list:
         file_tests, file_passed = run_test_file(filename, args.netns)
         if file_tests:
