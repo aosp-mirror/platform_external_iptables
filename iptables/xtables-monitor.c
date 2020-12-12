@@ -273,14 +273,14 @@ static void trace_print_packet(const struct nftnl_trace *nlt, struct cb_arg *arg
 	uint32_t mark;
 	char name[IFNAMSIZ];
 
-	printf("PACKET: %d %08x ", args->nfproto, nftnl_trace_get_u32(nlt, NFTNL_TRACE_ID));
+	family = nftnl_trace_get_u32(nlt, NFTNL_TRACE_FAMILY);
+	printf("PACKET: %d %08x ", family, nftnl_trace_get_u32(nlt, NFTNL_TRACE_ID));
 
 	if (nftnl_trace_is_set(nlt, NFTNL_TRACE_IIF))
 		printf("IN=%s ", if_indextoname(nftnl_trace_get_u32(nlt, NFTNL_TRACE_IIF), name));
 	if (nftnl_trace_is_set(nlt, NFTNL_TRACE_OIF))
 		printf("OUT=%s ", if_indextoname(nftnl_trace_get_u32(nlt, NFTNL_TRACE_OIF), name));
 
-	family = nftnl_trace_get_u32(nlt, NFTNL_TRACE_FAMILY);
 	nfproto = family;
 	if (nftnl_trace_is_set(nlt, NFTNL_TRACE_NFPROTO)) {
 		nfproto = nftnl_trace_get_u32(nlt, NFTNL_TRACE_NFPROTO);
