@@ -106,6 +106,7 @@ static int rule_cb(const struct nlmsghdr *nlh, void *data)
 		printf("-0 ");
 		break;
 	default:
+		puts("");
 		goto err_free;
 	}
 
@@ -433,9 +434,18 @@ static void trace_print_packet(const struct nftnl_trace *nlt, struct cb_arg *arg
 	mark = nftnl_trace_get_u32(nlt, NFTNL_TRACE_MARK);
 	if (mark)
 		printf("MARK=0x%x ", mark);
+	puts("");
 }
 
-static void print_verdict(struct nftnl_trace *nlt, uint32_t verdict)
+static void trace_print_hdr(const struct nftnl_trace *nlt)
+{
+	printf(" TRACE: %d %08x %s:%s", nftnl_trace_get_u32(nlt, NFTNL_TABLE_FAMILY),
+					nftnl_trace_get_u32(nlt, NFTNL_TRACE_ID),
+					nftnl_trace_get_str(nlt, NFTNL_TRACE_TABLE),
+					nftnl_trace_get_str(nlt, NFTNL_TRACE_CHAIN));
+}
+
+static void print_verdict(const struct nftnl_trace *nlt, uint32_t verdict)
 {
 	const char *chain;
 
@@ -496,35 +506,37 @@ static int trace_cb(const struct nlmsghdr *nlh, struct cb_arg *arg)
 	    arg->nfproto != nftnl_trace_get_u32(nlt, NFTNL_TABLE_FAMILY))
 		goto err_free;
 
-	printf(" TRACE: %d %08x %s:%s", nftnl_trace_get_u32(nlt, NFTNL_TABLE_FAMILY),
-					nftnl_trace_get_u32(nlt, NFTNL_TRACE_ID),
-					nftnl_trace_get_str(nlt, NFTNL_TRACE_TABLE),
-					nftnl_trace_get_str(nlt, NFTNL_TRACE_CHAIN));
-
 	switch (nftnl_trace_get_u32(nlt, NFTNL_TRACE_TYPE)) {
 	case NFT_TRACETYPE_RULE:
 		verdict = nftnl_trace_get_u32(nlt, NFTNL_TRACE_VERDICT);
-		printf(":rule:0x%llx:", (unsigned long long)nftnl_trace_get_u64(nlt, NFTNL_TRACE_RULE_HANDLE));
-		print_verdict(nlt, verdict);
 
-		if (nftnl_trace_is_set(nlt, NFTNL_TRACE_RULE_HANDLE))
-			trace_print_rule(nlt, arg);
 		if (nftnl_trace_is_set(nlt, NFTNL_TRACE_LL_HEADER) ||
 		    nftnl_trace_is_set(nlt, NFTNL_TRACE_NETWORK_HEADER))
 			trace_print_packet(nlt, arg);
+
+		if (nftnl_trace_is_set(nlt, NFTNL_TRACE_RULE_HANDLE)) {
+			trace_print_hdr(nlt);
+			printf(":rule:0x%" PRIx64":", nftnl_trace_get_u64(nlt, NFTNL_TRACE_RULE_HANDLE));
+			print_verdict(nlt, verdict);
+			printf(" ");
+			trace_print_rule(nlt, arg);
+		}
 		break;
 	case NFT_TRACETYPE_POLICY:
+		trace_print_hdr(nlt);
 		printf(":policy:");
 		verdict = nftnl_trace_get_u32(nlt, NFTNL_TRACE_POLICY);
 
 		print_verdict(nlt, verdict);
+		puts("");
 		break;
 	case NFT_TRACETYPE_RETURN:
+		trace_print_hdr(nlt);
 		printf(":return:");
 		trace_print_return(nlt);
+		puts("");
 		break;
 	}
-	puts("");
 err_free:
 	nftnl_trace_free(nlt);
 err:
