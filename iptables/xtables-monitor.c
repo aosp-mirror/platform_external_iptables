@@ -306,6 +306,9 @@ static void trace_print_packet(const struct nftnl_trace *nlt, struct cb_arg *arg
 			printf("MACDST=%s ", ether_ntoa((const void *)eh->h_dest));
 			printf("MACPROTO=%04x ", ntohs(eh->h_proto));
 			break;
+		case ARPHRD_LOOPBACK:
+			printf("LOOPBACK ");
+			break;
 		default:
 			printf("LL=0x%x ", type);
 			for (i = 0 ; i < len; i++)
