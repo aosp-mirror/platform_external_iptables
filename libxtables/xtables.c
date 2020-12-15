@@ -49,6 +49,7 @@
 #include <linux/netfilter_ipv4/ip_tables.h>
 #include <linux/netfilter_ipv6/ip6_tables.h>
 #include <libiptc/libxtc.h>
+#include <libiptc/linux_list.h>
 
 #ifndef NO_SHARED_LIBS
 #include <dlfcn.h>
@@ -255,6 +256,71 @@ static void dlreg_free(void)
 }
 #endif
 
+struct notarget {
+	struct hlist_node node;
+	char name[];
+};
+
+#define NOTARGET_HSIZE	512
+static struct hlist_head notargets[NOTARGET_HSIZE];
+
+static void notargets_hlist_init(void)
+{
+	int i;
+
+	for (i = 0; i < NOTARGET_HSIZE; i++)
+		INIT_HLIST_HEAD(&notargets[i]);
+}
+
+static void notargets_hlist_free(void)
+{
+	struct hlist_node *pos, *n;
+	struct notarget *cur;
+	int i;
+
+	for (i = 0; i < NOTARGET_HSIZE; i++) {
+		hlist_for_each_entry_safe(cur, pos, n, &notargets[i], node) {
+			hlist_del(&cur->node);
+			free(cur);
+		}
+	}
+}
+
+static uint32_t djb_hash(const char *key)
+{
+	uint32_t i, hash = 5381;
+
+	for (i = 0; i < strlen(key); i++)
+		hash = ((hash << 5) + hash) + key[i];
+
+	return hash;
+}
+
+static struct notarget *notargets_hlist_lookup(const char *name)
+{
+	uint32_t key = djb_hash(name) % NOTARGET_HSIZE;
+	struct hlist_node *node;
+	struct notarget *cur;
+
+	hlist_for_each_entry(cur, node, &notargets[key], node) {
+		if (!strcmp(name, cur->name))
+			return cur;
+	}
+	return NULL;
+}
+
+static void notargets_hlist_insert(const char *name)
+{
+	struct notarget *cur;
+
+	if (!name)
+		return;
+
+	cur = xtables_malloc(sizeof(*cur) + strlen(name) + 1);
+	strcpy(cur->name, name);
+	hlist_add_head(&cur->node, &notargets[djb_hash(name) % NOTARGET_HSIZE]);
+}
+
 void xtables_init(void)
 {
 	/* xtables cannot be used with setuid in a safe way. */
@@ -284,6 +350,8 @@ void xtables_init(void)
 		return;
 	}
 	xtables_libdir = XTABLES_LIBDIR;
+
+	notargets_hlist_init();
 }
 
 void xtables_fini(void)
@@ -291,6 +359,7 @@ void xtables_fini(void)
 #ifndef NO_SHARED_LIBS
 	dlreg_free();
 #endif
+	notargets_hlist_free();
 }
 
 void xtables_set_nfproto(uint8_t nfproto)
@@ -829,6 +898,10 @@ xtables_find_target(const char *name, enum xtables_tryload tryload)
 	    || strcmp(name, XTC_LABEL_QUEUE) == 0
 	    || strcmp(name, XTC_LABEL_RETURN) == 0)
 		name = "standard";
+	/* known non-target? */
+	else if (notargets_hlist_lookup(name) &&
+		 tryload != XTF_LOAD_MUST_SUCCEED)
+		return NULL;
 
 	/* Trigger delayed initialization */
 	for (dptr = &xtables_pending_targets; *dptr; ) {
@@ -894,6 +967,8 @@ xtables_find_target(const char *name, enum xtables_tryload tryload)
 
 	if (ptr)
 		ptr->used = 1;
+	else
+		notargets_hlist_insert(name);
 
 	return ptr;
 }
