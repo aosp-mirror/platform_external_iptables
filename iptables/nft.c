@@ -109,7 +109,9 @@ static struct nftnl_batch *mnl_batch_init(void)
 
 static void mnl_nft_batch_continue(struct nftnl_batch *batch)
 {
-	assert(nftnl_batch_update(batch) >= 0);
+	int ret = nftnl_batch_update(batch);
+
+	assert(ret >= 0);
 }
 
 static uint32_t mnl_batch_begin(struct nftnl_batch *batch, uint32_t genid, uint32_t seqnum)
@@ -3227,6 +3229,7 @@ retry:
 		case NFT_COMPAT_RULE_ZERO:
 		case NFT_COMPAT_BRIDGE_USER_CHAIN_UPDATE:
 			assert(0);
+			return 0;
 		}
 
 		mnl_nft_batch_continue(h->batch);
@@ -3504,7 +3507,7 @@ static int nft_prepare(struct nft_handle *h)
 		case NFT_COMPAT_TABLE_ADD:
 		case NFT_COMPAT_CHAIN_ADD:
 			assert(0);
-			break;
+			return 0;
 		}
 
 		nft_cmd_free(cmd);
