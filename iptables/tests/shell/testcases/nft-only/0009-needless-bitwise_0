@@ -336,4 +336,11 @@ bridge filter OUTPUT 10 9
   [ counter pkts 0 bytes 0 ]
 "
 
-diff -u -Z <(echo "$EXPECT") <(nft --debug=netlink list ruleset | awk '/^table/{exit} {print}')
+# print nothing but:
+# - lines with bytecode (starting with '  [')
+# - empty lines (so printed diff is not a complete mess)
+filter() {
+	awk '/^(  \[|$)/{print}'
+}
+
+diff -u -Z <(filter <<< "$EXPECT") <(nft --debug=netlink list ruleset | filter)
