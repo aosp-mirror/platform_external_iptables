@@ -914,10 +914,10 @@ print_zero:
 				xtables_error(PARAMETER_PROBLEM,
 					      "The -t option (seen in line %u) cannot be used in %s.\n",
 					      line, xt_params->program_name);
-			if (strlen(optarg) > EBT_TABLE_MAXNAMELEN - 1)
-				xtables_error(PARAMETER_PROBLEM,
-					      "Table name length cannot exceed %d characters",
-					      EBT_TABLE_MAXNAMELEN - 1);
+			if (!nft_table_builtin_find(h, optarg))
+				xtables_error(VERSION_PROBLEM,
+					      "table '%s' does not exist",
+					      optarg);
 			*table = optarg;
 			table_set = true;
 			break;
