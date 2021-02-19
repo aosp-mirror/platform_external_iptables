@@ -166,7 +166,7 @@ void add_addr(struct nftnl_rule *r, enum nft_payload_bases base, int offset,
 {
 	const unsigned char *m = mask;
 	bool bitwise = false;
-	int i;
+	int i, j;
 
 	for (i = 0; i < len; i++) {
 		if (m[i] != 0xff) {
@@ -174,6 +174,8 @@ void add_addr(struct nftnl_rule *r, enum nft_payload_bases base, int offset,
 			break;
 		}
 	}
+	for (j = i + 1; !bitwise && j < len; j++)
+		bitwise = !!m[j];
 
 	if (!bitwise)
 		len = i;
