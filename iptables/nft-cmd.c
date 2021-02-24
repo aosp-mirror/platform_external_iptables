@@ -185,7 +185,7 @@ int nft_cmd_chain_zero_counters(struct nft_handle *h, const char *chain,
 	if (!cmd)
 		return 0;
 
-	nft_cache_level_set(h, NFT_CL_CHAINS, cmd);
+	nft_cache_level_set(h, NFT_CL_RULES, cmd);
 
 	return 1;
 }
