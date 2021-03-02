@@ -337,14 +337,27 @@ static void xlate_ipv6_addr(const char *selector, const struct in6_addr *addr,
 			    const struct in6_addr *mask,
 			    int invert, struct xt_xlate *xl)
 {
+	const char *op = invert ? "!= " : "";
 	char addr_str[INET6_ADDRSTRLEN];
+	int cidr;
 
-	if (!invert && IN6_IS_ADDR_UNSPECIFIED(addr))
+	if (!invert && IN6_IS_ADDR_UNSPECIFIED(addr) && IN6_IS_ADDR_UNSPECIFIED(mask))
 		return;
 
 	inet_ntop(AF_INET6, addr, addr_str, INET6_ADDRSTRLEN);
-	xt_xlate_add(xl, "%s %s%s%s ", selector, invert ? "!= " : "", addr_str,
-			xtables_ip6mask_to_numeric(mask));
+	cidr = xtables_ip6mask_to_cidr(mask);
+	switch (cidr) {
+	case -1:
+		xt_xlate_add(xl, "%s & %s %s %s ", selector,
+			     xtables_ip6addr_to_numeric(mask),
+			     invert ? "!=" : "==", addr_str);
+		break;
+	case 128:
+		xt_xlate_add(xl, "%s %s%s ", selector, op, addr_str);
+		break;
+	default:
+		xt_xlate_add(xl, "%s %s%s/%d ", selector, op, addr_str, cidr);
+	}
 }
 
 static int nft_ipv6_xlate(const void *data, struct xt_xlate *xl)

@@ -383,6 +383,32 @@ static void nft_ipv4_post_parse(int command,
 			      " source or destination IP addresses");
 }
 
+static void xlate_ipv4_addr(const char *selector, const struct in_addr *addr,
+			    const struct in_addr *mask,
+			    bool inv, struct xt_xlate *xl)
+{
+	const char *op = inv ? "!= " : "";
+	int cidr;
+
+	if (!inv && !addr->s_addr && !mask->s_addr)
+		return;
+
+	cidr = xtables_ipmask_to_cidr(mask);
+	switch (cidr) {
+	case -1:
+		/* inet_ntoa() is not reentrant */
+		xt_xlate_add(xl, "%s & %s ", selector, inet_ntoa(*mask));
+		xt_xlate_add(xl, "%s %s ", inv ? "!=" : "==", inet_ntoa(*addr));
+		break;
+	case 32:
+		xt_xlate_add(xl, "%s %s%s ", selector, op, inet_ntoa(*addr));
+		break;
+	default:
+		xt_xlate_add(xl, "%s %s%s/%d ", selector, op, inet_ntoa(*addr),
+			     cidr);
+	}
+}
+
 static int nft_ipv4_xlate(const void *data, struct xt_xlate *xl)
 {
 	const struct iptables_command_state *cs = data;
@@ -417,18 +443,10 @@ static int nft_ipv4_xlate(const void *data, struct xt_xlate *xl)
 		}
 	}
 
-	if (cs->fw.ip.src.s_addr != 0) {
-		xt_xlate_add(xl, "ip saddr %s%s%s ",
-			   cs->fw.ip.invflags & IPT_INV_SRCIP ? "!= " : "",
-			   inet_ntoa(cs->fw.ip.src),
-			   xtables_ipmask_to_numeric(&cs->fw.ip.smsk));
-	}
-	if (cs->fw.ip.dst.s_addr != 0) {
-		xt_xlate_add(xl, "ip daddr %s%s%s ",
-			   cs->fw.ip.invflags & IPT_INV_DSTIP ? "!= " : "",
-			   inet_ntoa(cs->fw.ip.dst),
-			   xtables_ipmask_to_numeric(&cs->fw.ip.dmsk));
-	}
+	xlate_ipv4_addr("ip saddr", &cs->fw.ip.src, &cs->fw.ip.smsk,
+			cs->fw.ip.invflags & IPT_INV_SRCIP, xl);
+	xlate_ipv4_addr("ip daddr", &cs->fw.ip.dst, &cs->fw.ip.dmsk,
+			cs->fw.ip.invflags & IPT_INV_DSTIP, xl);
 
 	ret = xlate_matches(cs, xl);
 	if (!ret)

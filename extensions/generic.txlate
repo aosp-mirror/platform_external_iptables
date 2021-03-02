@@ -10,6 +10,54 @@ nft insert rule ip filter INPUT iifname "iifname" ip saddr 10.0.0.0/8 counter
 iptables-translate -A INPUT -i iif+ ! -d 10.0.0.0/8
 nft add rule ip filter INPUT iifname "iif*" ip daddr != 10.0.0.0/8 counter
 
+iptables-translate -I INPUT -s 10.11.12.13/255.255.0.0
+nft insert rule ip filter INPUT ip saddr 10.11.0.0/16 counter
+
+iptables-translate -I INPUT -s 10.11.12.13/255.0.255.0
+nft insert rule ip filter INPUT ip saddr & 255.0.255.0 == 10.0.12.0 counter
+
+iptables-translate -I INPUT -s 10.11.12.13/0.255.0.255
+nft insert rule ip filter INPUT ip saddr & 0.255.0.255 == 0.11.0.13 counter
+
+iptables-translate -I INPUT ! -s 10.11.12.13/0.255.0.255
+nft insert rule ip filter INPUT ip saddr & 0.255.0.255 != 0.11.0.13 counter
+
+iptables-translate -I INPUT -s 0.0.0.0/16
+nft insert rule ip filter INPUT ip saddr 0.0.0.0/16 counter
+
+iptables-translate -I INPUT -s 0.0.0.0/0
+nft insert rule ip filter INPUT counter
+
+iptables-translate -I INPUT ! -s 0.0.0.0/0
+nft insert rule ip filter INPUT ip saddr != 0.0.0.0/0 counter
+
+ip6tables-translate -I INPUT -i iifname -s feed::/16
+nft insert rule ip6 filter INPUT iifname "iifname" ip6 saddr feed::/16 counter
+
+ip6tables-translate -A INPUT -i iif+ ! -d feed::/16
+nft add rule ip6 filter INPUT iifname "iif*" ip6 daddr != feed::/16 counter
+
+ip6tables-translate -I INPUT -s feed:babe::1/ffff:ff00::
+nft insert rule ip6 filter INPUT ip6 saddr feed:ba00::/24 counter
+
+ip6tables-translate -I INPUT -s feed:babe:c0ff:ee00:c0be:1234:5678:90ab/ffff:0:ffff:0:ffff:0:ffff:0
+nft insert rule ip6 filter INPUT ip6 saddr & ffff:0:ffff:0:ffff:0:ffff:0 == feed:0:c0ff:0:c0be:0:5678:0 counter
+
+ip6tables-translate -I INPUT -s feed:babe:c0ff:ee00:c0be:1234:5678:90ab/0:ffff:0:ffff:0:ffff:0:ffff
+nft insert rule ip6 filter INPUT ip6 saddr & 0:ffff:0:ffff:0:ffff:0:ffff == 0:babe:0:ee00:0:1234:0:90ab counter
+
+ip6tables-translate -I INPUT ! -s feed:babe:c0ff:ee00:c0be:1234:5678:90ab/0:ffff:0:ffff:0:ffff:0:ffff
+nft insert rule ip6 filter INPUT ip6 saddr & 0:ffff:0:ffff:0:ffff:0:ffff != 0:babe:0:ee00:0:1234:0:90ab counter
+
+ip6tables-translate -I INPUT -s ::/16
+nft insert rule ip6 filter INPUT ip6 saddr ::/16 counter
+
+ip6tables-translate -I INPUT -s ::/0
+nft insert rule ip6 filter INPUT counter
+
+ip6tables-translate -I INPUT ! -s ::/0
+nft insert rule ip6 filter INPUT ip6 saddr != ::/0 counter
+
 ebtables-translate -I INPUT -i iname --logical-in ilogname -s 0:0:0:0:0:0
 nft insert rule bridge filter INPUT iifname "iname" meta ibrname "ilogname" ether saddr 00:00:00:00:00:00 counter
 
