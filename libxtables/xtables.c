@@ -1430,16 +1430,11 @@ int xtables_ipmask_to_cidr(const struct in_addr *mask)
 	int i;
 
 	maskaddr = ntohl(mask->s_addr);
-	/* shortcut for /32 networks */
-	if (maskaddr == 0xFFFFFFFFL)
-		return 32;
 
-	i = 32;
-	bits = 0xFFFFFFFEL;
-	while (--i >= 0 && maskaddr != bits)
-		bits <<= 1;
-	if (i >= 0)
-		return i;
+	for (i = 32, bits = (uint32_t)-1; i >= 0; i--, bits <<= 1) {
+		if (bits == maskaddr)
+			return i;
+	}
 
 	/* this mask cannot be converted to CIDR notation */
 	return -1;
