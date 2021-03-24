@@ -86,4 +86,8 @@ if [ $? -eq 0 ]; then
 	exit 1
 fi
 
+$XT_MULTI ebtables -t filter -E FOO BAZ || exit 1
+$XT_MULTI ebtables -t filter -L | grep -q FOO && exit 1
+$XT_MULTI ebtables -t filter -L | grep -q BAZ || exit 1
+
 $XT_MULTI ebtables -t $t -F || exit 0

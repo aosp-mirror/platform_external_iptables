@@ -55,57 +55,6 @@
  * 1: the inverse '!' of the option has already been specified */
 int ebt_invert = 0;
 
-unsigned char eb_mac_type_unicast[ETH_ALEN] =   {0,0,0,0,0,0};
-unsigned char eb_msk_type_unicast[ETH_ALEN] =   {1,0,0,0,0,0};
-unsigned char eb_mac_type_multicast[ETH_ALEN] = {1,0,0,0,0,0};
-unsigned char eb_msk_type_multicast[ETH_ALEN] = {1,0,0,0,0,0};
-unsigned char eb_mac_type_broadcast[ETH_ALEN] = {255,255,255,255,255,255};
-unsigned char eb_msk_type_broadcast[ETH_ALEN] = {255,255,255,255,255,255};
-unsigned char eb_mac_type_bridge_group[ETH_ALEN] = {0x01,0x80,0xc2,0,0,0};
-unsigned char eb_msk_type_bridge_group[ETH_ALEN] = {255,255,255,255,255,255};
-
-int ebt_get_mac_and_mask(const char *from, unsigned char *to,
-  unsigned char *mask)
-{
-	char *p;
-	int i;
-	struct ether_addr *addr = NULL;
-
-	if (strcasecmp(from, "Unicast") == 0) {
-		memcpy(to, eb_mac_type_unicast, ETH_ALEN);
-		memcpy(mask, eb_msk_type_unicast, ETH_ALEN);
-		return 0;
-	}
-	if (strcasecmp(from, "Multicast") == 0) {
-		memcpy(to, eb_mac_type_multicast, ETH_ALEN);
-		memcpy(mask, eb_msk_type_multicast, ETH_ALEN);
-		return 0;
-	}
-	if (strcasecmp(from, "Broadcast") == 0) {
-		memcpy(to, eb_mac_type_broadcast, ETH_ALEN);
-		memcpy(mask, eb_msk_type_broadcast, ETH_ALEN);
-		return 0;
-	}
-	if (strcasecmp(from, "BGA") == 0) {
-		memcpy(to, eb_mac_type_bridge_group, ETH_ALEN);
-		memcpy(mask, eb_msk_type_bridge_group, ETH_ALEN);
-		return 0;
-	}
-	if ( (p = strrchr(from, '/')) != NULL) {
-		*p = '\0';
-		if (!(addr = ether_aton(p + 1)))
-			return -1;
-		memcpy(mask, addr, ETH_ALEN);
-	} else
-		memset(mask, 0xff, ETH_ALEN);
-	if (!(addr = ether_aton(from)))
-		return -1;
-	memcpy(to, addr, ETH_ALEN);
-	for (i = 0; i < ETH_ALEN; i++)
-		to[i] &= mask[i];
-	return 0;
-}
-
 static int ebt_check_inverse2(const char option[], int argc, char **argv)
 {
 	if (!option)
@@ -853,6 +802,7 @@ int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table,
 				else if (strchr(argv[optind], ' ') != NULL)
 					xtables_error(PARAMETER_PROBLEM, "Use of ' ' not allowed in chain names");
 
+				errno = 0;
 				ret = nft_cmd_chain_user_rename(h, chain, *table,
 							    argv[optind]);
 				if (ret != 0 && errno == ENOENT)
@@ -1037,7 +987,9 @@ print_zero:
 				if (ebt_check_inverse2(optarg, argc, argv))
 					cs.eb.invflags |= EBT_ISOURCE;
 
-				if (ebt_get_mac_and_mask(optarg, cs.eb.sourcemac, cs.eb.sourcemsk))
+				if (xtables_parse_mac_and_mask(optarg,
+							       cs.eb.sourcemac,
+							       cs.eb.sourcemsk))
 					xtables_error(PARAMETER_PROBLEM, "Problem with specified source mac '%s'", optarg);
 				cs.eb.bitmask |= EBT_SOURCEMAC;
 				break;
@@ -1046,7 +998,9 @@ print_zero:
 				if (ebt_check_inverse2(optarg, argc, argv))
 					cs.eb.invflags |= EBT_IDEST;
 
-				if (ebt_get_mac_and_mask(optarg, cs.eb.destmac, cs.eb.destmsk))
+				if (xtables_parse_mac_and_mask(optarg,
+							       cs.eb.destmac,
+							       cs.eb.destmsk))
 					xtables_error(PARAMETER_PROBLEM, "Problem with specified destination mac '%s'", optarg);
 				cs.eb.bitmask |= EBT_DESTMAC;
 				break;
