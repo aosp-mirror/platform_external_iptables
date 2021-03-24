@@ -4,6 +4,21 @@
 TESTDIR="./$(dirname $0)/"
 RETURNCODE_SEPARATOR="_"
 
+usage() {
+	cat <<EOF
+Usage: $(basename $0) [-v|--verbose] [-H|--host] [-V|--valgrind]
+		      [[-l|--legacy]|[-n|--nft]] [testscript ...]
+
+-v | --verbose		Enable verbose mode (do not drop testscript output).
+-H | --host		Run tests against installed binaries in \$PATH,
+			not those built in this source tree.
+-V | --valgrind		Enable leak checking via valgrind.
+-l | --legacy		Test legacy variant only. Conflicts with --nft.
+-n | --nft		Test nft variant only. Conflicts with --legacy.
+testscript		Run only specific test(s). Implies --verbose.
+EOF
+}
+
 msg_error() {
         echo "E: $1 ..." >&2
         exit 1
@@ -49,6 +64,10 @@ while [ -n "$1" ]; do
 	-V|--valgrind)
 		VALGRIND=y
 		shift
+		;;
+	-h|--help)
+		usage
+		exit 0
 		;;
 	*${RETURNCODE_SEPARATOR}+([0-9]))
 		SINGLE+=" $1"

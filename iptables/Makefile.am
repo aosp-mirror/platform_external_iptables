@@ -56,7 +56,7 @@ man_MANS         = iptables.8 iptables-restore.8 iptables-save.8 \
                    ip6tables-save.8 iptables-extensions.8 \
                    iptables-apply.8 ip6tables-apply.8
 
-sbin_SCRIPT      = iptables-apply
+sbin_SCRIPTS     = iptables-apply
 
 if ENABLE_NFTABLES
 man_MANS	+= xtables-nft.8 xtables-translate.8 xtables-legacy.8 \
@@ -67,6 +67,10 @@ man_MANS	+= xtables-nft.8 xtables-translate.8 xtables-legacy.8 \
                    ebtables-nft.8
 endif
 CLEANFILES       = iptables.8 xtables-monitor.8 \
+		   iptables-xml.1 iptables-apply.8 \
+		   iptables-extensions.8 iptables-extensions.8.tmpl \
+		   iptables-restore.8 iptables-save.8 \
+		   iptables-restore-translate.8 ip6tables-restore-translate.8 \
 		   iptables-translate.8 ip6tables-translate.8
 
 vx_bin_links   = iptables-xml
@@ -111,3 +115,26 @@ install-exec-hook:
 	for i in ${v6_sbin_links}; do ${LN_S} -f xtables-legacy-multi "${DESTDIR}${sbindir}/$$i"; done;
 	for i in ${x_sbin_links}; do ${LN_S} -f xtables-nft-multi "${DESTDIR}${sbindir}/$$i"; done;
 	${LN_S} -f iptables-apply "${DESTDIR}${sbindir}/ip6tables-apply"
+
+uninstall-hook:
+	dir=${DESTDIR}${bindir}; { \
+		test ! -d "$$dir" && test ! -f "$$dir" && test ! -r "$$dir"; \
+	} || { \
+		test -z "${vx_bin_links}" || ( \
+			cd "$$dir" && rm -f ${vx_bin_links} \
+		) \
+	}
+	dir=${DESTDIR}${sbindir}; { \
+		test ! -d "$$dir" && test ! -f "$$dir" && test ! -r "$$dir"; \
+	} || { \
+		test -z "${v4_sbin_links}" || ( \
+			cd "$$dir" && rm -f ${v4_sbin_links} \
+		); \
+		test -z "${v6_sbin_links}" || ( \
+			cd "$$dir" && rm -f ${v6_sbin_links} \
+		); \
+		test -z "${x_sbin_links}" || ( \
+			cd "$$dir" && rm -f ${x_sbin_links} \
+		); \
+		( cd "$$dir" && rm -f ip6tables-apply ); \
+	}

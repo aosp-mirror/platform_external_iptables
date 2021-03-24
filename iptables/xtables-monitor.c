@@ -93,6 +93,8 @@ static int rule_cb(const struct nlmsghdr *nlh, void *data)
 	if (arg->nfproto && arg->nfproto != family)
 		goto err_free;
 
+	arg->h->ops = nft_family_ops_lookup(family);
+
 	if (arg->is_event)
 		printf(" EVENT: ");
 	switch (family) {
