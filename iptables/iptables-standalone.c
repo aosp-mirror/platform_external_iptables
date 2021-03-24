@@ -67,6 +67,8 @@ iptables_main(int argc, char *argv[])
 		iptc_free(handle);
 	}
 
+	xtables_fini();
+
 	if (!ret) {
 		if (errno == EINVAL) {
 			fprintf(stderr, "iptables: %s. "

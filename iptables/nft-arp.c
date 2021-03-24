@@ -604,6 +604,8 @@ nft_arp_print_rule(struct nft_handle *h, struct nftnl_rule *r,
 
 	if (!(format & FMT_NONEWLINE))
 		fputc('\n', stdout);
+
+	nft_clear_iptables_command_state(&cs);
 }
 
 static bool nft_arp_is_same(const void *data_a,
@@ -633,31 +635,6 @@ static bool nft_arp_is_same(const void *data_a,
 				  (unsigned char *)b->arp.outiface_mask);
 }
 
-static bool nft_arp_rule_find(struct nft_handle *h, struct nftnl_rule *r,
-			      void *data)
-{
-	const struct iptables_command_state *cs = data;
-	struct iptables_command_state this = {};
-	bool ret = false;
-
-	/* Delete by matching rule case */
-	nft_rule_to_iptables_command_state(h, r, &this);
-
-	if (!nft_arp_is_same(&cs->arp, &this.arp))
-		goto out;
-
-	if (!compare_targets(cs->target, this.target))
-		goto out;
-
-	if (this.jumpto && strcmp(cs->jumpto, this.jumpto) != 0)
-		goto out;
-
-	ret = true;
-out:
-	h->ops->clear_cs(&this);
-	return ret;
-}
-
 static void nft_arp_save_chain(const struct nftnl_chain *c, const char *policy)
 {
 	const char *chain = nftnl_chain_get_str(c, NFTNL_CHAIN_NAME);
@@ -675,11 +652,9 @@ struct nft_family_ops nft_family_ops_arp = {
 	.print_header		= nft_arp_print_header,
 	.print_rule		= nft_arp_print_rule,
 	.save_rule		= nft_arp_save_rule,
-	.save_counters		= save_counters,
 	.save_chain		= nft_arp_save_chain,
 	.post_parse		= NULL,
 	.rule_to_cs		= nft_rule_to_iptables_command_state,
 	.clear_cs		= nft_clear_iptables_command_state,
-	.rule_find		= nft_arp_rule_find,
 	.parse_target		= nft_ipv46_parse_target,
 };

@@ -23,7 +23,7 @@ ip6tables \-t mangle \-I PREROUTING \-i wlan0 \-d 2001:e20:2000:40f::/64
 .PP
 You may need to enable IPv6 neighbor proxy:
 .IP
-sysctl -w net.ipv6.conf.all.proxy_ndp=1
+sysctl \-w net.ipv6.conf.all.proxy_ndp=1
 .PP
 You also have to use the
 .B NOTRACK
