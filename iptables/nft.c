@@ -1754,6 +1754,8 @@ int nft_rule_flush(struct nft_handle *h, const char *chain, const char *table,
 		return 1;
 	}
 
+	nft_cache_sort_chains(h, table);
+
 	ret = nft_chain_foreach(h, table, nft_rule_flush_cb, &d);
 
 	/* the core expects 1 for success and 0 for error */
@@ -1899,6 +1901,9 @@ int nft_chain_user_del(struct nft_handle *h, const char *chain,
 			errno = EINVAL;
 		goto out;
 	}
+
+	if (verbose)
+		nft_cache_sort_chains(h, table);
 
 	ret = nft_chain_foreach(h, table, __nft_chain_user_del, &d);
 out:
@@ -2437,6 +2442,8 @@ int nft_rule_list(struct nft_handle *h, const char *chain, const char *table,
 		return 1;
 	}
 
+	nft_cache_sort_chains(h, table);
+
 	if (ops->print_table_header)
 		ops->print_table_header(table);
 
@@ -2539,6 +2546,8 @@ int nft_rule_list_save(struct nft_handle *h, const char *chain,
 
 		return nft_rule_list_cb(c, &d);
 	}
+
+	nft_cache_sort_chains(h, table);
 
 	/* Dump policies and custom chains first */
 	nft_chain_foreach(h, table, nft_rule_list_chain_save, &counters);
@@ -3430,6 +3439,9 @@ int nft_chain_zero_counters(struct nft_handle *h, const char *chain,
 		ret = __nft_chain_zero_counters(c, &d);
 		goto err;
 	}
+
+	if (verbose)
+		nft_cache_sort_chains(h, table);
 
 	ret = nft_chain_foreach(h, table, __nft_chain_zero_counters, &d);
 err:

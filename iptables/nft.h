@@ -44,6 +44,7 @@ struct nft_cache {
 		struct nft_chain_list	*chains;
 		struct nftnl_set_list	*sets;
 		bool			exists;
+		bool			sorted;
 	} table[NFT_TABLE_MAX];
 };
 

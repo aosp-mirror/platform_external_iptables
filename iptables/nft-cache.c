@@ -223,21 +223,64 @@ int nft_cache_add_chain(struct nft_handle *h, const struct builtin_table *t,
 
 		h->cache->table[t->type].base_chains[hooknum] = nc;
 	} else {
-		struct nft_chain_list *clist = h->cache->table[t->type].chains;
-		struct list_head *pos = &clist->list;
-		struct nft_chain *cur;
-		const char *n;
-
-		list_for_each_entry(cur, &clist->list, head) {
-			n = nftnl_chain_get_str(cur->nftnl, NFTNL_CHAIN_NAME);
-			if (strcmp(cname, n) <= 0) {
-				pos = &cur->head;
-				break;
-			}
-		}
-		list_add_tail(&nc->head, pos);
+		list_add_tail(&nc->head,
+			      &h->cache->table[t->type].chains->list);
 	}
 	hlist_add_head(&nc->hnode, chain_name_hlist(h, t, cname));
+	return 0;
+}
+
+static void __nft_chain_list_sort(struct list_head *list,
+				  int (*cmp)(struct nft_chain *a,
+					     struct nft_chain *b))
+{
+	struct nft_chain *pivot, *cur, *sav;
+	LIST_HEAD(sublist);
+
+	if (list_empty(list))
+		return;
+
+	/* grab first item as pivot (dividing) value */
+	pivot = list_entry(list->next, struct nft_chain, head);
+	list_del(&pivot->head);
+
+	/* move any smaller value into sublist */
+	list_for_each_entry_safe(cur, sav, list, head) {
+		if (cmp(pivot, cur) > 0) {
+			list_del(&cur->head);
+			list_add_tail(&cur->head, &sublist);
+		}
+	}
+	/* conquer divided */
+	__nft_chain_list_sort(&sublist, cmp);
+	__nft_chain_list_sort(list, cmp);
+
+	/* merge divided and pivot again */
+	list_add_tail(&pivot->head, &sublist);
+	list_splice(&sublist, list);
+}
+
+static int nft_chain_cmp_byname(struct nft_chain *a, struct nft_chain *b)
+{
+	const char *aname = nftnl_chain_get_str(a->nftnl, NFTNL_CHAIN_NAME);
+	const char *bname = nftnl_chain_get_str(b->nftnl, NFTNL_CHAIN_NAME);
+
+	return strcmp(aname, bname);
+}
+
+int nft_cache_sort_chains(struct nft_handle *h, const char *table)
+{
+	const struct builtin_table *t = nft_table_builtin_find(h, table);
+
+	if (!t)
+		return -1;
+
+	if (h->cache->table[t->type].sorted)
+		return 0;
+
+	__nft_chain_list_sort(&h->cache->table[t->type].chains->list,
+			      nft_chain_cmp_byname);
+	h->cache->table[t->type].sorted = true;
 	return 0;
 }
 
@@ -663,6 +706,7 @@ static int flush_cache(struct nft_handle *h, struct nft_cache *c,
 
 		flush_base_chain_cache(c->table[table->type].base_chains);
 		nft_chain_foreach(h, tablename, __flush_chain_cache, NULL);
+		c->table[table->type].sorted = false;
 
 		if (c->table[table->type].sets)
 			nftnl_set_list_foreach(c->table[table->type].sets,
@@ -678,6 +722,7 @@ static int flush_cache(struct nft_handle *h, struct nft_cache *c,
 		if (c->table[i].chains) {
 			nft_chain_list_free(c->table[i].chains);
 			c->table[i].chains = NULL;
+			c->table[i].sorted = false;
 		}
 
 		if (c->table[i].sets) {

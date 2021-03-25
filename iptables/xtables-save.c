@@ -87,6 +87,7 @@ __do_output(struct nft_handle *h, const char *tablename, void *data)
 	printf("*%s\n", tablename);
 	/* Dump out chain names first,
 	 * thereby preventing dependency conflicts */
+	nft_cache_sort_chains(h, tablename);
 	nft_chain_foreach(h, tablename, nft_chain_save, h);
 	nft_rule_save(h, tablename, d->format);
 	if (d->commit)
