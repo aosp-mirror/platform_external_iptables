@@ -421,11 +421,20 @@ static struct nftnl_set *set_from_lookup_expr(struct nft_xt_ctx *ctx,
 					      const struct nftnl_expr *e)
 {
 	const char *set_name = nftnl_expr_get_str(e, NFTNL_EXPR_LOOKUP_SET);
+	uint32_t set_id = nftnl_expr_get_u32(e, NFTNL_EXPR_LOOKUP_SET_ID);
 	struct nftnl_set_list *slist;
+	struct nftnl_set *set;
 
 	slist = nft_set_list_get(ctx->h, ctx->table, set_name);
-	if (slist)
-		return nftnl_set_list_lookup_byname(slist, set_name);
+	if (slist) {
+		set = nftnl_set_list_lookup_byname(slist, set_name);
+		if (set)
+			return set;
+
+		set = nft_set_batch_lookup_byid(ctx->h, set_id);
+		if (set)
+			return set;
+	}
 
 	return NULL;
 }
@@ -747,41 +756,6 @@ static bool nft_bridge_is_same(const void *data_a, const void *data_b)
 	return strcmp(a->in, b->in) == 0 && strcmp(a->out, b->out) == 0;
 }
 
-static bool nft_bridge_rule_find(struct nft_handle *h, struct nftnl_rule *r,
-				 void *data)
-{
-	struct iptables_command_state *cs = data;
-	struct iptables_command_state this = {};
-	bool ret = false;
-
-	nft_rule_to_ebtables_command_state(h, r, &this);
-
-	DEBUGP("comparing with... ");
-
-	if (!nft_bridge_is_same(cs, &this))
-		goto out;
-
-	if (!compare_matches(cs->matches, this.matches)) {
-		DEBUGP("Different matches\n");
-		goto out;
-	}
-
-	if (!compare_targets(cs->target, this.target)) {
-		DEBUGP("Different target\n");
-		goto out;
-	}
-
-	if (cs->jumpto != NULL && strcmp(cs->jumpto, this.jumpto) != 0) {
-		DEBUGP("Different verdict\n");
-		goto out;
-	}
-
-	ret = true;
-out:
-	h->ops->clear_cs(&this);
-	return ret;
-}
-
 static int xlate_ebmatches(const struct iptables_command_state *cs, struct xt_xlate *xl)
 {
 	int ret = 1, numeric = cs->options & OPT_NUMERIC;
@@ -958,11 +932,9 @@ struct nft_family_ops nft_family_ops_bridge = {
 	.print_header		= nft_bridge_print_header,
 	.print_rule		= nft_bridge_print_rule,
 	.save_rule		= nft_bridge_save_rule,
-	.save_counters		= save_counters,
 	.save_chain		= nft_bridge_save_chain,
 	.post_parse		= NULL,
 	.rule_to_cs		= nft_rule_to_ebtables_command_state,
 	.clear_cs		= ebt_cs_clean,
-	.rule_find		= nft_bridge_rule_find,
 	.xlate			= nft_bridge_xlate,
 };

@@ -161,7 +161,7 @@ exit_tryhelp(int status)
 }
 
 static void
-exit_printhelp(const struct xtables_rule_match *matches)
+printhelp(const struct xtables_rule_match *matches)
 {
 	printf("%s v%s\n\n"
 "Usage: %s -[ACD] chain rule-specification [options]\n"
@@ -240,7 +240,6 @@ exit_printhelp(const struct xtables_rule_match *matches)
 "[!] --version	-V		print package version.\n");
 
 	print_extension_helps(xtables_targets, matches);
-	exit(0);
 }
 
 void
@@ -361,11 +360,11 @@ add_entry(const char *chain,
 				cs->fw.ip.dmsk.s_addr = d.mask.v4[j].s_addr;
 
 				if (append) {
-					ret = nft_rule_append(h, chain, table,
+					ret = nft_cmd_rule_append(h, chain, table,
 							      cs, NULL,
 							      verbose);
 				} else {
-					ret = nft_rule_insert(h, chain, table,
+					ret = nft_cmd_rule_insert(h, chain, table,
 							      cs, rulenum,
 							      verbose);
 				}
@@ -381,11 +380,11 @@ add_entry(const char *chain,
 				memcpy(&cs->fw6.ipv6.dmsk,
 				       &d.mask.v6[j], sizeof(struct in6_addr));
 				if (append) {
-					ret = nft_rule_append(h, chain, table,
+					ret = nft_cmd_rule_append(h, chain, table,
 							      cs, NULL,
 							      verbose);
 				} else {
-					ret = nft_rule_insert(h, chain, table,
+					ret = nft_cmd_rule_insert(h, chain, table,
 							      cs, rulenum,
 							      verbose);
 				}
@@ -418,7 +417,7 @@ replace_entry(const char *chain, const char *table,
 	} else
 		return 1;
 
-	return nft_rule_replace(h, chain, table, cs, rulenum, verbose);
+	return nft_cmd_rule_replace(h, chain, table, cs, rulenum, verbose);
 }
 
 static int
@@ -440,7 +439,7 @@ delete_entry(const char *chain, const char *table,
 			for (j = 0; j < d.naddrs; j++) {
 				cs->fw.ip.dst.s_addr = d.addr.v4[j].s_addr;
 				cs->fw.ip.dmsk.s_addr = d.mask.v4[j].s_addr;
-				ret = nft_rule_delete(h, chain,
+				ret = nft_cmd_rule_delete(h, chain,
 						      table, cs, verbose);
 			}
 		} else if (family == AF_INET6) {
@@ -453,7 +452,7 @@ delete_entry(const char *chain, const char *table,
 				       &d.addr.v6[j], sizeof(struct in6_addr));
 				memcpy(&cs->fw6.ipv6.dmsk,
 				       &d.mask.v6[j], sizeof(struct in6_addr));
-				ret = nft_rule_delete(h, chain,
+				ret = nft_cmd_rule_delete(h, chain,
 						      table, cs, verbose);
 			}
 		}
@@ -480,7 +479,7 @@ check_entry(const char *chain, const char *table,
 			for (j = 0; j < d.naddrs; j++) {
 				cs->fw.ip.dst.s_addr = d.addr.v4[j].s_addr;
 				cs->fw.ip.dmsk.s_addr = d.mask.v4[j].s_addr;
-				ret = nft_rule_check(h, chain,
+				ret = nft_cmd_rule_check(h, chain,
 						     table, cs, verbose);
 			}
 		} else if (family == AF_INET6) {
@@ -493,7 +492,7 @@ check_entry(const char *chain, const char *table,
 				       &d.addr.v6[j], sizeof(struct in6_addr));
 				memcpy(&cs->fw6.ipv6.dmsk,
 				       &d.mask.v6[j], sizeof(struct in6_addr));
-				ret = nft_rule_check(h, chain,
+				ret = nft_cmd_rule_check(h, chain,
 						     table, cs, verbose);
 			}
 		}
@@ -524,7 +523,7 @@ list_entries(struct nft_handle *h, const char *chain, const char *table,
 	if (linenumbers)
 		format |= FMT_LINENUMBERS;
 
-	return nft_rule_list(h, chain, table, rulenum, format);
+	return nft_cmd_rule_list(h, chain, table, rulenum, format);
 }
 
 static int
@@ -534,7 +533,7 @@ list_rules(struct nft_handle *h, const char *chain, const char *table,
 	if (counters)
 	    counters = -1;		/* iptables -c format */
 
-	return nft_rule_list_save(h, chain, table, rulenum, counters);
+	return nft_cmd_rule_list_save(h, chain, table, rulenum, counters);
 }
 
 void do_parse(struct nft_handle *h, int argc, char *argv[],
@@ -570,10 +569,6 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 	/* Suppress error messages: we may add new options if we
 	   demand-load a protocol. */
 	opterr = 0;
-
-	h->ops = nft_family_ops_lookup(h->family);
-	if (h->ops == NULL)
-		xtables_error(PARAMETER_PROBLEM, "Unknown family");
 
 	opts = xt_params->orig_opts;
 	while ((cs->c = getopt_long(argc, argv,
@@ -728,7 +723,9 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 				xtables_find_match(cs->protocol,
 					XTF_TRY_LOAD, &cs->matches);
 
-			exit_printhelp(cs->matches);
+			printhelp(cs->matches);
+			p->command = CMD_NONE;
+			return;
 
 			/*
 			 * Option selection
@@ -917,27 +914,22 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 			break;
 
 		case '4':
+			if (args->family == AF_INET)
+				break;
+
 			if (p->restore && args->family == AF_INET6)
 				return;
 
-			if (args->family != AF_INET)
-				exit_tryhelp(2);
-
-			h->ops = nft_family_ops_lookup(args->family);
-			break;
+			exit_tryhelp(2);
 
 		case '6':
+			if (args->family == AF_INET6)
+				break;
+
 			if (p->restore && args->family == AF_INET)
 				return;
 
-			args->family = AF_INET6;
-			xtables_set_nfproto(AF_INET6);
-
-			h->ops = nft_family_ops_lookup(args->family);
-			if (h->ops == NULL)
-				xtables_error(PARAMETER_PROBLEM,
-					      "Unknown family");
-			break;
+			exit_tryhelp(2);
 
 		case 1: /* non option */
 			if (optarg[0] == '!' && optarg[1] == '\0') {
@@ -1031,11 +1023,6 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 					   opt2char(OPT_VIANAMEIN),
 					   p->chain);
 		}
-
-		if (!p->xlate && !cs->target && strlen(cs->jumpto) > 0 &&
-		    !nft_chain_exists(h, p->table, cs->jumpto))
-			xtables_error(PARAMETER_PROBLEM,
-				      "Chain '%s' does not exist", cs->jumpto);
 	}
 }
 
@@ -1066,8 +1053,8 @@ int do_commandx(struct nft_handle *h, int argc, char *argv[], char **table,
 				   cs.options & OPT_VERBOSE, h);
 		break;
 	case CMD_DELETE_NUM:
-		ret = nft_rule_delete_num(h, p.chain, p.table,
-					  p.rulenum - 1, p.verbose);
+		ret = nft_cmd_rule_delete_num(h, p.chain, p.table,
+					      p.rulenum - 1, p.verbose);
 		break;
 	case CMD_CHECK:
 		ret = check_entry(p.chain, p.table, &cs, h->family,
@@ -1085,15 +1072,15 @@ int do_commandx(struct nft_handle *h, int argc, char *argv[], char **table,
 				cs.options&OPT_VERBOSE, h, false);
 		break;
 	case CMD_FLUSH:
-		ret = nft_rule_flush(h, p.chain, p.table,
-				     cs.options & OPT_VERBOSE);
+		ret = nft_cmd_rule_flush(h, p.chain, p.table,
+					 cs.options & OPT_VERBOSE);
 		break;
 	case CMD_ZERO:
-		ret = nft_chain_zero_counters(h, p.chain, p.table,
-					      cs.options & OPT_VERBOSE);
+		ret = nft_cmd_chain_zero_counters(h, p.chain, p.table,
+						  cs.options & OPT_VERBOSE);
 		break;
 	case CMD_ZERO_NUM:
-		ret = nft_rule_zero_counters(h, p.chain, p.table,
+		ret = nft_cmd_rule_zero_counters(h, p.chain, p.table,
 					     p.rulenum - 1);
 		break;
 	case CMD_LIST:
@@ -1105,11 +1092,11 @@ int do_commandx(struct nft_handle *h, int argc, char *argv[], char **table,
 				   cs.options & OPT_EXPANDED,
 				   cs.options & OPT_LINENUMBERS);
 		if (ret && (p.command & CMD_ZERO)) {
-			ret = nft_chain_zero_counters(h, p.chain, p.table,
+			ret = nft_cmd_chain_zero_counters(h, p.chain, p.table,
 						      cs.options & OPT_VERBOSE);
 		}
 		if (ret && (p.command & CMD_ZERO_NUM)) {
-			ret = nft_rule_zero_counters(h, p.chain, p.table,
+			ret = nft_cmd_rule_zero_counters(h, p.chain, p.table,
 						     p.rulenum - 1);
 		}
 		nft_check_xt_legacy(h->family, false);
@@ -1120,27 +1107,27 @@ int do_commandx(struct nft_handle *h, int argc, char *argv[], char **table,
 		ret = list_rules(h, p.chain, p.table, p.rulenum,
 				 cs.options & OPT_VERBOSE);
 		if (ret && (p.command & CMD_ZERO)) {
-			ret = nft_chain_zero_counters(h, p.chain, p.table,
+			ret = nft_cmd_chain_zero_counters(h, p.chain, p.table,
 						      cs.options & OPT_VERBOSE);
 		}
 		if (ret && (p.command & CMD_ZERO_NUM)) {
-			ret = nft_rule_zero_counters(h, p.chain, p.table,
+			ret = nft_cmd_rule_zero_counters(h, p.chain, p.table,
 						     p.rulenum - 1);
 		}
 		nft_check_xt_legacy(h->family, false);
 		break;
 	case CMD_NEW_CHAIN:
-		ret = nft_chain_user_add(h, p.chain, p.table);
+		ret = nft_cmd_chain_user_add(h, p.chain, p.table);
 		break;
 	case CMD_DELETE_CHAIN:
-		ret = nft_chain_user_del(h, p.chain, p.table,
+		ret = nft_cmd_chain_user_del(h, p.chain, p.table,
 					 cs.options & OPT_VERBOSE);
 		break;
 	case CMD_RENAME_CHAIN:
-		ret = nft_chain_user_rename(h, p.chain, p.table, p.newname);
+		ret = nft_cmd_chain_user_rename(h, p.chain, p.table, p.newname);
 		break;
 	case CMD_SET_POLICY:
-		ret = nft_chain_set(h, p.table, p.chain, p.policy, NULL);
+		ret = nft_cmd_chain_set(h, p.table, p.chain, p.policy, NULL);
 		break;
 	case CMD_NONE:
 	/* do_parse ignored the line (eg: -4 with ip6tables-restore) */
@@ -1152,11 +1139,7 @@ int do_commandx(struct nft_handle *h, int argc, char *argv[], char **table,
 
 	*table = p.table;
 
-	xtables_rule_matches_free(&cs.matches);
-	if (cs.target) {
-		free(cs.target->t);
-		cs.target->t = NULL;
-	}
+	nft_clear_iptables_command_state(&cs);
 
 	if (h->family == AF_INET) {
 		free(args.s.addr.v4);
