@@ -28,6 +28,7 @@ enum {
 	O_TIMEOUT = 0,
 	O_LABEL,
 	O_ALARM,
+	O_NETLINK,
 };
 
 #define s struct idletimer_tg_info
@@ -47,6 +48,7 @@ static const struct xt_option_entry idletimer_tg_opts_v1[] = {
 	{.name = "label", .id = O_LABEL, .type = XTTYPE_STRING,
 	 .flags = XTOPT_MAND | XTOPT_PUT, XTOPT_POINTER(s, label)},
 	{.name = "alarm", .id = O_ALARM, .type = XTTYPE_NONE},
+	{.name = "send_nl_msg", .id = O_NETLINK, .type = XTTYPE_NONE},
 	XTOPT_TABLEEND,
 };
 #undef s
@@ -67,6 +69,7 @@ static void idletimer_tg_help_v1(void)
 " --timeout time	Timeout until the notification is sent (in seconds)\n"
 " --label string	Unique rule identifier\n"
 " --alarm	Use alarm instead of default timer\n"
+" --send_nl_msg		Enable netlink messages and show remaining time in sysfs.\n"
 "\n");
 }
 
@@ -92,6 +95,8 @@ static void idletimer_tg_print_v1(const void *ip,
 	printf(" label:%s", info->label);
 	if (info->timer_type == XT_IDLETIMER_ALARM)
 		printf(" alarm");
+	if (info->send_nl_msg)
+		printf(" send_nl_msg");
 }
 
 
@@ -115,6 +120,8 @@ static void idletimer_tg_save_v1(const void *ip,
 	printf(" --label %s", info->label);
 	if (info->timer_type == XT_IDLETIMER_ALARM)
 		printf(" --alarm");
+	if (info->send_nl_msg)
+		printf(" --send_nl_msg");
 }
 
 static void idletimer_tg_parse_v1(struct xt_option_call *cb)
@@ -124,6 +131,8 @@ static void idletimer_tg_parse_v1(struct xt_option_call *cb)
 	xtables_option_parse(cb);
 	if (cb->entry->id == O_ALARM)
 		info->timer_type = XT_IDLETIMER_ALARM;
+	if (cb->entry->id == O_NETLINK)
+		info->send_nl_msg = 1;
 }
 
 static struct xtables_target idletimer_tg_reg[] = {
