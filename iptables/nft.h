@@ -8,10 +8,10 @@
 #include <libiptc/linux_list.h>
 
 enum nft_table_type {
-	NFT_TABLE_FILTER	= 0,
-	NFT_TABLE_MANGLE,
-	NFT_TABLE_RAW,
+	NFT_TABLE_MANGLE	= 0,
 	NFT_TABLE_SECURITY,
+	NFT_TABLE_RAW,
+	NFT_TABLE_FILTER,
 	NFT_TABLE_NAT,
 };
 #define NFT_TABLE_MAX	(NFT_TABLE_NAT + 1)
@@ -38,11 +38,10 @@ enum nft_cache_level {
 };
 
 struct nft_cache {
-	struct nftnl_table_list		*tables;
 	struct {
 		struct nftnl_chain_list *chains;
 		struct nftnl_set_list	*sets;
-		bool			initialized;
+		bool			exists;
 	} table[NFT_TABLE_MAX];
 };
 
@@ -68,7 +67,6 @@ enum obj_update_type {
 	NFT_COMPAT_RULE_SAVE,
 	NFT_COMPAT_RULE_ZERO,
 	NFT_COMPAT_BRIDGE_USER_CHAIN_UPDATE,
-	NFT_COMPAT_TABLE_NEW,
 };
 
 struct cache_chain {
@@ -135,7 +133,6 @@ int nft_for_each_table(struct nft_handle *h, int (*func)(struct nft_handle *h, c
 bool nft_table_find(struct nft_handle *h, const char *tablename);
 int nft_table_purge_chains(struct nft_handle *h, const char *table, struct nftnl_chain_list *list);
 int nft_table_flush(struct nft_handle *h, const char *table);
-void nft_table_new(struct nft_handle *h, const char *table);
 const struct builtin_table *nft_table_builtin_find(struct nft_handle *h, const char *table);
 
 /*
@@ -144,7 +141,7 @@ const struct builtin_table *nft_table_builtin_find(struct nft_handle *h, const c
 struct nftnl_chain;
 
 int nft_chain_set(struct nft_handle *h, const char *table, const char *chain, const char *policy, const struct xt_counters *counters);
-int nft_chain_save(struct nft_handle *h, struct nftnl_chain_list *list);
+int nft_chain_save(struct nftnl_chain *c, void *data);
 int nft_chain_user_add(struct nft_handle *h, const char *chain, const char *table);
 int nft_chain_user_del(struct nft_handle *h, const char *chain, const char *table, bool verbose);
 int nft_chain_restore(struct nft_handle *h, const char *chain, const char *table);

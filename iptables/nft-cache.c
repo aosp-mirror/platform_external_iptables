@@ -109,47 +109,43 @@ static void mnl_genid_get(struct nft_handle *h, uint32_t *genid)
 
 static int nftnl_table_list_cb(const struct nlmsghdr *nlh, void *data)
 {
-	struct nftnl_table *t;
-	struct nftnl_table_list *list = data;
+	struct nftnl_table *nftnl = nftnl_table_alloc();
+	const struct builtin_table *t;
+	struct nft_handle *h = data;
+	const char *name;
 
-	t = nftnl_table_alloc();
-	if (t == NULL)
-		goto err;
+	if (!nftnl)
+		return MNL_CB_OK;
 
-	if (nftnl_table_nlmsg_parse(nlh, t) < 0)
+	if (nftnl_table_nlmsg_parse(nlh, nftnl) < 0)
 		goto out;
 
-	nftnl_table_list_add_tail(t, list);
+	name = nftnl_table_get_str(nftnl, NFTNL_TABLE_NAME);
+	if (!name)
+		goto out;
 
-	return MNL_CB_OK;
+	t = nft_table_builtin_find(h, name);
+	if (!t)
+		goto out;
+
+	h->cache->table[t->type].exists = true;
 out:
-	nftnl_table_free(t);
-err:
+	nftnl_table_free(nftnl);
 	return MNL_CB_OK;
 }
 
 static int fetch_table_cache(struct nft_handle *h)
 {
-	char buf[16536];
 	struct nlmsghdr *nlh;
-	struct nftnl_table_list *list;
+	char buf[16536];
 	int i, ret;
-
-	if (h->cache->tables)
-		return 0;
-
-	list = nftnl_table_list_alloc();
-	if (list == NULL)
-		return 0;
 
 	nlh = nftnl_rule_nlmsg_build_hdr(buf, NFT_MSG_GETTABLE, h->family,
 					NLM_F_DUMP, h->seq);
 
-	ret = mnl_talk(h, nlh, nftnl_table_list_cb, list);
+	ret = mnl_talk(h, nlh, nftnl_table_list_cb, h);
 	if (ret < 0 && errno == EINTR)
 		assert(nft_restart(h) >= 0);
-
-	h->cache->tables = list;
 
 	for (i = 0; i < NFT_TABLE_MAX; i++) {
 		enum nft_table_type type = h->tables[i].type;
@@ -180,8 +176,8 @@ static int nftnl_chain_list_cb(const struct nlmsghdr *nlh, void *data)
 	const struct builtin_table *t = d->t;
 	struct nftnl_chain_list *list;
 	struct nft_handle *h = d->h;
-	const char *tname, *cname;
 	struct nftnl_chain *c;
+	const char *tname;
 
 	c = nftnl_chain_alloc();
 	if (c == NULL)
@@ -201,11 +197,6 @@ static int nftnl_chain_list_cb(const struct nlmsghdr *nlh, void *data)
 	}
 
 	list = h->cache->table[t->type].chains;
-	cname = nftnl_chain_get_str(c, NFTNL_CHAIN_NAME);
-
-	if (nftnl_chain_list_lookup_byname(list, cname))
-		goto out;
-
 	nftnl_chain_list_add_tail(c, list);
 
 	return MNL_CB_OK;
@@ -511,14 +502,14 @@ retry:
 	if (req->level >= NFT_CL_TABLES)
 		fetch_table_cache(h);
 	if (req->level == NFT_CL_FAKE)
-		return;
+		goto genid_check;
 	if (req->level >= NFT_CL_CHAINS)
 		fetch_chain_cache(h, t, chains);
 	if (req->level >= NFT_CL_SETS)
 		fetch_set_cache(h, t, NULL);
 	if (req->level >= NFT_CL_RULES)
 		fetch_rule_cache(h, t);
-
+genid_check:
 	mnl_genid_get(h, &genid_check);
 	if (h->nft_genid != genid_check) {
 		flush_cache(h, h->cache, NULL);
@@ -612,10 +603,8 @@ static int flush_cache(struct nft_handle *h, struct nft_cache *c,
 			nftnl_set_list_free(c->table[i].sets);
 			c->table[i].sets = NULL;
 		}
-	}
-	if (c->tables) {
-		nftnl_table_list_free(c->tables);
-		c->tables = NULL;
+
+		c->table[i].exists = false;
 	}
 
 	return 1;
@@ -687,11 +676,6 @@ void nft_release_cache(struct nft_handle *h)
 		free(cc->name);
 		free(cc);
 	}
-}
-
-struct nftnl_table_list *nftnl_table_list_get(struct nft_handle *h)
-{
-	return h->cache->tables;
 }
 
 struct nftnl_set_list *
