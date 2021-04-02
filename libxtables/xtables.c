@@ -45,6 +45,9 @@
 
 #include <xtables.h>
 #include <limits.h> /* INT_MAX in ip_tables.h/ip6_tables.h */
+#ifdef __BIONIC__
+#include <linux/if_ether.h> /* ETH_ALEN */
+#endif
 #include <linux/netfilter_ipv4/ip_tables.h>
 #include <linux/netfilter_ipv6/ip6_tables.h>
 #include <libiptc/libxtc.h>
