@@ -2139,6 +2139,79 @@ void xtables_print_num(uint64_t number, unsigned int format)
 	printf(FMT("%4lluT ","%lluT "), (unsigned long long)number);
 }
 
+#include <netinet/ether.h>
+
+static const unsigned char mac_type_unicast[ETH_ALEN] =   {};
+static const unsigned char msk_type_unicast[ETH_ALEN] =   {1};
+static const unsigned char mac_type_multicast[ETH_ALEN] = {1};
+static const unsigned char msk_type_multicast[ETH_ALEN] = {1};
+#define ALL_ONE_MAC {0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
+static const unsigned char mac_type_broadcast[ETH_ALEN] = ALL_ONE_MAC;
+static const unsigned char msk_type_broadcast[ETH_ALEN] = ALL_ONE_MAC;
+static const unsigned char mac_type_bridge_group[ETH_ALEN] = {0x01, 0x80, 0xc2};
+static const unsigned char msk_type_bridge_group[ETH_ALEN] = ALL_ONE_MAC;
+#undef ALL_ONE_MAC
+
+int xtables_parse_mac_and_mask(const char *from, void *to, void *mask)
+{
+	char *p;
+	int i;
+	struct ether_addr *addr = NULL;
+
+	if (strcasecmp(from, "Unicast") == 0) {
+		memcpy(to, mac_type_unicast, ETH_ALEN);
+		memcpy(mask, msk_type_unicast, ETH_ALEN);
+		return 0;
+	}
+	if (strcasecmp(from, "Multicast") == 0) {
+		memcpy(to, mac_type_multicast, ETH_ALEN);
+		memcpy(mask, msk_type_multicast, ETH_ALEN);
+		return 0;
+	}
+	if (strcasecmp(from, "Broadcast") == 0) {
+		memcpy(to, mac_type_broadcast, ETH_ALEN);
+		memcpy(mask, msk_type_broadcast, ETH_ALEN);
+		return 0;
+	}
+	if (strcasecmp(from, "BGA") == 0) {
+		memcpy(to, mac_type_bridge_group, ETH_ALEN);
+		memcpy(mask, msk_type_bridge_group, ETH_ALEN);
+		return 0;
+	}
+	if ( (p = strrchr(from, '/')) != NULL) {
+		*p = '\0';
+		if (!(addr = ether_aton(p + 1)))
+			return -1;
+		memcpy(mask, addr, ETH_ALEN);
+	} else
+		memset(mask, 0xff, ETH_ALEN);
+	if (!(addr = ether_aton(from)))
+		return -1;
+	memcpy(to, addr, ETH_ALEN);
+	for (i = 0; i < ETH_ALEN; i++)
+		((char *)to)[i] &= ((char *)mask)[i];
+	return 0;
+}
+
+int xtables_print_well_known_mac_and_mask(const void *mac, const void *mask)
+{
+	if (!memcmp(mac, mac_type_unicast, ETH_ALEN) &&
+	    !memcmp(mask, msk_type_unicast, ETH_ALEN))
+		printf("Unicast");
+	else if (!memcmp(mac, mac_type_multicast, ETH_ALEN) &&
+	         !memcmp(mask, msk_type_multicast, ETH_ALEN))
+		printf("Multicast");
+	else if (!memcmp(mac, mac_type_broadcast, ETH_ALEN) &&
+	         !memcmp(mask, msk_type_broadcast, ETH_ALEN))
+		printf("Broadcast");
+	else if (!memcmp(mac, mac_type_bridge_group, ETH_ALEN) &&
+	         !memcmp(mask, msk_type_bridge_group, ETH_ALEN))
+		printf("BGA");
+	else
+		return -1;
+	return 0;
+}
+
 void xtables_print_mac(const unsigned char *macaddress)
 {
 	unsigned int i;

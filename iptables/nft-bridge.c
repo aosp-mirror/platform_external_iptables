@@ -58,44 +58,11 @@ void ebt_cs_clean(struct iptables_command_state *cs)
 	}
 }
 
-static void ebt_print_mac(const unsigned char *mac)
-{
-	int j;
-
-	for (j = 0; j < ETH_ALEN; j++)
-		printf("%02x%s", mac[j], (j==ETH_ALEN-1) ? "" : ":");
-}
-
-static bool mac_all_ones(const unsigned char *mac)
-{
-	static const char hlpmsk[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
-
-	return memcmp(mac, hlpmsk, sizeof(hlpmsk)) == 0;
-}
-
 /* Put the mac address into 6 (ETH_ALEN) bytes returns 0 on success. */
 static void ebt_print_mac_and_mask(const unsigned char *mac, const unsigned char *mask)
 {
-
-	if (!memcmp(mac, eb_mac_type_unicast, 6) &&
-	    !memcmp(mask, eb_msk_type_unicast, 6))
-		printf("Unicast");
-	else if (!memcmp(mac, eb_mac_type_multicast, 6) &&
-	         !memcmp(mask, eb_msk_type_multicast, 6))
-		printf("Multicast");
-	else if (!memcmp(mac, eb_mac_type_broadcast, 6) &&
-	         !memcmp(mask, eb_msk_type_broadcast, 6))
-		printf("Broadcast");
-	else if (!memcmp(mac, eb_mac_type_bridge_group, 6) &&
-	         !memcmp(mask, eb_msk_type_bridge_group, 6))
-		printf("BGA");
-	else {
-		ebt_print_mac(mac);
-		if (!mac_all_ones(mask)) {
-			printf("/");
-			ebt_print_mac(mask);
-		}
-	}
+	if (xtables_print_well_known_mac_and_mask(mac, mask))
+		xtables_print_mac_and_mask(mac, mask);
 }
 
 static void add_logical_iniface(struct nftnl_rule *r, char *iface, uint32_t op)
@@ -159,20 +126,16 @@ static int nft_bridge_add(struct nft_handle *h,
 
 	if (fw->bitmask & EBT_ISOURCE) {
 		op = nft_invflags2cmp(fw->invflags, EBT_ISOURCE);
-		add_payload(r, offsetof(struct ethhdr, h_source), 6,
-			    NFT_PAYLOAD_LL_HEADER);
-		if (!mac_all_ones(fw->sourcemsk))
-			add_bitwise(r, fw->sourcemsk, 6);
-		add_cmp_ptr(r, op, fw->sourcemac, 6);
+		add_addr(r, NFT_PAYLOAD_LL_HEADER,
+			 offsetof(struct ethhdr, h_source),
+			 fw->sourcemac, fw->sourcemsk, ETH_ALEN, op);
 	}
 
 	if (fw->bitmask & EBT_IDEST) {
 		op = nft_invflags2cmp(fw->invflags, EBT_IDEST);
-		add_payload(r, offsetof(struct ethhdr, h_dest), 6,
-			    NFT_PAYLOAD_LL_HEADER);
-		if (!mac_all_ones(fw->destmsk))
-			add_bitwise(r, fw->destmsk, 6);
-		add_cmp_ptr(r, op, fw->destmac, 6);
+		add_addr(r, NFT_PAYLOAD_LL_HEADER,
+			 offsetof(struct ethhdr, h_dest),
+			 fw->destmac, fw->destmsk, ETH_ALEN, op);
 	}
 
 	if ((fw->bitmask & EBT_NOPROTO) == 0) {
@@ -258,7 +221,8 @@ static void nft_bridge_parse_payload(struct nft_xt_ctx *ctx,
                         memcpy(fw->destmsk, ctx->bitwise.mask, ETH_ALEN);
                         ctx->flags &= ~NFT_XT_CTX_BITWISE;
                 } else {
-                        memset(&fw->destmsk, 0xff, ETH_ALEN);
+			memset(&fw->destmsk, 0xff,
+			       min(ctx->payload.len, ETH_ALEN));
                 }
 		fw->bitmask |= EBT_IDEST;
 		break;
@@ -272,7 +236,8 @@ static void nft_bridge_parse_payload(struct nft_xt_ctx *ctx,
                         memcpy(fw->sourcemsk, ctx->bitwise.mask, ETH_ALEN);
                         ctx->flags &= ~NFT_XT_CTX_BITWISE;
                 } else {
-                        memset(&fw->sourcemsk, 0xff, ETH_ALEN);
+			memset(&fw->sourcemsk, 0xff,
+			       min(ctx->payload.len, ETH_ALEN));
                 }
 		fw->bitmask |= EBT_ISOURCE;
 		break;
