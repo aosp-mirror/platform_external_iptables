@@ -1,9 +1,9 @@
 
-AC_INIT([iptables], [1.8.4])
+AC_INIT([iptables], [1.8.5])
 
 # See libtool.info "Libtool's versioning system"
-libxtables_vcurrent=14
-libxtables_vage=2
+libxtables_vcurrent=15
+libxtables_vage=3
 
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -131,7 +131,7 @@ if test "x$enable_nftables" = "xyes"; then
 		exit 1
 	fi
 
-	PKG_CHECK_MODULES([libnftnl], [libnftnl >= 1.1.3], [nftables=1], [nftables=0])
+	PKG_CHECK_MODULES([libnftnl], [libnftnl >= 1.1.6], [nftables=1], [nftables=0])
 
 	if test "$nftables" = 0;
 	then

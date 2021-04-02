@@ -61,11 +61,11 @@ static void print_usage(const char *name, const char *version)
 static const struct nft_xt_restore_cb restore_cb = {
 	.commit		= nft_commit,
 	.abort		= nft_abort,
-	.table_new	= nft_table_new,
-	.table_flush	= nft_table_flush,
+	.table_new	= nft_cmd_table_new,
+	.table_flush	= nft_cmd_table_flush,
 	.do_command	= do_commandx,
-	.chain_set	= nft_chain_set,
-	.chain_restore  = nft_chain_restore,
+	.chain_set	= nft_cmd_chain_set,
+	.chain_restore  = nft_cmd_chain_restore,
 };
 
 struct nft_xt_restore_state {
@@ -127,6 +127,10 @@ static void xtables_restore_parse_line(struct nft_handle *h,
 
 		if (p->tablename && (strcmp(p->tablename, table) != 0))
 			return;
+
+		/* implicit commit if no explicit COMMIT supported */
+		if (!p->commit)
+			cb->commit(h);
 
 		if (h->noflush == 0) {
 			DEBUGP("Cleaning all chains of table '%s'\n", table);
@@ -191,7 +195,7 @@ static void xtables_restore_parse_line(struct nft_handle *h,
 				      "cannot create chain '%s' (%s)\n",
 				      chain, strerror(errno));
 		} else if (h->family == NFPROTO_BRIDGE &&
-			   !ebt_set_user_chain_policy(h, state->curtable->name,
+			   !ebt_cmd_user_chain_policy(h, state->curtable->name,
 						      chain, policy)) {
 			xtables_error(OTHER_PROBLEM,
 				      "Can't set policy `%s' on `%s' line %u: %s\n",
@@ -250,95 +254,16 @@ static void xtables_restore_parse_line(struct nft_handle *h,
 	}
 }
 
-/* Return true if given iptables-restore line will require a full cache.
- * Typically these are commands referring to an existing rule
- * (either by number or content) or commands listing the ruleset. */
-static bool cmd_needs_full_cache(char *cmd)
-{
-	char c, chain[32];
-	int rulenum, mcount;
-
-	mcount = sscanf(cmd, "-%c %31s %d", &c, chain, &rulenum);
-
-	if (mcount == 3)
-		return true;
-	if (mcount < 1)
-		return false;
-
-	switch (c) {
-	case 'D':
-	case 'C':
-	case 'S':
-	case 'L':
-	case 'Z':
-		return true;
-	}
-
-	return false;
-}
-
-#define PREBUFSIZ	65536
-
 void xtables_restore_parse(struct nft_handle *h,
 			   const struct nft_xt_restore_parse *p)
 {
 	struct nft_xt_restore_state state = {};
-	char preload_buffer[PREBUFSIZ] = {}, buffer[10240], *ptr;
+	char buffer[10240] = {};
 
-	if (!h->noflush) {
-		nft_fake_cache(h);
-	} else {
-		ssize_t pblen = sizeof(preload_buffer);
-		bool do_cache = false;
-
-		ptr = preload_buffer;
-		while (fgets(buffer, sizeof(buffer), p->in)) {
-			size_t blen = strlen(buffer);
-
-			/* drop trailing newline; xtables_restore_parse_line()
-			 * uses strtok() which replaces them by nul-characters,
-			 * causing unpredictable string delimiting in
-			 * preload_buffer */
-			if (buffer[blen - 1] == '\n')
-				buffer[blen - 1] = '\0';
-			else
-				blen++;
-
-			pblen -= blen;
-			if (pblen <= 0) {
-				/* buffer exhausted */
-				do_cache = true;
-				break;
-			}
-
-			if (cmd_needs_full_cache(buffer)) {
-				do_cache = true;
-				break;
-			}
-
-			/* copy string including terminating nul-char */
-			memcpy(ptr, buffer, blen);
-			ptr += blen;
-			buffer[0] = '\0';
-		}
-
-		if (do_cache)
-			nft_build_cache(h, NULL);
-	}
+	if (!h->noflush)
+		nft_cache_level_set(h, NFT_CL_FAKE, NULL);
 
 	line = 0;
-	ptr = preload_buffer;
-	while (*ptr) {
-		h->error.lineno = ++line;
-		DEBUGP("%s: buffered line %d: '%s'\n", __func__, line, ptr);
-		xtables_restore_parse_line(h, p, &state, ptr);
-		ptr += strlen(ptr) + 1;
-	}
-	if (*buffer) {
-		h->error.lineno = ++line;
-		DEBUGP("%s: overrun line %d: '%s'\n", __func__, line, buffer);
-		xtables_restore_parse_line(h, p, &state, buffer);
-	}
 	while (fgets(buffer, sizeof(buffer), p->in)) {
 		h->error.lineno = ++line;
 		DEBUGP("%s: input line %d: '%s'\n", __func__, line, buffer);
@@ -358,15 +283,13 @@ static int
 xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 {
 	const struct builtin_table *tables;
-	struct nft_handle h = {
-		.family = family,
-		.restore = true,
-	};
-	int c;
 	struct nft_xt_restore_parse p = {
 		.commit = true,
 		.cb = &restore_cb,
 	};
+	bool noflush = false;
+	struct nft_handle h;
+	int c;
 
 	line = 0;
 
@@ -379,7 +302,7 @@ xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 		exit(1);
 	}
 
-	while ((c = getopt_long(argc, argv, "bcvVthnM:T:46wW", options, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "bcvVthnM:T:wW", options, NULL)) != -1) {
 		switch (c) {
 			case 'b':
 				fprintf(stderr, "-b/--binary option is not implemented\n");
@@ -400,20 +323,13 @@ xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 				print_usage(prog_name, PACKAGE_VERSION);
 				exit(0);
 			case 'n':
-				h.noflush = 1;
+				noflush = true;
 				break;
 			case 'M':
 				xtables_modprobe_program = optarg;
 				break;
 			case 'T':
 				p.tablename = optarg;
-				break;
-			case '4':
-				h.family = AF_INET;
-				break;
-			case '6':
-				h.family = AF_INET6;
-				xtables_set_nfproto(AF_INET6);
 				break;
 			case 'w': /* fallthrough.  Ignored by xt-restore */
 			case 'W':
@@ -462,17 +378,20 @@ xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 		return 1;
 	}
 
-	if (nft_init(&h, tables) < 0) {
+	if (nft_init(&h, family, tables) < 0) {
 		fprintf(stderr, "%s/%s Failed to initialize nft: %s\n",
 				xtables_globals.program_name,
 				xtables_globals.program_version,
 				strerror(errno));
 		exit(EXIT_FAILURE);
 	}
+	h.noflush = noflush;
+	h.restore = true;
 
 	xtables_restore_parse(&h, &p);
 
 	nft_fini(&h);
+	xtables_fini();
 	fclose(p.in);
 	return 0;
 }
@@ -489,20 +408,13 @@ int xtables_ip6_restore_main(int argc, char *argv[])
 				    argc, argv);
 }
 
-static int ebt_table_flush(struct nft_handle *h, const char *table)
-{
-	/* drop any pending policy rule add/removal jobs */
-	nft_abort_policy_rule(h, table);
-	return nft_table_flush(h, table);
-}
-
 static const struct nft_xt_restore_cb ebt_restore_cb = {
 	.commit		= nft_bridge_commit,
-	.table_new	= nft_table_new,
-	.table_flush	= ebt_table_flush,
+	.table_new	= nft_cmd_table_new,
+	.table_flush	= nft_cmd_table_flush,
 	.do_command	= do_commandeb,
-	.chain_set	= nft_chain_set,
-	.chain_restore  = nft_chain_restore,
+	.chain_set	= nft_cmd_chain_set,
+	.chain_restore  = nft_cmd_chain_restore,
 };
 
 static const struct option ebt_restore_options[] = {
@@ -537,18 +449,18 @@ int xtables_eb_restore_main(int argc, char *argv[])
 	nft_init_eb(&h, "ebtables-restore");
 	h.noflush = noflush;
 	xtables_restore_parse(&h, &p);
-	nft_fini(&h);
+	nft_fini_eb(&h);
 
 	return 0;
 }
 
 static const struct nft_xt_restore_cb arp_restore_cb = {
 	.commit		= nft_commit,
-	.table_new	= nft_table_new,
-	.table_flush	= nft_table_flush,
+	.table_new	= nft_cmd_table_new,
+	.table_flush	= nft_cmd_table_flush,
 	.do_command	= do_commandarp,
-	.chain_set	= nft_chain_set,
-	.chain_restore  = nft_chain_restore,
+	.chain_set	= nft_cmd_chain_set,
+	.chain_restore  = nft_cmd_chain_restore,
 };
 
 int xtables_arp_restore_main(int argc, char *argv[])
@@ -562,6 +474,7 @@ int xtables_arp_restore_main(int argc, char *argv[])
 	nft_init_arp(&h, "arptables-restore");
 	xtables_restore_parse(&h, &p);
 	nft_fini(&h);
+	xtables_fini();
 
 	return 0;
 }

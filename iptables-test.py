@@ -119,8 +119,7 @@ def run_test(iptables, rule, rule_save, res, filename, lineno, netns):
         elif splitted[0] == EBTABLES:
             command = EBTABLES_SAVE
 
-    path = os.path.abspath(os.path.curdir) + "/iptables/" + EXECUTEABLE
-    command = path + " " + command
+    command = EXECUTEABLE + " " + command
 
     if netns:
             command = "ip netns exec ____iptables-container-test " + command
@@ -165,7 +164,7 @@ def execute_cmd(cmd, filename, lineno):
     '''
     global log_file
     if cmd.startswith('iptables ') or cmd.startswith('ip6tables ') or cmd.startswith('ebtables ') or cmd.startswith('arptables '):
-        cmd = os.path.abspath(os.path.curdir) + "/iptables/" + EXECUTEABLE + " " + cmd
+        cmd = EXECUTEABLE + " " + cmd
 
     print("command: {}".format(cmd), file=log_file)
     ret = subprocess.call(cmd, shell=True, universal_newlines=True,
@@ -222,7 +221,7 @@ def run_test_file(filename, netns):
         execute_cmd("ip netns add ____iptables-container-test", filename, 0)
 
     for lineno, line in enumerate(f):
-        if line[0] == "#":
+        if line[0] == "#" or len(line.strip()) == 0:
             continue
 
         if line[0] == ":":
