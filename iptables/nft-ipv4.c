@@ -288,7 +288,7 @@ static void nft_ipv4_print_rule(struct nft_handle *h, struct nftnl_rule *r,
 	if (!(format & FMT_NONEWLINE))
 		fputc('\n', stdout);
 
-	xtables_rule_matches_free(&cs.matches);
+	nft_clear_iptables_command_state(&cs);
 }
 
 static void save_ipv4_addr(char letter, const struct in_addr *addr,
@@ -450,13 +450,11 @@ struct nft_family_ops nft_family_ops_ipv4 = {
 	.print_header		= print_header,
 	.print_rule		= nft_ipv4_print_rule,
 	.save_rule		= nft_ipv4_save_rule,
-	.save_counters		= save_counters,
 	.save_chain		= nft_ipv46_save_chain,
 	.proto_parse		= nft_ipv4_proto_parse,
 	.post_parse		= nft_ipv4_post_parse,
 	.parse_target		= nft_ipv46_parse_target,
 	.rule_to_cs		= nft_rule_to_iptables_command_state,
 	.clear_cs		= nft_clear_iptables_command_state,
-	.rule_find		= nft_ipv46_rule_find,
 	.xlate			= nft_ipv4_xlate,
 };

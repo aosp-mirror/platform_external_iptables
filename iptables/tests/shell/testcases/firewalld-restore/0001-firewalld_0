@@ -231,7 +231,7 @@ for table in nat mangle raw filter;do
 done
 
 case "$XT_MULTI" in
-*/xtables-nft-multi)
+*xtables-nft-multi)
 	# nft-multi displays chain names in different order, work around this for now
 	tmpfile2=$(mktemp)
 	sort "$tmpfile" > "$tmpfile2"
