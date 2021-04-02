@@ -59,7 +59,7 @@ Flushing chain \`secfoo'
 Deleting chain \`secfoo'"
 
 for ipt in iptables-restore ip6tables-restore; do
-	diff -u -Z <(sort <<< "$EXPECT") <($XT_MULTI $ipt -v <<< "$DUMP" | sort)
+	diff -u -Z <(echo "$EXPECT") <($XT_MULTI $ipt -v <<< "$DUMP")
 done
 
 DUMP="*filter
