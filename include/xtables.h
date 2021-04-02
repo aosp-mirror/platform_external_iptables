@@ -557,6 +557,9 @@ extern void xtables_save_string(const char *value);
 #define FMT(tab,notab) ((format) & FMT_NOTABLE ? (notab) : (tab))
 
 extern void xtables_print_num(uint64_t number, unsigned int format);
+extern int xtables_parse_mac_and_mask(const char *from, void *to, void *mask);
+extern int xtables_print_well_known_mac_and_mask(const void *mac,
+						 const void *mask);
 extern void xtables_print_mac(const unsigned char *macaddress);
 extern void xtables_print_mac_and_mask(const unsigned char *mac,
 				       const unsigned char *mask);
