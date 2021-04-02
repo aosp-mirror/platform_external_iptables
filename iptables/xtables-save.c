@@ -92,7 +92,7 @@ __do_output(struct nft_handle *h, const char *tablename, void *data)
 	printf("*%s\n", tablename);
 	/* Dump out chain names first,
 	 * thereby preventing dependency conflicts */
-	nft_chain_save(h, chain_list);
+	nftnl_chain_list_foreach(chain_list, nft_chain_save, h);
 	nft_rule_save(h, tablename, d->format);
 	if (d->commit)
 		printf("COMMIT\n");

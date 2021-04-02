@@ -65,7 +65,7 @@ int nft_cmd_chain_user_rename(struct nft_handle *h,const char *chain,
 int nft_cmd_rule_replace(struct nft_handle *h, const char *chain,
 			 const char *table, void *data, int rulenum,
 			 bool verbose);
-int nft_cmd_table_flush(struct nft_handle *h, const char *table);
+int nft_cmd_table_flush(struct nft_handle *h, const char *table, bool verbose);
 int nft_cmd_chain_restore(struct nft_handle *h, const char *chain,
 			  const char *table);
 int nft_cmd_rule_zero_counters(struct nft_handle *h, const char *chain,

@@ -75,14 +75,10 @@ xtables_main(int family, const char *progname, int argc, char *argv[])
 	xtables_fini();
 
 	if (!ret) {
-		if (errno == EINVAL) {
-			fprintf(stderr, "iptables: %s. "
-					"Run `dmesg' for more information.\n",
-				nft_strerror(errno));
-		} else {
-			fprintf(stderr, "iptables: %s.\n",
-				nft_strerror(errno));
-		}
+		fprintf(stderr, "%s: %s.%s\n", progname, nft_strerror(errno),
+			(errno == EINVAL ?
+			 " Run `dmesg' for more information." : ""));
+
 		if (errno == EAGAIN)
 			exit(RESOURCE_PROBLEM);
 	}
