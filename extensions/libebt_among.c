@@ -6,6 +6,7 @@
  * August, 2003
  */
 
+#include <errno.h>
 #include <ctype.h>
 #include <fcntl.h>
 #include <getopt.h>
@@ -61,10 +62,6 @@ parse_nft_among_pair(char *buf, struct nft_among_pair *pair, bool have_ip)
 {
 	char *sep = index(buf, '=');
 	struct ether_addr *ether;
-
-	if (have_ip ^ !!sep)
-		xtables_error(PARAMETER_PROBLEM,
-			      "among: Mixed MAC and MAC=IP not allowed.");
 
 	if (sep) {
 		*sep = '\0';
@@ -137,7 +134,10 @@ static int bramong_parse(int c, char **argv, int invert,
 		if ((fd = open(optarg, O_RDONLY)) == -1)
 			xtables_error(PARAMETER_PROBLEM,
 				      "Couldn't open file '%s'", optarg);
-		fstat(fd, &stats);
+		if (fstat(fd, &stats) < 0)
+			xtables_error(PARAMETER_PROBLEM,
+				      "fstat(%s) failed: '%s'",
+				      optarg, strerror(errno));
 		flen = stats.st_size;
 		/* use mmap because the file will probably be big */
 		optarg = mmap(0, flen, PROT_READ | PROT_WRITE,
@@ -201,7 +201,7 @@ static void __bramong_print(struct nft_among_pair *pairs,
 		isep = ",";
 
 		printf("%s", ether_ntoa(&pairs[i].ether));
-		if (have_ip)
+		if (pairs[i].in.s_addr != INADDR_ANY)
 			printf("=%s", inet_ntoa(pairs[i].in));
 	}
 	printf(" ");
