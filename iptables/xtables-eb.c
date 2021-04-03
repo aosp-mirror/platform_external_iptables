@@ -1155,7 +1155,7 @@ print_zero:
 		/*case 7 :*/ /* atomic-init */
 		/*case 10:*/ /* atomic-save */
 		case 11: /* init-table */
-			nft_cmd_table_flush(h, *table);
+			nft_cmd_table_flush(h, *table, false);
 			return 1;
 		/*
 			replace->command = c;

@@ -249,7 +249,7 @@ static int do_command_xlate(struct nft_handle *h, int argc, char *argv[],
 
 	cs.restore = restore;
 
-	if (!restore)
+	if (!restore && p.command != CMD_NONE)
 		printf("nft ");
 
 	switch (p.command) {
@@ -310,13 +310,16 @@ static int do_command_xlate(struct nft_handle *h, int argc, char *argv[],
 		break;
 	case CMD_SET_POLICY:
 		break;
+	case CMD_NONE:
+		ret = 1;
+		break;
 	default:
 		/* We should never reach this... */
 		printf("Unsupported command?\n");
 		exit(1);
 	}
 
-	xtables_rule_matches_free(&cs.matches);
+	nft_clear_iptables_command_state(&cs);
 
 	if (h->family == AF_INET) {
 		free(args.s.addr.v4);
