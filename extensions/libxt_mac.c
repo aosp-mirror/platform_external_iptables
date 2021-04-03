@@ -37,15 +37,6 @@ static void mac_parse(struct xt_option_call *cb)
 		macinfo->invert = 1;
 }
 
-static void print_mac(const unsigned char *macaddress)
-{
-	unsigned int i;
-
-	printf(" %02X", macaddress[0]);
-	for (i = 1; i < ETH_ALEN; ++i)
-		printf(":%02X", macaddress[i]);
-}
-
 static void
 mac_print(const void *ip, const struct xt_entry_match *match, int numeric)
 {
@@ -56,7 +47,7 @@ mac_print(const void *ip, const struct xt_entry_match *match, int numeric)
 	if (info->invert)
 		printf(" !");
 
-	print_mac(info->srcaddr);
+	xtables_print_mac(info->srcaddr);
 }
 
 static void mac_save(const void *ip, const struct xt_entry_match *match)
@@ -66,8 +57,8 @@ static void mac_save(const void *ip, const struct xt_entry_match *match)
 	if (info->invert)
 		printf(" !");
 
-	printf(" --mac-source");
-	print_mac(info->srcaddr);
+	printf(" --mac-source ");
+	xtables_print_mac(info->srcaddr);
 }
 
 static void print_mac_xlate(const unsigned char *macaddress,

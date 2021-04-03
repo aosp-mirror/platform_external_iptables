@@ -1,4 +1,4 @@
-The CT target allows to set parameters for a packet or its associated
+The CT target sets parameters for a packet or its associated
 connection. The target attaches a "template" connection tracking entry to
 the packet, which is then used by the conntrack core when initializing
 a new ct entry. This target is thus only valid in the "raw" table.
