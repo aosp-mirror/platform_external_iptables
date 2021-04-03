@@ -448,6 +448,7 @@ extern struct xtables_match *xtables_matches;
 extern struct xtables_target *xtables_targets;
 
 extern void xtables_init(void);
+extern void xtables_fini(void);
 extern void xtables_set_nfproto(uint8_t);
 extern void *xtables_calloc(size_t, size_t);
 extern void *xtables_malloc(size_t);
@@ -556,6 +557,9 @@ extern void xtables_save_string(const char *value);
 #define FMT(tab,notab) ((format) & FMT_NOTABLE ? (notab) : (tab))
 
 extern void xtables_print_num(uint64_t number, unsigned int format);
+extern int xtables_parse_mac_and_mask(const char *from, void *to, void *mask);
+extern int xtables_print_well_known_mac_and_mask(const void *mac,
+						 const void *mask);
 extern void xtables_print_mac(const unsigned char *macaddress);
 extern void xtables_print_mac_and_mask(const unsigned char *mac,
 				       const unsigned char *mask);

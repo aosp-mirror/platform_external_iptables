@@ -70,18 +70,15 @@ static int connlabel_value_parse(const char *in)
 static void connlabel_mt_parse(struct xt_option_call *cb)
 {
 	struct xt_connlabel_mtinfo *info = cb->data;
-	bool have_labelmap = !connlabel_open();
 	int tmp;
 
 	xtables_option_parse(cb);
 
 	switch (cb->entry->id) {
 	case O_LABEL:
-		if (have_labelmap)
+		tmp = connlabel_value_parse(cb->arg);
+		if (tmp < 0 && !connlabel_open())
 			tmp = nfct_labelmap_get_bit(map, cb->arg);
-		else
-			tmp = connlabel_value_parse(cb->arg);
-
 		if (tmp < 0)
 			xtables_error(PARAMETER_PROBLEM,
 				      "label '%s' not found or invalid value",
