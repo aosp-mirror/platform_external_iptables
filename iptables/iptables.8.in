@@ -397,6 +397,14 @@ corresponding to that rule's position in the chain.
 \fB\-\-modprobe=\fP\fIcommand\fP
 When adding or inserting rules into a chain, use \fIcommand\fP
 to load any necessary modules (targets, match extensions, etc).
+
+.SH LOCK FILE
+iptables uses the \fI@XT_LOCK_NAME@\fP file to take an exclusive lock at
+launch.
+
+The \fBXTABLES_LOCKFILE\fP environment variable can be used to override
+the default setting.
+
 .SH MATCH AND TARGET EXTENSIONS
 .PP
 iptables can use extended packet matching and target modules.

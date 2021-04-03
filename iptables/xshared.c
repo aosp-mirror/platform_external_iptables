@@ -249,15 +249,20 @@ void xs_init_match(struct xtables_match *match)
 static int xtables_lock(int wait, struct timeval *wait_interval)
 {
 	struct timeval time_left, wait_time;
+	const char *lock_file;
 	int fd, i = 0;
 
 	time_left.tv_sec = wait;
 	time_left.tv_usec = 0;
 
-	fd = open(XT_LOCK_NAME, O_CREAT, 0600);
+	lock_file = getenv("XTABLES_LOCKFILE");
+	if (lock_file == NULL || lock_file[0] == '\0')
+		lock_file = XT_LOCK_NAME;
+
+	fd = open(lock_file, O_CREAT, 0600);
 	if (fd < 0) {
 		fprintf(stderr, "Fatal: can't open lock file %s: %s\n",
-			XT_LOCK_NAME, strerror(errno));
+			lock_file, strerror(errno));
 		return XT_LOCK_FAILED;
 	}
 
@@ -265,7 +270,7 @@ static int xtables_lock(int wait, struct timeval *wait_interval)
 		if (flock(fd, LOCK_EX) == 0)
 			return fd;
 
-		fprintf(stderr, "Can't lock %s: %s\n", XT_LOCK_NAME,
+		fprintf(stderr, "Can't lock %s: %s\n", lock_file,
 			strerror(errno));
 		return XT_LOCK_BUSY;
 	}

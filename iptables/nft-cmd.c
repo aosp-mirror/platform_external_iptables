@@ -311,9 +311,14 @@ int nft_cmd_chain_set(struct nft_handle *h, const char *table,
 	return 1;
 }
 
-int nft_cmd_table_flush(struct nft_handle *h, const char *table)
+int nft_cmd_table_flush(struct nft_handle *h, const char *table, bool verbose)
 {
 	struct nft_cmd *cmd;
+
+	if (verbose) {
+		return nft_cmd_rule_flush(h, NULL, table, verbose) &&
+		       nft_cmd_chain_user_del(h, NULL, table, verbose);
+	}
 
 	cmd = nft_cmd_new(h, NFT_COMPAT_TABLE_FLUSH, table, NULL, NULL, -1,
 			  false);
@@ -387,9 +392,4 @@ int ebt_cmd_user_chain_policy(struct nft_handle *h, const char *table,
 	nft_cache_level_set(h, NFT_CL_RULES, cmd);
 
 	return 1;
-}
-
-void nft_cmd_table_new(struct nft_handle *h, const char *table)
-{
-	nft_cmd_new(h, NFT_COMPAT_TABLE_NEW, table, NULL, NULL, -1, false);
 }
