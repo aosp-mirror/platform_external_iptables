@@ -615,7 +615,7 @@ int xtables_monitor_main(int argc, char *argv[])
 	init_extensions4();
 #endif
 
-	if (nft_init(&h, xtables_ipv4)) {
+	if (nft_init(&h, AF_INET, xtables_ipv4)) {
 		fprintf(stderr, "%s/%s Failed to initialize nft: %s\n",
 			xtables_globals.program_name,
 			xtables_globals.program_version,
@@ -687,6 +687,8 @@ int xtables_monitor_main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 	mnl_socket_close(nl);
+
+	xtables_fini();
 
 	return EXIT_SUCCESS;
 }

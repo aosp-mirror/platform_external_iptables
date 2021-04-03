@@ -38,7 +38,7 @@ xtables_nft_multi_SOURCES += xtables-save.c xtables-restore.c \
 				nft-shared.c nft-ipv4.c nft-ipv6.c nft-arp.c \
 				xtables-monitor.c nft-cache.c \
 				xtables-arp-standalone.c xtables-arp.c \
-				nft-bridge.c \
+				nft-bridge.c nft-cmd.c \
 				xtables-eb-standalone.c xtables-eb.c \
 				xtables-eb-translate.c \
 				xtables-translate.c
@@ -53,7 +53,11 @@ sbin_PROGRAMS	+= xtables-nft-multi
 endif
 man_MANS         = iptables.8 iptables-restore.8 iptables-save.8 \
                    iptables-xml.1 ip6tables.8 ip6tables-restore.8 \
-                   ip6tables-save.8 iptables-extensions.8
+                   ip6tables-save.8 iptables-extensions.8 \
+                   iptables-apply.8 ip6tables-apply.8
+
+sbin_SCRIPT      = iptables-apply
+
 if ENABLE_NFTABLES
 man_MANS	+= xtables-nft.8 xtables-translate.8 xtables-legacy.8 \
                    iptables-translate.8 ip6tables-translate.8 \
@@ -106,3 +110,4 @@ install-exec-hook:
 	for i in ${v4_sbin_links}; do ${LN_S} -f xtables-legacy-multi "${DESTDIR}${sbindir}/$$i"; done;
 	for i in ${v6_sbin_links}; do ${LN_S} -f xtables-legacy-multi "${DESTDIR}${sbindir}/$$i"; done;
 	for i in ${x_sbin_links}; do ${LN_S} -f xtables-nft-multi "${DESTDIR}${sbindir}/$$i"; done;
+	${LN_S} -f iptables-apply "${DESTDIR}${sbindir}/ip6tables-apply"

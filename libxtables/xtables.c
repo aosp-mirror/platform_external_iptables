@@ -206,6 +206,38 @@ struct xtables_target *xtables_targets;
 static bool xtables_fully_register_pending_match(struct xtables_match *me);
 static bool xtables_fully_register_pending_target(struct xtables_target *me);
 
+/* registry for loaded shared objects to close later */
+struct dlreg {
+	struct dlreg *next;
+	void *handle;
+};
+static struct dlreg *dlreg = NULL;
+
+static int dlreg_add(void *handle)
+{
+	struct dlreg *new = malloc(sizeof(*new));
+
+	if (!new)
+		return -1;
+
+	new->handle = handle;
+	new->next = dlreg;
+	dlreg = new;
+	return 0;
+}
+
+static void dlreg_free(void)
+{
+	struct dlreg *next;
+
+	while (dlreg) {
+		next = dlreg->next;
+		dlclose(dlreg->handle);
+		free(dlreg);
+		dlreg = next;
+	}
+}
+
 void xtables_init(void)
 {
 	xtables_libdir = getenv("XTABLES_LIBDIR");
@@ -231,6 +263,11 @@ void xtables_init(void)
 		return;
 	}
 	xtables_libdir = XTABLES_LIBDIR;
+}
+
+void xtables_fini(void)
+{
+	dlreg_free();
 }
 
 void xtables_set_nfproto(uint8_t nfproto)
@@ -567,6 +604,8 @@ static void *load_extension(const char *search_path, const char *af_prefix,
 			next = dir + strlen(dir);
 
 		for (prefix = all_prefixes; *prefix != NULL; ++prefix) {
+			void *handle;
+
 			snprintf(path, sizeof(path), "%.*s/%s%s.so",
 			         (unsigned int)(next - dir), dir,
 			         *prefix, name);
@@ -578,10 +617,13 @@ static void *load_extension(const char *search_path, const char *af_prefix,
 					strerror(errno));
 				return NULL;
 			}
-			if (dlopen(path, RTLD_NOW) == NULL) {
+			handle = dlopen(path, RTLD_NOW);
+			if (handle == NULL) {
 				fprintf(stderr, "%s: %s\n", path, dlerror());
 				break;
 			}
+
+			dlreg_add(handle);
 
 			if (is_target)
 				ptr = xtables_find_target(name, XTF_DONT_LOAD);
@@ -858,7 +900,8 @@ int xtables_compatible_revision(const char *name, uint8_t revision, int opt)
 
 	xtables_load_ko(xtables_modprobe_program, true);
 
-	strcpy(rev.name, name);
+	strncpy(rev.name, name, XT_EXTENSION_MAXNAMELEN - 1);
+	rev.name[XT_EXTENSION_MAXNAMELEN - 1] = '\0';
 	rev.revision = revision;
 
 	max_rev = getsockopt(sockfd, afinfo->ipproto, opt, &rev, &s);

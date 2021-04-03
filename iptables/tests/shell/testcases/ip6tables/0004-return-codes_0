@@ -26,6 +26,7 @@ cmd 1 ip6tables -N foo
 # test rule adding
 cmd 0 ip6tables -A INPUT -j ACCEPT
 cmd 1 ip6tables -A noexist -j ACCEPT
+cmd 2 ip6tables -I INPUT -j foobar
 
 # test rule checking
 cmd 0 ip6tables -C INPUT -j ACCEPT

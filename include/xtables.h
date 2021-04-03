@@ -448,6 +448,7 @@ extern struct xtables_match *xtables_matches;
 extern struct xtables_target *xtables_targets;
 
 extern void xtables_init(void);
+extern void xtables_fini(void);
 extern void xtables_set_nfproto(uint8_t);
 extern void *xtables_calloc(size_t, size_t);
 extern void *xtables_malloc(size_t);
