@@ -4,6 +4,7 @@
 #include "xshared.h"
 #include "nft-shared.h"
 #include "nft-cache.h"
+#include "nft-chain.h"
 #include "nft-cmd.h"
 #include <libiptc/linux_list.h>
 
@@ -39,7 +40,8 @@ enum nft_cache_level {
 
 struct nft_cache {
 	struct {
-		struct nftnl_chain_list *chains;
+		struct nft_chain	*base_chains[NF_INET_NUMHOOKS];
+		struct nft_chain_list	*chains;
 		struct nftnl_set_list	*sets;
 		bool			exists;
 	} table[NFT_TABLE_MAX];
@@ -134,6 +136,7 @@ bool nft_table_find(struct nft_handle *h, const char *tablename);
 int nft_table_purge_chains(struct nft_handle *h, const char *table, struct nftnl_chain_list *list);
 int nft_table_flush(struct nft_handle *h, const char *table);
 const struct builtin_table *nft_table_builtin_find(struct nft_handle *h, const char *table);
+int nft_xt_fake_builtin_chains(struct nft_handle *h, const char *table, const char *chain);
 
 /*
  * Operations with chains.
@@ -141,7 +144,7 @@ const struct builtin_table *nft_table_builtin_find(struct nft_handle *h, const c
 struct nftnl_chain;
 
 int nft_chain_set(struct nft_handle *h, const char *table, const char *chain, const char *policy, const struct xt_counters *counters);
-int nft_chain_save(struct nftnl_chain *c, void *data);
+int nft_chain_save(struct nft_chain *c, void *data);
 int nft_chain_user_add(struct nft_handle *h, const char *chain, const char *table);
 int nft_chain_user_del(struct nft_handle *h, const char *chain, const char *table, bool verbose);
 int nft_chain_restore(struct nft_handle *h, const char *chain, const char *table);
@@ -151,6 +154,9 @@ const struct builtin_chain *nft_chain_builtin_find(const struct builtin_table *t
 bool nft_chain_exists(struct nft_handle *h, const char *table, const char *chain);
 void nft_bridge_chain_postprocess(struct nft_handle *h,
 				  struct nftnl_chain *c);
+int nft_chain_foreach(struct nft_handle *h, const char *table,
+		      int (*cb)(struct nft_chain *c, void *data),
+		      void *data);
 
 
 /*
