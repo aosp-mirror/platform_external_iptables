@@ -88,11 +88,11 @@ int mnl_talk(struct nft_handle *h, struct nlmsghdr *nlh,
 
 #define NFT_NLMSG_MAXSIZE (UINT16_MAX + getpagesize())
 
-/* selected batch page is 256 Kbytes long to load ruleset of
- * half a million rules without hitting -EMSGSIZE due to large
- * iovec.
+/* Selected batch page is 2 Mbytes long to support loading a ruleset of 3.5M
+ * rules matching on source and destination address as well as input and output
+ * interfaces. This is what legacy iptables supports.
  */
-#define BATCH_PAGE_SIZE getpagesize() * 32
+#define BATCH_PAGE_SIZE 2 * 1024 * 1024
 
 static struct nftnl_batch *mnl_batch_init(void)
 {
@@ -220,8 +220,10 @@ static int mnl_batch_talk(struct nft_handle *h, int numcmds)
 	int err = 0;
 
 	ret = mnl_nft_socket_sendmsg(h, numcmds);
-	if (ret == -1)
+	if (ret == -1) {
+		fprintf(stderr, "sendmsg() failed: %s\n", strerror(errno));
 		return -1;
+	}
 
 	FD_ZERO(&readfds);
 	FD_SET(fd, &readfds);
