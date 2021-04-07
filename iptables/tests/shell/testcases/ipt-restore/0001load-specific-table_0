@@ -22,7 +22,7 @@ do_simple()
 	table="${2}"
 	dumpfile="$(dirname "${0}")/dumps/${iptables}.dump"
 
-	"$XT_MULTI" "${iptables}-restore" --table="${table}" <"${dumpfile}"; rv=$?
+	"$XT_MULTI" "${iptables}-restore" --table="${table}" "${dumpfile}"; rv=$?
 
 	if [ "${rv}" -ne 0 ]; then
 		RET=1
