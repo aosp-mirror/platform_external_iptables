@@ -53,10 +53,6 @@
 #include "nft-arp.h"
 #include <linux/netfilter_arp/arp_tables.h>
 
-#define NUMBER_OF_OPT	16
-static const char optflags[NUMBER_OF_OPT]
-= { 'n', 's', 'd', 2, 3, 7, 8, 4, 5, 6, 'j', 'v', 'i', 'o', '0', 'c'};
-
 static struct option original_opts[] = {
 	{ "append", 1, 0, 'A' },
 	{ "delete", 1, 0,  'D' },
@@ -113,73 +109,28 @@ struct xtables_globals arptables_globals = {
 static int inverse_for_options[] =
 {
 /* -n */ 0,
-/* -s */ ARPT_INV_SRCIP,
-/* -d */ ARPT_INV_TGTIP,
+/* -s */ IPT_INV_SRCIP,
+/* -d */ IPT_INV_DSTIP,
 /* -p */ 0,
 /* -j */ 0,
 /* -v */ 0,
 /* -x */ 0,
-/* -i */ ARPT_INV_VIA_IN,
-/* -o */ ARPT_INV_VIA_OUT,
+/* -i */ IPT_INV_VIA_IN,
+/* -o */ IPT_INV_VIA_OUT,
 /*--line*/ 0,
 /* -c */ 0,
-/* 2 */ ARPT_INV_SRCDEVADDR,
-/* 3 */ ARPT_INV_TGTDEVADDR,
-/* -l */ ARPT_INV_ARPHLN,
-/* 4 */ ARPT_INV_ARPOP,
-/* 5 */ ARPT_INV_ARPHRD,
-/* 6 */ ARPT_INV_ARPPRO,
+/* -f */ 0,
+/* 2 */ IPT_INV_SRCDEVADDR,
+/* 3 */ IPT_INV_TGTDEVADDR,
+/* -l */ IPT_INV_ARPHLN,
+/* 4 */ IPT_INV_ARPOP,
+/* 5 */ IPT_INV_ARPHRD,
+/* 6 */ IPT_INV_PROTO,
 };
 
 /***********************************************/
 /* ARPTABLES SPECIFIC NEW FUNCTIONS ADDED HERE */
 /***********************************************/
-
-static unsigned char mac_type_unicast[ETH_ALEN] =   {0,0,0,0,0,0};
-static unsigned char msk_type_unicast[ETH_ALEN] =   {1,0,0,0,0,0};
-static unsigned char mac_type_multicast[ETH_ALEN] = {1,0,0,0,0,0};
-static unsigned char msk_type_multicast[ETH_ALEN] = {1,0,0,0,0,0};
-static unsigned char mac_type_broadcast[ETH_ALEN] = {255,255,255,255,255,255};
-static unsigned char msk_type_broadcast[ETH_ALEN] = {255,255,255,255,255,255};
-
-/*
- * put the mac address into 6 (ETH_ALEN) bytes
- */
-static int getmac_and_mask(char *from, char *to, char *mask)
-{
-	char *p;
-	int i;
-	struct ether_addr *addr;
-
-	if (strcasecmp(from, "Unicast") == 0) {
-		memcpy(to, mac_type_unicast, ETH_ALEN);
-		memcpy(mask, msk_type_unicast, ETH_ALEN);
-		return 0;
-	}
-	if (strcasecmp(from, "Multicast") == 0) {
-		memcpy(to, mac_type_multicast, ETH_ALEN);
-		memcpy(mask, msk_type_multicast, ETH_ALEN);
-		return 0;
-	}
-	if (strcasecmp(from, "Broadcast") == 0) {
-		memcpy(to, mac_type_broadcast, ETH_ALEN);
-		memcpy(mask, msk_type_broadcast, ETH_ALEN);
-		return 0;
-	}
-	if ( (p = strrchr(from, '/')) != NULL) {
-		*p = '\0';
-		if (!(addr = ether_aton(p + 1)))
-			return -1;
-		memcpy(mask, addr, ETH_ALEN);
-	} else
-		memset(mask, 0xff, ETH_ALEN);
-	if (!(addr = ether_aton(from)))
-		return -1;
-	memcpy(to, addr, ETH_ALEN);
-	for (i = 0; i < ETH_ALEN; i++)
-		to[i] &= mask[i];
-	return 0;
-}
 
 static int getlength_and_mask(char *from, uint8_t *to, uint8_t *mask)
 {
@@ -235,7 +186,7 @@ exit_tryhelp(int status)
 }
 
 static void
-exit_printhelp(void)
+printhelp(void)
 {
 	struct xtables_target *t = NULL;
 	int i;
@@ -325,16 +276,6 @@ exit_printhelp(void)
 		printf("\n");
 		t->help();
 	}
-	exit(0);
-}
-
-static char
-opt2char(int option)
-{
-	const char *ptr;
-	for (ptr = optflags; option > 1; option >>= 1, ptr++);
-
-	return *ptr;
 }
 
 static int
@@ -400,7 +341,7 @@ list_entries(struct nft_handle *h, const char *chain, const char *table,
 	if (linenumbers)
 		format |= FMT_LINENUMBERS;
 
-	return nft_rule_list(h, chain, table, rulenum, format);
+	return nft_cmd_rule_list(h, chain, table, rulenum, format);
 }
 
 static int
@@ -427,10 +368,10 @@ append_entry(struct nft_handle *h,
 			cs->arp.arp.tgt.s_addr = daddrs[j].s_addr;
 			cs->arp.arp.tmsk.s_addr = dmasks[j].s_addr;
 			if (append) {
-				ret = nft_rule_append(h, chain, table, cs, NULL,
+				ret = nft_cmd_rule_append(h, chain, table, cs, NULL,
 						      verbose);
 			} else {
-				ret = nft_rule_insert(h, chain, table, cs,
+				ret = nft_cmd_rule_insert(h, chain, table, cs,
 						      rulenum, verbose);
 			}
 		}
@@ -455,7 +396,7 @@ replace_entry(const char *chain,
 	cs->arp.arp.smsk.s_addr = smask->s_addr;
 	cs->arp.arp.tmsk.s_addr = dmask->s_addr;
 
-	return nft_rule_replace(h, chain, table, cs, rulenum, verbose);
+	return nft_cmd_rule_replace(h, chain, table, cs, rulenum, verbose);
 }
 
 static int
@@ -479,7 +420,7 @@ delete_entry(const char *chain,
 		for (j = 0; j < ndaddrs; j++) {
 			cs->arp.arp.tgt.s_addr = daddrs[j].s_addr;
 			cs->arp.arp.tmsk.s_addr = dmasks[j].s_addr;
-			ret = nft_rule_delete(h, chain, table, cs, verbose);
+			ret = nft_cmd_rule_delete(h, chain, table, cs, verbose);
 		}
 	}
 
@@ -500,16 +441,9 @@ int nft_init_arp(struct nft_handle *h, const char *pname)
 	init_extensionsa();
 #endif
 
-	memset(h, 0, sizeof(*h));
-	h->family = NFPROTO_ARP;
-
-	if (nft_init(h, xtables_arp) < 0)
+	if (nft_init(h, NFPROTO_ARP, xtables_arp) < 0)
 		xtables_error(OTHER_PROBLEM,
 			      "Could not initialize nftables layer.");
-
-	h->ops = nft_family_ops_lookup(h->family);
-	if (h->ops == NULL)
-		xtables_error(PARAMETER_PROBLEM, "Unknown family");
 
 	return 0;
 }
@@ -673,7 +607,8 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table,
 			if (!optarg)
 				optarg = argv[optind];
 
-			exit_printhelp();
+			printhelp();
+			command = CMD_NONE;
 			break;
 		case 's':
 			check_inverse(optarg, &invert, &optind, argc);
@@ -693,7 +628,7 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table,
 			check_inverse(optarg, &invert, &optind, argc);
 			set_option(&options, OPT_S_MAC, &cs.arp.arp.invflags,
 				   invert);
-			if (getmac_and_mask(argv[optind - 1],
+			if (xtables_parse_mac_and_mask(argv[optind - 1],
 			    cs.arp.arp.src_devaddr.addr, cs.arp.arp.src_devaddr.mask))
 				xtables_error(PARAMETER_PROBLEM, "Problem with specified "
 						"source mac");
@@ -704,7 +639,7 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table,
 			set_option(&options, OPT_D_MAC, &cs.arp.arp.invflags,
 				   invert);
 
-			if (getmac_and_mask(argv[optind - 1],
+			if (xtables_parse_mac_and_mask(argv[optind - 1],
 			    cs.arp.arp.tgt_devaddr.addr, cs.arp.arp.tgt_devaddr.mask))
 				xtables_error(PARAMETER_PROBLEM, "Problem with specified "
 						"destination mac");
@@ -888,8 +823,6 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table,
 	if (optind < argc)
 		xtables_error(PARAMETER_PROBLEM,
 			      "unknown arguments found on commandline");
-	if (!command)
-		xtables_error(PARAMETER_PROBLEM, "no command specified");
 	if (invert)
 		xtables_error(PARAMETER_PROBLEM,
 			      "nothing appropriate following !");
@@ -910,7 +843,7 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table,
 					 &dmasks, &ndaddrs);
 
 	if ((nsaddrs > 1 || ndaddrs > 1) &&
-	    (cs.arp.arp.invflags & (ARPT_INV_SRCIP | ARPT_INV_TGTIP)))
+	    (cs.arp.arp.invflags & (IPT_INV_SRCIP | IPT_INV_DSTIP)))
 		xtables_error(PARAMETER_PROBLEM, "! not allowed with multiple"
 				" source or destination IP addresses");
 
@@ -962,7 +895,7 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table,
 				   options&OPT_VERBOSE, h);
 		break;
 	case CMD_DELETE_NUM:
-		ret = nft_rule_delete_num(h, chain, *table, rulenum - 1, verbose);
+		ret = nft_cmd_rule_delete_num(h, chain, *table, rulenum - 1, verbose);
 		break;
 	case CMD_REPLACE:
 		ret = replace_entry(chain, *table, &cs, rulenum - 1,
@@ -984,10 +917,10 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table,
 				   options&OPT_LINENUMBERS);
 		break;
 	case CMD_FLUSH:
-		ret = nft_rule_flush(h, chain, *table, options & OPT_VERBOSE);
+		ret = nft_cmd_rule_flush(h, chain, *table, options & OPT_VERBOSE);
 		break;
 	case CMD_ZERO:
-		ret = nft_chain_zero_counters(h, chain, *table,
+		ret = nft_cmd_chain_zero_counters(h, chain, *table,
 					      options & OPT_VERBOSE);
 		break;
 	case CMD_LIST|CMD_ZERO:
@@ -997,24 +930,26 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table,
 				   /*options&OPT_EXPANDED*/0,
 				   options&OPT_LINENUMBERS);
 		if (ret)
-			ret = nft_chain_zero_counters(h, chain, *table,
+			ret = nft_cmd_chain_zero_counters(h, chain, *table,
 						      options & OPT_VERBOSE);
 		break;
 	case CMD_NEW_CHAIN:
-		ret = nft_chain_user_add(h, chain, *table);
+		ret = nft_cmd_chain_user_add(h, chain, *table);
 		break;
 	case CMD_DELETE_CHAIN:
-		ret = nft_chain_user_del(h, chain, *table,
+		ret = nft_cmd_chain_user_del(h, chain, *table,
 					 options & OPT_VERBOSE);
 		break;
 	case CMD_RENAME_CHAIN:
-		ret = nft_chain_user_rename(h, chain, *table, newname);
+		ret = nft_cmd_chain_user_rename(h, chain, *table, newname);
 		break;
 	case CMD_SET_POLICY:
-		ret = nft_chain_set(h, *table, chain, policy, NULL);
+		ret = nft_cmd_chain_set(h, *table, chain, policy, NULL);
 		if (ret < 0)
 			xtables_error(PARAMETER_PROBLEM, "Wrong policy `%s'\n",
 				      policy);
+		break;
+	case CMD_NONE:
 		break;
 	default:
 		/* We should never reach this... */
@@ -1026,9 +961,7 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table,
 	free(daddrs);
 	free(dmasks);
 
-	if (cs.target)
-		free(cs.target->t);
-
+	nft_clear_iptables_command_state(&cs);
 	xtables_free_opts(1);
 
 /*	if (verbose > 1)

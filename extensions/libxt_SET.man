@@ -42,5 +42,5 @@ and
 \fB\-\-map\-queue\fP
 flags can be used in the OUTPUT, FORWARD and POSTROUTING chains.
 .PP
-Use of -j SET requires that ipset kernel support is provided, which, for
+Use of \-j SET requires that ipset kernel support is provided, which, for
 standard kernels, is the case since Linux 2.6.39.
