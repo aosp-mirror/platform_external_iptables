@@ -1,3 +1,4 @@
+This module matches Stream Control Transmission Protocol headers.
 .TP
 [\fB!\fP] \fB\-\-source\-port\fP,\fB\-\-sport\fP \fIport\fP[\fB:\fP\fIport\fP]
 .TP
