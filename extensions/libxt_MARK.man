@@ -1,7 +1,7 @@
 This target is used to set the Netfilter mark value associated with the packet.
 It can, for example, be used in conjunction with routing based on fwmark (needs
-iproute2). If you plan on doing so, note that the mark needs to be set in the
-PREROUTING chain of the mangle table to affect routing.
+iproute2). If you plan on doing so, note that the mark needs to be set in
+either the PREROUTING or the OUTPUT chain of the mangle table to affect routing.
 The mark field is 32 bits wide.
 .TP
 \fB\-\-set\-xmark\fP \fIvalue\fP[\fB/\fP\fImask\fP]
