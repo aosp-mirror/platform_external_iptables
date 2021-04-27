@@ -136,7 +136,7 @@ static void get_frag(struct nft_xt_ctx *ctx, struct nftnl_expr *e, bool *inv)
 
 static const char *mask_to_str(uint32_t mask)
 {
-	static char mask_str[sizeof("255.255.255.255")];
+	static char mask_str[INET_ADDRSTRLEN];
 	uint32_t bits, hmask = ntohl(mask);
 	struct in_addr mask_addr = {
 		.s_addr = mask,
@@ -155,7 +155,7 @@ static const char *mask_to_str(uint32_t mask)
 	if (i >= 0)
 		sprintf(mask_str, "%u", i);
 	else
-		sprintf(mask_str, "%s", inet_ntoa(mask_addr));
+		inet_ntop(AF_INET, &mask_addr, mask_str, sizeof(mask_str));
 
 	return mask_str;
 }
@@ -298,10 +298,13 @@ static void nft_ipv4_print_rule(struct nft_handle *h, struct nftnl_rule *r,
 static void save_ipv4_addr(char letter, const struct in_addr *addr,
 			   uint32_t mask, int invert)
 {
+	char addrbuf[INET_ADDRSTRLEN];
+
 	if (!mask && !invert && !addr->s_addr)
 		return;
 
-	printf("%s-%c %s/%s ", invert ? "! " : "", letter, inet_ntoa(*addr),
+	printf("%s-%c %s/%s ", invert ? "! " : "", letter,
+	       inet_ntop(AF_INET, addr, addrbuf, sizeof(addrbuf)),
 	       mask_to_str(mask));
 }
 
@@ -387,25 +390,27 @@ static void xlate_ipv4_addr(const char *selector, const struct in_addr *addr,
 			    const struct in_addr *mask,
 			    bool inv, struct xt_xlate *xl)
 {
+	char mbuf[INET_ADDRSTRLEN], abuf[INET_ADDRSTRLEN];
 	const char *op = inv ? "!= " : "";
 	int cidr;
 
 	if (!inv && !addr->s_addr && !mask->s_addr)
 		return;
 
+	inet_ntop(AF_INET, addr, abuf, sizeof(abuf));
+
 	cidr = xtables_ipmask_to_cidr(mask);
 	switch (cidr) {
 	case -1:
-		/* inet_ntoa() is not reentrant */
-		xt_xlate_add(xl, "%s & %s ", selector, inet_ntoa(*mask));
-		xt_xlate_add(xl, "%s %s ", inv ? "!=" : "==", inet_ntoa(*addr));
+		xt_xlate_add(xl, "%s & %s %s %s ", selector,
+			     inet_ntop(AF_INET, mask, mbuf, sizeof(mbuf)),
+			     inv ? "!=" : "==", abuf);
 		break;
 	case 32:
-		xt_xlate_add(xl, "%s %s%s ", selector, op, inet_ntoa(*addr));
+		xt_xlate_add(xl, "%s %s%s ", selector, op, abuf);
 		break;
 	default:
-		xt_xlate_add(xl, "%s %s%s/%d ", selector, op, inet_ntoa(*addr),
-			     cidr);
+		xt_xlate_add(xl, "%s %s%s/%d ", selector, op, abuf, cidr);
 	}
 }
 
