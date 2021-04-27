@@ -550,9 +550,9 @@ void debug_print_argv(struct argv_store *store)
 }
 #endif
 
-static const char *ipv4_addr_to_string(const struct in_addr *addr,
-				       const struct in_addr *mask,
-				       unsigned int format)
+const char *ipv4_addr_to_string(const struct in_addr *addr,
+				const struct in_addr *mask,
+				unsigned int format)
 {
 	static char buf[BUFSIZ];
 

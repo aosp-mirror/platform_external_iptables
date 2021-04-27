@@ -206,6 +206,9 @@ void debug_print_argv(struct argv_store *store);
 #  define debug_print_argv(...) /* nothing */
 #endif
 
+const char *ipv4_addr_to_string(const struct in_addr *addr,
+				const struct in_addr *mask,
+				unsigned int format);
 void print_ipv4_addresses(const struct ipt_entry *fw, unsigned int format);
 void print_ipv6_addresses(const struct ip6t_entry *fw6, unsigned int format);
 

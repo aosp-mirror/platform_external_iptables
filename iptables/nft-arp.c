@@ -42,78 +42,6 @@ char *arp_opcodes[] =
 	"ARP_NAK",
 };
 
-static char *
-addr_to_dotted(const struct in_addr *addrp)
-{
-	static char buf[20];
-	const unsigned char *bytep;
-
-	bytep = (const unsigned char *) &(addrp->s_addr);
-	sprintf(buf, "%d.%d.%d.%d", bytep[0], bytep[1], bytep[2], bytep[3]);
-	return buf;
-}
-
-static char *
-addr_to_host(const struct in_addr *addr)
-{
-	struct hostent *host;
-
-	if ((host = gethostbyaddr((char *) addr,
-					sizeof(struct in_addr), AF_INET)) != NULL)
-		return (char *) host->h_name;
-
-	return (char *) NULL;
-}
-
-static char *
-addr_to_network(const struct in_addr *addr)
-{
-	struct netent *net;
-
-	if ((net = getnetbyaddr((long) ntohl(addr->s_addr), AF_INET)) != NULL)
-		return (char *) net->n_name;
-
-	return (char *) NULL;
-}
-
-static char *
-addr_to_anyname(const struct in_addr *addr)
-{
-	char *name;
-
-	if ((name = addr_to_host(addr)) != NULL ||
-		(name = addr_to_network(addr)) != NULL)
-		return name;
-
-	return addr_to_dotted(addr);
-}
-
-static char *
-mask_to_dotted(const struct in_addr *mask)
-{
-	int i;
-	static char buf[22];
-	u_int32_t maskaddr, bits;
-
-	maskaddr = ntohl(mask->s_addr);
-
-	if (maskaddr == 0xFFFFFFFFL)
-		/* we don't want to see "/32" */
-		return "";
-
-	i = 32;
-	bits = 0xFFFFFFFEL;
-	while (--i >= 0 && maskaddr != bits)
-		bits <<= 1;
-	if (i >= 0)
-		sprintf(buf, "/%d", i);
-	else
-		/* mask was not a decent combination of 1's and 0's */
-		snprintf(buf, sizeof(buf), "/%s", addr_to_dotted(mask));
-
-	return buf;
-}
-
 static bool need_devaddr(struct arpt_devaddr_info *info)
 {
 	int i;
@@ -403,7 +331,6 @@ static void nft_arp_print_rule_details(const struct iptables_command_state *cs,
 				       unsigned int format)
 {
 	const struct arpt_entry *fw = &cs->arp;
-	char buf[BUFSIZ];
 	char iface[IFNAMSIZ+2];
 	const char *sep = "";
 	int print_iface = 0;
@@ -450,15 +377,10 @@ static void nft_arp_print_rule_details(const struct iptables_command_state *cs,
 	}
 
 	if (fw->arp.smsk.s_addr != 0L) {
-		printf("%s%s", sep, fw->arp.invflags & IPT_INV_SRCIP
-			? "! " : "");
-		if (format & FMT_NUMERIC)
-			sprintf(buf, "%s", addr_to_dotted(&(fw->arp.src)));
-		else
-			sprintf(buf, "%s", addr_to_anyname(&(fw->arp.src)));
-		strncat(buf, mask_to_dotted(&(fw->arp.smsk)),
-			sizeof(buf) - strlen(buf) - 1);
-		printf("-s %s", buf);
+		printf("%s%s-s %s", sep,
+		       fw->arp.invflags & IPT_INV_SRCIP ? "! " : "",
+		       ipv4_addr_to_string(&fw->arp.src,
+					   &fw->arp.smsk, format));
 		sep = " ";
 	}
 
@@ -476,15 +398,10 @@ static void nft_arp_print_rule_details(const struct iptables_command_state *cs,
 after_devsrc:
 
 	if (fw->arp.tmsk.s_addr != 0L) {
-		printf("%s%s", sep, fw->arp.invflags & IPT_INV_DSTIP
-			? "! " : "");
-		if (format & FMT_NUMERIC)
-			sprintf(buf, "%s", addr_to_dotted(&(fw->arp.tgt)));
-		else
-			sprintf(buf, "%s", addr_to_anyname(&(fw->arp.tgt)));
-		strncat(buf, mask_to_dotted(&(fw->arp.tmsk)),
-			sizeof(buf) - strlen(buf) - 1);
-		printf("-d %s", buf);
+		printf("%s%s-d %s", sep,
+		       fw->arp.invflags & IPT_INV_DSTIP ? "! " : "",
+		       ipv4_addr_to_string(&fw->arp.tgt,
+					   &fw->arp.tmsk, format));
 		sep = " ";
 	}
 
