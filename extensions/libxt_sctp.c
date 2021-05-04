@@ -92,28 +92,29 @@ struct sctp_chunk_names {
 	const char *name;
 	unsigned int chunk_type;
 	const char *valid_flags;
+	const char *nftname;
 };
 
 /*'ALL' and 'NONE' will be treated specially. */
 static const struct sctp_chunk_names sctp_chunk_names[]
-= { { .name = "DATA", 		.chunk_type = 0,   .valid_flags = "----IUBE"},
-    { .name = "INIT", 		.chunk_type = 1,   .valid_flags = "--------"},
-    { .name = "INIT_ACK", 	.chunk_type = 2,   .valid_flags = "--------"},
-    { .name = "SACK",		.chunk_type = 3,   .valid_flags = "--------"},
-    { .name = "HEARTBEAT",	.chunk_type = 4,   .valid_flags = "--------"},
-    { .name = "HEARTBEAT_ACK",	.chunk_type = 5,   .valid_flags = "--------"},
-    { .name = "ABORT",		.chunk_type = 6,   .valid_flags = "-------T"},
-    { .name = "SHUTDOWN",	.chunk_type = 7,   .valid_flags = "--------"},
-    { .name = "SHUTDOWN_ACK",	.chunk_type = 8,   .valid_flags = "--------"},
-    { .name = "ERROR",		.chunk_type = 9,   .valid_flags = "--------"},
-    { .name = "COOKIE_ECHO",	.chunk_type = 10,  .valid_flags = "--------"},
-    { .name = "COOKIE_ACK",	.chunk_type = 11,  .valid_flags = "--------"},
-    { .name = "ECN_ECNE",	.chunk_type = 12,  .valid_flags = "--------"},
-    { .name = "ECN_CWR",	.chunk_type = 13,  .valid_flags = "--------"},
-    { .name = "SHUTDOWN_COMPLETE", .chunk_type = 14,  .valid_flags = "-------T"},
-    { .name = "ASCONF",		.chunk_type = 193,  .valid_flags = "--------"},
-    { .name = "ASCONF_ACK",	.chunk_type = 128,  .valid_flags = "--------"},
-    { .name = "FORWARD_TSN",	.chunk_type = 192,  .valid_flags = "--------"},
+= { { .name = "DATA", 		.chunk_type = 0,   .valid_flags = "----IUBE", .nftname = "data" },
+    { .name = "INIT", 		.chunk_type = 1,   .valid_flags = "--------", .nftname = "init" },
+    { .name = "INIT_ACK", 	.chunk_type = 2,   .valid_flags = "--------", .nftname = "init-ack" },
+    { .name = "SACK",		.chunk_type = 3,   .valid_flags = "--------", .nftname = "sack" },
+    { .name = "HEARTBEAT",	.chunk_type = 4,   .valid_flags = "--------", .nftname = "heartbeat" },
+    { .name = "HEARTBEAT_ACK",	.chunk_type = 5,   .valid_flags = "--------", .nftname = "heartbeat-ack" },
+    { .name = "ABORT",		.chunk_type = 6,   .valid_flags = "-------T", .nftname = "abort" },
+    { .name = "SHUTDOWN",	.chunk_type = 7,   .valid_flags = "--------", .nftname = "shutdown" },
+    { .name = "SHUTDOWN_ACK",	.chunk_type = 8,   .valid_flags = "--------", .nftname = "shutdown-ack" },
+    { .name = "ERROR",		.chunk_type = 9,   .valid_flags = "--------", .nftname = "error" },
+    { .name = "COOKIE_ECHO",	.chunk_type = 10,  .valid_flags = "--------", .nftname = "cookie-echo" },
+    { .name = "COOKIE_ACK",	.chunk_type = 11,  .valid_flags = "--------", .nftname = "cookie-ack" },
+    { .name = "ECN_ECNE",	.chunk_type = 12,  .valid_flags = "--------", .nftname = "ecne" },
+    { .name = "ECN_CWR",	.chunk_type = 13,  .valid_flags = "--------", .nftname = "cwr" },
+    { .name = "SHUTDOWN_COMPLETE", .chunk_type = 14,  .valid_flags = "-------T", .nftname = "shutdown-complete" },
+    { .name = "ASCONF",		.chunk_type = 193,  .valid_flags = "--------", .nftname = "asconf" },
+    { .name = "ASCONF_ACK",	.chunk_type = 128,  .valid_flags = "--------", .nftname = "asconf-ack" },
+    { .name = "FORWARD_TSN",	.chunk_type = 192,  .valid_flags = "--------", .nftname = "forward-tsn" },
 };
 
 static void
@@ -485,12 +486,52 @@ static void sctp_save(const void *ip, const struct xt_entry_match *match)
 	}
 }
 
+static const char *sctp_xlate_chunk(struct xt_xlate *xl, const char *space,
+				    const struct xt_sctp_info *einfo,
+				    const struct sctp_chunk_names *scn)
+{
+	bool inv = einfo->invflags & XT_SCTP_CHUNK_TYPES;
+	const struct xt_sctp_flag_info *flag_info = NULL;
+	int i;
+
+	if (!scn->nftname)
+		return space;
+
+	if (!SCTP_CHUNKMAP_IS_SET(einfo->chunkmap, scn->chunk_type)) {
+		if (einfo->chunk_match_type != SCTP_CHUNK_MATCH_ONLY)
+			return space;
+
+		xt_xlate_add(xl, "%ssctp chunk %s %s", space,
+			     scn->nftname, inv ? "exists" : "missing");
+		return " ";
+	}
+
+	for (i = 0; i < einfo->flag_count; i++) {
+		if (einfo->flag_info[i].chunktype == scn->chunk_type) {
+			flag_info = &einfo->flag_info[i];
+			break;
+		}
+	}
+
+	if (!flag_info) {
+		xt_xlate_add(xl, "%ssctp chunk %s %s", space,
+			     scn->nftname, inv ? "missing" : "exists");
+		return " ";
+	}
+
+	xt_xlate_add(xl, "%ssctp chunk %s flags & 0x%x %s 0x%x", space,
+		     scn->nftname, flag_info->flag_mask,
+		     inv ? "!=" : "==", flag_info->flag);
+
+	return " ";
+}
+
 static int sctp_xlate(struct xt_xlate *xl,
 		      const struct xt_xlate_mt_params *params)
 {
 	const struct xt_sctp_info *einfo =
 		(const struct xt_sctp_info *)params->match->data;
-	char *space = "";
+	const char *space = "";
 
 	if (!einfo->flags)
 		return 0;
@@ -516,6 +557,18 @@ static int sctp_xlate(struct xt_xlate *xl,
 			xt_xlate_add(xl, "%ssctp dport%s %u", space,
 				     einfo->invflags & XT_SCTP_DEST_PORTS ? " !=" : "",
 				     einfo->dpts[0]);
+		space = " ";
+	}
+
+	if (einfo->flags & XT_SCTP_CHUNK_TYPES) {
+		int i;
+
+		if (einfo->chunk_match_type == SCTP_CHUNK_MATCH_ANY)
+			return 0;
+
+		for (i = 0; i < ARRAY_SIZE(sctp_chunk_names); i++)
+			space = sctp_xlate_chunk(xl, space, einfo,
+						 &sctp_chunk_names[i]);
 	}
 
 	return 1;
