@@ -495,15 +495,13 @@ static int sctp_xlate(struct xt_xlate *xl,
 	if (!einfo->flags)
 		return 0;
 
-	xt_xlate_add(xl, "sctp ");
-
 	if (einfo->flags & XT_SCTP_SRC_PORTS) {
 		if (einfo->spts[0] != einfo->spts[1])
-			xt_xlate_add(xl, "sport%s %u-%u",
+			xt_xlate_add(xl, "sctp sport%s %u-%u",
 				     einfo->invflags & XT_SCTP_SRC_PORTS ? " !=" : "",
 				     einfo->spts[0], einfo->spts[1]);
 		else
-			xt_xlate_add(xl, "sport%s %u",
+			xt_xlate_add(xl, "sctp sport%s %u",
 				     einfo->invflags & XT_SCTP_SRC_PORTS ? " !=" : "",
 				     einfo->spts[0]);
 		space = " ";
@@ -511,11 +509,11 @@ static int sctp_xlate(struct xt_xlate *xl,
 
 	if (einfo->flags & XT_SCTP_DEST_PORTS) {
 		if (einfo->dpts[0] != einfo->dpts[1])
-			xt_xlate_add(xl, "%sdport%s %u-%u", space,
+			xt_xlate_add(xl, "%ssctp dport%s %u-%u", space,
 				     einfo->invflags & XT_SCTP_DEST_PORTS ? " !=" : "",
 				     einfo->dpts[0], einfo->dpts[1]);
 		else
-			xt_xlate_add(xl, "%sdport%s %u", space,
+			xt_xlate_add(xl, "%ssctp dport%s %u", space,
 				     einfo->invflags & XT_SCTP_DEST_PORTS ? " !=" : "",
 				     einfo->dpts[0]);
 	}

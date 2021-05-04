@@ -23,16 +23,16 @@ iptables-translate -A INPUT -p sctp ! --dport 50:56 -j ACCEPT
 nft add rule ip filter INPUT sctp dport != 50-56 counter accept
 
 iptables-translate -A INPUT -p sctp --dport 80 --sport 50 -j ACCEPT
-nft add rule ip filter INPUT sctp sport 50 dport 80 counter accept
+nft add rule ip filter INPUT sctp sport 50 sctp dport 80 counter accept
 
 iptables-translate -A INPUT -p sctp --dport 80:100 --sport 50 -j ACCEPT
-nft add rule ip filter INPUT sctp sport 50 dport 80-100 counter accept
+nft add rule ip filter INPUT sctp sport 50 sctp dport 80-100 counter accept
 
 iptables-translate -A INPUT -p sctp --dport 80 --sport 50:55 -j ACCEPT
-nft add rule ip filter INPUT sctp sport 50-55 dport 80 counter accept
+nft add rule ip filter INPUT sctp sport 50-55 sctp dport 80 counter accept
 
 iptables-translate -A INPUT -p sctp ! --dport 80:100 --sport 50 -j ACCEPT
-nft add rule ip filter INPUT sctp sport 50 dport != 80-100 counter accept
+nft add rule ip filter INPUT sctp sport 50 sctp dport != 80-100 counter accept
 
 iptables-translate -A INPUT -p sctp --dport 80 ! --sport 50:55 -j ACCEPT
-nft add rule ip filter INPUT sctp sport != 50-55 dport 80 counter accept
+nft add rule ip filter INPUT sctp sport != 50-55 sctp dport 80 counter accept
