@@ -71,6 +71,9 @@ AC_ARG_WITH([xt-lock-name], AS_HELP_STRING([--with-xt-lock-name=PATH],
 	[Path to the xtables lock [[/run/xtables.lock]]]),
 	[xt_lock_name="$withval"],
 	[xt_lock_name="/run/xtables.lock"])
+AC_ARG_ENABLE([profiling],
+	AS_HELP_STRING([--enable-profiling], [build for use of gcov/gprof]),
+	[enable_profiling="$enableval"], [enable_profiling="no"])
 
 AC_MSG_CHECKING([whether $LD knows -Wl,--no-undefined])
 saved_LDFLAGS="$LDFLAGS";
@@ -188,6 +191,11 @@ if [[ -n "$ksourcedir" ]]; then
 fi;
 pkgdatadir='${datadir}/xtables';
 
+if test "x$enable_profiling" = "xyes"; then
+	regular_CFLAGS+=" -fprofile-arcs -ftest-coverage"
+	regular_LDFLAGS+=" -lgcov --coverage"
+fi
+
 define([EXPAND_VARIABLE],
 [$2=[$]$1
 if test $prefix = 'NONE'; then
@@ -205,6 +213,7 @@ eval "$2=[$]$2"
 AC_SUBST([regular_CFLAGS])
 AC_SUBST([regular_CPPFLAGS])
 AC_SUBST([noundef_LDFLAGS])
+AC_SUBST([regular_LDFLAGS])
 AC_SUBST([kinclude_CPPFLAGS])
 AC_SUBST([kbuilddir])
 AC_SUBST([ksourcedir])
@@ -250,6 +259,7 @@ Iptables Configuration:
   nfsynproxy util support:		${enable_nfsynproxy}
   nftables support:			${enable_nftables}
   connlabel support:			${enable_connlabel}
+  profiling support:			${enable_profiling}
 
 Build parameters:
   Put plugins into executable (static):	${enable_static}

@@ -1,4 +1,8 @@
 *.a
+*.gcda
+*.gcno
+*.gcno.gcov.json.gz
+*.gcov
 *.la
 *.lo
 *.so

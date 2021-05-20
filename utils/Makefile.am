@@ -3,6 +3,7 @@
 AM_CFLAGS = ${regular_CFLAGS}
 AM_CPPFLAGS = ${regular_CPPFLAGS} -I${top_builddir}/include \
               -I${top_srcdir}/include ${libnfnetlink_CFLAGS}
+AM_LDFLAGS = ${regular_LDFLAGS}
 
 sbin_PROGRAMS =
 pkgdata_DATA =

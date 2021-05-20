@@ -2,6 +2,7 @@
 
 AM_CFLAGS        = ${regular_CFLAGS}
 AM_CPPFLAGS      = ${regular_CPPFLAGS} -I${top_builddir}/include -I${top_srcdir}/include ${kinclude_CPPFLAGS}
+AM_LDFLAGS       = ${regular_LDFLAGS}
 
 pkgconfig_DATA      = libiptc.pc libip4tc.pc libip6tc.pc
 

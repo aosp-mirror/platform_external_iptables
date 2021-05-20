@@ -2,6 +2,7 @@
 
 AM_CFLAGS = ${regular_CFLAGS}
 AM_CPPFLAGS = ${regular_CPPFLAGS} -I${top_builddir}/include -I${top_srcdir}/include
+AM_LDFLAGS = ${regular_LDFLAGS}
 
 libipq_la_SOURCES = libipq.c
 lib_LTLIBRARIES   = libipq.la
