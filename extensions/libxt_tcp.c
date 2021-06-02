@@ -381,7 +381,7 @@ static void print_tcp_xlate(struct xt_xlate *xl, uint8_t flags)
 		for (i = 0; (flags & tcp_flag_names_xlate[i].flag) == 0; i++);
 
 		if (have_flag)
-			xt_xlate_add(xl, "|");
+			xt_xlate_add(xl, ",");
 
 		xt_xlate_add(xl, "%s", tcp_flag_names_xlate[i].name);
 		have_flag = 1;
@@ -435,11 +435,11 @@ static int tcp_xlate(struct xt_xlate *xl,
 		return 0;
 
 	if (tcpinfo->flg_mask || (tcpinfo->invflags & XT_TCP_INV_FLAGS)) {
-		xt_xlate_add(xl, "%stcp flags & (", space);
-		print_tcp_xlate(xl, tcpinfo->flg_mask);
-		xt_xlate_add(xl, ") %s ",
-			   tcpinfo->invflags & XT_TCP_INV_FLAGS ? "!=": "==");
+		xt_xlate_add(xl, "%stcp flags %s", space,
+			     tcpinfo->invflags & XT_TCP_INV_FLAGS ? "!= ": "");
 		print_tcp_xlate(xl, tcpinfo->flg_cmp);
+		xt_xlate_add(xl, " / ");
+		print_tcp_xlate(xl, tcpinfo->flg_mask);
 	}
 
 	return 1;

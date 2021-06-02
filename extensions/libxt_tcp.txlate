@@ -11,13 +11,13 @@ iptables-translate -I OUTPUT -p tcp --dport 1020:1023 --sport 53 -j ACCEPT
 nft insert rule ip filter OUTPUT tcp sport 53 tcp dport 1020-1023 counter accept
 
 iptables -A INPUT -p tcp --tcp-flags ACK,FIN FIN -j DROP
-nft add rule ip filter INPUT tcp flags & fin|ack == fin counter drop
+nft add rule ip filter INPUT tcp flags fin / fin,ack counter drop
 
 iptables-translate -A INPUT -p tcp --syn -j ACCEPT
-nft add rule ip filter INPUT tcp flags & (fin|syn|rst|ack) == syn counter accept
+nft add rule ip filter INPUT tcp flags syn / fin,syn,rst,ack counter accept
 
 iptables-translate -A INPUT -p tcp --syn --dport 80 -j ACCEPT
-nft add rule ip filter INPUT tcp dport 80 tcp flags & (fin|syn|rst|ack) == syn counter accept
+nft add rule ip filter INPUT tcp dport 80 tcp flags syn / fin,syn,rst,ack counter accept
 
 iptables-translate -A INPUT -f -p tcp
 nft add rule ip filter INPUT ip frag-off & 0x1fff != 0 ip protocol tcp counter
