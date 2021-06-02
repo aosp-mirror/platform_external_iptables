@@ -11,6 +11,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <xtables.h>
 #include "nft.h"
 #include "nft-cmd.h"
 
@@ -27,9 +28,9 @@ struct nft_cmd *nft_cmd_new(struct nft_handle *h, int command,
 		return NULL;
 
 	cmd->command = command;
-	cmd->table = strdup(table);
+	cmd->table = xtables_strdup(table);
 	if (chain)
-		cmd->chain = strdup(chain);
+		cmd->chain = xtables_strdup(chain);
 	cmd->rulenum = rulenum;
 	cmd->verbose = verbose;
 
@@ -43,7 +44,7 @@ struct nft_cmd *nft_cmd_new(struct nft_handle *h, int command,
 		cmd->obj.rule = rule;
 
 		if (!state->target && strlen(state->jumpto) > 0)
-			cmd->jumpto = strdup(state->jumpto);
+			cmd->jumpto = xtables_strdup(state->jumpto);
 	}
 
 	list_add_tail(&cmd->head, &h->cmd_list);
@@ -238,7 +239,7 @@ int nft_cmd_chain_user_rename(struct nft_handle *h,const char *chain,
 	if (!cmd)
 		return 0;
 
-	cmd->rename = strdup(newname);
+	cmd->rename = xtables_strdup(newname);
 
 	nft_cache_level_set(h, NFT_CL_CHAINS, cmd);
 
@@ -304,7 +305,7 @@ int nft_cmd_chain_set(struct nft_handle *h, const char *table,
 	if (!cmd)
 		return 0;
 
-	cmd->policy = strdup(policy);
+	cmd->policy = xtables_strdup(policy);
 	if (counters)
 		cmd->counters = *counters;
 
@@ -389,7 +390,7 @@ int ebt_cmd_user_chain_policy(struct nft_handle *h, const char *table,
 	if (!cmd)
 		return 0;
 
-	cmd->policy = strdup(policy);
+	cmd->policy = xtables_strdup(policy);
 
 	nft_cache_level_set(h, NFT_CL_RULES, cmd);
 

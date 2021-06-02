@@ -43,7 +43,7 @@ parse_tcp_ports(const char *portstring, uint16_t *ports)
 	char *buffer;
 	char *cp;
 
-	buffer = strdup(portstring);
+	buffer = xtables_strdup(portstring);
 	if ((cp = strchr(buffer, ':')) == NULL)
 		ports[0] = ports[1] = xtables_parse_port(buffer, "tcp");
 	else {
@@ -83,7 +83,7 @@ parse_tcp_flag(const char *flags)
 	char *ptr;
 	char *buffer;
 
-	buffer = strdup(flags);
+	buffer = xtables_strdup(flags);
 
 	for (ptr = strtok(buffer, ","); ptr; ptr = strtok(NULL, ",")) {
 		unsigned int i;

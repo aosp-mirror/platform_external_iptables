@@ -87,8 +87,7 @@ parse_multi_ports(const char *portstring, uint16_t *ports, const char *proto)
 	char *buffer, *cp, *next;
 	unsigned int i;
 
-	buffer = strdup(portstring);
-	if (!buffer) xtables_error(OTHER_PROBLEM, "strdup failed");
+	buffer = xtables_strdup(portstring);
 
 	for (cp=buffer, i=0; cp && i<XT_MULTI_PORTS; cp=next,i++)
 	{
@@ -109,8 +108,7 @@ parse_multi_ports_v1(const char *portstring,
 	char *buffer, *cp, *next, *range;
 	unsigned int i;
 
-	buffer = strdup(portstring);
-	if (!buffer) xtables_error(OTHER_PROBLEM, "strdup failed");
+	buffer = xtables_strdup(portstring);
 
 	for (i=0; i<XT_MULTI_PORTS; i++)
 		multiinfo->pflags[i] = 0;

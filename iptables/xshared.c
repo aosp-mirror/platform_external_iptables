@@ -435,7 +435,7 @@ void add_argv(struct argv_store *store, const char *what, int quoted)
 		xtables_error(PARAMETER_PROBLEM,
 			      "Trying to store NULL argument\n");
 
-	store->argv[store->argc] = strdup(what);
+	store->argv[store->argc] = xtables_strdup(what);
 	store->argvattr[store->argc] = quoted;
 	store->argv[++store->argc] = NULL;
 }

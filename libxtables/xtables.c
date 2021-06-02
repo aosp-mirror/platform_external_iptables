@@ -369,6 +369,18 @@ void *xtables_realloc(void *ptr, size_t size)
 	return p;
 }
 
+char *xtables_strdup(const char *s)
+{
+	char *dup = strdup(s);
+
+	if (!dup) {
+		perror("ip[6]tables: strdup failed");
+		exit(1);
+	}
+
+	return dup;
+}
+
 static char *get_modprobe(void)
 {
 	int procfile;

@@ -69,7 +69,7 @@ parse_sctp_ports(const char *portstring,
 	char *buffer;
 	char *cp;
 
-	buffer = strdup(portstring);
+	buffer = xtables_strdup(portstring);
 	DEBUGP("%s\n", portstring);
 	if ((cp = strchr(buffer, ':')) == NULL) {
 		ports[0] = ports[1] = xtables_parse_port(buffer, "sctp");
@@ -164,7 +164,7 @@ parse_sctp_chunk(struct xt_sctp_info *einfo,
 	int found = 0;
 	char *chunk_flags;
 
-	buffer = strdup(chunks);
+	buffer = xtables_strdup(chunks);
 	DEBUGP("Buffer: %s\n", buffer);
 
 	SCTP_CHUNKMAP_RESET(einfo->chunkmap);

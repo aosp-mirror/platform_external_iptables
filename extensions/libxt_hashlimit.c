@@ -508,10 +508,7 @@ static void hashlimit_mt6_init(struct xt_entry_match *match)
 static int parse_mode(uint32_t *mode, const char *option_arg)
 {
 	char *tok;
-	char *arg = strdup(option_arg);
-
-	if (!arg)
-		return -1;
+	char *arg = xtables_strdup(option_arg);
 
 	for (tok = strtok(arg, ",|");
 	     tok;

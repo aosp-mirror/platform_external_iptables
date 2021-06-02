@@ -93,7 +93,7 @@ parse_port_range(const char *protocol, const char *portstring, uint16_t *ports)
 	char *buffer;
 	char *cp;
 
-	buffer = strdup(portstring);
+	buffer = xtables_strdup(portstring);
 	if ((cp = strchr(buffer, ':')) == NULL)
 		ports[0] = ports[1] = xtables_parse_port(buffer, NULL);
 	else {

@@ -40,7 +40,7 @@ static void cache_chain_list_insert(struct list_head *list, const char *name)
 	}
 
 	new = xtables_malloc(sizeof(*new));
-	new->name = strdup(name);
+	new->name = xtables_strdup(name);
 	list_add_tail(&new->head, pos ? &pos->head : list);
 }
 
@@ -56,7 +56,7 @@ void nft_cache_level_set(struct nft_handle *h, int level,
 		return;
 
 	if (!req->table)
-		req->table = strdup(cmd->table);
+		req->table = xtables_strdup(cmd->table);
 	else
 		assert(!strcmp(req->table, cmd->table));
 

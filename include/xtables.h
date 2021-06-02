@@ -453,6 +453,7 @@ extern void xtables_set_nfproto(uint8_t);
 extern void *xtables_calloc(size_t, size_t);
 extern void *xtables_malloc(size_t);
 extern void *xtables_realloc(void *, size_t);
+char *xtables_strdup(const char *);
 
 extern int xtables_insmod(const char *, const char *, bool);
 extern int xtables_load_ko(const char *, bool);

@@ -52,9 +52,7 @@ parse_to(const char *orig_arg, int portok, struct nf_nat_range *range)
 	char *arg, *start, *end = NULL, *colon = NULL, *dash, *error;
 	const struct in6_addr *ip;
 
-	arg = strdup(orig_arg);
-	if (arg == NULL)
-		xtables_error(RESOURCE_PROBLEM, "strdup");
+	arg = xtables_strdup(orig_arg);
 
 	start = strchr(arg, '[');
 	if (start == NULL) {

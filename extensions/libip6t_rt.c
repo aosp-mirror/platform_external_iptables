@@ -73,10 +73,9 @@ parse_addresses(const char *addrstr, struct in6_addr *addrp)
 {
         char *buffer, *cp, *next;
         unsigned int i;
-	
-	buffer = strdup(addrstr);
-	if (!buffer) xtables_error(OTHER_PROBLEM, "strdup failed");
-			
+
+	buffer = xtables_strdup(addrstr);
+
         for (cp=buffer, i=0; cp && i<IP6T_RT_HOPS; cp=next,i++)
         {
                 next=strchr(cp, ',');

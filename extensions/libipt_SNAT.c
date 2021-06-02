@@ -73,9 +73,7 @@ parse_to(const char *orig_arg, int portok, struct ipt_natinfo *info)
 	char *arg, *colon, *dash, *error;
 	const struct in_addr *ip;
 
-	arg = strdup(orig_arg);
-	if (arg == NULL)
-		xtables_error(RESOURCE_PROBLEM, "strdup");
+	arg = xtables_strdup(orig_arg);
 	memset(&range, 0, sizeof(range));
 	colon = strchr(arg, ':');
 
