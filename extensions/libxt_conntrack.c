@@ -1151,40 +1151,30 @@ static void state_save(const void *ip, const struct xt_entry_match *match)
 static void state_xlate_print(struct xt_xlate *xl, unsigned int statemask, int inverted)
 {
 	const char *sep = "";
-	int one_flag_set;
 
-	one_flag_set = !(statemask & (statemask - 1));
-
-	if (inverted && !one_flag_set)
-		xt_xlate_add(xl, "& (");
-	else if (inverted)
-		xt_xlate_add(xl, "& ");
+	if (inverted)
+		xt_xlate_add(xl, "! ");
 
 	if (statemask & XT_CONNTRACK_STATE_INVALID) {
 		xt_xlate_add(xl, "%s%s", sep, "invalid");
-		sep = inverted && !one_flag_set ? "|" : ",";
+		sep = ",";
 	}
 	if (statemask & XT_CONNTRACK_STATE_BIT(IP_CT_NEW)) {
 		xt_xlate_add(xl, "%s%s", sep, "new");
-		sep = inverted && !one_flag_set ? "|" : ",";
+		sep = ",";
 	}
 	if (statemask & XT_CONNTRACK_STATE_BIT(IP_CT_RELATED)) {
 		xt_xlate_add(xl, "%s%s", sep, "related");
-		sep = inverted && !one_flag_set ? "|" : ",";
+		sep = ",";
 	}
 	if (statemask & XT_CONNTRACK_STATE_BIT(IP_CT_ESTABLISHED)) {
 		xt_xlate_add(xl, "%s%s", sep, "established");
-		sep = inverted && !one_flag_set ? "|" : ",";
+		sep = ",";
 	}
 	if (statemask & XT_CONNTRACK_STATE_UNTRACKED) {
 		xt_xlate_add(xl, "%s%s", sep, "untracked");
-		sep = inverted && !one_flag_set ? "|" : ",";
+		sep = ",";
 	}
-
-	if (inverted && !one_flag_set)
-		xt_xlate_add(xl, ") == 0");
-	else if (inverted)
-		xt_xlate_add(xl, " == 0");
 }
 
 static int state_xlate(struct xt_xlate *xl,
@@ -1203,36 +1193,26 @@ static int state_xlate(struct xt_xlate *xl,
 static void status_xlate_print(struct xt_xlate *xl, unsigned int statusmask, int inverted)
 {
 	const char *sep = "";
-	int one_flag_set;
 
-	one_flag_set = !(statusmask & (statusmask - 1));
-
-	if (inverted && !one_flag_set)
-		xt_xlate_add(xl, "& (");
-	else if (inverted)
-		xt_xlate_add(xl, "& ");
+	if (inverted)
+		xt_xlate_add(xl, "! ");
 
 	if (statusmask & IPS_EXPECTED) {
 		xt_xlate_add(xl, "%s%s", sep, "expected");
-		sep = inverted && !one_flag_set ? "|" : ",";
+		sep = ",";
 	}
 	if (statusmask & IPS_SEEN_REPLY) {
 		xt_xlate_add(xl, "%s%s", sep, "seen-reply");
-		sep = inverted && !one_flag_set ? "|" : ",";
+		sep = ",";
 	}
 	if (statusmask & IPS_ASSURED) {
 		xt_xlate_add(xl, "%s%s", sep, "assured");
-		sep = inverted && !one_flag_set ? "|" : ",";
+		sep = ",";
 	}
 	if (statusmask & IPS_CONFIRMED) {
 		xt_xlate_add(xl, "%s%s", sep, "confirmed");
-		sep = inverted && !one_flag_set ? "|" : ",";
+		sep = ",";
 	}
-
-	if (inverted && !one_flag_set)
-		xt_xlate_add(xl, ") == 0");
-	else if (inverted)
-		xt_xlate_add(xl, " == 0");
 }
 
 static void addr_xlate_print(struct xt_xlate *xl,
