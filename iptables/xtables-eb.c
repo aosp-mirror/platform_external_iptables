@@ -1077,6 +1077,9 @@ print_zero:
 			flags |= LIST_MAC2;
 			break;
 		case 11: /* init-table */
+			if (restore)
+				xtables_error(PARAMETER_PROBLEM,
+					      "--init-table is not supported in daemon mode");
 			nft_cmd_table_flush(h, *table, false);
 			return 1;
 		case 13 :
