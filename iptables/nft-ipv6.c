@@ -293,11 +293,11 @@ static void nft_ipv6_post_parse(int command, struct iptables_command_state *cs,
 	 */
 	cs->fw6.ipv6.invflags = args->invflags;
 
-	strncpy(cs->fw6.ipv6.iniface, args->iniface, IFNAMSIZ);
+	memcpy(cs->fw6.ipv6.iniface, args->iniface, IFNAMSIZ);
 	memcpy(cs->fw6.ipv6.iniface_mask,
 	       args->iniface_mask, IFNAMSIZ*sizeof(unsigned char));
 
-	strncpy(cs->fw6.ipv6.outiface, args->outiface, IFNAMSIZ);
+	memcpy(cs->fw6.ipv6.outiface, args->outiface, IFNAMSIZ);
 	memcpy(cs->fw6.ipv6.outiface_mask,
 	       args->outiface_mask, IFNAMSIZ*sizeof(unsigned char));
 

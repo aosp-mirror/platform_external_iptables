@@ -348,11 +348,11 @@ static void nft_ipv4_post_parse(int command,
 	 */
 	cs->fw.ip.invflags = args->invflags;
 
-	strncpy(cs->fw.ip.iniface, args->iniface, IFNAMSIZ);
+	memcpy(cs->fw.ip.iniface, args->iniface, IFNAMSIZ);
 	memcpy(cs->fw.ip.iniface_mask,
 	       args->iniface_mask, IFNAMSIZ*sizeof(unsigned char));
 
-	strncpy(cs->fw.ip.outiface, args->outiface, IFNAMSIZ);
+	memcpy(cs->fw.ip.outiface, args->outiface, IFNAMSIZ);
 	memcpy(cs->fw.ip.outiface_mask,
 	       args->outiface_mask, IFNAMSIZ*sizeof(unsigned char));
 
