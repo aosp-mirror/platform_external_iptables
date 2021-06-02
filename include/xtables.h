@@ -633,9 +633,15 @@ extern const char *xtables_lmap_id2name(const struct xtables_lmap *, int);
 struct xt_xlate *xt_xlate_alloc(int size);
 void xt_xlate_free(struct xt_xlate *xl);
 void xt_xlate_add(struct xt_xlate *xl, const char *fmt, ...) __attribute__((format(printf,2,3)));
+#define xt_xlate_rule_add xt_xlate_add
+void xt_xlate_set_add(struct xt_xlate *xl, const char *fmt, ...) __attribute__((format(printf,2,3)));
 void xt_xlate_add_comment(struct xt_xlate *xl, const char *comment);
 const char *xt_xlate_get_comment(struct xt_xlate *xl);
+void xl_xlate_set_family(struct xt_xlate *xl, uint8_t family);
+uint8_t xt_xlate_get_family(struct xt_xlate *xl);
 const char *xt_xlate_get(struct xt_xlate *xl);
+#define xt_xlate_rule_get xt_xlate_get
+const char *xt_xlate_set_get(struct xt_xlate *xl);
 
 #ifdef XTABLES_INTERNAL
 

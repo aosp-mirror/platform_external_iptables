@@ -155,20 +155,33 @@ static int nft_rule_xlate_add(struct nft_handle *h,
 			      bool append)
 {
 	struct xt_xlate *xl = xt_xlate_alloc(10240);
+	const char *set;
 	int ret;
 
-	if (append) {
-		xt_xlate_add(xl, "add rule %s %s %s ",
-			   family2str[h->family], p->table, p->chain);
-	} else {
-		xt_xlate_add(xl, "insert rule %s %s %s ",
-			   family2str[h->family], p->table, p->chain);
+	xl_xlate_set_family(xl, h->family);
+	ret = h->ops->xlate(cs, xl);
+	if (!ret)
+		goto err_out;
+
+	set = xt_xlate_set_get(xl);
+	if (set[0]) {
+		printf("add set %s %s %s\n", family2str[h->family], p->table,
+		       xt_xlate_set_get(xl));
+
+		if (!cs->restore && p->command != CMD_NONE)
+			printf("nft ");
 	}
 
-	ret = h->ops->xlate(cs, xl);
-	if (ret)
-		printf("%s\n", xt_xlate_get(xl));
+	if (append) {
+		printf("add rule %s %s %s ",
+		       family2str[h->family], p->table, p->chain);
+	} else {
+		printf("insert rule %s %s %s ",
+		       family2str[h->family], p->table, p->chain);
+	}
+	printf("%s\n", xt_xlate_rule_get(xl));
 
+err_out:
 	xt_xlate_free(xl);
 	return ret;
 }

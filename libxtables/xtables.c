@@ -2330,32 +2330,42 @@ void get_kernel_version(void)
 
 #include <linux/netfilter/nf_tables.h>
 
+enum xt_xlate_type {
+	XT_XLATE_RULE = 0,
+	XT_XLATE_SET,
+	__XT_XLATE_MAX
+};
+
 struct xt_xlate {
-	struct {
+	struct xt_xlate_buf {
 		char	*data;
 		int	size;
 		int	rem;
 		int	off;
-	} buf;
+	} buf[__XT_XLATE_MAX];
 	char comment[NFT_USERDATA_MAXLEN];
+	int family;
 };
 
 struct xt_xlate *xt_xlate_alloc(int size)
 {
 	struct xt_xlate *xl;
+	int i;
 
 	xl = malloc(sizeof(struct xt_xlate));
 	if (xl == NULL)
 		xtables_error(RESOURCE_PROBLEM, "OOM");
 
-	xl->buf.data = malloc(size);
-	if (xl->buf.data == NULL)
-		xtables_error(RESOURCE_PROBLEM, "OOM");
+	for (i = 0; i < __XT_XLATE_MAX; i++) {
+		xl->buf[i].data = malloc(size);
+		if (xl->buf[i].data == NULL)
+			xtables_error(RESOURCE_PROBLEM, "OOM");
 
-	xl->buf.data[0] = '\0';
-	xl->buf.size = size;
-	xl->buf.rem = size;
-	xl->buf.off = 0;
+		xl->buf[i].data[0] = '\0';
+		xl->buf[i].size = size;
+		xl->buf[i].rem = size;
+		xl->buf[i].off = 0;
+	}
 	xl->comment[0] = '\0';
 
 	return xl;
@@ -2363,23 +2373,44 @@ struct xt_xlate *xt_xlate_alloc(int size)
 
 void xt_xlate_free(struct xt_xlate *xl)
 {
-	free(xl->buf.data);
+	int i;
+
+	for (i = 0; i < __XT_XLATE_MAX; i++)
+		free(xl->buf[i].data);
+
 	free(xl);
 }
 
-void xt_xlate_add(struct xt_xlate *xl, const char *fmt, ...)
+static void __xt_xlate_add(struct xt_xlate *xl, enum xt_xlate_type type,
+			   const char *fmt, va_list ap)
 {
-	va_list ap;
+	struct xt_xlate_buf *buf = &xl->buf[type];
 	int len;
 
-	va_start(ap, fmt);
-	len = vsnprintf(xl->buf.data + xl->buf.off, xl->buf.rem, fmt, ap);
-	if (len < 0 || len >= xl->buf.rem)
+	len = vsnprintf(buf->data + buf->off, buf->rem, fmt, ap);
+	if (len < 0 || len >= buf->rem)
 		xtables_error(RESOURCE_PROBLEM, "OOM");
 
+	buf->rem -= len;
+	buf->off += len;
+}
+
+void xt_xlate_rule_add(struct xt_xlate *xl, const char *fmt, ...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	__xt_xlate_add(xl, XT_XLATE_RULE, fmt, ap);
 	va_end(ap);
-	xl->buf.rem -= len;
-	xl->buf.off += len;
+}
+
+void xt_xlate_set_add(struct xt_xlate *xl, const char *fmt, ...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	__xt_xlate_add(xl, XT_XLATE_SET, fmt, ap);
+	va_end(ap);
 }
 
 void xt_xlate_add_comment(struct xt_xlate *xl, const char *comment)
@@ -2393,7 +2424,22 @@ const char *xt_xlate_get_comment(struct xt_xlate *xl)
 	return xl->comment[0] ? xl->comment : NULL;
 }
 
+void xl_xlate_set_family(struct xt_xlate *xl, uint8_t family)
+{
+	xl->family = family;
+}
+
+uint8_t xt_xlate_get_family(struct xt_xlate *xl)
+{
+	return xl->family;
+}
+
 const char *xt_xlate_get(struct xt_xlate *xl)
 {
-	return xl->buf.data;
+	return xl->buf[XT_XLATE_RULE].data;
+}
+
+const char *xt_xlate_set_get(struct xt_xlate *xl)
+{
+	return xl->buf[XT_XLATE_SET].data;
 }
