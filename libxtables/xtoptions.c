@@ -763,6 +763,7 @@ static void xtopt_parse_hostmask(struct xt_option_call *cb)
 	cb->arg = p;
 	xtopt_parse_plenmask(cb);
 	cb->arg = orig_arg;
+	free(work);
 }
 
 static void xtopt_parse_ethermac(struct xt_option_call *cb)
