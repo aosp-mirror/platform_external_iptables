@@ -247,73 +247,19 @@ static void brip6_init(struct xt_entry_match *match)
 	memset(ipinfo->dmsk.s6_addr, 0, sizeof(ipinfo->dmsk.s6_addr));
 }
 
-static struct in6_addr *numeric_to_addr(const char *num)
+/* wrap xtables_ip6parse_any(), ignoring any but the first returned address */
+static void ebt_parse_ip6_address(char *address,
+				  struct in6_addr *addr, struct in6_addr *msk)
 {
-	static struct in6_addr ap;
-
-	if (inet_pton(AF_INET6, num, &ap) == 1)
-		return &ap;
-	return (struct in6_addr *)NULL;
-}
-
-static struct in6_addr *parse_ip6_mask(char *mask)
-{
-	static struct in6_addr maskaddr;
 	struct in6_addr *addrp;
-	unsigned int bits;
+	unsigned int naddrs;
 
-	if (mask == NULL) {
-		/* no mask at all defaults to 128 bits */
-		memset(&maskaddr, 0xff, sizeof maskaddr);
-		return &maskaddr;
-	}
-	if ((addrp = numeric_to_addr(mask)) != NULL)
-		return addrp;
-	if (!xtables_strtoui(mask, NULL, &bits, 0, 128))
-		xtables_error(PARAMETER_PROBLEM, "Invalid IPv6 Mask '%s' specified", mask);
-	if (bits != 0) {
-		char *p = (char *)&maskaddr;
-		memset(p, 0xff, bits / 8);
-		memset(p + (bits / 8) + 1, 0, (128 - bits) / 8);
-		p[bits / 8] = 0xff << (8 - (bits & 7));
-		return &maskaddr;
-	}
-
-	memset(&maskaddr, 0, sizeof maskaddr);
-	return &maskaddr;
-}
-
-/* Set the ipv6 mask and address. Callers should check ebt_errormsg[0].
- * The string pointed to by address can be altered. */
-static void ebt_parse_ip6_address(char *address, struct in6_addr *addr, struct in6_addr *msk)
-{
-	struct in6_addr *tmp_addr;
-	char buf[256];
-	char *p;
-	int i;
-
-	strncpy(buf, address, sizeof(buf) - 1);
-	/* first the mask */
-	buf[sizeof(buf) - 1] = '\0';
-	if ((p = strrchr(buf, '/')) != NULL) {
-		*p = '\0';
-		tmp_addr = parse_ip6_mask(p + 1);
-	} else
-		tmp_addr = parse_ip6_mask(NULL);
-
-	*msk = *tmp_addr;
-
-	/* if a null mask is given, the name is ignored, like in "any/0" */
-	if (!memcmp(msk, &in6addr_any, sizeof(in6addr_any)))
-		strcpy(buf, "::");
-
-	if (inet_pton(AF_INET6, buf, addr) < 1) {
-		xtables_error(PARAMETER_PROBLEM, "Invalid IPv6 Address '%s' specified", buf);
-		return;
-	}
-
-	for (i = 0; i < 4; i++)
-		addr->s6_addr32[i] &= msk->s6_addr32[i];
+	xtables_ip6parse_any(address, &addrp, msk, &naddrs);
+	if (naddrs != 1)
+		xtables_error(PARAMETER_PROBLEM,
+			      "Invalid IPv6 Address '%s' specified", address);
+	memcpy(addr, addrp, sizeof(*addr));
+	free(addrp);
 }
 
 #define OPT_SOURCE 0x01
