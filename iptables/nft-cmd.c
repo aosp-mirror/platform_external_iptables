@@ -35,8 +35,10 @@ struct nft_cmd *nft_cmd_new(struct nft_handle *h, int command,
 
 	if (state) {
 		rule = nft_rule_new(h, chain, table, state);
-		if (!rule)
+		if (!rule) {
+			nft_cmd_free(cmd);
 			return NULL;
+		}
 
 		cmd->obj.rule = rule;
 
