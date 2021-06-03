@@ -39,14 +39,21 @@ def run_test(name, payload):
     tests = passed = failed = errors = 0
     result = []
 
-    for line in payload:
+    line = payload.readline()
+    while line:
         if line.startswith(keywords):
             tests += 1
             process = Popen([ xtables_nft_multi ] + shlex.split(line), stdout=PIPE, stderr=PIPE)
             (output, error) = process.communicate()
             if process.returncode == 0:
                 translation = output.decode("utf-8").rstrip(" \n")
-                expected = next(payload).rstrip(" \n")
+                expected = payload.readline().rstrip(" \n")
+                next_expected = payload.readline().rstrip(" \n")
+                if next_expected.startswith("nft"):
+                    expected += "\n" + next_expected
+                    line = payload.readline()
+                else:
+                    line = next_expected
                 if translation != expected:
                     test_passed = False
                     failed += 1
@@ -62,6 +69,9 @@ def run_test(name, payload):
                 errors += 1
                 result.append(name + ": " + red("Error: ") + "iptables-translate failure")
                 result.append(error.decode("utf-8"))
+                line = payload.readline()
+        else:
+                line = payload.readline()
     if (passed == tests) and not args.test:
         print(name + ": " + green("OK"))
     if not test_passed:
