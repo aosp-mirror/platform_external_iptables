@@ -2,7 +2,7 @@
 
 set -e
 
-[[ $XT_MULTI == */xtables-nft-multi ]] || { echo "skip $XT_MULTI"; exit 0; }
+[[ $XT_MULTI == *xtables-nft-multi ]] || { echo "skip $XT_MULTI"; exit 0; }
 
 comment1="foo bar"
 comment2="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
