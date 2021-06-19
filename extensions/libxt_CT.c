@@ -348,6 +348,20 @@ static void notrack_ct2_tg_init(struct xt_entry_target *target)
 	info->flags = XT_CT_NOTRACK | XT_CT_NOTRACK_ALIAS;
 }
 
+static int xlate_ct1_tg(struct xt_xlate *xl,
+			const struct xt_xlate_tg_params *params)
+{
+	struct xt_ct_target_info_v1 *info =
+		(struct xt_ct_target_info_v1 *)params->target->data;
+
+	if (info->flags & XT_CT_NOTRACK)
+		xt_xlate_add(xl, "notrack");
+	else
+		return 0;
+
+	return 1;
+}
+
 static struct xtables_target ct_target_reg[] = {
 	{
 		.family		= NFPROTO_UNSPEC,
@@ -387,6 +401,7 @@ static struct xtables_target ct_target_reg[] = {
 		.alias		= ct_print_name_alias,
 		.x6_parse	= ct_parse_v1,
 		.x6_options	= ct_opts_v1,
+		.xlate		= xlate_ct1_tg,
 	},
 	{
 		.family        = NFPROTO_UNSPEC,
@@ -418,6 +433,7 @@ static struct xtables_target ct_target_reg[] = {
 		.size          = XT_ALIGN(sizeof(struct xt_ct_target_info_v1)),
 		.userspacesize = offsetof(struct xt_ct_target_info_v1, ct),
 		.init          = notrack_ct2_tg_init,
+		.xlate	       = xlate_ct1_tg,
 	},
 	{
 		.family        = NFPROTO_UNSPEC,
