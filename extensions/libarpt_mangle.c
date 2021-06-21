@@ -130,15 +130,6 @@ static void arpmangle_final_check(unsigned int flags)
 {
 }
 
-static void print_mac(const unsigned char *mac, int l)
-{
-	int j;
-
-	for (j = 0; j < l; j++)
-		printf("%02x%s", mac[j],
-			(j==l-1) ? "" : ":");
-}
-
 static const char *ipaddr_to(const struct in_addr *addrp, int numeric)
 {
 	if (numeric)
@@ -159,7 +150,7 @@ arpmangle_print(const void *ip, const struct xt_entry_target *target,
 	}
 	if (m->flags & ARPT_MANGLE_SDEV) {
 		printf(" --mangle-mac-s ");
-		print_mac((unsigned char *)m->src_devaddr, 6);
+		xtables_print_mac((unsigned char *)m->src_devaddr);
 	}
 	if (m->flags & ARPT_MANGLE_TIP) {
 		printf(" --mangle-ip-d %s",
@@ -167,7 +158,7 @@ arpmangle_print(const void *ip, const struct xt_entry_target *target,
 	}
 	if (m->flags & ARPT_MANGLE_TDEV) {
 		printf(" --mangle-mac-d ");
-		print_mac((unsigned char *)m->tgt_devaddr, 6);
+		xtables_print_mac((unsigned char *)m->tgt_devaddr);
 	}
 	if (m->target != NF_ACCEPT) {
 		printf(" --mangle-target %s",
