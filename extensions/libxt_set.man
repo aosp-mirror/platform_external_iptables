@@ -61,5 +61,5 @@ when the set was defined without counter support.
 The option \fB\-\-match\-set\fP can be replaced by \fB\-\-set\fP if that does 
 not clash with an option of other extensions.
 .PP
-Use of -m set requires that ipset kernel support is provided, which, for
+Use of \-m set requires that ipset kernel support is provided, which, for
 standard kernels, is the case since Linux 2.6.39.

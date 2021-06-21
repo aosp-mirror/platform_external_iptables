@@ -40,7 +40,7 @@ static void osf_help(void)
 		"--ttl level            Use some TTL check extensions to determine OS:\n"
 		"       0                       true ip and fingerprint TTL comparison. Works for LAN.\n"
 		"       1                       check if ip TTL is less than fingerprint one. Works for global addresses.\n"
-		"       2                       do not compare TTL at all. Allows to detect NMAP, but can produce false results.\n"
+		"       2                       do not compare TTL at all. This allows NMAP detection, but can produce false results.\n"
 		"--log level            Log determined genres into dmesg even if they do not match desired one:\n"
 		"       0                       log all matched or unknown signatures.\n"
 		"       1                       log only first one.\n"
