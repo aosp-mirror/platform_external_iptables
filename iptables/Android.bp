@@ -78,6 +78,10 @@ cc_binary {
         "ip6tables-save",
         "ip6tables-restore",
     ],
+
+    sanitize: {
+        memtag_heap: true,
+    },
 }
 
 //----------------------------------------------------------------
