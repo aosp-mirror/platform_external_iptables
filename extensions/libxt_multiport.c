@@ -465,7 +465,8 @@ static void multiport_save6_v1(const void *ip_void,
 }
 
 static int __multiport_xlate(struct xt_xlate *xl,
-			     const struct xt_xlate_mt_params *params)
+			     const struct xt_xlate_mt_params *params,
+			     uint8_t proto)
 {
 	const struct xt_multiport *multiinfo
 		= (const struct xt_multiport *)params->match->data;
@@ -479,7 +480,17 @@ static int __multiport_xlate(struct xt_xlate *xl,
 		xt_xlate_add(xl, " dport ");
 		break;
 	case XT_MULTIPORT_EITHER:
-		return 0;
+		xt_xlate_add(xl, " sport . %s dport { ", proto_to_name(proto));
+		for (i = 0; i < multiinfo->count; i++) {
+			if (i != 0)
+				xt_xlate_add(xl, ", ");
+
+			xt_xlate_add(xl, "0-65535 . %u, %u . 0-65535",
+				     multiinfo->ports[i], multiinfo->ports[i]);
+		}
+		xt_xlate_add(xl, " }");
+
+		return 1;
 	}
 
 	if (multiinfo->count > 1)
@@ -500,7 +511,7 @@ static int multiport_xlate(struct xt_xlate *xl,
 	uint8_t proto = ((const struct ipt_ip *)params->ip)->proto;
 
 	xt_xlate_add(xl, "%s", proto_to_name(proto));
-	return __multiport_xlate(xl, params);
+	return __multiport_xlate(xl, params, proto);
 }
 
 static int multiport_xlate6(struct xt_xlate *xl,
@@ -509,11 +520,12 @@ static int multiport_xlate6(struct xt_xlate *xl,
 	uint8_t proto = ((const struct ip6t_ip6 *)params->ip)->proto;
 
 	xt_xlate_add(xl, "%s", proto_to_name(proto));
-	return __multiport_xlate(xl, params);
+	return __multiport_xlate(xl, params, proto);
 }
 
 static int __multiport_xlate_v1(struct xt_xlate *xl,
-				const struct xt_xlate_mt_params *params)
+				const struct xt_xlate_mt_params *params,
+				uint8_t proto)
 {
 	const struct xt_multiport_v1 *multiinfo =
 		(const struct xt_multiport_v1 *)params->match->data;
@@ -527,7 +539,17 @@ static int __multiport_xlate_v1(struct xt_xlate *xl,
 		xt_xlate_add(xl, " dport ");
 		break;
 	case XT_MULTIPORT_EITHER:
-		return 0;
+		xt_xlate_add(xl, " sport . %s dport { ", proto_to_name(proto));
+		for (i = 0; i < multiinfo->count; i++) {
+			if (i != 0)
+				xt_xlate_add(xl, ", ");
+
+			xt_xlate_add(xl, "0-65535 . %u, %u . 0-65535",
+				     multiinfo->ports[i], multiinfo->ports[i]);
+		}
+		xt_xlate_add(xl, " }");
+
+		return 1;
 	}
 
 	if (multiinfo->invert)
@@ -556,7 +578,7 @@ static int multiport_xlate_v1(struct xt_xlate *xl,
 	uint8_t proto = ((const struct ipt_ip *)params->ip)->proto;
 
 	xt_xlate_add(xl, "%s", proto_to_name(proto));
-	return __multiport_xlate_v1(xl, params);
+	return __multiport_xlate_v1(xl, params, proto);
 }
 
 static int multiport_xlate6_v1(struct xt_xlate *xl,
@@ -565,7 +587,7 @@ static int multiport_xlate6_v1(struct xt_xlate *xl,
 	uint8_t proto = ((const struct ip6t_ip6 *)params->ip)->proto;
 
 	xt_xlate_add(xl, "%s", proto_to_name(proto));
-	return __multiport_xlate_v1(xl, params);
+	return __multiport_xlate_v1(xl, params, proto);
 }
 
 static struct xtables_match multiport_mt_reg[] = {
