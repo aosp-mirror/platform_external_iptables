@@ -57,6 +57,7 @@ xtables_main(int family, const char *progname, int argc, char *argv[])
 #if defined(ALL_INCLUSIVE) || defined(NO_SHARED_LIBS)
 	init_extensions();
 	init_extensions4();
+	init_extensions6();
 #endif
 
 	if (nft_init(&h, family, xtables_ipv4) < 0) {
