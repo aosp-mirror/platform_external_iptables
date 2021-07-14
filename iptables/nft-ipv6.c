@@ -51,7 +51,8 @@ static int nft_ipv6_add(struct nft_handle *h, struct nftnl_rule *r, void *data)
 	    !IN6_IS_ADDR_UNSPECIFIED(&cs->fw6.ipv6.smsk) ||
 	    (cs->fw6.ipv6.invflags & IPT_INV_SRCIP)) {
 		op = nft_invflags2cmp(cs->fw6.ipv6.invflags, IPT_INV_SRCIP);
-		add_addr(r, offsetof(struct ip6_hdr, ip6_src),
+		add_addr(r, NFT_PAYLOAD_NETWORK_HEADER,
+			 offsetof(struct ip6_hdr, ip6_src),
 			 &cs->fw6.ipv6.src, &cs->fw6.ipv6.smsk,
 			 sizeof(struct in6_addr), op);
 	}
@@ -59,7 +60,8 @@ static int nft_ipv6_add(struct nft_handle *h, struct nftnl_rule *r, void *data)
 	    !IN6_IS_ADDR_UNSPECIFIED(&cs->fw6.ipv6.dmsk) ||
 	    (cs->fw6.ipv6.invflags & IPT_INV_DSTIP)) {
 		op = nft_invflags2cmp(cs->fw6.ipv6.invflags, IPT_INV_DSTIP);
-		add_addr(r, offsetof(struct ip6_hdr, ip6_dst),
+		add_addr(r, NFT_PAYLOAD_NETWORK_HEADER,
+			 offsetof(struct ip6_hdr, ip6_dst),
 			 &cs->fw6.ipv6.dst, &cs->fw6.ipv6.dmsk,
 			 sizeof(struct in6_addr), op);
 	}
@@ -146,7 +148,8 @@ static void nft_ipv6_parse_payload(struct nft_xt_ctx *ctx,
 			parse_mask_ipv6(ctx, &cs->fw6.ipv6.smsk);
 			ctx->flags &= ~NFT_XT_CTX_BITWISE;
 		} else {
-			memset(&cs->fw6.ipv6.smsk, 0xff, sizeof(struct in6_addr));
+			memset(&cs->fw6.ipv6.smsk, 0xff,
+			       min(ctx->payload.len, sizeof(struct in6_addr)));
 		}
 
 		if (inv)
@@ -159,7 +162,8 @@ static void nft_ipv6_parse_payload(struct nft_xt_ctx *ctx,
 			parse_mask_ipv6(ctx, &cs->fw6.ipv6.dmsk);
 			ctx->flags &= ~NFT_XT_CTX_BITWISE;
 		} else {
-			memset(&cs->fw6.ipv6.dmsk, 0xff, sizeof(struct in6_addr));
+			memset(&cs->fw6.ipv6.dmsk, 0xff,
+			       min(ctx->payload.len, sizeof(struct in6_addr)));
 		}
 
 		if (inv)
@@ -217,7 +221,7 @@ static void nft_ipv6_print_rule(struct nft_handle *h, struct nftnl_rule *r,
 	if (!(format & FMT_NONEWLINE))
 		fputc('\n', stdout);
 
-	xtables_rule_matches_free(&cs.matches);
+	nft_clear_iptables_command_state(&cs);
 }
 
 static void save_ipv6_addr(char letter, const struct in6_addr *addr,
@@ -402,13 +406,11 @@ struct nft_family_ops nft_family_ops_ipv6 = {
 	.print_header		= print_header,
 	.print_rule		= nft_ipv6_print_rule,
 	.save_rule		= nft_ipv6_save_rule,
-	.save_counters		= save_counters,
 	.save_chain		= nft_ipv46_save_chain,
 	.proto_parse		= nft_ipv6_proto_parse,
 	.post_parse		= nft_ipv6_post_parse,
 	.parse_target		= nft_ipv46_parse_target,
 	.rule_to_cs		= nft_rule_to_iptables_command_state,
 	.clear_cs		= nft_clear_iptables_command_state,
-	.rule_find		= nft_ipv46_rule_find,
 	.xlate			= nft_ipv6_xlate,
 };
