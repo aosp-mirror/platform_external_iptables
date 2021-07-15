@@ -79,7 +79,7 @@ targets_install :=
 
 .SECONDARY:
 
-.PHONY: all install clean distclean FORCE
+.PHONY: all install uninstall clean distclean FORCE
 
 all: ${targets}
 
@@ -91,6 +91,19 @@ install: ${targets_install} ${symlinks_install}
 	if test -n "${symlinks_install}"; then \
 		cp -P ${symlinks_install} "${DESTDIR}${xtlibdir}/"; \
 	fi;
+
+uninstall:
+	dir=${DESTDIR}${xtlibdir}; { \
+		test ! -d "$$dir" && test ! -f "$$dir" && test ! -r "$$dir"; \
+	} || { \
+		test -z "${targets_install}" || ( \
+			cd "$$dir" && rm -f ${targets_install} \
+		); \
+		test -z "${symlinks_install}" || ( \
+			cd "$$dir" && rm -f ${symlinks_install} \
+		); \
+		rmdir -p --ignore-fail-on-non-empty "$$dir"; \
+	}
 
 clean:
 	rm -f *.o *.oo *.so *.a {matches,targets}.man initext.c initext4.c initext6.c initextb.c initexta.c;
