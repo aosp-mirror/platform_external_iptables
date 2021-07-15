@@ -45,6 +45,9 @@
 
 #include <xtables.h>
 #include <limits.h> /* INT_MAX in ip_tables.h/ip6_tables.h */
+#ifdef __BIONIC__
+#include <linux/if_ether.h> /* ETH_ALEN */
+#endif
 #include <linux/netfilter_ipv4/ip_tables.h>
 #include <linux/netfilter_ipv6/ip6_tables.h>
 #include <libiptc/libxtc.h>
@@ -203,8 +206,44 @@ struct xtables_match *xtables_matches;
 struct xtables_target *xtables_targets;
 
 /* Fully register a match/target which was previously partially registered. */
-static bool xtables_fully_register_pending_match(struct xtables_match *me);
-static bool xtables_fully_register_pending_target(struct xtables_target *me);
+static bool xtables_fully_register_pending_match(struct xtables_match *me,
+						 struct xtables_match *prev);
+static bool xtables_fully_register_pending_target(struct xtables_target *me,
+						  struct xtables_target *prev);
+
+#ifndef NO_SHARED_LIBS
+/* registry for loaded shared objects to close later */
+struct dlreg {
+	struct dlreg *next;
+	void *handle;
+};
+static struct dlreg *dlreg = NULL;
+
+static int dlreg_add(void *handle)
+{
+	struct dlreg *new = malloc(sizeof(*new));
+
+	if (!new)
+		return -1;
+
+	new->handle = handle;
+	new->next = dlreg;
+	dlreg = new;
+	return 0;
+}
+
+static void dlreg_free(void)
+{
+	struct dlreg *next;
+
+	while (dlreg) {
+		next = dlreg->next;
+		dlclose(dlreg->handle);
+		free(dlreg);
+		dlreg = next;
+	}
+}
+#endif
 
 void xtables_init(void)
 {
@@ -231,6 +270,13 @@ void xtables_init(void)
 		return;
 	}
 	xtables_libdir = XTABLES_LIBDIR;
+}
+
+void xtables_fini(void)
+{
+#ifndef NO_SHARED_LIBS
+	dlreg_free();
+#endif
 }
 
 void xtables_set_nfproto(uint8_t nfproto)
@@ -567,6 +613,8 @@ static void *load_extension(const char *search_path, const char *af_prefix,
 			next = dir + strlen(dir);
 
 		for (prefix = all_prefixes; *prefix != NULL; ++prefix) {
+			void *handle;
+
 			snprintf(path, sizeof(path), "%.*s/%s%s.so",
 			         (unsigned int)(next - dir), dir,
 			         *prefix, name);
@@ -578,10 +626,13 @@ static void *load_extension(const char *search_path, const char *af_prefix,
 					strerror(errno));
 				return NULL;
 			}
-			if (dlopen(path, RTLD_NOW) == NULL) {
+			handle = dlopen(path, RTLD_NOW);
+			if (handle == NULL) {
 				fprintf(stderr, "%s: %s\n", path, dlerror());
 				break;
 			}
+
+			dlreg_add(handle);
 
 			if (is_target)
 				ptr = xtables_find_target(name, XTF_DONT_LOAD);
@@ -616,6 +667,7 @@ struct xtables_match *
 xtables_find_match(const char *name, enum xtables_tryload tryload,
 		   struct xtables_rule_match **matches)
 {
+	struct xtables_match *prev = NULL;
 	struct xtables_match **dptr;
 	struct xtables_match *ptr;
 	const char *icmp6 = "icmp6";
@@ -637,8 +689,12 @@ xtables_find_match(const char *name, enum xtables_tryload tryload,
 		if (extension_cmp(name, (*dptr)->name, (*dptr)->family)) {
 			ptr = *dptr;
 			*dptr = (*dptr)->next;
-			if (xtables_fully_register_pending_match(ptr))
+			if (xtables_fully_register_pending_match(ptr, prev)) {
+				prev = ptr;
 				continue;
+			} else if (prev) {
+				continue;
+			}
 			*dptr = ptr;
 		}
 		dptr = &((*dptr)->next);
@@ -732,6 +788,7 @@ xtables_find_match_revision(const char *name, enum xtables_tryload tryload,
 struct xtables_target *
 xtables_find_target(const char *name, enum xtables_tryload tryload)
 {
+	struct xtables_target *prev = NULL;
 	struct xtables_target **dptr;
 	struct xtables_target *ptr;
 
@@ -748,8 +805,12 @@ xtables_find_target(const char *name, enum xtables_tryload tryload)
 		if (extension_cmp(name, (*dptr)->name, (*dptr)->family)) {
 			ptr = *dptr;
 			*dptr = (*dptr)->next;
-			if (xtables_fully_register_pending_target(ptr))
+			if (xtables_fully_register_pending_target(ptr, prev)) {
+				prev = ptr;
 				continue;
+			} else if (prev) {
+				continue;
+			}
 			*dptr = ptr;
 		}
 		dptr = &((*dptr)->next);
@@ -757,6 +818,7 @@ xtables_find_target(const char *name, enum xtables_tryload tryload)
 
 	for (ptr = xtables_targets; ptr; ptr = ptr->next) {
 		if (extension_cmp(name, ptr->name, ptr->family)) {
+#if 0			/* Code block below causes memory leak.  (Bugs 162925719 and 168688680) */
 			struct xtables_target *clone;
 
 			/* First target of this type: */
@@ -772,6 +834,7 @@ xtables_find_target(const char *name, enum xtables_tryload tryload)
 			clone->next = clone;
 
 			ptr = clone;
+#endif
 			break;
 		}
 	}
@@ -856,7 +919,8 @@ int xtables_compatible_revision(const char *name, uint8_t revision, int opt)
 
 	xtables_load_ko(xtables_modprobe_program, true);
 
-	strcpy(rev.name, name);
+	strncpy(rev.name, name, XT_EXTENSION_MAXNAMELEN - 1);
+	rev.name[XT_EXTENSION_MAXNAMELEN - 1] = '\0';
 	rev.revision = revision;
 
 	max_rev = getsockopt(sockfd, afinfo->ipproto, opt, &rev, &s);
@@ -901,8 +965,14 @@ static void xtables_check_options(const char *name, const struct option *opt)
 		}
 }
 
+static int xtables_match_prefer(const struct xtables_match *a,
+				const struct xtables_match *b);
+
 void xtables_register_match(struct xtables_match *me)
 {
+	struct xtables_match **pos;
+	bool seen_myself = false;
+
 	if (me->next) {
 		fprintf(stderr, "%s: match \"%s\" already registered\n",
 			xt_params->program_name, me->name);
@@ -954,10 +1024,34 @@ void xtables_register_match(struct xtables_match *me)
 	if (me->extra_opts != NULL)
 		xtables_check_options(me->name, me->extra_opts);
 
+	/* order into linked list of matches pending full registration */
+	for (pos = &xtables_pending_matches; *pos; pos = &(*pos)->next) {
+		/* group by name and family */
+		if (strcmp(me->name, (*pos)->name) ||
+		    me->family != (*pos)->family) {
+			if (seen_myself)
+				break; /* end of own group, append to it */
+			continue;
+		}
+		/* found own group */
+		seen_myself = true;
+		if (xtables_match_prefer(me, *pos) >= 0)
+			break; /* put preferred items first in group */
+	}
+	/* if own group was not found, prepend item */
+	if (!*pos && !seen_myself)
+		pos = &xtables_pending_matches;
 
-	/* place on linked list of matches pending full registration */
-	me->next = xtables_pending_matches;
-	xtables_pending_matches = me;
+	me->next = *pos;
+	*pos = me;
+#ifdef DEBUG
+	printf("%s: inserted match %s (family %d, revision %d):\n",
+			__func__, me->name, me->family, me->revision);
+	for (pos = &xtables_pending_matches; *pos; pos = &(*pos)->next) {
+		printf("%s:\tmatch %s (family %d, revision %d)\n", __func__,
+		       (*pos)->name, (*pos)->family, (*pos)->revision);
+	}
+#endif
 }
 
 /**
@@ -1021,64 +1115,27 @@ static int xtables_target_prefer(const struct xtables_target *a,
 				 b->revision, b->family);
 }
 
-static bool xtables_fully_register_pending_match(struct xtables_match *me)
+static bool xtables_fully_register_pending_match(struct xtables_match *me,
+						 struct xtables_match *prev)
 {
-	struct xtables_match **i, *old, *pos = NULL;
+	struct xtables_match **i;
 	const char *rn;
-	int compare;
 
 	/* See if new match can be used. */
 	rn = (me->real_name != NULL) ? me->real_name : me->name;
 	if (!compatible_match_revision(rn, me->revision))
 		return false;
 
-	old = xtables_find_match(me->name, XTF_DURING_LOAD, NULL);
-	while (old) {
-		compare = xtables_match_prefer(old, me);
-		if (compare == 0) {
-			fprintf(stderr,
-				"%s: match `%s' already registered.\n",
-				xt_params->program_name, me->name);
-			exit(1);
-		}
-
-		/* Now we have two (or more) options, check compatibility. */
-		rn = (old->real_name != NULL) ? old->real_name : old->name;
-		if (compare > 0) {
-			/* Kernel tells old isn't compatible anymore??? */
-			if (!compatible_match_revision(rn, old->revision)) {
-				/* Delete old one. */
-				for (i = &xtables_matches; *i != old;)
-				     i = &(*i)->next;
-				*i = old->next;
-			}
-			pos = old;
-			old = old->next;
-			if (!old)
-				break;
-			if (!extension_cmp(me->name, old->name, old->family))
-				break;
-			continue;
-		}
-
-		/* Found right old */
-		pos = old;
-		break;
-	}
-
-	if (!pos) {
+	if (!prev) {
 		/* Append to list. */
 		for (i = &xtables_matches; *i; i = &(*i)->next);
-	} else if (compare < 0) {
-		/* Prepend it */
-		for (i = &xtables_matches; *i != pos; i = &(*i)->next);
-	} else if (compare > 0) {
+	} else {
 		/* Append it */
-		i = &pos->next;
-		pos = pos->next;
+		i = &prev->next;
+		prev = prev->next;
 	}
 
-	me->next = pos;
+	me->next = prev;
 	*i = me;
 
 	me->m = NULL;
@@ -1089,13 +1146,17 @@ static bool xtables_fully_register_pending_match(struct xtables_match *me)
 
 void xtables_register_matches(struct xtables_match *match, unsigned int n)
 {
-	do {
-		xtables_register_match(&match[--n]);
-	} while (n > 0);
+	int i;
+
+	for (i = 0; i < n; i++)
+		xtables_register_match(&match[i]);
 }
 
 void xtables_register_target(struct xtables_target *me)
 {
+	struct xtables_target **pos;
+	bool seen_myself = false;
+
 	if (me->next) {
 		fprintf(stderr, "%s: target \"%s\" already registered\n",
 			xt_params->program_name, me->name);
@@ -1151,16 +1212,40 @@ void xtables_register_target(struct xtables_target *me)
 	if (me->family != afinfo->family && me->family != AF_UNSPEC)
 		return;
 
-	/* place on linked list of targets pending full registration */
-	me->next = xtables_pending_targets;
-	xtables_pending_targets = me;
+	/* order into linked list of targets pending full registration */
+	for (pos = &xtables_pending_targets; *pos; pos = &(*pos)->next) {
+		/* group by name */
+		if (!extension_cmp(me->name, (*pos)->name, (*pos)->family)) {
+			if (seen_myself)
+				break; /* end of own group, append to it */
+			continue;
+		}
+		/* found own group */
+		seen_myself = true;
+		if (xtables_target_prefer(me, *pos) >= 0)
+			break; /* put preferred items first in group */
+	}
+	/* if own group was not found, prepend item */
+	if (!*pos && !seen_myself)
+		pos = &xtables_pending_targets;
+
+	me->next = *pos;
+	*pos = me;
+#ifdef DEBUG
+	printf("%s: inserted target %s (family %d, revision %d):\n",
+			__func__, me->name, me->family, me->revision);
+	for (pos = &xtables_pending_targets; *pos; pos = &(*pos)->next) {
+		printf("%s:\ttarget %s (family %d, revision %d)\n", __func__,
+		       (*pos)->name, (*pos)->family, (*pos)->revision);
+	}
+#endif
 }
 
-static bool xtables_fully_register_pending_target(struct xtables_target *me)
+static bool xtables_fully_register_pending_target(struct xtables_target *me,
+						  struct xtables_target *prev)
 {
-	struct xtables_target **i, *old, *pos = NULL;
+	struct xtables_target **i;
 	const char *rn;
-	int compare;
 
 	if (strcmp(me->name, "standard") != 0) {
 		/* See if new target can be used. */
@@ -1169,54 +1254,17 @@ static bool xtables_fully_register_pending_target(struct xtables_target *me)
 			return false;
 	}
 
-	old = xtables_find_target(me->name, XTF_DURING_LOAD);
-	while (old) {
-		compare = xtables_target_prefer(old, me);
-		if (compare == 0) {
-			fprintf(stderr,
-				"%s: target `%s' already registered.\n",
-				xt_params->program_name, me->name);
-			exit(1);
-		}
-
-		/* Now we have two (or more) options, check compatibility. */
-		rn = (old->real_name != NULL) ? old->real_name : old->name;
-		if (compare > 0) {
-			/* Kernel tells old isn't compatible anymore??? */
-			if (!compatible_target_revision(rn, old->revision)) {
-				/* Delete old one. */
-				for (i = &xtables_targets; *i != old;)
-				     i = &(*i)->next;
-				*i = old->next;
-			}
-			pos = old;
-			old = old->next;
-			if (!old)
-				break;
-			if (!extension_cmp(me->name, old->name, old->family))
-				break;
-			continue;
-		}
-
-		/* Found right old */
-		pos = old;
-		break;
-	}
-
-	if (!pos) {
+	if (!prev) {
 		/* Prepend to list. */
 		i = &xtables_targets;
-		pos = xtables_targets;
-	} else if (compare < 0) {
-		/* Prepend it */
-		for (i = &xtables_targets; *i != pos; i = &(*i)->next);
-	} else if (compare > 0) {
+		prev = xtables_targets;
+	} else {
 		/* Append it */
-		i = &pos->next;
-		pos = pos->next;
+		i = &prev->next;
+		prev = prev->next;
 	}
 
-	me->next = pos;
+	me->next = prev;
 	*i = me;
 
 	me->t = NULL;
@@ -1227,9 +1275,10 @@ static bool xtables_fully_register_pending_target(struct xtables_target *me)
 
 void xtables_register_targets(struct xtables_target *target, unsigned int n)
 {
-	do {
-		xtables_register_target(&target[--n]);
-	} while (n > 0);
+	int i;
+
+	for (i = 0; i < n; i++)
+		xtables_register_target(&target[i]);
 }
 
 /* receives a list of xtables_rule_match, release them */
@@ -2091,6 +2140,79 @@ void xtables_print_num(uint64_t number, unsigned int format)
 	}
 	number = (number + 500) / 1000;
 	printf(FMT("%4lluT ","%lluT "), (unsigned long long)number);
+}
+
+#include <netinet/ether.h>
+
+static const unsigned char mac_type_unicast[ETH_ALEN] =   {};
+static const unsigned char msk_type_unicast[ETH_ALEN] =   {1};
+static const unsigned char mac_type_multicast[ETH_ALEN] = {1};
+static const unsigned char msk_type_multicast[ETH_ALEN] = {1};
+#define ALL_ONE_MAC {0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
+static const unsigned char mac_type_broadcast[ETH_ALEN] = ALL_ONE_MAC;
+static const unsigned char msk_type_broadcast[ETH_ALEN] = ALL_ONE_MAC;
+static const unsigned char mac_type_bridge_group[ETH_ALEN] = {0x01, 0x80, 0xc2};
+static const unsigned char msk_type_bridge_group[ETH_ALEN] = ALL_ONE_MAC;
+#undef ALL_ONE_MAC
+
+int xtables_parse_mac_and_mask(const char *from, void *to, void *mask)
+{
+	char *p;
+	int i;
+	struct ether_addr *addr = NULL;
+
+	if (strcasecmp(from, "Unicast") == 0) {
+		memcpy(to, mac_type_unicast, ETH_ALEN);
+		memcpy(mask, msk_type_unicast, ETH_ALEN);
+		return 0;
+	}
+	if (strcasecmp(from, "Multicast") == 0) {
+		memcpy(to, mac_type_multicast, ETH_ALEN);
+		memcpy(mask, msk_type_multicast, ETH_ALEN);
+		return 0;
+	}
+	if (strcasecmp(from, "Broadcast") == 0) {
+		memcpy(to, mac_type_broadcast, ETH_ALEN);
+		memcpy(mask, msk_type_broadcast, ETH_ALEN);
+		return 0;
+	}
+	if (strcasecmp(from, "BGA") == 0) {
+		memcpy(to, mac_type_bridge_group, ETH_ALEN);
+		memcpy(mask, msk_type_bridge_group, ETH_ALEN);
+		return 0;
+	}
+	if ( (p = strrchr(from, '/')) != NULL) {
+		*p = '\0';
+		if (!(addr = ether_aton(p + 1)))
+			return -1;
+		memcpy(mask, addr, ETH_ALEN);
+	} else
+		memset(mask, 0xff, ETH_ALEN);
+	if (!(addr = ether_aton(from)))
+		return -1;
+	memcpy(to, addr, ETH_ALEN);
+	for (i = 0; i < ETH_ALEN; i++)
+		((char *)to)[i] &= ((char *)mask)[i];
+	return 0;
+}
+
+int xtables_print_well_known_mac_and_mask(const void *mac, const void *mask)
+{
+	if (!memcmp(mac, mac_type_unicast, ETH_ALEN) &&
+	    !memcmp(mask, msk_type_unicast, ETH_ALEN))
+		printf("Unicast");
+	else if (!memcmp(mac, mac_type_multicast, ETH_ALEN) &&
+	         !memcmp(mask, msk_type_multicast, ETH_ALEN))
+		printf("Multicast");
+	else if (!memcmp(mac, mac_type_broadcast, ETH_ALEN) &&
+	         !memcmp(mask, msk_type_broadcast, ETH_ALEN))
+		printf("Broadcast");
+	else if (!memcmp(mac, mac_type_bridge_group, ETH_ALEN) &&
+	         !memcmp(mask, msk_type_bridge_group, ETH_ALEN))
+		printf("BGA");
+	else
+		return -1;
+	return 0;
 }
 
 void xtables_print_mac(const unsigned char *macaddress)
