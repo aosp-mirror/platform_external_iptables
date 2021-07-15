@@ -56,6 +56,7 @@ int xtables_arp_main(int argc, char *argv[])
 		ret = nft_commit(&h);
 
 	nft_fini(&h);
+	xtables_fini();
 
 	if (!ret)
 		fprintf(stderr, "arptables: %s\n", nft_strerror(errno));
