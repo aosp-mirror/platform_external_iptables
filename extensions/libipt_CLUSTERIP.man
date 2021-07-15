@@ -2,6 +2,9 @@ This module allows you to configure a simple cluster of nodes that share
 a certain IP and MAC address without an explicit load balancer in front of
 them.  Connections are statically distributed between the nodes in this
 cluster.
+.PP
+Please note that CLUSTERIP target is considered deprecated in favour of cluster
+match which is more flexible and not limited to IPv4.
 .TP
 \fB\-\-new\fP
 Create a new ClusterIP.  You always have to set this on the first rule
