@@ -245,6 +245,10 @@ static void dlreg_free(void)
 
 void xtables_init(void)
 {
+	/* xtables cannot be used with setuid in a safe way. */
+	if (getuid() != geteuid())
+		_exit(111);
+
 	xtables_libdir = getenv("XTABLES_LIBDIR");
 	if (xtables_libdir != NULL)
 		return;
