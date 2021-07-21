@@ -258,6 +258,16 @@ static unsigned int time_parse_weekdays(const char *arg)
 	return ret;
 }
 
+static unsigned int time_count_weekdays(unsigned int weekdays_mask)
+{
+	unsigned int ret;
+
+	for (ret = 0; weekdays_mask; weekdays_mask >>= 1)
+		ret += weekdays_mask & 1;
+
+	return ret;
+}
+
 static void time_parse(struct xt_option_call *cb)
 {
 	struct xt_time_info *info = cb->data;
@@ -330,7 +340,7 @@ static void time_print_monthdays(uint32_t mask, bool human_readable)
 
 	printf(" ");
 	for (i = 1; i <= 31; ++i)
-		if (mask & (1 << i)) {
+		if (mask & (1u << i)) {
 			if (nbdays++ > 0)
 				printf(",");
 			printf("%u", i);
@@ -450,6 +460,67 @@ static void time_check(struct xt_fcheck_call *cb)
 			"time: --contiguous only makes sense when stoptime is smaller than starttime");
 }
 
+static int time_xlate(struct xt_xlate *xl,
+		      const struct xt_xlate_mt_params *params)
+{
+	const struct xt_time_info *info =
+		(const struct xt_time_info *)params->match->data;
+	unsigned int h, m, s,
+		     i, sep, mask, count;
+	time_t tt_start, tt_stop;
+	struct tm *t_start, *t_stop;
+
+	if (info->date_start != 0 ||
+	    info->date_stop != INT_MAX) {
+		tt_start = (time_t) info->date_start;
+		tt_stop = (time_t) info->date_stop;
+
+		xt_xlate_add(xl, "meta time ");
+		t_start = gmtime(&tt_start);
+		xt_xlate_add(xl, "\"%04u-%02u-%02u %02u:%02u:%02u\"",
+			     t_start->tm_year + 1900, t_start->tm_mon + 1,
+			     t_start->tm_mday, t_start->tm_hour,
+			     t_start->tm_min, t_start->tm_sec);
+		t_stop = gmtime(&tt_stop);
+		xt_xlate_add(xl, "-\"%04u-%02u-%02u %02u:%02u:%02u\"",
+			     t_stop->tm_year + 1900, t_stop->tm_mon + 1,
+			     t_stop->tm_mday, t_stop->tm_hour,
+			     t_stop->tm_min, t_stop->tm_sec);
+	}
+	if (info->daytime_start != XT_TIME_MIN_DAYTIME ||
+	    info->daytime_stop != XT_TIME_MAX_DAYTIME) {
+		divide_time(info->daytime_start, &h, &m, &s);
+		xt_xlate_add(xl, " meta hour \"%02u:%02u:%02u\"", h, m, s);
+		divide_time(info->daytime_stop, &h, &m, &s);
+		xt_xlate_add(xl, "-\"%02u:%02u:%02u\"", h, m, s);
+	}
+	/* nft_time does not support --monthdays */
+	if (info->monthdays_match != XT_TIME_ALL_MONTHDAYS)
+		return 0;
+	if (info->weekdays_match != XT_TIME_ALL_WEEKDAYS) {
+		sep = 0;
+		mask = info->weekdays_match;
+		count = time_count_weekdays(mask);
+
+		xt_xlate_add(xl, " meta day ");
+		if (count > 1)
+			xt_xlate_add(xl, "{");
+		for (i = 1; i <= 7; ++i)
+			if (mask & (1 << i)) {
+				if (sep)
+					xt_xlate_add(xl, ",%u", i%7);
+				else {
+					xt_xlate_add(xl, "%u", i%7);
+					++sep;
+				}
+			}
+		if (count > 1)
+			xt_xlate_add(xl, "}");
+	}
+
+	return 1;
+}
+
 static struct xtables_match time_match = {
 	.name          = "time",
 	.family        = NFPROTO_UNSPEC,
@@ -463,6 +534,7 @@ static struct xtables_match time_match = {
 	.x6_parse      = time_parse,
 	.x6_fcheck     = time_check,
 	.x6_options    = time_opts,
+	.xlate	       = time_xlate,
 };
 
 void _init(void)
