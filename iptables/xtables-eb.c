@@ -211,10 +211,6 @@ struct option ebt_original_options[] =
 	{ "new-chain"      , required_argument, 0, 'N' },
 	{ "rename-chain"   , required_argument, 0, 'E' },
 	{ "delete-chain"   , optional_argument, 0, 'X' },
-	{ "atomic-init"    , no_argument      , 0, 7   },
-	{ "atomic-commit"  , no_argument      , 0, 8   },
-	{ "atomic-file"    , required_argument, 0, 9   },
-	{ "atomic-save"    , no_argument      , 0, 10  },
 	{ "init-table"     , no_argument      , 0, 11  },
 	{ "concurrent"     , no_argument      , 0, 13  },
 	{ 0 }
@@ -320,10 +316,6 @@ static void print_help(const struct xtables_target *t,
 "--new-chain -N chain          : create a user defined chain\n"
 "--rename-chain -E old new     : rename a chain\n"
 "--delete-chain -X [chain]     : delete a user defined chain\n"
-"--atomic-commit               : update the kernel w/t table contained in <FILE>\n"
-"--atomic-init                 : put the initial kernel table into <FILE>\n"
-"--atomic-save                 : put the current kernel table into <FILE>\n"
-"--atomic-file file            : set <FILE> to file\n\n"
 "Options:\n"
 "--proto  -p [!] proto         : protocol hexadecimal, by name or LENGTH\n"
 "--src    -s [!] address[/mask]: source mac address\n"
@@ -1087,54 +1079,9 @@ print_zero:
 					       "Use --Lmac2 with -L");
 			flags |= LIST_MAC2;
 			break;
-		case 8 : /* atomic-commit */
-/*
-			replace->command = c;
-			if (OPT_COMMANDS)
-				ebt_print_error2("Multiple commands are not allowed");
-			replace->flags |= OPT_COMMAND;
-			if (!replace->filename)
-				ebt_print_error2("No atomic file specified");*/
-			/* Get the information from the file */
-			/*ebt_get_table(replace, 0);*/
-			/* We don't want the kernel giving us its counters,
-			 * they would overwrite the counters extracted from
-			 * the file */
-			/*replace->num_counters = 0;*/
-			/* Make sure the table will be written to the kernel */
-			/*free(replace->filename);
-			replace->filename = NULL;
-			break;*/
-		/*case 7 :*/ /* atomic-init */
-		/*case 10:*/ /* atomic-save */
 		case 11: /* init-table */
 			nft_cmd_table_flush(h, *table, false);
 			return 1;
-		/*
-			replace->command = c;
-			if (OPT_COMMANDS)
-				ebt_print_error2("Multiple commands are not allowed");
-			if (c != 11 && !replace->filename)
-				ebt_print_error2("No atomic file specified");
-			replace->flags |= OPT_COMMAND;
-			{
-				char *tmp = replace->filename;*/
-
-				/* Get the kernel table */
-				/*replace->filename = NULL;
-				ebt_get_kernel_table(replace, c == 10 ? 0 : 1);
-				replace->filename = tmp;
-			}
-			break;
-		case 9 :*/ /* atomic */
-			/*
-			if (OPT_COMMANDS)
-				ebt_print_error2("--atomic has to come before the command");*/
-			/* A possible memory leak here, but this is not
-			 * executed in daemon mode */
-			/*replace->filename = (char *)malloc(strlen(optarg) + 1);
-			strcpy(replace->filename, optarg);
-			break; */
 		case 13 :
 			break;
 		case 1 :
