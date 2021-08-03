@@ -3126,7 +3126,7 @@ static int nft_prepare(struct nft_handle *h)
 		case NFT_COMPAT_RULE_CHECK:
 			assert_chain_exists(h, cmd->table, cmd->jumpto);
 			ret = nft_rule_check(h, cmd->chain, cmd->table,
-					     cmd->obj.rule, cmd->rulenum);
+					     cmd->obj.rule, cmd->verbose);
 			break;
 		case NFT_COMPAT_RULE_ZERO:
 			ret = nft_rule_zero_counters(h, cmd->chain, cmd->table,
