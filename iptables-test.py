@@ -304,6 +304,31 @@ def show_missing():
 
     print('\n'.join(missing))
 
+def spawn_netns():
+    # prefer unshare module
+    try:
+        import unshare
+        unshare.unshare(unshare.CLONE_NEWNET)
+        return True
+    except:
+        pass
+
+    # sledgehammer style:
+    # - call ourselves prefixed by 'unshare -n' if found
+    # - pass extra --no-netns parameter to avoid another recursion
+    try:
+        import shutil
+
+        unshare = shutil.which("unshare")
+        if unshare is None:
+            return False
+
+        sys.argv.append("--no-netns")
+        os.execv(unshare, [unshare, "-n", sys.executable] + sys.argv)
+    except:
+        pass
+
+    return False
 
 #
 # main
@@ -323,6 +348,8 @@ def main():
                         help='Test iptables-over-nftables')
     parser.add_argument('-N', '--netns', action='store_true',
                         help='Test netnamespace path')
+    parser.add_argument('--no-netns', action='store_true',
+                        help='Do not run testsuite in own network namespace')
     args = parser.parse_args()
 
     #
@@ -340,6 +367,9 @@ def main():
     if os.getuid() != 0:
         print("You need to be root to run this, sorry")
         return
+
+    if not args.netns and not args.no_netns and not spawn_netns():
+        print("Cannot run in own namespace, connectivity might break")
 
     if not args.host:
         os.putenv("XTABLES_LIBDIR", os.path.abspath(EXTENSIONS_PATH))
@@ -365,13 +395,6 @@ def main():
                      for i in os.listdir(EXTENSIONS_PATH)
                      if i.endswith('.t')]
         file_list.sort()
-
-    if not args.netns:
-        try:
-            import unshare
-            unshare.unshare(unshare.CLONE_NEWNET)
-        except:
-            print("Cannot run in own namespace, connectivity might break")
 
     for filename in file_list:
         file_tests, file_passed = run_test_file(filename, args.netns)
