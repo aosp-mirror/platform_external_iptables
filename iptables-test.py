@@ -215,6 +215,7 @@ def run_test_file(filename, netns):
     tests = 0
     passed = 0
     table = ""
+    chain_array = []
     total_test_passed = True
 
     if netns:
@@ -249,8 +250,10 @@ def run_test_file(filename, netns):
             continue
 
         if len(chain_array) == 0:
-            print("broken test, missing chain, leaving")
-            sys.exit()
+            print_error("broken test, missing chain",
+                        filename = filename, lineno = lineno)
+            total_test_passed = False
+            break
 
         test_passed = True
         tests += 1
