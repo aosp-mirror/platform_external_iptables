@@ -47,7 +47,7 @@ def print_error(reason, filename=None, lineno=None):
     Prints an error with nice colors, indicating file and line number.
     '''
     print(filename + ": " + Colors.RED + "ERROR" +
-        Colors.ENDC + ": line %d (%s)" % (lineno, reason))
+        Colors.ENDC + ": line %d (%s)" % (lineno, reason), file=sys.stderr)
 
 
 def delete_rule(iptables, rule, filename, lineno):
@@ -368,11 +368,12 @@ def main():
         EXECUTEABLE = "xtables-nft-multi"
 
     if os.getuid() != 0:
-        print("You need to be root to run this, sorry")
+        print("You need to be root to run this, sorry", file=sys.stderr)
         return
 
     if not args.netns and not args.no_netns and not spawn_netns():
-        print("Cannot run in own namespace, connectivity might break")
+        print("Cannot run in own namespace, connectivity might break",
+              file=sys.stderr)
 
     if not args.host:
         os.putenv("XTABLES_LIBDIR", os.path.abspath(EXTENSIONS_PATH))
@@ -388,7 +389,7 @@ def main():
     try:
         log_file = open(LOGFILE, 'w')
     except IOError:
-        print("Couldn't open log file %s" % LOGFILE)
+        print("Couldn't open log file %s" % LOGFILE, file=sys.stderr)
         return
 
     if args.filename:
