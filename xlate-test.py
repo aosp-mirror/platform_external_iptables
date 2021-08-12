@@ -75,7 +75,7 @@ def run_test(name, payload):
     if (passed == tests) and not args.test:
         print(name + ": " + green("OK"))
     if not test_passed:
-        print("\n".join(result))
+        print("\n".join(result), file=sys.stderr)
     if args.test:
         print("1 test file, %d tests, %d tests passed, %d tests failed, %d errors" % (tests, passed, failed, errors))
     else:
@@ -111,7 +111,7 @@ def main():
             with open(args.test, "r") as payload:
                 run_test(args.test, payload)
         except IOError:
-            print(red("Error: ") + "test file does not exist")
+            print(red("Error: ") + "test file does not exist", file=sys.stderr)
     else:
         load_test_files()
 
