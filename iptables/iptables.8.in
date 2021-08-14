@@ -25,10 +25,10 @@
 .SH NAME
 iptables/ip6tables \(em administration tool for IPv4/IPv6 packet filtering and NAT
 .SH SYNOPSIS
-\fBiptables\fP [\fB\-t\fP \fItable\fP] {\fB\-A\fP|\fB\-C\fP|\fB\-D\fP}
+\fBiptables\fP [\fB\-t\fP \fItable\fP] {\fB\-A\fP|\fB\-C\fP|\fB\-D\fP|\fB-V\fP}
 \fIchain\fP \fIrule-specification\fP
 .P
-\fBip6tables\fP [\fB\-t\fP \fItable\fP] {\fB\-A\fP|\fB\-C\fP|\fB\-D\fP}
+\fBip6tables\fP [\fB\-t\fP \fItable\fP] {\fB\-A\fP|\fB\-C\fP|\fB\-D\fP|\fB-V\fP}
 \fIchain rule-specification\fP
 .PP
 \fBiptables\fP [\fB\-t\fP \fItable\fP] \fB\-I\fP \fIchain\fP [\fIrulenum\fP] \fIrule-specification\fP
@@ -220,11 +220,11 @@ Create a new user-defined chain by the given name.  There must be no
 target of that name already.
 .TP
 \fB\-X\fP, \fB\-\-delete\-chain\fP [\fIchain\fP]
-Delete the optional user-defined chain specified.  There must be no references
+Delete the chain specified.  There must be no references
 to the chain.  If there are, you must delete or replace the referring rules
 before the chain can be deleted.  The chain must be empty, i.e. not contain
-any rules.  If no argument is given, it will attempt to delete every
-non-builtin chain in the table.
+any rules.  If no argument is given, it will delete all empty chains in the
+table. Empty builtin chains can only be deleted with \fBiptables-nft\fP.
 .TP
 \fB\-P\fP, \fB\-\-policy\fP \fIchain target\fP
 Set the policy for the built-in (non-user-defined) chain to the given target.
@@ -361,6 +361,9 @@ the \fB\-x\fP flag to change this).
 For appending, insertion, deletion and replacement, this causes
 detailed information on the rule or rules to be printed. \fB\-v\fP may be
 specified multiple times to possibly emit more detailed debug statements.
+.TP
+\fB\-V\fP, \fB\-\-version\fP
+Show program version and the kernel API used.
 .TP
 \fB\-w\fP, \fB\-\-wait\fP [\fIseconds\fP]
 Wait for the xtables lock.

@@ -290,7 +290,7 @@ static int mnl_append_error(const struct nft_handle *h,
 		[NFT_COMPAT_TABLE_FLUSH] = "TABLE_FLUSH",
 		[NFT_COMPAT_CHAIN_ADD] = "CHAIN_ADD",
 		[NFT_COMPAT_CHAIN_USER_ADD] = "CHAIN_USER_ADD",
-		[NFT_COMPAT_CHAIN_USER_DEL] = "CHAIN_USER_DEL",
+		[NFT_COMPAT_CHAIN_DEL] = "CHAIN_DEL",
 		[NFT_COMPAT_CHAIN_USER_FLUSH] = "CHAIN_USER_FLUSH",
 		[NFT_COMPAT_CHAIN_UPDATE] = "CHAIN_UPDATE",
 		[NFT_COMPAT_CHAIN_RENAME] = "CHAIN_RENAME",
@@ -321,7 +321,7 @@ static int mnl_append_error(const struct nft_handle *h,
 	case NFT_COMPAT_CHAIN_ADD:
 	case NFT_COMPAT_CHAIN_ZERO:
 	case NFT_COMPAT_CHAIN_USER_ADD:
-	case NFT_COMPAT_CHAIN_USER_DEL:
+	case NFT_COMPAT_CHAIN_DEL:
 	case NFT_COMPAT_CHAIN_USER_FLUSH:
 	case NFT_COMPAT_CHAIN_UPDATE:
 	case NFT_COMPAT_CHAIN_RENAME:
@@ -1836,21 +1836,18 @@ int nft_chain_restore(struct nft_handle *h, const char *chain, const char *table
 #define NLM_F_NONREC	0x100	/* Do not delete recursively    */
 #endif
 
-struct chain_user_del_data {
+struct chain_del_data {
 	struct nft_handle	*handle;
+	struct nft_cache	*cache;
+	enum nft_table_type	type;
 	bool			verbose;
-	int			builtin_err;
 };
 
-static int __nft_chain_user_del(struct nft_chain *nc, void *data)
+static int __nft_chain_del(struct nft_chain *nc, void *data)
 {
-	struct chain_user_del_data *d = data;
+	struct chain_del_data *d = data;
 	struct nftnl_chain *c = nc->nftnl;
 	struct nft_handle *h = d->handle;
-
-	/* don't delete built-in chain */
-	if (nft_chain_builtin(c))
-		return d->builtin_err;
 
 	if (d->verbose)
 		fprintf(stdout, "Deleting chain `%s'\n",
@@ -1859,8 +1856,15 @@ static int __nft_chain_user_del(struct nft_chain *nc, void *data)
 
 	/* XXX This triggers a fast lookup from the kernel. */
 	nftnl_chain_unset(c, NFTNL_CHAIN_HANDLE);
-	if (!batch_chain_add(h, NFT_COMPAT_CHAIN_USER_DEL, c))
+	if (!batch_chain_add(h, NFT_COMPAT_CHAIN_DEL, c))
 		return -1;
+
+	if (nft_chain_builtin(c)) {
+		uint32_t num = nftnl_chain_get_u32(c, NFTNL_CHAIN_HOOKNUM);
+
+		if (nc == d->cache->table[d->type].base_chains[num])
+			d->cache->table[d->type].base_chains[num] = NULL;
+	}
 
 	/* nftnl_chain is freed when deleting the batch object */
 	nc->nftnl = NULL;
@@ -1870,17 +1874,18 @@ static int __nft_chain_user_del(struct nft_chain *nc, void *data)
 	return 0;
 }
 
-int nft_chain_user_del(struct nft_handle *h, const char *chain,
+int nft_chain_del(struct nft_handle *h, const char *chain,
 		       const char *table, bool verbose)
 {
-	struct chain_user_del_data d = {
+	const struct builtin_table *t;
+	struct chain_del_data d = {
 		.handle = h,
 		.verbose = verbose,
 	};
 	struct nft_chain *c;
 	int ret = 0;
 
-	nft_fn = nft_chain_user_del;
+	nft_fn = nft_chain_del;
 
 	if (chain) {
 		c = nft_chain_find(h, table, chain);
@@ -1888,17 +1893,37 @@ int nft_chain_user_del(struct nft_handle *h, const char *chain,
 			errno = ENOENT;
 			return 0;
 		}
-		d.builtin_err = -2;
-		ret = __nft_chain_user_del(c, &d);
+
+		if (nft_chain_builtin(c->nftnl)) {
+			t = nft_table_builtin_find(h, table);
+			if (!t) {
+				errno = EINVAL;
+				return 0;
+			}
+
+			d.type = t->type;
+			d.cache = h->cache;
+		}
+
+		ret = __nft_chain_del(c, &d);
 		if (ret == -2)
 			errno = EINVAL;
 		goto out;
 	}
 
+	t = nft_table_builtin_find(h, table);
+	if (!t) {
+		errno = EINVAL;
+		return 0;
+	}
+
+	d.type = t->type;
+	d.cache = h->cache;
+
 	if (verbose)
 		nft_cache_sort_chains(h, table);
 
-	ret = nft_chain_foreach(h, table, __nft_chain_user_del, &d);
+	ret = nft_chain_foreach(h, table, __nft_chain_del, &d);
 out:
 	/* the core expects 1 for success and 0 for error */
 	return ret == 0 ? 1 : 0;
@@ -2663,7 +2688,7 @@ static void batch_obj_del(struct nft_handle *h, struct obj_update *o)
 	case NFT_COMPAT_CHAIN_USER_ADD:
 	case NFT_COMPAT_CHAIN_ADD:
 		break;
-	case NFT_COMPAT_CHAIN_USER_DEL:
+	case NFT_COMPAT_CHAIN_DEL:
 	case NFT_COMPAT_CHAIN_USER_FLUSH:
 	case NFT_COMPAT_CHAIN_UPDATE:
 	case NFT_COMPAT_CHAIN_RENAME:
@@ -2748,7 +2773,7 @@ static void nft_refresh_transaction(struct nft_handle *h)
 		case NFT_COMPAT_TABLE_ADD:
 		case NFT_COMPAT_CHAIN_ADD:
 		case NFT_COMPAT_CHAIN_ZERO:
-		case NFT_COMPAT_CHAIN_USER_DEL:
+		case NFT_COMPAT_CHAIN_DEL:
 		case NFT_COMPAT_CHAIN_USER_FLUSH:
 		case NFT_COMPAT_CHAIN_UPDATE:
 		case NFT_COMPAT_CHAIN_RENAME:
@@ -2814,7 +2839,7 @@ retry:
 						   NLM_F_EXCL, n->seq,
 						   n->chain);
 			break;
-		case NFT_COMPAT_CHAIN_USER_DEL:
+		case NFT_COMPAT_CHAIN_DEL:
 			nft_compat_chain_batch_add(h, NFT_MSG_DELCHAIN,
 						   NLM_F_NONREC, n->seq,
 						   n->chain);
@@ -3059,9 +3084,9 @@ static int nft_prepare(struct nft_handle *h)
 		case NFT_COMPAT_CHAIN_USER_ADD:
 			ret = nft_chain_user_add(h, cmd->chain, cmd->table);
 			break;
-		case NFT_COMPAT_CHAIN_USER_DEL:
-			ret = nft_chain_user_del(h, cmd->chain, cmd->table,
-						 cmd->verbose);
+		case NFT_COMPAT_CHAIN_DEL:
+			ret = nft_chain_del(h, cmd->chain, cmd->table,
+					    cmd->verbose);
 			break;
 		case NFT_COMPAT_CHAIN_RESTORE:
 			ret = nft_chain_restore(h, cmd->chain, cmd->table);
@@ -3260,10 +3285,9 @@ const char *nft_strerror(int err)
 		const char *message;
 	} table[] =
 	  {
-	    { nft_chain_user_del, ENOTEMPTY, "Chain is not empty" },
-	    { nft_chain_user_del, EINVAL, "Can't delete built-in chain" },
-	    { nft_chain_user_del, EBUSY, "Directory not empty" },
-	    { nft_chain_user_del, EMLINK,
+	    { nft_chain_del, ENOTEMPTY, "Chain is not empty" },
+	    { nft_chain_del, EBUSY, "Directory not empty" },
+	    { nft_chain_del, EMLINK,
 	      "Can't delete chain with references left" },
 	    { nft_chain_user_add, EEXIST, "Chain already exists" },
 	    { nft_chain_user_rename, EEXIST, "File exists" },

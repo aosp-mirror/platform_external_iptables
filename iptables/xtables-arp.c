@@ -893,8 +893,8 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table,
 		ret = nft_cmd_chain_user_add(h, chain, *table);
 		break;
 	case CMD_DELETE_CHAIN:
-		ret = nft_cmd_chain_user_del(h, chain, *table,
-					 options & OPT_VERBOSE);
+		ret = nft_cmd_chain_del(h, chain, *table,
+					options & OPT_VERBOSE);
 		break;
 	case CMD_RENAME_CHAIN:
 		ret = nft_cmd_chain_user_rename(h, chain, *table, newname);

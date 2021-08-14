@@ -53,7 +53,7 @@ enum obj_update_type {
 	NFT_COMPAT_TABLE_FLUSH,
 	NFT_COMPAT_CHAIN_ADD,
 	NFT_COMPAT_CHAIN_USER_ADD,
-	NFT_COMPAT_CHAIN_USER_DEL,
+	NFT_COMPAT_CHAIN_DEL,
 	NFT_COMPAT_CHAIN_USER_FLUSH,
 	NFT_COMPAT_CHAIN_UPDATE,
 	NFT_COMPAT_CHAIN_RENAME,
@@ -147,7 +147,7 @@ struct nftnl_chain;
 int nft_chain_set(struct nft_handle *h, const char *table, const char *chain, const char *policy, const struct xt_counters *counters);
 int nft_chain_save(struct nft_chain *c, void *data);
 int nft_chain_user_add(struct nft_handle *h, const char *chain, const char *table);
-int nft_chain_user_del(struct nft_handle *h, const char *chain, const char *table, bool verbose);
+int nft_chain_del(struct nft_handle *h, const char *chain, const char *table, bool verbose);
 int nft_chain_restore(struct nft_handle *h, const char *chain, const char *table);
 int nft_chain_user_rename(struct nft_handle *h, const char *chain, const char *table, const char *newname);
 int nft_chain_zero_counters(struct nft_handle *h, const char *chain, const char *table, bool verbose);

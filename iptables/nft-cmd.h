@@ -49,8 +49,8 @@ int nft_cmd_zero_counters(struct nft_handle *h, const char *chain,
 			  const char *table, bool verbose);
 int nft_cmd_chain_user_add(struct nft_handle *h, const char *chain,
 			   const char *table);
-int nft_cmd_chain_user_del(struct nft_handle *h, const char *chain,
-			   const char *table, bool verbose);
+int nft_cmd_chain_del(struct nft_handle *h, const char *chain,
+		      const char *table, bool verbose);
 int nft_cmd_chain_zero_counters(struct nft_handle *h, const char *chain,
 				const char *table, bool verbose);
 int nft_cmd_rule_list(struct nft_handle *h, const char *chain,

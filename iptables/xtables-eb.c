@@ -771,7 +771,7 @@ int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table,
 					chain = argv[optind];
 					optind++;
 				}
-				ret = nft_cmd_chain_user_del(h, chain, *table, 0);
+				ret = nft_cmd_chain_del(h, chain, *table, 0);
 				break;
 			}
 
