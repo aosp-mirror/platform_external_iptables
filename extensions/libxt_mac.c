@@ -42,10 +42,10 @@ mac_print(const void *ip, const struct xt_entry_match *match, int numeric)
 {
 	const struct xt_mac_info *info = (void *)match->data;
 
-	printf(" MAC");
+	printf(" MAC ");
 
 	if (info->invert)
-		printf(" !");
+		printf("! ");
 
 	xtables_print_mac(info->srcaddr);
 }
