@@ -143,7 +143,7 @@ struct mnl_err {
 static void mnl_err_list_node_add(struct list_head *err_list, int error,
 				  int seqnum)
 {
-	struct mnl_err *err = malloc(sizeof(struct mnl_err));
+	struct mnl_err *err = xtables_malloc(sizeof(struct mnl_err));
 
 	err->seqnum = seqnum;
 	err->err = error;
