@@ -23,10 +23,7 @@ struct nft_cmd *nft_cmd_new(struct nft_handle *h, int command,
 	struct nftnl_rule *rule;
 	struct nft_cmd *cmd;
 
-	cmd = calloc(1, sizeof(struct nft_cmd));
-	if (!cmd)
-		return NULL;
-
+	cmd = xtables_calloc(1, sizeof(struct nft_cmd));
 	cmd->command = command;
 	cmd->table = xtables_strdup(table);
 	if (chain)

@@ -2353,18 +2353,11 @@ struct xt_xlate {
 
 struct xt_xlate *xt_xlate_alloc(int size)
 {
-	struct xt_xlate *xl;
+	struct xt_xlate *xl = xtables_malloc(sizeof(struct xt_xlate));
 	int i;
 
-	xl = malloc(sizeof(struct xt_xlate));
-	if (xl == NULL)
-		xtables_error(RESOURCE_PROBLEM, "OOM");
-
 	for (i = 0; i < __XT_XLATE_MAX; i++) {
-		xl->buf[i].data = malloc(size);
-		if (xl->buf[i].data == NULL)
-			xtables_error(RESOURCE_PROBLEM, "OOM");
-
+		xl->buf[i].data = xtables_malloc(size);
 		xl->buf[i].data[0] = '\0';
 		xl->buf[i].size = size;
 		xl->buf[i].rem = size;

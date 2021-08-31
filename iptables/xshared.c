@@ -220,9 +220,7 @@ void xs_init_target(struct xtables_target *target)
 {
 	if (target->udata_size != 0) {
 		free(target->udata);
-		target->udata = calloc(1, target->udata_size);
-		if (target->udata == NULL)
-			xtables_error(RESOURCE_PROBLEM, "malloc");
+		target->udata = xtables_calloc(1, target->udata_size);
 	}
 	if (target->init != NULL)
 		target->init(target->t);
@@ -238,9 +236,7 @@ void xs_init_match(struct xtables_match *match)
 		 * Same goes for target.
 		 */
 		free(match->udata);
-		match->udata = calloc(1, match->udata_size);
-		if (match->udata == NULL)
-			xtables_error(RESOURCE_PROBLEM, "malloc");
+		match->udata = xtables_calloc(1, match->udata_size);
 	}
 	if (match->init != NULL)
 		match->init(match->m);

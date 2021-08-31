@@ -362,10 +362,7 @@ static struct obj_update *batch_add(struct nft_handle *h, enum obj_update_type t
 {
 	struct obj_update *obj;
 
-	obj = calloc(1, sizeof(struct obj_update));
-	if (obj == NULL)
-		return NULL;
-
+	obj = xtables_calloc(1, sizeof(struct obj_update));
 	obj->ptr = ptr;
 	obj->error.lineno = h->error.lineno;
 	obj->type = type;
@@ -997,10 +994,7 @@ static int __add_match(struct nftnl_expr *e, struct xt_entry_match *m)
 	nftnl_expr_set(e, NFTNL_EXPR_MT_NAME, m->u.user.name, strlen(m->u.user.name));
 	nftnl_expr_set_u32(e, NFTNL_EXPR_MT_REV, m->u.user.revision);
 
-	info = calloc(1, m->u.match_size);
-	if (info == NULL)
-		return -ENOMEM;
-
+	info = xtables_calloc(1, m->u.match_size);
 	memcpy(info, m->data, m->u.match_size - sizeof(*m));
 	nftnl_expr_set(e, NFTNL_EXPR_MT_INFO, info, m->u.match_size - sizeof(*m));
 
@@ -1245,10 +1239,7 @@ static int __add_target(struct nftnl_expr *e, struct xt_entry_target *t)
 			  strlen(t->u.user.name));
 	nftnl_expr_set_u32(e, NFTNL_EXPR_TG_REV, t->u.user.revision);
 
-	info = calloc(1, t->u.target_size);
-	if (info == NULL)
-		return -ENOMEM;
-
+	info = xtables_calloc(1, t->u.target_size);
 	memcpy(info, t->data, t->u.target_size - sizeof(*t));
 	nftnl_expr_set(e, NFTNL_EXPR_TG_INFO, info, t->u.target_size - sizeof(*t));
 

@@ -274,9 +274,7 @@ static struct option *merge_options(struct option *oldopts,
 	ebtables_globals.option_offset += OPTION_OFFSET;
 	*options_offset = ebtables_globals.option_offset;
 
-	merge = malloc(sizeof(struct option) * (num_new + num_old + 1));
-	if (!merge)
-		return NULL;
+	merge = xtables_malloc(sizeof(struct option) * (num_new + num_old + 1));
 	memcpy(merge, oldopts, num_old * sizeof(struct option));
 	for (i = 0; i < num_new; i++) {
 		merge[num_old + i] = newopts[i];
@@ -571,10 +569,7 @@ void ebt_add_match(struct xtables_match *m,
 	m->mflags = 0;
 
 	/* glue code for watchers */
-	newnode = calloc(1, sizeof(struct ebt_match));
-	if (newnode == NULL)
-		xtables_error(OTHER_PROBLEM, "Unable to alloc memory");
-
+	newnode = xtables_calloc(1, sizeof(struct ebt_match));
 	newnode->ismatch = true;
 	newnode->u.match = newm;
 
@@ -603,10 +598,7 @@ void ebt_add_watcher(struct xtables_target *watcher,
 	watcher->tflags = 0;
 
 
-	newnode = calloc(1, sizeof(struct ebt_match));
-	if (newnode == NULL)
-		xtables_error(OTHER_PROBLEM, "Unable to alloc memory");
-
+	newnode = xtables_calloc(1, sizeof(struct ebt_match));
 	newnode->u.watcher = clone;
 
 	for (matchp = &cs->match_list; *matchp; matchp = &(*matchp)->next)

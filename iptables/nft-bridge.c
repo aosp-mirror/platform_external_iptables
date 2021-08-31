@@ -477,11 +477,7 @@ static void nft_bridge_parse_lookup(struct nft_xt_ctx *ctx,
 static void parse_watcher(void *object, struct ebt_match **match_list,
 			  bool ismatch)
 {
-	struct ebt_match *m;
-
-	m = calloc(1, sizeof(struct ebt_match));
-	if (m == NULL)
-		xtables_error(OTHER_PROBLEM, "Can't allocate memory");
+	struct ebt_match *m = xtables_calloc(1, sizeof(struct ebt_match));
 
 	if (ismatch)
 		m->u.match = object;
