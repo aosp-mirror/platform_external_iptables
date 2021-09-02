@@ -32,22 +32,25 @@ EXTENSIONS_PATH = "extensions"
 LOGFILE="/tmp/iptables-test.log"
 log_file = None
 
+STDOUT_IS_TTY = sys.stdout.isatty()
 
-class Colors:
-    HEADER = '\033[95m'
-    BLUE = '\033[94m'
-    GREEN = '\033[92m'
-    YELLOW = '\033[93m'
-    RED = '\033[91m'
-    ENDC = '\033[0m'
+def maybe_colored(color, text):
+    terminal_sequences = {
+        'green': '\033[92m',
+        'red': '\033[91m',
+    }
+
+    return (
+        terminal_sequences[color] + text + '\033[0m' if STDOUT_IS_TTY else text
+    )
 
 
 def print_error(reason, filename=None, lineno=None):
     '''
     Prints an error with nice colors, indicating file and line number.
     '''
-    print(filename + ": " + Colors.RED + "ERROR" +
-        Colors.ENDC + ": line %d (%s)" % (lineno, reason), file=sys.stderr)
+    print(filename + ": " + maybe_colored('red', "ERROR") +
+        ": line %d (%s)" % (lineno, reason), file=sys.stderr)
 
 
 def delete_rule(iptables, rule, filename, lineno):
@@ -285,7 +288,7 @@ def run_test_file(filename, netns):
     if netns:
         execute_cmd("ip netns del ____iptables-container-test", filename, 0)
     if total_test_passed:
-        print(filename + ": " + Colors.GREEN + "OK" + Colors.ENDC)
+        print(filename + ": " + maybe_colored('green', "OK"))
 
     f.close()
     return tests, passed
