@@ -66,6 +66,19 @@ static const size_t xtopt_psize[] = {
 };
 
 /**
+ * Return a sanitized afinfo->family value, covering for NFPROTO_ARP
+ */
+static uint8_t afinfo_family(void)
+{
+	switch (afinfo->family) {
+	case NFPROTO_ARP:
+		return NFPROTO_IPV4;
+	default:
+		return afinfo->family;
+	}
+}
+
+/**
  * Creates getopt options from the x6-style option map, and assigns each a
  * getopt id.
  */
@@ -461,7 +474,7 @@ static socklen_t xtables_sa_hostlen(unsigned int afproto)
  */
 static void xtopt_parse_host(struct xt_option_call *cb)
 {
-	struct addrinfo hints = {.ai_family = afinfo->family};
+	struct addrinfo hints = {.ai_family = afinfo_family()};
 	unsigned int adcount = 0;
 	struct addrinfo *res, *p;
 	int ret;
@@ -472,7 +485,7 @@ static void xtopt_parse_host(struct xt_option_call *cb)
 			"getaddrinfo: %s\n", gai_strerror(ret));
 
 	memset(&cb->val.hmask, 0xFF, sizeof(cb->val.hmask));
-	cb->val.hlen = (afinfo->family == NFPROTO_IPV4) ? 32 : 128;
+	cb->val.hlen = (afinfo_family() == NFPROTO_IPV4) ? 32 : 128;
 
 	for (p = res; p != NULL; p = p->ai_next) {
 		if (adcount == 0) {
@@ -615,7 +628,7 @@ static void xtopt_parse_mport(struct xt_option_call *cb)
 
 static int xtopt_parse_mask(struct xt_option_call *cb)
 {
-	struct addrinfo hints = {.ai_family = afinfo->family,
+	struct addrinfo hints = {.ai_family = afinfo_family(),
 				 .ai_flags = AI_NUMERICHOST };
 	struct addrinfo *res;
 	int ret;
@@ -627,7 +640,7 @@ static int xtopt_parse_mask(struct xt_option_call *cb)
 	memcpy(&cb->val.hmask, xtables_sa_host(res->ai_addr, res->ai_family),
 	       xtables_sa_hostlen(res->ai_family));
 
-	switch(afinfo->family) {
+	switch(afinfo_family()) {
 	case AF_INET:
 		cb->val.hlen = xtables_ipmask_to_cidr(&cb->val.hmask.in);
 		break;
@@ -649,7 +662,7 @@ static void xtopt_parse_plen(struct xt_option_call *cb)
 	const struct xt_option_entry *entry = cb->entry;
 	unsigned int prefix_len = 128; /* happiness is a warm gcc */
 
-	cb->val.hlen = (afinfo->family == NFPROTO_IPV4) ? 32 : 128;
+	cb->val.hlen = (afinfo_family() == NFPROTO_IPV4) ? 32 : 128;
 	if (!xtables_strtoui(cb->arg, NULL, &prefix_len, 0, cb->val.hlen)) {
 		/* Is this mask expressed in full format? e.g. 255.255.255.0 */
 		if (xtopt_parse_mask(cb))
