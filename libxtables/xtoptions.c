@@ -73,56 +73,21 @@ struct option *
 xtables_options_xfrm(struct option *orig_opts, struct option *oldopts,
 		     const struct xt_option_entry *entry, unsigned int *offset)
 {
-	unsigned int num_orig, num_old = 0, num_new, i;
+	int num_new, i;
 	struct option *merge, *mp;
 
-	if (entry == NULL)
-		return oldopts;
-	for (num_orig = 0; orig_opts[num_orig].name != NULL; ++num_orig)
-		;
-	if (oldopts != NULL)
-		for (num_old = 0; oldopts[num_old].name != NULL; ++num_old)
-			;
 	for (num_new = 0; entry[num_new].name != NULL; ++num_new)
 		;
 
-	/*
-	 * Since @oldopts also has @orig_opts already (and does so at the
-	 * start), skip these entries.
-	 */
-	if (oldopts != NULL) {
-		oldopts += num_orig;
-		num_old -= num_orig;
+	mp = xtables_calloc(num_new, sizeof(*mp));
+	for (i = 0; i < num_new; i++) {
+		mp[i].name	= entry[i].name;
+		mp[i].has_arg	= entry[i].type != XTTYPE_NONE;
+		mp[i].val	= entry[i].id;
 	}
+	merge = xtables_merge_options(orig_opts, oldopts, mp, offset);
 
-	merge = malloc(sizeof(*mp) * (num_orig + num_old + num_new + 1));
-	if (merge == NULL)
-		return NULL;
-
-	/* Let the base options -[ADI...] have precedence over everything */
-	memcpy(merge, orig_opts, sizeof(*mp) * num_orig);
-	mp = merge + num_orig;
-
-	/* Second, the new options */
-	xt_params->option_offset += XT_OPTION_OFFSET_SCALE;
-	*offset = xt_params->option_offset;
-
-	for (i = 0; i < num_new; ++i, ++mp, ++entry) {
-		mp->name         = entry->name;
-		mp->has_arg      = entry->type != XTTYPE_NONE;
-		mp->flag         = NULL;
-		mp->val          = entry->id + *offset;
-	}
-
-	/* Third, the old options */
-	if (oldopts != NULL) {
-		memcpy(mp, oldopts, sizeof(*mp) * num_old);
-		mp += num_old;
-	}
-	xtables_free_opts(0);
-
-	/* Clear trailing entry */
-	memset(mp, 0, sizeof(*mp));
+	free(mp);
 	return merge;
 }
 
