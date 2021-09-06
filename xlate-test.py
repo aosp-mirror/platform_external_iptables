@@ -61,7 +61,6 @@ def run_test(name, payload):
                     result.append(magenta("src: ") + line.rstrip(" \n"))
                     result.append(magenta("exp: ") + expected)
                     result.append(magenta("res: ") + translation + "\n")
-                    test_passed = False
                 else:
                     passed += 1
             else:
@@ -76,10 +75,7 @@ def run_test(name, payload):
         print(name + ": " + green("OK"))
     if not test_passed:
         print("\n".join(result), file=sys.stderr)
-    if args.test:
-        print("1 test file, %d tests, %d tests passed, %d tests failed, %d errors" % (tests, passed, failed, errors))
-    else:
-        return tests, passed, failed, errors
+    return tests, passed, failed, errors
 
 
 def load_test_files():
@@ -93,9 +89,8 @@ def load_test_files():
                 total_passed += passed
                 total_failed += failed
                 total_error += errors
+    return (test_files, total_tests, total_passed, total_failed, total_error)
 
-
-    print("%d test files, %d tests, %d tests passed, %d tests failed, %d errors" % (test_files, total_tests, total_passed, total_failed, total_error))
 
 def main():
     global xtables_nft_multi
@@ -104,16 +99,27 @@ def main():
         xtables_nft_multi = os.path.abspath(os.path.curdir) \
                             + '/iptables/' + xtables_nft_multi
 
+    files = tests = passed = failed = errors = 0
     if args.test:
         if not args.test.endswith(".txlate"):
             args.test += ".txlate"
         try:
             with open(args.test, "r") as payload:
-                run_test(args.test, payload)
+                files = 1
+                tests, passed, failed, errors = run_test(args.test, payload)
         except IOError:
             print(red("Error: ") + "test file does not exist", file=sys.stderr)
+            return -1
     else:
-        load_test_files()
+        files, tests, passed, failed, errors = load_test_files()
+
+    if files > 1:
+        file_word = "files"
+    else:
+        file_word = "file"
+    print("%d test %s, %d tests, %d tests passed, %d tests failed, %d errors"
+            % (files, file_word, tests, passed, failed, errors))
+    return passed - tests
 
 
 parser = argparse.ArgumentParser()
@@ -121,4 +127,4 @@ parser.add_argument('-H', '--host', action='store_true',
                     help='Run tests against installed binaries')
 parser.add_argument("test", nargs="?", help="run only the specified test file")
 args = parser.parse_args()
-main()
+sys.exit(main())
