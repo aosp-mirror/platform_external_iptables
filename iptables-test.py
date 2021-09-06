@@ -408,7 +408,8 @@ def main():
             test_files += 1
 
     print("%d test files, %d unit tests, %d passed" % (test_files, tests, passed))
+    return passed - tests
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())
