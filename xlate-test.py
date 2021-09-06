@@ -48,9 +48,9 @@ def run_test(name, payload):
             if process.returncode == 0:
                 translation = output.decode("utf-8").rstrip(" \n")
                 expected = payload.readline().rstrip(" \n")
-                next_expected = payload.readline().rstrip(" \n")
+                next_expected = payload.readline()
                 if next_expected.startswith("nft"):
-                    expected += "\n" + next_expected
+                    expected += "\n" + next_expected.rstrip(" \n")
                     line = payload.readline()
                 else:
                     line = next_expected
