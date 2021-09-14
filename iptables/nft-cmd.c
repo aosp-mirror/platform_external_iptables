@@ -220,7 +220,7 @@ int nft_cmd_chain_del(struct nft_handle *h, const char *chain,
 	/* This triggers nft_bridge_chain_postprocess() when fetching the
 	 * rule cache.
 	 */
-	if (h->family == NFPROTO_BRIDGE)
+	if (h->family == NFPROTO_BRIDGE || !chain)
 		nft_cache_level_set(h, NFT_CL_RULES, cmd);
 	else
 		nft_cache_level_set(h, NFT_CL_CHAINS, cmd);

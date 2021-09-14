@@ -1838,26 +1838,46 @@ int nft_chain_restore(struct nft_handle *h, const char *chain, const char *table
 
 struct chain_del_data {
 	struct nft_handle	*handle;
+	const char		*chain;
 	bool			verbose;
 };
+
+static bool nft_may_delete_chain(struct nftnl_chain *c)
+{
+	if (nftnl_chain_is_set(c, NFTNL_CHAIN_POLICY) &&
+	    nftnl_chain_get_u32(c, NFTNL_CHAIN_POLICY) != NF_ACCEPT)
+		return false;
+
+	return nftnl_rule_lookup_byindex(c, 0) == NULL;
+}
 
 static int __nft_chain_del(struct nft_chain *nc, void *data)
 {
 	struct chain_del_data *d = data;
 	struct nftnl_chain *c = nc->nftnl;
 	struct nft_handle *h = d->handle;
+	bool builtin = nft_chain_builtin(c);
+	struct obj_update *obj;
+	int ret = 0;
 
-	if (d->verbose)
+	if (d->verbose && !builtin)
 		fprintf(stdout, "Deleting chain `%s'\n",
 			nftnl_chain_get_str(c, NFTNL_CHAIN_NAME));
 
 
 	/* XXX This triggers a fast lookup from the kernel. */
 	nftnl_chain_unset(c, NFTNL_CHAIN_HANDLE);
-	if (!batch_chain_add(h, NFT_COMPAT_CHAIN_DEL, c))
+	obj = batch_chain_add(h, NFT_COMPAT_CHAIN_DEL, c);
+	if (!obj)
 		return -1;
 
-	if (nft_chain_builtin(c)) {
+	if (builtin) {
+		obj->skip = !nft_may_delete_chain(c);
+		if (obj->skip && d->chain) {
+			/* complain if explicitly requested */
+			errno = EBUSY;
+			ret = -1;
+		}
 		*nc->base_slot = NULL;
 	}
 
@@ -1866,14 +1886,15 @@ static int __nft_chain_del(struct nft_chain *nc, void *data)
 
 	nft_chain_list_del(nc);
 	nft_chain_free(nc);
-	return 0;
+	return ret;
 }
 
 int nft_chain_del(struct nft_handle *h, const char *chain,
-		       const char *table, bool verbose)
+		  const char *table, bool verbose)
 {
 	struct chain_del_data d = {
 		.handle = h,
+		.chain = chain,
 		.verbose = verbose,
 	};
 	struct nft_chain *c;
@@ -1889,8 +1910,6 @@ int nft_chain_del(struct nft_handle *h, const char *chain,
 		}
 
 		ret = __nft_chain_del(c, &d);
-		if (ret == -2)
-			errno = EINVAL;
 		goto out;
 	}
 
@@ -2744,10 +2763,14 @@ static void nft_refresh_transaction(struct nft_handle *h)
 
 			n->skip = !nft_chain_find(h, tablename, chainname);
 			break;
+		case NFT_COMPAT_CHAIN_DEL:
+			if (!nftnl_chain_get(n->chain, NFTNL_CHAIN_HOOKNUM))
+				break;
+			n->skip = !nft_may_delete_chain(n->chain);
+			break;
 		case NFT_COMPAT_TABLE_ADD:
 		case NFT_COMPAT_CHAIN_ADD:
 		case NFT_COMPAT_CHAIN_ZERO:
-		case NFT_COMPAT_CHAIN_DEL:
 		case NFT_COMPAT_CHAIN_USER_FLUSH:
 		case NFT_COMPAT_CHAIN_UPDATE:
 		case NFT_COMPAT_CHAIN_RENAME:
