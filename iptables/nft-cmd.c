@@ -167,7 +167,9 @@ int nft_cmd_rule_flush(struct nft_handle *h, const char *chain,
 	if (!cmd)
 		return 0;
 
-	if (chain || verbose)
+	if (h->family == NFPROTO_BRIDGE)
+		nft_cache_level_set(h, NFT_CL_RULES, cmd);
+	else if (chain || verbose)
 		nft_cache_level_set(h, NFT_CL_CHAINS, cmd);
 	else
 		nft_cache_level_set(h, NFT_CL_TABLES, cmd);
