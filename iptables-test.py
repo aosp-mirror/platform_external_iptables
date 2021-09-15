@@ -33,15 +33,16 @@ LOGFILE="/tmp/iptables-test.log"
 log_file = None
 
 STDOUT_IS_TTY = sys.stdout.isatty()
+STDERR_IS_TTY = sys.stderr.isatty()
 
-def maybe_colored(color, text):
+def maybe_colored(color, text, isatty):
     terminal_sequences = {
         'green': '\033[92m',
         'red': '\033[91m',
     }
 
     return (
-        terminal_sequences[color] + text + '\033[0m' if STDOUT_IS_TTY else text
+        terminal_sequences[color] + text + '\033[0m' if isatty else text
     )
 
 
@@ -49,7 +50,7 @@ def print_error(reason, filename=None, lineno=None):
     '''
     Prints an error with nice colors, indicating file and line number.
     '''
-    print(filename + ": " + maybe_colored('red', "ERROR") +
+    print(filename + ": " + maybe_colored('red', "ERROR", STDERR_IS_TTY) +
         ": line %d (%s)" % (lineno, reason), file=sys.stderr)
 
 
@@ -288,7 +289,7 @@ def run_test_file(filename, netns):
     if netns:
         execute_cmd("ip netns del ____iptables-container-test", filename, 0)
     if total_test_passed:
-        print(filename + ": " + maybe_colored('green', "OK"))
+        print(filename + ": " + maybe_colored('green', "OK", STDOUT_IS_TTY))
 
     f.close()
     return tests, passed
