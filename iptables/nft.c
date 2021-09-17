@@ -1838,8 +1838,6 @@ int nft_chain_restore(struct nft_handle *h, const char *chain, const char *table
 
 struct chain_del_data {
 	struct nft_handle	*handle;
-	struct nft_cache	*cache;
-	enum nft_table_type	type;
 	bool			verbose;
 };
 
@@ -1860,10 +1858,7 @@ static int __nft_chain_del(struct nft_chain *nc, void *data)
 		return -1;
 
 	if (nft_chain_builtin(c)) {
-		uint32_t num = nftnl_chain_get_u32(c, NFTNL_CHAIN_HOOKNUM);
-
-		if (nc == d->cache->table[d->type].base_chains[num])
-			d->cache->table[d->type].base_chains[num] = NULL;
+		*nc->base_slot = NULL;
 	}
 
 	/* nftnl_chain is freed when deleting the batch object */
@@ -1877,7 +1872,6 @@ static int __nft_chain_del(struct nft_chain *nc, void *data)
 int nft_chain_del(struct nft_handle *h, const char *chain,
 		       const char *table, bool verbose)
 {
-	const struct builtin_table *t;
 	struct chain_del_data d = {
 		.handle = h,
 		.verbose = verbose,
@@ -1894,31 +1888,11 @@ int nft_chain_del(struct nft_handle *h, const char *chain,
 			return 0;
 		}
 
-		if (nft_chain_builtin(c->nftnl)) {
-			t = nft_table_builtin_find(h, table);
-			if (!t) {
-				errno = EINVAL;
-				return 0;
-			}
-
-			d.type = t->type;
-			d.cache = h->cache;
-		}
-
 		ret = __nft_chain_del(c, &d);
 		if (ret == -2)
 			errno = EINVAL;
 		goto out;
 	}
-
-	t = nft_table_builtin_find(h, table);
-	if (!t) {
-		errno = EINVAL;
-		return 0;
-	}
-
-	d.type = t->type;
-	d.cache = h->cache;
 
 	if (verbose)
 		nft_cache_sort_chains(h, table);

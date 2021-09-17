@@ -226,10 +226,11 @@ nft_cache_add_base_chain(struct nft_handle *h, const struct builtin_table *t,
 	    strcmp(type, bc->type))
 		return -EINVAL;
 
-	if (h->cache->table[t->type].base_chains[hooknum])
+	nc->base_slot = &h->cache->table[t->type].base_chains[hooknum];
+	if (*nc->base_slot)
 		return -EEXIST;
 
-	h->cache->table[t->type].base_chains[hooknum] = nc;
+	*nc->base_slot = nc;
 	return 0;
 }
 
