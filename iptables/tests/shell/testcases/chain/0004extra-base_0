@@ -13,6 +13,10 @@ set -e
 
 nft -f - <<EOF
 table ip filter {
+	chain a {
+		type filter hook input priority filter
+	}
+
         chain INPUT {
                 type filter hook input priority filter
                 counter packets 218 bytes 91375 accept
@@ -24,4 +28,10 @@ table ip filter {
 }
 EOF
 
-$XT_MULTI iptables -L
+EXPECT="# Table \`filter' contains incompatible base-chains, use 'nft' tool to list them.
+-P INPUT ACCEPT
+-P FORWARD ACCEPT
+-P OUTPUT ACCEPT
+-A INPUT -j ACCEPT"
+
+diff -u -Z <(echo -e "$EXPECT") <($XT_MULTI iptables -S)

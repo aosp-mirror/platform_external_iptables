@@ -3513,38 +3513,8 @@ static int nft_is_rule_compatible(struct nftnl_rule *rule, void *data)
 static int nft_is_chain_compatible(struct nft_chain *nc, void *data)
 {
 	struct nftnl_chain *c = nc->nftnl;
-	const struct builtin_table *table;
-	const struct builtin_chain *chain;
-	const char *tname, *cname, *type;
-	struct nft_handle *h = data;
-	enum nf_inet_hooks hook;
-	int prio;
 
-	if (nftnl_rule_foreach(c, nft_is_rule_compatible, NULL))
-		return -1;
-
-	if (!nft_chain_builtin(c))
-		return 0;
-
-	tname = nftnl_chain_get_str(c, NFTNL_CHAIN_TABLE);
-	table = nft_table_builtin_find(h, tname);
-	if (!table)
-		return -1;
-
-	cname = nftnl_chain_get_str(c, NFTNL_CHAIN_NAME);
-	chain = nft_chain_builtin_find(table, cname);
-	if (!chain)
-		return -1;
-
-	type = nftnl_chain_get_str(c, NFTNL_CHAIN_TYPE);
-	prio = nftnl_chain_get_u32(c, NFTNL_CHAIN_PRIO);
-	hook = nftnl_chain_get_u32(c, NFTNL_CHAIN_HOOKNUM);
-	if (strcmp(type, chain->type) ||
-	    prio != chain->prio ||
-	    hook != chain->hook)
-		return -1;
-
-	return 0;
+	return nftnl_rule_foreach(c, nft_is_rule_compatible, NULL);
 }
 
 bool nft_is_table_compatible(struct nft_handle *h,
@@ -3559,13 +3529,24 @@ bool nft_is_table_compatible(struct nft_handle *h,
 	return !nft_chain_foreach(h, table, nft_is_chain_compatible, h);
 }
 
+bool nft_is_table_tainted(struct nft_handle *h, const char *table)
+{
+	const struct builtin_table *t = nft_table_builtin_find(h, table);
+
+	return t ? h->cache->table[t->type].tainted : false;
+}
+
 void nft_assert_table_compatible(struct nft_handle *h,
 				 const char *table, const char *chain)
 {
 	const char *pfx = "", *sfx = "";
 
-	if (nft_is_table_compatible(h, table, chain))
+	if (nft_is_table_compatible(h, table, chain)) {
+		if (nft_is_table_tainted(h, table))
+			printf("# Table `%s' contains incompatible base-chains, use 'nft' tool to list them.\n",
+			       table);
 		return;
+	}
 
 	if (chain) {
 		pfx = "chain `";

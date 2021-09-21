@@ -45,6 +45,7 @@ struct nft_cache {
 		struct nftnl_set_list	*sets;
 		bool			exists;
 		bool			sorted;
+		bool			tainted;
 	} table[NFT_TABLE_MAX];
 };
 
@@ -262,6 +263,7 @@ void nft_rule_to_arpt_entry(struct nftnl_rule *r, struct arpt_entry *fw);
 
 bool nft_is_table_compatible(struct nft_handle *h,
 			     const char *table, const char *chain);
+bool nft_is_table_tainted(struct nft_handle *h, const char *table);
 void nft_assert_table_compatible(struct nft_handle *h,
 				 const char *table, const char *chain);
 

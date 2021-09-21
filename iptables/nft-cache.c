@@ -202,26 +202,51 @@ nft_chain_find(struct nft_handle *h, const char *table, const char *chain)
 	return NULL;
 }
 
+static int
+nft_cache_add_base_chain(struct nft_handle *h, const struct builtin_table *t,
+			 struct nft_chain *nc)
+{
+	uint32_t hooknum = nftnl_chain_get_u32(nc->nftnl, NFTNL_CHAIN_HOOKNUM);
+	const char *name = nftnl_chain_get_str(nc->nftnl, NFTNL_CHAIN_NAME);
+	const char *type = nftnl_chain_get_str(nc->nftnl, NFTNL_CHAIN_TYPE);
+	uint32_t prio = nftnl_chain_get_u32(nc->nftnl, NFTNL_CHAIN_PRIO);
+	const struct builtin_chain *bc = NULL;
+	int i;
+
+	for (i = 0; i < NF_IP_NUMHOOKS && t->chains[i].name != NULL; i++) {
+		if (hooknum == t->chains[i].hook) {
+			bc = &t->chains[i];
+			break;
+		}
+	}
+
+	if (!bc ||
+	    prio != bc->prio ||
+	    strcmp(name, bc->name) ||
+	    strcmp(type, bc->type))
+		return -EINVAL;
+
+	if (h->cache->table[t->type].base_chains[hooknum])
+		return -EEXIST;
+
+	h->cache->table[t->type].base_chains[hooknum] = nc;
+	return 0;
+}
+
 int nft_cache_add_chain(struct nft_handle *h, const struct builtin_table *t,
 			struct nftnl_chain *c)
 {
 	const char *cname = nftnl_chain_get_str(c, NFTNL_CHAIN_NAME);
 	struct nft_chain *nc = nft_chain_alloc(c);
+	int ret;
 
 	if (nftnl_chain_is_set(c, NFTNL_CHAIN_HOOKNUM)) {
-		uint32_t hooknum = nftnl_chain_get_u32(c, NFTNL_CHAIN_HOOKNUM);
-
-		if (hooknum >= NF_INET_NUMHOOKS) {
+		ret = nft_cache_add_base_chain(h, t, nc);
+		if (ret) {
+			h->cache->table[t->type].tainted = true;
 			nft_chain_free(nc);
-			return -EINVAL;
+			return ret;
 		}
-
-		if (h->cache->table[t->type].base_chains[hooknum]) {
-			nft_chain_free(nc);
-			return -EEXIST;
-		}
-
-		h->cache->table[t->type].base_chains[hooknum] = nc;
 	} else {
 		list_add_tail(&nc->head,
 			      &h->cache->table[t->type].chains->list);

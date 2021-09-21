@@ -78,6 +78,9 @@ __do_output(struct nft_handle *h, const char *tablename, void *data)
 		printf("# Table `%s' is incompatible, use 'nft' tool.\n",
 		       tablename);
 		return 0;
+	} else if (nft_is_table_tainted(h, tablename)) {
+		printf("# Table `%s' contains incompatible base-chains, use 'nft' tool to list them.\n",
+		       tablename);
 	}
 
 	now = time(NULL);
