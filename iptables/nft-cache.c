@@ -314,9 +314,7 @@ static int nftnl_chain_list_cb(const struct nlmsghdr *nlh, void *data)
 		goto out;
 	}
 
-	if (nft_cache_add_chain(h, t, c))
-		goto out;
-
+	nft_cache_add_chain(h, t, c);
 	return MNL_CB_OK;
 out:
 	nftnl_chain_free(c);
