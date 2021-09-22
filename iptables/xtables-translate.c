@@ -354,9 +354,10 @@ static void print_usage(const char *name, const char *version)
 {
 	fprintf(stderr, "%s %s "
 			"(c) 2014 by Pablo Neira Ayuso <pablo@netfilter.org>\n"
-			"Usage: %s [-h] [-f]\n"
+			"Usage: %s [-h] [-f <FILE>] [-V]\n"
                         "	[ --help ]\n"
-                        "	[ --file=<FILE> ]\n", name, version, name);
+                        "	[ --file=<FILE> ]\n"
+                        "	[ --version ]\n", name, version, name);
         exit(1);
 }
 
