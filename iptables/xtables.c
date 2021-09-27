@@ -224,168 +224,6 @@ xtables_exit_error(enum xtables_exittype status, const char *msg, ...)
 /* Christophe Burki wants `-p 6' to imply `-m tcp'.  */
 
 static int
-add_entry(const char *chain,
-	  const char *table,
-	  struct iptables_command_state *cs,
-	  int rulenum, int family,
-	  const struct addr_mask s,
-	  const struct addr_mask d,
-	  bool verbose, struct nft_handle *h, bool append)
-{
-	unsigned int i, j;
-	int ret = 1;
-
-	for (i = 0; i < s.naddrs; i++) {
-		if (family == AF_INET) {
-			cs->fw.ip.src.s_addr = s.addr.v4[i].s_addr;
-			cs->fw.ip.smsk.s_addr = s.mask.v4[i].s_addr;
-			for (j = 0; j < d.naddrs; j++) {
-				cs->fw.ip.dst.s_addr = d.addr.v4[j].s_addr;
-				cs->fw.ip.dmsk.s_addr = d.mask.v4[j].s_addr;
-
-				if (append) {
-					ret = nft_cmd_rule_append(h, chain, table,
-							      cs, NULL,
-							      verbose);
-				} else {
-					ret = nft_cmd_rule_insert(h, chain, table,
-							      cs, rulenum,
-							      verbose);
-				}
-			}
-		} else if (family == AF_INET6) {
-			memcpy(&cs->fw6.ipv6.src,
-			       &s.addr.v6[i], sizeof(struct in6_addr));
-			memcpy(&cs->fw6.ipv6.smsk,
-			       &s.mask.v6[i], sizeof(struct in6_addr));
-			for (j = 0; j < d.naddrs; j++) {
-				memcpy(&cs->fw6.ipv6.dst,
-				       &d.addr.v6[j], sizeof(struct in6_addr));
-				memcpy(&cs->fw6.ipv6.dmsk,
-				       &d.mask.v6[j], sizeof(struct in6_addr));
-				if (append) {
-					ret = nft_cmd_rule_append(h, chain, table,
-							      cs, NULL,
-							      verbose);
-				} else {
-					ret = nft_cmd_rule_insert(h, chain, table,
-							      cs, rulenum,
-							      verbose);
-				}
-			}
-		}
-	}
-
-	return ret;
-}
-
-static int
-replace_entry(const char *chain, const char *table,
-	      struct iptables_command_state *cs,
-	      unsigned int rulenum,
-	      int family,
-	      const struct addr_mask s,
-	      const struct addr_mask d,
-	      bool verbose, struct nft_handle *h)
-{
-	if (family == AF_INET) {
-		cs->fw.ip.src.s_addr = s.addr.v4->s_addr;
-		cs->fw.ip.dst.s_addr = d.addr.v4->s_addr;
-		cs->fw.ip.smsk.s_addr = s.mask.v4->s_addr;
-		cs->fw.ip.dmsk.s_addr = d.mask.v4->s_addr;
-	} else if (family == AF_INET6) {
-		memcpy(&cs->fw6.ipv6.src, s.addr.v6, sizeof(struct in6_addr));
-		memcpy(&cs->fw6.ipv6.dst, d.addr.v6, sizeof(struct in6_addr));
-		memcpy(&cs->fw6.ipv6.smsk, s.mask.v6, sizeof(struct in6_addr));
-		memcpy(&cs->fw6.ipv6.dmsk, d.mask.v6, sizeof(struct in6_addr));
-	} else
-		return 1;
-
-	return nft_cmd_rule_replace(h, chain, table, cs, rulenum, verbose);
-}
-
-static int
-delete_entry(const char *chain, const char *table,
-	     struct iptables_command_state *cs,
-	     int family,
-	     const struct addr_mask s,
-	     const struct addr_mask d,
-	     bool verbose,
-	     struct nft_handle *h)
-{
-	unsigned int i, j;
-	int ret = 1;
-
-	for (i = 0; i < s.naddrs; i++) {
-		if (family == AF_INET) {
-			cs->fw.ip.src.s_addr = s.addr.v4[i].s_addr;
-			cs->fw.ip.smsk.s_addr = s.mask.v4[i].s_addr;
-			for (j = 0; j < d.naddrs; j++) {
-				cs->fw.ip.dst.s_addr = d.addr.v4[j].s_addr;
-				cs->fw.ip.dmsk.s_addr = d.mask.v4[j].s_addr;
-				ret = nft_cmd_rule_delete(h, chain,
-						      table, cs, verbose);
-			}
-		} else if (family == AF_INET6) {
-			memcpy(&cs->fw6.ipv6.src,
-			       &s.addr.v6[i], sizeof(struct in6_addr));
-			memcpy(&cs->fw6.ipv6.smsk,
-			       &s.mask.v6[i], sizeof(struct in6_addr));
-			for (j = 0; j < d.naddrs; j++) {
-				memcpy(&cs->fw6.ipv6.dst,
-				       &d.addr.v6[j], sizeof(struct in6_addr));
-				memcpy(&cs->fw6.ipv6.dmsk,
-				       &d.mask.v6[j], sizeof(struct in6_addr));
-				ret = nft_cmd_rule_delete(h, chain,
-						      table, cs, verbose);
-			}
-		}
-	}
-
-	return ret;
-}
-
-static int
-check_entry(const char *chain, const char *table,
-	    struct iptables_command_state *cs,
-	    int family,
-	    const struct addr_mask s,
-	    const struct addr_mask d,
-	    bool verbose, struct nft_handle *h)
-{
-	unsigned int i, j;
-	int ret = 1;
-
-	for (i = 0; i < s.naddrs; i++) {
-		if (family == AF_INET) {
-			cs->fw.ip.src.s_addr = s.addr.v4[i].s_addr;
-			cs->fw.ip.smsk.s_addr = s.mask.v4[i].s_addr;
-			for (j = 0; j < d.naddrs; j++) {
-				cs->fw.ip.dst.s_addr = d.addr.v4[j].s_addr;
-				cs->fw.ip.dmsk.s_addr = d.mask.v4[j].s_addr;
-				ret = nft_cmd_rule_check(h, chain,
-						     table, cs, verbose);
-			}
-		} else if (family == AF_INET6) {
-			memcpy(&cs->fw6.ipv6.src,
-			       &s.addr.v6[i], sizeof(struct in6_addr));
-			memcpy(&cs->fw6.ipv6.smsk,
-			       &s.mask.v6[i], sizeof(struct in6_addr));
-			for (j = 0; j < d.naddrs; j++) {
-				memcpy(&cs->fw6.ipv6.dst,
-				       &d.addr.v6[j], sizeof(struct in6_addr));
-				memcpy(&cs->fw6.ipv6.dmsk,
-				       &d.mask.v6[j], sizeof(struct in6_addr));
-				ret = nft_cmd_rule_check(h, chain,
-						     table, cs, verbose);
-			}
-		}
-	}
-
-	return ret;
-}
-
-static int
 list_entries(struct nft_handle *h, const char *chain, const char *table,
 	     int rulenum, int verbose, int numeric, int expanded,
 	     int linenumbers)
@@ -923,33 +761,31 @@ int do_commandx(struct nft_handle *h, int argc, char *argv[], char **table,
 
 	switch (p.command) {
 	case CMD_APPEND:
-		ret = add_entry(p.chain, p.table, &cs, 0, h->family,
-				args.s, args.d,
-				cs.options & OPT_VERBOSE, h, true);
+		ret = h->ops->add_entry(h, p.chain, p.table, &cs, &args,
+					cs.options & OPT_VERBOSE, true,
+					p.rulenum - 1);
 		break;
 	case CMD_DELETE:
-		ret = delete_entry(p.chain, p.table, &cs, h->family,
-				   args.s, args.d,
-				   cs.options & OPT_VERBOSE, h);
+		ret = h->ops->delete_entry(h, p.chain, p.table, &cs, &args,
+					   cs.options & OPT_VERBOSE);
 		break;
 	case CMD_DELETE_NUM:
 		ret = nft_cmd_rule_delete_num(h, p.chain, p.table,
 					      p.rulenum - 1, p.verbose);
 		break;
 	case CMD_CHECK:
-		ret = check_entry(p.chain, p.table, &cs, h->family,
-				  args.s, args.d,
-				  cs.options & OPT_VERBOSE, h);
+		ret = h->ops->check_entry(h, p.chain, p.table, &cs, &args,
+					  cs.options & OPT_VERBOSE);
 		break;
 	case CMD_REPLACE:
-		ret = replace_entry(p.chain, p.table, &cs, p.rulenum - 1,
-				    h->family, args.s, args.d,
-				    cs.options & OPT_VERBOSE, h);
+		ret = h->ops->replace_entry(h, p.chain, p.table, &cs, &args,
+					    cs.options & OPT_VERBOSE,
+					    p.rulenum - 1);
 		break;
 	case CMD_INSERT:
-		ret = add_entry(p.chain, p.table, &cs, p.rulenum - 1,
-				h->family, args.s, args.d,
-				cs.options&OPT_VERBOSE, h, false);
+		ret = h->ops->add_entry(h, p.chain, p.table, &cs, &args,
+					cs.options & OPT_VERBOSE, false,
+					p.rulenum - 1);
 		break;
 	case CMD_FLUSH:
 		ret = nft_cmd_rule_flush(h, p.chain, p.table,

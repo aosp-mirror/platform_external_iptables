@@ -468,6 +468,95 @@ static int nft_ipv4_xlate(const void *data, struct xt_xlate *xl)
 	return ret;
 }
 
+static int
+nft_ipv4_add_entry(struct nft_handle *h,
+		   const char *chain, const char *table,
+		   struct iptables_command_state *cs,
+		   struct xtables_args *args, bool verbose,
+		   bool append, int rulenum)
+{
+	unsigned int i, j;
+	int ret = 1;
+
+	for (i = 0; i < args->s.naddrs; i++) {
+		cs->fw.ip.src.s_addr = args->s.addr.v4[i].s_addr;
+		cs->fw.ip.smsk.s_addr = args->s.mask.v4[i].s_addr;
+		for (j = 0; j < args->d.naddrs; j++) {
+			cs->fw.ip.dst.s_addr = args->d.addr.v4[j].s_addr;
+			cs->fw.ip.dmsk.s_addr = args->d.mask.v4[j].s_addr;
+
+			if (append) {
+				ret = nft_cmd_rule_append(h, chain, table,
+						      cs, NULL, verbose);
+			} else {
+				ret = nft_cmd_rule_insert(h, chain, table,
+						      cs, rulenum, verbose);
+			}
+		}
+	}
+
+	return ret;
+}
+
+static int
+nft_ipv4_delete_entry(struct nft_handle *h,
+		      const char *chain, const char *table,
+		      struct iptables_command_state *cs,
+		      struct xtables_args *args, bool verbose)
+{
+	unsigned int i, j;
+	int ret = 1;
+
+	for (i = 0; i < args->s.naddrs; i++) {
+		cs->fw.ip.src.s_addr = args->s.addr.v4[i].s_addr;
+		cs->fw.ip.smsk.s_addr = args->s.mask.v4[i].s_addr;
+		for (j = 0; j < args->d.naddrs; j++) {
+			cs->fw.ip.dst.s_addr = args->d.addr.v4[j].s_addr;
+			cs->fw.ip.dmsk.s_addr = args->d.mask.v4[j].s_addr;
+			ret = nft_cmd_rule_delete(h, chain, table, cs, verbose);
+		}
+	}
+
+	return ret;
+}
+
+static int
+nft_ipv4_check_entry(struct nft_handle *h,
+		     const char *chain, const char *table,
+		     struct iptables_command_state *cs,
+		     struct xtables_args *args, bool verbose)
+{
+	unsigned int i, j;
+	int ret = 1;
+
+	for (i = 0; i < args->s.naddrs; i++) {
+		cs->fw.ip.src.s_addr = args->s.addr.v4[i].s_addr;
+		cs->fw.ip.smsk.s_addr = args->s.mask.v4[i].s_addr;
+		for (j = 0; j < args->d.naddrs; j++) {
+			cs->fw.ip.dst.s_addr = args->d.addr.v4[j].s_addr;
+			cs->fw.ip.dmsk.s_addr = args->d.mask.v4[j].s_addr;
+			ret = nft_cmd_rule_check(h, chain, table, cs, verbose);
+		}
+	}
+
+	return ret;
+}
+
+static int
+nft_ipv4_replace_entry(struct nft_handle *h,
+		       const char *chain, const char *table,
+		       struct iptables_command_state *cs,
+		       struct xtables_args *args, bool verbose,
+		       int rulenum)
+{
+	cs->fw.ip.src.s_addr = args->s.addr.v4->s_addr;
+	cs->fw.ip.dst.s_addr = args->d.addr.v4->s_addr;
+	cs->fw.ip.smsk.s_addr = args->s.mask.v4->s_addr;
+	cs->fw.ip.dmsk.s_addr = args->d.mask.v4->s_addr;
+
+	return nft_cmd_rule_replace(h, chain, table, cs, rulenum, verbose);
+}
+
 struct nft_family_ops nft_family_ops_ipv4 = {
 	.add			= nft_ipv4_add,
 	.is_same		= nft_ipv4_is_same,
@@ -484,4 +573,8 @@ struct nft_family_ops nft_family_ops_ipv4 = {
 	.rule_to_cs		= nft_rule_to_iptables_command_state,
 	.clear_cs		= nft_clear_iptables_command_state,
 	.xlate			= nft_ipv4_xlate,
+	.add_entry		= nft_ipv4_add_entry,
+	.delete_entry		= nft_ipv4_delete_entry,
+	.check_entry		= nft_ipv4_check_entry,
+	.replace_entry		= nft_ipv4_replace_entry,
 };

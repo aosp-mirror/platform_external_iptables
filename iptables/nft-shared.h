@@ -111,6 +111,24 @@ struct nft_family_ops {
 			   struct iptables_command_state *cs);
 	void (*clear_cs)(struct iptables_command_state *cs);
 	int (*xlate)(const void *data, struct xt_xlate *xl);
+	int (*add_entry)(struct nft_handle *h,
+			 const char *chain, const char *table,
+			 struct iptables_command_state *cs,
+			 struct xtables_args *args, bool verbose,
+			 bool append, int rulenum);
+	int (*delete_entry)(struct nft_handle *h,
+			    const char *chain, const char *table,
+			    struct iptables_command_state *cs,
+			    struct xtables_args *args, bool verbose);
+	int (*check_entry)(struct nft_handle *h,
+			   const char *chain, const char *table,
+			   struct iptables_command_state *cs,
+			   struct xtables_args *args, bool verbose);
+	int (*replace_entry)(struct nft_handle *h,
+			     const char *chain, const char *table,
+			     struct iptables_command_state *cs,
+			     struct xtables_args *args, bool verbose,
+			     int rulenum);
 };
 
 void add_meta(struct nftnl_rule *r, uint32_t key);

@@ -410,6 +410,106 @@ static int nft_ipv6_xlate(const void *data, struct xt_xlate *xl)
 	return ret;
 }
 
+static int
+nft_ipv6_add_entry(struct nft_handle *h,
+		   const char *chain, const char *table,
+		   struct iptables_command_state *cs,
+		   struct xtables_args *args, bool verbose,
+		   bool append, int rulenum)
+{
+	unsigned int i, j;
+	int ret = 1;
+
+	for (i = 0; i < args->s.naddrs; i++) {
+		memcpy(&cs->fw6.ipv6.src,
+		       &args->s.addr.v6[i], sizeof(struct in6_addr));
+		memcpy(&cs->fw6.ipv6.smsk,
+		       &args->s.mask.v6[i], sizeof(struct in6_addr));
+		for (j = 0; j < args->d.naddrs; j++) {
+			memcpy(&cs->fw6.ipv6.dst,
+			       &args->d.addr.v6[j], sizeof(struct in6_addr));
+			memcpy(&cs->fw6.ipv6.dmsk,
+			       &args->d.mask.v6[j], sizeof(struct in6_addr));
+			if (append) {
+				ret = nft_cmd_rule_append(h, chain, table,
+						      cs, NULL, verbose);
+			} else {
+				ret = nft_cmd_rule_insert(h, chain, table,
+						      cs, rulenum, verbose);
+			}
+		}
+	}
+
+	return ret;
+}
+
+static int
+nft_ipv6_delete_entry(struct nft_handle *h,
+		      const char *chain, const char *table,
+		      struct iptables_command_state *cs,
+		      struct xtables_args *args, bool verbose)
+{
+	unsigned int i, j;
+	int ret = 1;
+
+	for (i = 0; i < args->s.naddrs; i++) {
+		memcpy(&cs->fw6.ipv6.src,
+		       &args->s.addr.v6[i], sizeof(struct in6_addr));
+		memcpy(&cs->fw6.ipv6.smsk,
+		       &args->s.mask.v6[i], sizeof(struct in6_addr));
+		for (j = 0; j < args->d.naddrs; j++) {
+			memcpy(&cs->fw6.ipv6.dst,
+			       &args->d.addr.v6[j], sizeof(struct in6_addr));
+			memcpy(&cs->fw6.ipv6.dmsk,
+			       &args->d.mask.v6[j], sizeof(struct in6_addr));
+			ret = nft_cmd_rule_delete(h, chain, table, cs, verbose);
+		}
+	}
+
+	return ret;
+}
+
+static int
+nft_ipv6_check_entry(struct nft_handle *h,
+		     const char *chain, const char *table,
+		     struct iptables_command_state *cs,
+		     struct xtables_args *args, bool verbose)
+{
+	unsigned int i, j;
+	int ret = 1;
+
+	for (i = 0; i < args->s.naddrs; i++) {
+		memcpy(&cs->fw6.ipv6.src,
+		       &args->s.addr.v6[i], sizeof(struct in6_addr));
+		memcpy(&cs->fw6.ipv6.smsk,
+		       &args->s.mask.v6[i], sizeof(struct in6_addr));
+		for (j = 0; j < args->d.naddrs; j++) {
+			memcpy(&cs->fw6.ipv6.dst,
+			       &args->d.addr.v6[j], sizeof(struct in6_addr));
+			memcpy(&cs->fw6.ipv6.dmsk,
+			       &args->d.mask.v6[j], sizeof(struct in6_addr));
+			ret = nft_cmd_rule_check(h, chain, table, cs, verbose);
+		}
+	}
+
+	return ret;
+}
+
+static int
+nft_ipv6_replace_entry(struct nft_handle *h,
+		       const char *chain, const char *table,
+		       struct iptables_command_state *cs,
+		       struct xtables_args *args, bool verbose,
+		       int rulenum)
+{
+	memcpy(&cs->fw6.ipv6.src, args->s.addr.v6, sizeof(struct in6_addr));
+	memcpy(&cs->fw6.ipv6.dst, args->d.addr.v6, sizeof(struct in6_addr));
+	memcpy(&cs->fw6.ipv6.smsk, args->s.mask.v6, sizeof(struct in6_addr));
+	memcpy(&cs->fw6.ipv6.dmsk, args->d.mask.v6, sizeof(struct in6_addr));
+
+	return nft_cmd_rule_replace(h, chain, table, cs, rulenum, verbose);
+}
+
 struct nft_family_ops nft_family_ops_ipv6 = {
 	.add			= nft_ipv6_add,
 	.is_same		= nft_ipv6_is_same,
@@ -426,4 +526,8 @@ struct nft_family_ops nft_family_ops_ipv6 = {
 	.rule_to_cs		= nft_rule_to_iptables_command_state,
 	.clear_cs		= nft_clear_iptables_command_state,
 	.xlate			= nft_ipv6_xlate,
+	.add_entry		= nft_ipv6_add_entry,
+	.delete_entry		= nft_ipv6_delete_entry,
+	.check_entry		= nft_ipv6_check_entry,
+	.replace_entry		= nft_ipv6_replace_entry,
 };
