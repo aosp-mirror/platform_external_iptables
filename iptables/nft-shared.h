@@ -177,6 +177,7 @@ struct addr_mask {
 	union {
 		struct in_addr	*v4;
 		struct in6_addr *v6;
+		void *ptr;
 	} addr;
 
 	unsigned int naddrs;
@@ -184,6 +185,7 @@ struct addr_mask {
 	union {
 		struct in_addr	*v4;
 		struct in6_addr *v6;
+		void *ptr;
 	} mask;
 };
 

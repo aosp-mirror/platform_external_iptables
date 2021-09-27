@@ -1021,17 +1021,10 @@ int do_commandx(struct nft_handle *h, int argc, char *argv[], char **table,
 
 	nft_clear_iptables_command_state(&cs);
 
-	if (h->family == AF_INET) {
-		free(args.s.addr.v4);
-		free(args.s.mask.v4);
-		free(args.d.addr.v4);
-		free(args.d.mask.v4);
-	} else if (h->family == AF_INET6) {
-		free(args.s.addr.v6);
-		free(args.s.mask.v6);
-		free(args.d.addr.v6);
-		free(args.d.mask.v6);
-	}
+	free(args.s.addr.ptr);
+	free(args.s.mask.ptr);
+	free(args.d.addr.ptr);
+	free(args.d.mask.ptr);
 	xtables_free_opts(1);
 
 	return ret;
