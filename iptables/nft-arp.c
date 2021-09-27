@@ -546,6 +546,154 @@ static void nft_arp_save_chain(const struct nftnl_chain *c, const char *policy)
 	printf(":%s %s\n", chain, policy ?: "-");
 }
 
+static int getlength_and_mask(const char *from, uint8_t *to, uint8_t *mask)
+{
+	char *dup = strdup(from);
+	char *p, *buffer;
+	int i, ret = -1;
+
+	if (!dup)
+		return -1;
+
+	if ( (p = strrchr(dup, '/')) != NULL) {
+		*p = '\0';
+		i = strtol(p+1, &buffer, 10);
+		if (*buffer != '\0' || i < 0 || i > 255)
+			goto out_err;
+		*mask = (uint8_t)i;
+	} else
+		*mask = 255;
+	i = strtol(dup, &buffer, 10);
+	if (*buffer != '\0' || i < 0 || i > 255)
+		goto out_err;
+	*to = (uint8_t)i;
+	ret = 0;
+out_err:
+	free(dup);
+	return ret;
+
+}
+
+static int get16_and_mask(const char *from, uint16_t *to,
+			  uint16_t *mask, int base)
+{
+	char *dup = strdup(from);
+	char *p, *buffer;
+	int i, ret = -1;
+
+	if (!dup)
+		return -1;
+
+	if ( (p = strrchr(dup, '/')) != NULL) {
+		*p = '\0';
+		i = strtol(p+1, &buffer, base);
+		if (*buffer != '\0' || i < 0 || i > 65535)
+			goto out_err;
+		*mask = htons((uint16_t)i);
+	} else
+		*mask = 65535;
+	i = strtol(dup, &buffer, base);
+	if (*buffer != '\0' || i < 0 || i > 65535)
+		goto out_err;
+	*to = htons((uint16_t)i);
+	ret = 0;
+out_err:
+	free(dup);
+	return ret;
+}
+
+static void nft_arp_post_parse(int command,
+			       struct iptables_command_state *cs,
+			       struct xtables_args *args)
+{
+	cs->arp.arp.invflags = args->invflags;
+
+	memcpy(cs->arp.arp.iniface, args->iniface, IFNAMSIZ);
+	memcpy(cs->arp.arp.iniface_mask, args->iniface_mask, IFNAMSIZ);
+
+	memcpy(cs->arp.arp.outiface, args->outiface, IFNAMSIZ);
+	memcpy(cs->arp.arp.outiface_mask, args->outiface_mask, IFNAMSIZ);
+
+	cs->arp.counters.pcnt = args->pcnt_cnt;
+	cs->arp.counters.bcnt = args->bcnt_cnt;
+
+	if (command & (CMD_REPLACE | CMD_INSERT | CMD_DELETE | CMD_APPEND)) {
+		if (!(cs->options & OPT_DESTINATION))
+			args->dhostnetworkmask = "0.0.0.0/0";
+		if (!(cs->options & OPT_SOURCE))
+			args->shostnetworkmask = "0.0.0.0/0";
+	}
+
+	if (args->shostnetworkmask)
+		xtables_ipparse_multiple(args->shostnetworkmask,
+					 &args->s.addr.v4, &args->s.mask.v4,
+					 &args->s.naddrs);
+	if (args->dhostnetworkmask)
+		xtables_ipparse_multiple(args->dhostnetworkmask,
+					 &args->d.addr.v4, &args->d.mask.v4,
+					 &args->d.naddrs);
+
+	if ((args->s.naddrs > 1 || args->d.naddrs > 1) &&
+	    (cs->arp.arp.invflags & (ARPT_INV_SRCIP | ARPT_INV_TGTIP)))
+		xtables_error(PARAMETER_PROBLEM,
+			      "! not allowed with multiple"
+			      " source or destination IP addresses");
+
+	if (args->src_mac &&
+	    xtables_parse_mac_and_mask(args->src_mac,
+				       cs->arp.arp.src_devaddr.addr,
+				       cs->arp.arp.src_devaddr.mask))
+		xtables_error(PARAMETER_PROBLEM,
+			      "Problem with specified source mac");
+	if (args->dst_mac &&
+	    xtables_parse_mac_and_mask(args->dst_mac,
+				       cs->arp.arp.tgt_devaddr.addr,
+				       cs->arp.arp.tgt_devaddr.mask))
+		xtables_error(PARAMETER_PROBLEM,
+			      "Problem with specified destination mac");
+	if (args->arp_hlen) {
+		getlength_and_mask(args->arp_hlen, &cs->arp.arp.arhln,
+				   &cs->arp.arp.arhln_mask);
+
+		if (cs->arp.arp.arhln != 6)
+			xtables_error(PARAMETER_PROBLEM,
+				      "Only harware address length of 6 is supported currently.");
+	}
+	if (args->arp_opcode) {
+		if (get16_and_mask(args->arp_opcode, &cs->arp.arp.arpop,
+				   &cs->arp.arp.arpop_mask, 10)) {
+			int i;
+
+			for (i = 0; i < NUMOPCODES; i++)
+				if (!strcasecmp(arp_opcodes[i],
+						args->arp_opcode))
+					break;
+			if (i == NUMOPCODES)
+				xtables_error(PARAMETER_PROBLEM,
+					      "Problem with specified opcode");
+			cs->arp.arp.arpop = htons(i+1);
+		}
+	}
+	if (args->arp_htype) {
+		if (get16_and_mask(args->arp_htype, &cs->arp.arp.arhrd,
+				   &cs->arp.arp.arhrd_mask, 16)) {
+			if (strcasecmp(args->arp_htype, "Ethernet"))
+				xtables_error(PARAMETER_PROBLEM,
+					      "Problem with specified hardware type");
+			cs->arp.arp.arhrd = htons(1);
+		}
+	}
+	if (args->arp_ptype) {
+		if (get16_and_mask(args->arp_ptype, &cs->arp.arp.arpro,
+				   &cs->arp.arp.arpro_mask, 0)) {
+			if (strcasecmp(args->arp_ptype, "ipv4"))
+				xtables_error(PARAMETER_PROBLEM,
+					      "Problem with specified protocol type");
+			cs->arp.arp.arpro = htons(0x800);
+		}
+	}
+}
+
 static void nft_arp_init_cs(struct iptables_command_state *cs)
 {
 	cs->arp.arp.arhln = 6;
@@ -565,7 +713,7 @@ struct nft_family_ops nft_family_ops_arp = {
 	.print_rule		= nft_arp_print_rule,
 	.save_rule		= nft_arp_save_rule,
 	.save_chain		= nft_arp_save_chain,
-	.post_parse		= NULL,
+	.post_parse		= nft_arp_post_parse,
 	.rule_to_cs		= nft_rule_to_iptables_command_state,
 	.init_cs		= nft_arp_init_cs,
 	.clear_cs		= nft_clear_iptables_command_state,

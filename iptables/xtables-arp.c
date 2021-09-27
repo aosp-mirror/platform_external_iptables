@@ -108,54 +108,6 @@ struct xtables_globals arptables_globals = {
 	.print_help		= printhelp,
 };
 
-/***********************************************/
-/* ARPTABLES SPECIFIC NEW FUNCTIONS ADDED HERE */
-/***********************************************/
-
-static int getlength_and_mask(char *from, uint8_t *to, uint8_t *mask)
-{
-	char *p, *buffer;
-	int i;
-
-	if ( (p = strrchr(from, '/')) != NULL) {
-		*p = '\0';
-		i = strtol(p+1, &buffer, 10);
-		if (*buffer != '\0' || i < 0 || i > 255)
-			return -1;
-		*mask = (uint8_t)i;
-	} else
-		*mask = 255;
-	i = strtol(from, &buffer, 10);
-	if (*buffer != '\0' || i < 0 || i > 255)
-		return -1;
-	*to = (uint8_t)i;
-	return 0;
-}
-
-static int get16_and_mask(char *from, uint16_t *to, uint16_t *mask, int base)
-{
-	char *p, *buffer;
-	int i;
-
-	if ( (p = strrchr(from, '/')) != NULL) {
-		*p = '\0';
-		i = strtol(p+1, &buffer, base);
-		if (*buffer != '\0' || i < 0 || i > 65535)
-			return -1;
-		*mask = htons((uint16_t)i);
-	} else
-		*mask = 65535;
-	i = strtol(from, &buffer, base);
-	if (*buffer != '\0' || i < 0 || i > 65535)
-		return -1;
-	*to = htons((uint16_t)i);
-	return 0;
-}
-
-/*********************************************/
-/* ARPTABLES SPECIFIC NEW FUNCTIONS END HERE */
-/*********************************************/
-
 static void
 exit_tryhelp(int status)
 {
@@ -566,132 +518,97 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table,
 			break;
 		case 's':
 			check_inverse(optarg, &invert, &optind, argc);
-			set_option(&cs.options, OPT_SOURCE, &cs.arp.arp.invflags,
+			set_option(&cs.options, OPT_SOURCE, &args.invflags,
 				   invert);
 			args.shostnetworkmask = argv[optind-1];
 			break;
 
 		case 'd':
 			check_inverse(optarg, &invert, &optind, argc);
-			set_option(&cs.options, OPT_DESTINATION, &cs.arp.arp.invflags,
+			set_option(&cs.options, OPT_DESTINATION, &args.invflags,
 				   invert);
 			args.dhostnetworkmask = argv[optind-1];
 			break;
 
 		case 2:/* src-mac */
 			check_inverse(optarg, &invert, &optind, argc);
-			set_option(&cs.options, OPT_S_MAC, &cs.arp.arp.invflags,
+			set_option(&cs.options, OPT_S_MAC, &args.invflags,
 				   invert);
-			if (xtables_parse_mac_and_mask(argv[optind - 1],
-			    cs.arp.arp.src_devaddr.addr, cs.arp.arp.src_devaddr.mask))
-				xtables_error(PARAMETER_PROBLEM, "Problem with specified "
-						"source mac");
+			args.src_mac = argv[optind - 1];
 			break;
 
 		case 3:/* dst-mac */
 			check_inverse(optarg, &invert, &optind, argc);
-			set_option(&cs.options, OPT_D_MAC, &cs.arp.arp.invflags,
+			set_option(&cs.options, OPT_D_MAC, &args.invflags,
 				   invert);
-
-			if (xtables_parse_mac_and_mask(argv[optind - 1],
-			    cs.arp.arp.tgt_devaddr.addr, cs.arp.arp.tgt_devaddr.mask))
-				xtables_error(PARAMETER_PROBLEM, "Problem with specified "
-						"destination mac");
+			args.dst_mac = argv[optind - 1];
 			break;
 
 		case 'l':/* hardware length */
 			check_inverse(optarg, &invert, &optind, argc);
-			set_option(&cs.options, OPT_H_LENGTH, &cs.arp.arp.invflags,
+			set_option(&cs.options, OPT_H_LENGTH, &args.invflags,
 				   invert);
-			getlength_and_mask(argv[optind - 1], &cs.arp.arp.arhln,
-					   &cs.arp.arp.arhln_mask);
-
-			if (cs.arp.arp.arhln != 6) {
-				xtables_error(PARAMETER_PROBLEM,
-					      "Only harware address length of"
-					      " 6 is supported currently.");
-			}
-
+			args.arp_hlen = argv[optind - 1];
 			break;
 
 		case 8: /* was never supported, not even in arptables-legacy */
 			xtables_error(PARAMETER_PROBLEM, "not supported");
 		case 4:/* opcode */
 			check_inverse(optarg, &invert, &optind, argc);
-			set_option(&cs.options, OPT_OPCODE, &cs.arp.arp.invflags,
+			set_option(&cs.options, OPT_OPCODE, &args.invflags,
 				   invert);
-			if (get16_and_mask(argv[optind - 1], &cs.arp.arp.arpop,
-					   &cs.arp.arp.arpop_mask, 10)) {
-				int i;
-
-				for (i = 0; i < NUMOPCODES; i++)
-					if (!strcasecmp(arp_opcodes[i], optarg))
-						break;
-				if (i == NUMOPCODES)
-					xtables_error(PARAMETER_PROBLEM, "Problem with specified opcode");
-				cs.arp.arp.arpop = htons(i+1);
-			}
+			args.arp_opcode = argv[optind - 1];
 			break;
 
 		case 5:/* h-type */
 			check_inverse(optarg, &invert, &optind, argc);
-			set_option(&cs.options, OPT_H_TYPE, &cs.arp.arp.invflags,
+			set_option(&cs.options, OPT_H_TYPE, &args.invflags,
 				   invert);
-			if (get16_and_mask(argv[optind - 1], &cs.arp.arp.arhrd,
-					   &cs.arp.arp.arhrd_mask, 16)) {
-				if (strcasecmp(argv[optind-1], "Ethernet"))
-					xtables_error(PARAMETER_PROBLEM, "Problem with specified hardware type");
-				cs.arp.arp.arhrd = htons(1);
-			}
+			args.arp_htype = argv[optind - 1];
 			break;
 
 		case 6:/* proto-type */
 			check_inverse(optarg, &invert, &optind, argc);
-			set_option(&cs.options, OPT_P_TYPE, &cs.arp.arp.invflags,
+			set_option(&cs.options, OPT_P_TYPE, &args.invflags,
 				   invert);
-			if (get16_and_mask(argv[optind - 1], &cs.arp.arp.arpro,
-					   &cs.arp.arp.arpro_mask, 0)) {
-				if (strcasecmp(argv[optind-1], "ipv4"))
-					xtables_error(PARAMETER_PROBLEM, "Problem with specified protocol type");
-				cs.arp.arp.arpro = htons(0x800);
-			}
+			args.arp_ptype = argv[optind - 1];
 			break;
 
 		case 'j':
-			set_option(&cs.options, OPT_JUMP, &cs.arp.arp.invflags,
+			set_option(&cs.options, OPT_JUMP, &args.invflags,
 				   invert);
 			command_jump(&cs, optarg);
 			break;
 
 		case 'i':
 			check_inverse(optarg, &invert, &optind, argc);
-			set_option(&cs.options, OPT_VIANAMEIN, &cs.arp.arp.invflags,
+			set_option(&cs.options, OPT_VIANAMEIN, &args.invflags,
 				   invert);
 			xtables_parse_interface(argv[optind-1],
-						cs.arp.arp.iniface,
-						cs.arp.arp.iniface_mask);
+						args.iniface,
+						args.iniface_mask);
 			break;
 
 		case 'o':
 			check_inverse(optarg, &invert, &optind, argc);
-			set_option(&cs.options, OPT_VIANAMEOUT, &cs.arp.arp.invflags,
+			set_option(&cs.options, OPT_VIANAMEOUT, &args.invflags,
 				   invert);
 			xtables_parse_interface(argv[optind-1],
-						cs.arp.arp.outiface,
-						cs.arp.arp.outiface_mask);
+						args.outiface,
+						args.outiface_mask);
 			break;
 
 		case 'v':
 			if (!p.verbose)
 				set_option(&cs.options, OPT_VERBOSE,
-					   &cs.arp.arp.invflags, invert);
+					   &args.invflags, invert);
 			p.verbose++;
 			break;
 
 		case 'm': /* ignored by arptables-legacy */
 			break;
 		case 'n':
-			set_option(&cs.options, OPT_NUMERIC, &cs.arp.arp.invflags,
+			set_option(&cs.options, OPT_NUMERIC, &args.invflags,
 				   invert);
 			break;
 
@@ -715,7 +632,7 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table,
 			exit(0);
 
 		case '0':
-			set_option(&cs.options, OPT_LINENUMBERS, &cs.arp.arp.invflags,
+			set_option(&cs.options, OPT_LINENUMBERS, &args.invflags,
 				   invert);
 			break;
 
@@ -725,7 +642,7 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table,
 
 		case 'c':
 
-			set_option(&cs.options, OPT_COUNTERS, &cs.arp.arp.invflags,
+			set_option(&cs.options, OPT_COUNTERS, &args.invflags,
 				   invert);
 			args.pcnt = optarg;
 			if (xs_has_arg(argc, argv))
@@ -781,25 +698,7 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table,
 		xtables_error(PARAMETER_PROBLEM,
 			      "nothing appropriate following !");
 
-	if (p.command & (CMD_REPLACE | CMD_INSERT | CMD_DELETE | CMD_APPEND)) {
-		if (!(cs.options & OPT_DESTINATION))
-			args.dhostnetworkmask = "0.0.0.0/0";
-		if (!(cs.options & OPT_SOURCE))
-			args.shostnetworkmask = "0.0.0.0/0";
-	}
-
-	if (args.shostnetworkmask)
-		xtables_ipparse_multiple(args.shostnetworkmask, &args.s.addr.v4,
-					 &args.s.mask.v4, &args.s.naddrs);
-
-	if (args.dhostnetworkmask)
-		xtables_ipparse_multiple(args.dhostnetworkmask, &args.d.addr.v4,
-					 &args.d.mask.v4, &args.d.naddrs);
-
-	if ((args.s.naddrs > 1 || args.d.naddrs > 1) &&
-	    (cs.arp.arp.invflags & (IPT_INV_SRCIP | IPT_INV_DSTIP)))
-		xtables_error(PARAMETER_PROBLEM, "! not allowed with multiple"
-				" source or destination IP addresses");
+	h->ops->post_parse(p.command, &cs, &args);
 
 	if (p.command == CMD_REPLACE && (args.s.naddrs != 1 || args.d.naddrs != 1))
 		xtables_error(PARAMETER_PROBLEM, "Replacement rule does not "

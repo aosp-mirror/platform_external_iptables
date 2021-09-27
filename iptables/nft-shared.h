@@ -218,6 +218,9 @@ struct xtables_args {
 	const char	*shostnetworkmask, *dhostnetworkmask;
 	const char	*pcnt, *bcnt;
 	struct addr_mask s, d;
+	const char	*src_mac, *dst_mac;
+	const char	*arp_hlen, *arp_opcode;
+	const char	*arp_htype, *arp_ptype;
 	unsigned long long pcnt_cnt, bcnt_cnt;
 };
 
