@@ -97,6 +97,7 @@ static struct option original_opts[] = {
 #define opts xt_params->opts
 
 extern void xtables_exit_error(enum xtables_exittype status, const char *msg, ...) __attribute__((noreturn, format(printf,2,3)));
+static void printhelp(const struct xtables_rule_match *m);
 struct xtables_globals arptables_globals = {
 	.option_offset		= 0,
 	.program_version	= PACKAGE_VERSION,
@@ -104,6 +105,7 @@ struct xtables_globals arptables_globals = {
 	.orig_opts		= original_opts,
 	.exit_err		= xtables_exit_error,
 	.compat_rev		= nft_compatible_revision,
+	.print_help		= printhelp,
 };
 
 /***********************************************/
@@ -164,7 +166,7 @@ exit_tryhelp(int status)
 }
 
 static void
-printhelp(void)
+printhelp(const struct xtables_rule_match *m)
 {
 	struct xtables_target *t = NULL;
 	int i;
@@ -563,7 +565,7 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table,
 			if (!optarg)
 				optarg = argv[optind];
 
-			printhelp();
+			xt_params->print_help(NULL);
 			command = CMD_NONE;
 			break;
 		case 's':

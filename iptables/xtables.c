@@ -85,6 +85,7 @@ static struct option original_opts[] = {
 };
 
 void xtables_exit_error(enum xtables_exittype status, const char *msg, ...) __attribute__((noreturn, format(printf,2,3)));
+static void printhelp(const struct xtables_rule_match *m);
 
 struct xtables_globals xtables_globals = {
 	.option_offset = 0,
@@ -93,6 +94,7 @@ struct xtables_globals xtables_globals = {
 	.orig_opts = original_opts,
 	.exit_err = xtables_exit_error,
 	.compat_rev = nft_compatible_revision,
+	.print_help = printhelp,
 };
 
 #define opts xt_params->opts
@@ -435,7 +437,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 				xtables_find_match(cs->protocol,
 					XTF_TRY_LOAD, &cs->matches);
 
-			printhelp(cs->matches);
+			xt_params->print_help(cs->matches);
 			p->command = CMD_NONE;
 			return;
 
