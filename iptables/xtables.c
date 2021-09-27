@@ -89,6 +89,7 @@ void xtables_exit_error(enum xtables_exittype status, const char *msg, ...) __at
 struct xtables_globals xtables_globals = {
 	.option_offset = 0,
 	.program_version = PACKAGE_VERSION,
+	.optstring = OPTSTRING_COMMON "R:S::W::" "46bfg:h::m:nvw::x",
 	.orig_opts = original_opts,
 	.exit_err = xtables_exit_error,
 	.compat_rev = nft_compatible_revision,
@@ -455,8 +456,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 	opterr = 0;
 
 	opts = xt_params->orig_opts;
-	while ((cs->c = getopt_long(argc, argv,
-	   "-:A:C:D:R:I:L::S::M:F::Z::N:X::E:P:Vh::o:p:s:d:j:i:fbvw::W::nt:m:xc:g:46",
+	while ((cs->c = getopt_long(argc, argv, xt_params->optstring,
 					   opts, NULL)) != -1) {
 		switch (cs->c) {
 			/*

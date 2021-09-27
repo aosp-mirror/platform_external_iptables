@@ -100,6 +100,7 @@ extern void xtables_exit_error(enum xtables_exittype status, const char *msg, ..
 struct xtables_globals arptables_globals = {
 	.option_offset		= 0,
 	.program_version	= PACKAGE_VERSION,
+	.optstring		= OPTSTRING_COMMON "R:S::" "h::l:nv" /* "m:" */,
 	.orig_opts		= original_opts,
 	.exit_err		= xtables_exit_error,
 	.compat_rev		= nft_compatible_revision,
@@ -444,8 +445,7 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table,
 	opterr = 0;
 
 	opts = xt_params->orig_opts;
-	while ((c = getopt_long(argc, argv,
-	   "-A:D:R:I:L::M:F::Z::N:X::E:P:Vh::o:p:s:d:j:l:i:vnt:m:c:",
+	while ((c = getopt_long(argc, argv, xt_params->optstring,
 					   opts, NULL)) != -1) {
 		switch (c) {
 			/*
