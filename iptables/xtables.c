@@ -433,10 +433,6 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 	bool invert = false;
 	int wait = 0;
 
-	memset(cs, 0, sizeof(*cs));
-	cs->jumpto = "";
-	cs->argv = argv;
-
 	/* re-set optind to 0 in case do_command4 gets called
 	 * a second time */
 	optind = 0;
@@ -912,10 +908,16 @@ int do_commandx(struct nft_handle *h, int argc, char *argv[], char **table,
 		.table		= *table,
 		.restore	= restore,
 	};
-	struct iptables_command_state cs;
+	struct iptables_command_state cs = {
+		.jumpto = "",
+		.argv = argv,
+	};
 	struct xtables_args args = {
 		.family = h->family,
 	};
+
+	if (h->ops->init_cs)
+		h->ops->init_cs(&cs);
 
 	do_parse(h, argc, argv, &p, &cs, &args);
 

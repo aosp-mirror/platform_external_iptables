@@ -546,6 +546,14 @@ static void nft_arp_save_chain(const struct nftnl_chain *c, const char *policy)
 	printf(":%s %s\n", chain, policy ?: "-");
 }
 
+static void nft_arp_init_cs(struct iptables_command_state *cs)
+{
+	cs->arp.arp.arhln = 6;
+	cs->arp.arp.arhln_mask = 255;
+	cs->arp.arp.arhrd = htons(ARPHRD_ETHER);
+	cs->arp.arp.arhrd_mask = 65535;
+}
+
 struct nft_family_ops nft_family_ops_arp = {
 	.add			= nft_arp_add,
 	.is_same		= nft_arp_is_same,
@@ -559,6 +567,7 @@ struct nft_family_ops nft_family_ops_arp = {
 	.save_chain		= nft_arp_save_chain,
 	.post_parse		= NULL,
 	.rule_to_cs		= nft_rule_to_iptables_command_state,
+	.init_cs		= nft_arp_init_cs,
 	.clear_cs		= nft_clear_iptables_command_state,
 	.parse_target		= nft_ipv46_parse_target,
 };
