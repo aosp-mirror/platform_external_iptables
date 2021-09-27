@@ -39,19 +39,34 @@
 #include "xtables-multi.h"
 #include "nft.h"
 
+static struct xtables_globals *xtables_globals_lookup(int family)
+{
+	switch (family) {
+	case AF_INET:
+	case AF_INET6:
+		return &xtables_globals;
+	case NFPROTO_ARP:
+		return &arptables_globals;
+	case NFPROTO_BRIDGE:
+		return &ebtables_globals;
+	default:
+		xtables_error(OTHER_PROBLEM, "Unknown family value %d", family);
+	}
+}
+
 static int
 xtables_main(int family, const char *progname, int argc, char *argv[])
 {
-	int ret;
 	char *table = "filter";
 	struct nft_handle h;
+	int ret;
 
-	xtables_globals.program_name = progname;
-	ret = xtables_init_all(&xtables_globals, family);
+	ret = xtables_init_all(xtables_globals_lookup(family), family);
 	if (ret < 0) {
 		fprintf(stderr, "%s: Failed to initialize xtables\n", progname);
 		exit(1);
 	}
+	xt_params->program_name = progname;
 #if defined(ALL_INCLUSIVE) || defined(NO_SHARED_LIBS)
 	init_extensions();
 	init_extensions4();
@@ -60,7 +75,7 @@ xtables_main(int family, const char *progname, int argc, char *argv[])
 
 	if (nft_init(&h, family) < 0) {
 		fprintf(stderr, "%s: Failed to initialize nft: %s\n",
-			xtables_globals.program_name, strerror(errno));
+			xt_params->program_name, strerror(errno));
 		exit(EXIT_FAILURE);
 	}
 

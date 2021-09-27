@@ -87,7 +87,6 @@ static int parse_rule_number(const char *rule)
 /* Default command line options. Do not mess around with the already
  * assigned numbers unless you know what you are doing */
 extern struct option ebt_original_options[];
-extern struct xtables_globals ebtables_globals;
 #define opts ebtables_globals.opts
 #define prog_name ebtables_globals.program_name
 #define prog_vers ebtables_globals.program_version

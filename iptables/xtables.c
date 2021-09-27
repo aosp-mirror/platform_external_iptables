@@ -659,7 +659,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 			exit_tryhelp(2);
 
 		default:
-			if (command_default(cs, &xtables_globals, invert))
+			if (command_default(cs, xt_params, invert))
 				/* cf. ip6tables.c */
 				continue;
 			break;

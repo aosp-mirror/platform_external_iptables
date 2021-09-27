@@ -41,8 +41,6 @@
 
 #include "xtables-multi.h"
 
-extern struct xtables_globals arptables_globals;
-
 int xtables_arp_main(int argc, char *argv[])
 {
 	int ret;
