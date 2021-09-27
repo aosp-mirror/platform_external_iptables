@@ -49,10 +49,8 @@ xtables_main(int family, const char *progname, int argc, char *argv[])
 	xtables_globals.program_name = progname;
 	ret = xtables_init_all(&xtables_globals, family);
 	if (ret < 0) {
-		fprintf(stderr, "%s/%s Failed to initialize xtables\n",
-				xtables_globals.program_name,
-				xtables_globals.program_version);
-				exit(1);
+		fprintf(stderr, "%s: Failed to initialize xtables\n", progname);
+		exit(1);
 	}
 #if defined(ALL_INCLUSIVE) || defined(NO_SHARED_LIBS)
 	init_extensions();
@@ -61,10 +59,8 @@ xtables_main(int family, const char *progname, int argc, char *argv[])
 #endif
 
 	if (nft_init(&h, family) < 0) {
-		fprintf(stderr, "%s/%s Failed to initialize nft: %s\n",
-				xtables_globals.program_name,
-				xtables_globals.program_version,
-				strerror(errno));
+		fprintf(stderr, "%s: Failed to initialize nft: %s\n",
+			xtables_globals.program_name, strerror(errno));
 		exit(EXIT_FAILURE);
 	}
 
