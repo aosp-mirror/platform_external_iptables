@@ -36,11 +36,13 @@
 #include <stdarg.h>
 #include <limits.h>
 #include <unistd.h>
+#include <netinet/ether.h>
 #include <iptables.h>
 #include <xtables.h>
 #include <fcntl.h>
 #include "xshared.h"
 #include "nft-shared.h"
+#include "nft-arp.h"
 #include "nft.h"
 
 static struct option original_opts[] = {
@@ -273,6 +275,34 @@ static void check_empty_interface(struct nft_handle *h, const char *arg)
 	fprintf(stderr, "%s", msg);
 }
 
+static void check_inverse(struct nft_handle *h, const char option[],
+			  bool *invert, int *optidx, int argc)
+{
+	switch (h->family) {
+	case NFPROTO_ARP:
+		break;
+	default:
+		return;
+	}
+
+	if (!option || strcmp(option, "!"))
+		return;
+
+	fprintf(stderr, "Using intrapositioned negation (`--option ! this`) "
+		"is deprecated in favor of extrapositioned (`! --option this`).\n");
+
+	if (*invert)
+		xtables_error(PARAMETER_PROBLEM,
+			      "Multiple `!' flags not allowed");
+	*invert = true;
+	if (optidx) {
+		*optidx = *optidx + 1;
+		if (argc && *optidx > argc)
+			xtables_error(PARAMETER_PROBLEM,
+				      "no argument following `!'");
+	}
+}
+
 void do_parse(struct nft_handle *h, int argc, char *argv[],
 	      struct nft_xt_cmd_parse *p, struct iptables_command_state *cs,
 	      struct xtables_args *args)
@@ -458,14 +488,16 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 			 * Option selection
 			 */
 		case 'p':
+			check_inverse(h, optarg, &invert, &optind, argc);
 			set_option(&cs->options, OPT_PROTOCOL,
 				   &args->invflags, invert);
 
 			/* Canonicalize into lower case */
-			for (cs->protocol = optarg; *cs->protocol; cs->protocol++)
+			for (cs->protocol = argv[optind - 1];
+			     *cs->protocol; cs->protocol++)
 				*cs->protocol = tolower(*cs->protocol);
 
-			cs->protocol = optarg;
+			cs->protocol = argv[optind - 1];
 			args->proto = xtables_parse_protocol(cs->protocol);
 
 			if (args->proto == 0 &&
@@ -474,19 +506,22 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 					   "rule would never match protocol");
 
 			/* This needs to happen here to parse extensions */
-			h->ops->proto_parse(cs, args);
+			if (h->ops->proto_parse)
+				h->ops->proto_parse(cs, args);
 			break;
 
 		case 's':
+			check_inverse(h, optarg, &invert, &optind, argc);
 			set_option(&cs->options, OPT_SOURCE,
 				   &args->invflags, invert);
-			args->shostnetworkmask = optarg;
+			args->shostnetworkmask = argv[optind - 1];
 			break;
 
 		case 'd':
+			check_inverse(h, optarg, &invert, &optind, argc);
 			set_option(&cs->options, OPT_DESTINATION,
 				   &args->invflags, invert);
-			args->dhostnetworkmask = optarg;
+			args->dhostnetworkmask = argv[optind - 1];
 			break;
 
 #ifdef IPT_F_GOTO
@@ -498,27 +533,72 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 			break;
 #endif
 
+		case 2:/* src-mac */
+			check_inverse(h, optarg, &invert, &optind, argc);
+			set_option(&cs->options, OPT_S_MAC, &args->invflags,
+				   invert);
+			args->src_mac = argv[optind - 1];
+			break;
+
+		case 3:/* dst-mac */
+			check_inverse(h, optarg, &invert, &optind, argc);
+			set_option(&cs->options, OPT_D_MAC, &args->invflags,
+				   invert);
+			args->dst_mac = argv[optind - 1];
+			break;
+
+		case 'l':/* hardware length */
+			check_inverse(h, optarg, &invert, &optind, argc);
+			set_option(&cs->options, OPT_H_LENGTH, &args->invflags,
+				   invert);
+			args->arp_hlen = argv[optind - 1];
+			break;
+
+		case 8: /* was never supported, not even in arptables-legacy */
+			xtables_error(PARAMETER_PROBLEM, "not supported");
+		case 4:/* opcode */
+			check_inverse(h, optarg, &invert, &optind, argc);
+			set_option(&cs->options, OPT_OPCODE, &args->invflags,
+				   invert);
+			args->arp_opcode = argv[optind - 1];
+			break;
+
+		case 5:/* h-type */
+			check_inverse(h, optarg, &invert, &optind, argc);
+			set_option(&cs->options, OPT_H_TYPE, &args->invflags,
+				   invert);
+			args->arp_htype = argv[optind - 1];
+			break;
+
+		case 6:/* proto-type */
+			check_inverse(h, optarg, &invert, &optind, argc);
+			set_option(&cs->options, OPT_P_TYPE, &args->invflags,
+				   invert);
+			args->arp_ptype = argv[optind - 1];
+			break;
+
 		case 'j':
 			set_option(&cs->options, OPT_JUMP, &args->invflags,
 				   invert);
-			command_jump(cs, optarg);
+			command_jump(cs, argv[optind - 1]);
 			break;
-
 
 		case 'i':
 			check_empty_interface(h, optarg);
+			check_inverse(h, optarg, &invert, &optind, argc);
 			set_option(&cs->options, OPT_VIANAMEIN,
 				   &args->invflags, invert);
-			xtables_parse_interface(optarg,
+			xtables_parse_interface(argv[optind - 1],
 						args->iniface,
 						args->iniface_mask);
 			break;
 
 		case 'o':
 			check_empty_interface(h, optarg);
+			check_inverse(h, optarg, &invert, &optind, argc);
 			set_option(&cs->options, OPT_VIANAMEOUT,
 				   &args->invflags, invert);
-			xtables_parse_interface(optarg,
+			xtables_parse_interface(argv[optind - 1],
 						args->outiface,
 						args->outiface_mask);
 			break;

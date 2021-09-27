@@ -451,7 +451,7 @@ int xtables_eb_restore_main(int argc, char *argv[])
 static const struct nft_xt_restore_cb arp_restore_cb = {
 	.commit		= nft_commit,
 	.table_flush	= nft_cmd_table_flush,
-	.do_command	= do_commandarp,
+	.do_command	= do_commandx,
 	.chain_set	= nft_cmd_chain_set,
 	.chain_restore  = nft_cmd_chain_restore,
 };

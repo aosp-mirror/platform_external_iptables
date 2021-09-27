@@ -68,9 +68,17 @@ xtables_main(int family, const char *progname, int argc, char *argv[])
 	}
 	xt_params->program_name = progname;
 #if defined(ALL_INCLUSIVE) || defined(NO_SHARED_LIBS)
-	init_extensions();
-	init_extensions4();
-	init_extensions6();
+	switch (family) {
+	case NFPROTO_IPV4:
+	case NFPROTO_IPV6:
+		init_extensions();
+		init_extensions4();
+		init_extensions6();
+		break;
+	case NFPROTO_ARP:
+		init_extensionsa();
+		break;
+	}
 #endif
 
 	if (nft_init(&h, family) < 0) {
@@ -106,4 +114,9 @@ int xtables_ip4_main(int argc, char *argv[])
 int xtables_ip6_main(int argc, char *argv[])
 {
 	return xtables_main(NFPROTO_IPV6, "ip6tables", argc, argv);
+}
+
+int xtables_arp_main(int argc, char *argv[])
+{
+	return xtables_main(NFPROTO_ARP, "arptables", argc, argv);
 }
