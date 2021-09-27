@@ -131,7 +131,6 @@ static int
 xtables_save_main(int family, int argc, char *argv[],
 		  const char *optstring, const struct option *longopts)
 {
-	const struct builtin_table *tables;
 	const char *tablename = NULL;
 	struct do_output_data d = {
 		.format = FMT_NOCOUNTS,
@@ -208,11 +207,9 @@ xtables_save_main(int family, int argc, char *argv[],
 		init_extensions4();
 		init_extensions6();
 #endif
-		tables = xtables_ipv4;
 		d.commit = true;
 		break;
 	case NFPROTO_ARP:
-		tables = xtables_arp;
 		break;
 	case NFPROTO_BRIDGE: {
 		const char *ctr = getenv("EBTABLES_SAVE_COUNTER");
@@ -223,7 +220,6 @@ xtables_save_main(int family, int argc, char *argv[],
 			d.format &= ~FMT_NOCOUNTS;
 			d.format |= FMT_C_COUNTS | FMT_EBT_SAVE;
 		}
-		tables = xtables_bridge;
 		break;
 	}
 	default:
@@ -231,7 +227,7 @@ xtables_save_main(int family, int argc, char *argv[],
 		return 1;
 	}
 
-	if (nft_init(&h, family, tables) < 0) {
+	if (nft_init(&h, family) < 0) {
 		fprintf(stderr, "%s/%s Failed to initialize nft: %s\n",
 				xtables_globals.program_name,
 				xtables_globals.program_version,

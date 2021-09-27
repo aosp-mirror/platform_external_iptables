@@ -281,7 +281,6 @@ void xtables_restore_parse(struct nft_handle *h,
 static int
 xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 {
-	const struct builtin_table *tables;
 	struct nft_xt_restore_parse p = {
 		.commit = true,
 		.cb = &restore_cb,
@@ -360,7 +359,6 @@ xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 	switch (family) {
 	case NFPROTO_IPV4:
 	case NFPROTO_IPV6: /* fallthough, same table */
-		tables = xtables_ipv4;
 #if defined(ALL_INCLUSIVE) || defined(NO_SHARED_LIBS)
 		init_extensions();
 		init_extensions4();
@@ -368,17 +366,14 @@ xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 #endif
 		break;
 	case NFPROTO_ARP:
-		tables = xtables_arp;
-		break;
 	case NFPROTO_BRIDGE:
-		tables = xtables_bridge;
 		break;
 	default:
 		fprintf(stderr, "Unknown family %d\n", family);
 		return 1;
 	}
 
-	if (nft_init(&h, family, tables) < 0) {
+	if (nft_init(&h, family) < 0) {
 		fprintf(stderr, "%s/%s Failed to initialize nft: %s\n",
 				xtables_globals.program_name,
 				xtables_globals.program_version,

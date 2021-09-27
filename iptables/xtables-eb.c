@@ -672,7 +672,7 @@ int nft_init_eb(struct nft_handle *h, const char *pname)
 	init_extensionsb();
 #endif
 
-	if (nft_init(h, NFPROTO_BRIDGE, xtables_bridge) < 0)
+	if (nft_init(h, NFPROTO_BRIDGE) < 0)
 		xtables_error(OTHER_PROBLEM,
 			      "Could not initialize nftables layer.");
 

@@ -631,7 +631,7 @@ int xtables_monitor_main(int argc, char *argv[])
 	init_extensions6();
 #endif
 
-	if (nft_init(&h, AF_INET, xtables_ipv4)) {
+	if (nft_init(&h, AF_INET)) {
 		fprintf(stderr, "%s/%s Failed to initialize nft: %s\n",
 			xtables_globals.program_name,
 			xtables_globals.program_version,

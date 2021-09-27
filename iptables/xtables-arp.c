@@ -397,7 +397,7 @@ int nft_init_arp(struct nft_handle *h, const char *pname)
 	init_extensionsa();
 #endif
 
-	if (nft_init(h, NFPROTO_ARP, xtables_arp) < 0)
+	if (nft_init(h, NFPROTO_ARP) < 0)
 		xtables_error(OTHER_PROBLEM,
 			      "Could not initialize nftables layer.");
 

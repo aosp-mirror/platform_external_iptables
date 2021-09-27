@@ -863,7 +863,22 @@ int nft_restart(struct nft_handle *h)
 	return 0;
 }
 
-int nft_init(struct nft_handle *h, int family, const struct builtin_table *t)
+static const struct builtin_table *builtin_tables_lookup(int family)
+{
+	switch (family) {
+	case AF_INET:
+	case AF_INET6:
+		return xtables_ipv4;
+	case NFPROTO_ARP:
+		return xtables_arp;
+	case NFPROTO_BRIDGE:
+		return xtables_bridge;
+	default:
+		return NULL;
+	}
+}
+
+int nft_init(struct nft_handle *h, int family)
 {
 	memset(h, 0, sizeof(*h));
 
@@ -881,7 +896,7 @@ int nft_init(struct nft_handle *h, int family, const struct builtin_table *t)
 		xtables_error(PARAMETER_PROBLEM, "Unknown family");
 
 	h->portid = mnl_socket_get_portid(h->nl);
-	h->tables = t;
+	h->tables = builtin_tables_lookup(family);
 	h->cache = &h->__cache[0];
 	h->family = family;
 
