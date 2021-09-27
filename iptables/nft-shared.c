@@ -992,6 +992,7 @@ void nft_check_xt_legacy(int family, bool is_ipt_save)
 {
 	static const char tables6[] = "/proc/net/ip6_tables_names";
 	static const char tables4[] = "/proc/net/ip_tables_names";
+	static const char tablesa[] = "/proc/net/arp_tables_names";
 	const char *prefix = "ip";
 	FILE *fp = NULL;
 	char buf[1024];
@@ -1003,6 +1004,10 @@ void nft_check_xt_legacy(int family, bool is_ipt_save)
 	case NFPROTO_IPV6:
 		fp = fopen(tables6, "r");
 		prefix = "ip6";
+		break;
+	case NFPROTO_ARP:
+		fp = fopen(tablesa, "r");
+		prefix = "arp";
 		break;
 	default:
 		break;
