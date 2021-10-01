@@ -5,6 +5,7 @@
 #include <getopt.h>
 #include <xtables.h>
 
+#include <linux/netfilter/nf_log.h>
 #include <linux/netfilter/x_tables.h>
 #include <linux/netfilter/xt_NFLOG.h>
 
@@ -53,12 +54,16 @@ static void NFLOG_init(struct xt_entry_target *t)
 
 static void NFLOG_parse(struct xt_option_call *cb)
 {
+	char *nf_log_prefix = cb->udata;
+
 	xtables_option_parse(cb);
 	switch (cb->entry->id) {
 	case O_PREFIX:
 		if (strchr(cb->arg, '\n') != NULL)
 			xtables_error(PARAMETER_PROBLEM,
 				   "Newlines not allowed in --log-prefix");
+
+		snprintf(nf_log_prefix, NF_LOG_PREFIXLEN, "%s", cb->arg);
 		break;
 	}
 }
@@ -149,6 +154,7 @@ static struct xtables_target nflog_target = {
 	.save		= NFLOG_save,
 	.x6_options	= NFLOG_opts,
 	.xlate		= NFLOG_xlate,
+	.udata_size	= NF_LOG_PREFIXLEN
 };
 
 void _init(void)

@@ -39,6 +39,7 @@
 #include <linux/netfilter/nf_tables_compat.h>
 
 #include <linux/netfilter/xt_limit.h>
+#include <linux/netfilter/xt_NFLOG.h>
 
 #include <libmnl/libmnl.h>
 #include <libnftnl/gen.h>
@@ -1346,6 +1347,8 @@ int add_action(struct nftnl_rule *r, struct iptables_command_state *cs,
 			ret = add_verdict(r, NF_DROP);
 		else if (strcmp(cs->jumpto, XTC_LABEL_RETURN) == 0)
 			ret = add_verdict(r, NFT_RETURN);
+		else if (strcmp(cs->jumpto, "NFLOG") == 0)
+			ret = add_log(r, cs);
 		else
 			ret = add_target(r, cs->target->t);
 	} else if (strlen(cs->jumpto) > 0) {
@@ -1356,6 +1359,31 @@ int add_action(struct nftnl_rule *r, struct iptables_command_state *cs,
 			ret = add_jumpto(r, cs->jumpto, NFT_JUMP);
 	}
 	return ret;
+}
+
+int add_log(struct nftnl_rule *r, struct iptables_command_state *cs)
+{
+	struct nftnl_expr *expr;
+	struct xt_nflog_info *info = (struct xt_nflog_info *)cs->target->t->data;
+
+	expr = nftnl_expr_alloc("log");
+	if (!expr)
+		return -ENOMEM;
+
+	if (info->prefix[0] != '\0')
+		nftnl_expr_set_str(expr, NFTNL_EXPR_LOG_PREFIX,
+				   cs->target->udata);
+
+	nftnl_expr_set_u16(expr, NFTNL_EXPR_LOG_GROUP, info->group);
+	if (info->flags & XT_NFLOG_F_COPY_LEN)
+		nftnl_expr_set_u32(expr, NFTNL_EXPR_LOG_SNAPLEN,
+				   info->len);
+	if (info->threshold)
+		nftnl_expr_set_u16(expr, NFTNL_EXPR_LOG_QTHRESHOLD,
+				   info->threshold);
+
+	nftnl_rule_add_expr(r, expr);
+	return 0;
 }
 
 static void nft_rule_print_debug(struct nftnl_rule *r, struct nlmsghdr *nlh)
