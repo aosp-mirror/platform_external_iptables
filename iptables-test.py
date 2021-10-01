@@ -84,7 +84,7 @@ def run_test(iptables, rule, rule_save, res, filename, lineno, netns):
 
     cmd = iptables + " -A " + rule
     if netns:
-            cmd = "ip netns exec ____iptables-container-test " + EXECUTEABLE + " " + cmd
+            cmd = "ip netns exec ____iptables-container-test " + EXECUTABLE + " " + cmd
 
     ret = execute_cmd(cmd, filename, lineno)
 
@@ -123,7 +123,7 @@ def run_test(iptables, rule, rule_save, res, filename, lineno, netns):
         elif splitted[0] == EBTABLES:
             command = EBTABLES_SAVE
 
-    command = EXECUTEABLE + " " + command
+    command = EXECUTABLE + " " + command
 
     if netns:
             command = "ip netns exec ____iptables-container-test " + command
@@ -168,7 +168,7 @@ def execute_cmd(cmd, filename, lineno):
     '''
     global log_file
     if cmd.startswith('iptables ') or cmd.startswith('ip6tables ') or cmd.startswith('ebtables ') or cmd.startswith('arptables '):
-        cmd = EXECUTEABLE + " " + cmd
+        cmd = EXECUTABLE + " " + cmd
 
     print("command: {}".format(cmd), file=log_file)
     ret = subprocess.call(cmd, shell=True, universal_newlines=True,
@@ -202,12 +202,12 @@ def run_test_file(filename, netns):
         iptables = IPTABLES
     elif "libarpt_" in filename:
         # only supported with nf_tables backend
-        if EXECUTEABLE != "xtables-nft-multi":
+        if EXECUTABLE != "xtables-nft-multi":
            return 0, 0
         iptables = ARPTABLES
     elif "libebt_" in filename:
         # only supported with nf_tables backend
-        if EXECUTEABLE != "xtables-nft-multi":
+        if EXECUTABLE != "xtables-nft-multi":
            return 0, 0
         iptables = EBTABLES
     else:
@@ -245,7 +245,7 @@ def run_test_file(filename, netns):
         if line[0] == "%":
             external_cmd = line.rstrip()[1:]
             if netns:
-                external_cmd = "ip netns exec ____iptables-container-test " + EXECUTEABLE + " " + external_cmd
+                external_cmd = "ip netns exec ____iptables-container-test " + EXECUTABLE + " " + external_cmd
             execute_cmd(external_cmd, filename, lineno)
             continue
 
@@ -366,10 +366,10 @@ def main():
         show_missing()
         return
 
-    global EXECUTEABLE
-    EXECUTEABLE = "xtables-legacy-multi"
+    global EXECUTABLE
+    EXECUTABLE = "xtables-legacy-multi"
     if args.nftables:
-        EXECUTEABLE = "xtables-nft-multi"
+        EXECUTABLE = "xtables-nft-multi"
 
     if os.getuid() != 0:
         print("You need to be root to run this, sorry", file=sys.stderr)
