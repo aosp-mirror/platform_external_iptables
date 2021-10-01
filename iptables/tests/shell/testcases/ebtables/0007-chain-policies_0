@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 case "$XT_MULTI" in
 *xtables-nft-multi)
