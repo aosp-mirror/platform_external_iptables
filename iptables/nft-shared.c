@@ -20,8 +20,10 @@
 
 #include <xtables.h>
 
+#include <linux/netfilter/nf_log.h>
 #include <linux/netfilter/xt_comment.h>
 #include <linux/netfilter/xt_limit.h>
+#include <linux/netfilter/xt_NFLOG.h>
 
 #include <libmnl/libmnl.h>
 #include <libnftnl/rule.h>
@@ -580,6 +582,54 @@ static void nft_parse_limit(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 		ctx->h->ops->parse_match(match, ctx->cs);
 }
 
+static void nft_parse_log(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
+{
+	struct xtables_target *target;
+	struct xt_entry_target *t;
+	size_t target_size;
+	/*
+	 * In order to handle the longer log-prefix supported by nft, instead of
+	 * using struct xt_nflog_info, we use a struct with a compatible layout, but
+	 * a larger buffer for the prefix.
+	 */
+	struct xt_nflog_info_nft {
+		__u32 len;
+		__u16 group;
+		__u16 threshold;
+		__u16 flags;
+		__u16 pad;
+		char  prefix[NF_LOG_PREFIXLEN];
+	} info = {
+		.group     = nftnl_expr_get_u16(e, NFTNL_EXPR_LOG_GROUP),
+		.threshold = nftnl_expr_get_u16(e, NFTNL_EXPR_LOG_QTHRESHOLD),
+	};
+	if (nftnl_expr_is_set(e, NFTNL_EXPR_LOG_SNAPLEN)) {
+		info.len = nftnl_expr_get_u32(e, NFTNL_EXPR_LOG_SNAPLEN);
+		info.flags = XT_NFLOG_F_COPY_LEN;
+	}
+	if (nftnl_expr_is_set(e, NFTNL_EXPR_LOG_PREFIX))
+		snprintf(info.prefix, sizeof(info.prefix), "%s",
+			 nftnl_expr_get_str(e, NFTNL_EXPR_LOG_PREFIX));
+
+	target = xtables_find_target("NFLOG", XTF_TRY_LOAD);
+	if (target == NULL)
+		return;
+
+	target_size = XT_ALIGN(sizeof(struct xt_entry_target)) +
+		      XT_ALIGN(sizeof(struct xt_nflog_info_nft));
+
+	t = xtables_calloc(1, target_size);
+	t->u.target_size = target_size;
+	strcpy(t->u.user.name, target->name);
+	t->u.user.revision = target->revision;
+
+	target->t = t;
+
+	memcpy(&target->t->data, &info, sizeof(info));
+
+	ctx->h->ops->parse_target(target, ctx->cs);
+}
+
 static void nft_parse_lookup(struct nft_xt_ctx *ctx, struct nft_handle *h,
 			     struct nftnl_expr *e)
 {
@@ -629,6 +679,8 @@ void nft_rule_to_iptables_command_state(struct nft_handle *h,
 			nft_parse_limit(&ctx, expr);
 		else if (strcmp(name, "lookup") == 0)
 			nft_parse_lookup(&ctx, h, expr);
+		else if (strcmp(name, "log") == 0)
+			nft_parse_log(&ctx, expr);
 
 		expr = nftnl_expr_iter_next(iter);
 	}

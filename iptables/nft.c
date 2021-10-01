@@ -3542,6 +3542,10 @@ static int nft_is_expr_compatible(struct nftnl_expr *expr, void *data)
 	    nftnl_expr_get_u32(expr, NFTNL_EXPR_LIMIT_FLAGS) == 0)
 		return 0;
 
+	if (!strcmp(name, "log") &&
+	    nftnl_expr_is_set(expr, NFTNL_EXPR_LOG_GROUP))
+		return 0;
+
 	return -1;
 }
 
