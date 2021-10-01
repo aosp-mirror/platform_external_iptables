@@ -83,7 +83,7 @@ static void NFLOG_check(struct xt_fcheck_call *cb)
 static void nflog_print(const struct xt_nflog_info *info, char *prefix)
 {
 	if (info->prefix[0] != '\0') {
-		printf(" %snflog-prefix ", prefix);
+		printf(" %snflog-prefix", prefix);
 		xtables_save_string(info->prefix);
 	}
 	if (info->group)
