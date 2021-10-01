@@ -1335,27 +1335,27 @@ int add_verdict(struct nftnl_rule *r, int verdict)
 int add_action(struct nftnl_rule *r, struct iptables_command_state *cs,
 	       bool goto_set)
 {
-       int ret = 0;
+	int ret = 0;
 
-       /* If no target at all, add nothing (default to continue) */
-       if (cs->target != NULL) {
-	       /* Standard target? */
-	       if (strcmp(cs->jumpto, XTC_LABEL_ACCEPT) == 0)
-		       ret = add_verdict(r, NF_ACCEPT);
-	       else if (strcmp(cs->jumpto, XTC_LABEL_DROP) == 0)
-		       ret = add_verdict(r, NF_DROP);
-	       else if (strcmp(cs->jumpto, XTC_LABEL_RETURN) == 0)
-		       ret = add_verdict(r, NFT_RETURN);
-	       else
-		       ret = add_target(r, cs->target->t);
-       } else if (strlen(cs->jumpto) > 0) {
-	       /* Not standard, then it's a go / jump to chain */
-	       if (goto_set)
-		       ret = add_jumpto(r, cs->jumpto, NFT_GOTO);
-	       else
-		       ret = add_jumpto(r, cs->jumpto, NFT_JUMP);
-       }
-       return ret;
+	/* If no target at all, add nothing (default to continue) */
+	if (cs->target != NULL) {
+		/* Standard target? */
+		if (strcmp(cs->jumpto, XTC_LABEL_ACCEPT) == 0)
+			ret = add_verdict(r, NF_ACCEPT);
+		else if (strcmp(cs->jumpto, XTC_LABEL_DROP) == 0)
+			ret = add_verdict(r, NF_DROP);
+		else if (strcmp(cs->jumpto, XTC_LABEL_RETURN) == 0)
+			ret = add_verdict(r, NFT_RETURN);
+		else
+			ret = add_target(r, cs->target->t);
+	} else if (strlen(cs->jumpto) > 0) {
+		/* Not standard, then it's a go / jump to chain */
+		if (goto_set)
+			ret = add_jumpto(r, cs->jumpto, NFT_GOTO);
+		else
+			ret = add_jumpto(r, cs->jumpto, NFT_JUMP);
+	}
+	return ret;
 }
 
 static void nft_rule_print_debug(struct nftnl_rule *r, struct nlmsghdr *nlh)
