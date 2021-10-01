@@ -3,10 +3,12 @@
 -j NFLOG --nflog-group 65535;=;OK
 -j NFLOG --nflog-group 65536;;FAIL
 -j NFLOG --nflog-group 0;-j NFLOG;OK
--j NFLOG --nflog-range 1;=;OK
--j NFLOG --nflog-range 4294967295;=;OK
--j NFLOG --nflog-range 4294967296;;FAIL
--j NFLOG --nflog-range -1;;FAIL
+# `--nflog-range` is broken and only supported by xtables-legacy.  It
+# has been superseded by `--nflog--group`.
+# -j NFLOG --nflog-range 1;=;OK
+# -j NFLOG --nflog-range 4294967295;=;OK
+# -j NFLOG --nflog-range 4294967296;;FAIL
+# -j NFLOG --nflog-range -1;;FAIL
 -j NFLOG --nflog-size 0;=;OK
 -j NFLOG --nflog-size 1;=;OK
 -j NFLOG --nflog-size 4294967295;=;OK
