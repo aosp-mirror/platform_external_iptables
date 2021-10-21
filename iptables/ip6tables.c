@@ -644,37 +644,6 @@ list_entries(const xt_chainlabel chain, int rulenum, int verbose, int numeric,
 	return found;
 }
 
-static int print_match_save(const struct xt_entry_match *e,
-			const struct ip6t_ip6 *ip)
-{
-	const char *name = e->u.user.name;
-	const int revision = e->u.user.revision;
-	struct xtables_match *match, *mt, *mt2;
-
-	match = xtables_find_match(name, XTF_TRY_LOAD, NULL);
-	if (match) {
-		mt = mt2 = xtables_find_match_revision(name, XTF_TRY_LOAD,
-						       match, revision);
-		if (!mt2)
-			mt2 = match;
-		printf(" -m %s", mt2->alias ? mt2->alias(e) : name);
-
-		/* some matches don't provide a save function */
-		if (mt && mt->save)
-			mt->save(ip, e);
-		else if (match->save)
-			printf(unsupported_rev);
-	} else {
-		if (e->u.match_size) {
-			fprintf(stderr,
-				"Can't find library for match `%s'\n",
-				name);
-			exit(1);
-		}
-	}
-	return 0;
-}
-
 /* We want this to be readable, so only print out necessary fields.
  * Because that's the kind of world I want to live in.
  */

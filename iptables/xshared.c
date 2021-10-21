@@ -1119,3 +1119,33 @@ void save_rule_details(const char *iniface, unsigned const char *iniface_mask,
 		printf(" -f");
 	}
 }
+
+int print_match_save(const struct xt_entry_match *e, const void *ip)
+{
+	const char *name = e->u.user.name;
+	const int revision = e->u.user.revision;
+	struct xtables_match *match, *mt, *mt2;
+
+	match = xtables_find_match(name, XTF_TRY_LOAD, NULL);
+	if (match) {
+		mt = mt2 = xtables_find_match_revision(name, XTF_TRY_LOAD,
+						       match, revision);
+		if (!mt2)
+			mt2 = match;
+		printf(" -m %s", mt2->alias ? mt2->alias(e) : name);
+
+		/* some matches don't provide a save function */
+		if (mt && mt->save)
+			mt->save(ip, e);
+		else if (match->save)
+			printf(" [unsupported revision]");
+	} else {
+		if (e->u.match_size) {
+			fprintf(stderr,
+				"Can't find library for match `%s'\n",
+				name);
+			exit(1);
+		}
+	}
+	return 0;
+}

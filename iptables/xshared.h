@@ -257,4 +257,6 @@ void save_rule_details(const char *iniface, unsigned const char *iniface_mask,
 		       const char *outiface, unsigned const char *outiface_mask,
 		       uint16_t proto, int frag, uint8_t invflags);
 
+int print_match_save(const struct xt_entry_match *e, const void *ip);
+
 #endif /* IPTABLES_XSHARED_H */
