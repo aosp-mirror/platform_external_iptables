@@ -1864,8 +1864,11 @@ void ipv4_post_parse(int command, struct iptables_command_state *cs,
 	if (args->goto_set)
 		cs->fw.ip.flags |= IPT_F_GOTO;
 
+	/* nft-variants use cs->counters, legacy uses cs->fw.counters */
 	cs->counters.pcnt = args->pcnt_cnt;
 	cs->counters.bcnt = args->bcnt_cnt;
+	cs->fw.counters.pcnt = args->pcnt_cnt;
+	cs->fw.counters.bcnt = args->bcnt_cnt;
 
 	if (command & (CMD_REPLACE | CMD_INSERT |
 			CMD_DELETE | CMD_APPEND | CMD_CHECK)) {
