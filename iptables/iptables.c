@@ -720,32 +720,6 @@ static void print_proto(uint16_t proto, int invert)
 
 #define IP_PARTS(n) IP_PARTS_NATIVE(ntohl(n))
 
-/* This assumes that mask is contiguous, and byte-bounded. */
-static void
-print_iface(char letter, const char *iface, const unsigned char *mask,
-	    int invert)
-{
-	unsigned int i;
-
-	if (mask[0] == 0)
-		return;
-
-	printf("%s -%c ", invert ? " !" : "", letter);
-
-	for (i = 0; i < IFNAMSIZ; i++) {
-		if (mask[i] != 0) {
-			if (iface[i] != '\0')
-				printf("%c", iface[i]);
-		} else {
-			/* we can access iface[i-1] here, because
-			 * a few lines above we make sure that mask[0] != 0 */
-			if (iface[i-1] != '\0')
-				printf("+");
-			break;
-		}
-	}
-}
-
 static int print_match_save(const struct xt_entry_match *e,
 			const struct ipt_ip *ip)
 {
@@ -830,10 +804,10 @@ void print_rule4(const struct ipt_entry *e,
 	print_ip("-d", e->ip.dst.s_addr, e->ip.dmsk.s_addr,
 			e->ip.invflags & IPT_INV_DSTIP);
 
-	print_iface('i', e->ip.iniface, e->ip.iniface_mask,
+	save_iface('i', e->ip.iniface, e->ip.iniface_mask,
 		    e->ip.invflags & IPT_INV_VIA_IN);
 
-	print_iface('o', e->ip.outiface, e->ip.outiface_mask,
+	save_iface('o', e->ip.outiface, e->ip.outiface_mask,
 		    e->ip.invflags & IPT_INV_VIA_OUT);
 
 	print_proto(e->ip.proto, e->ip.invflags & XT_INV_PROTO);

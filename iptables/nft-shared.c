@@ -785,28 +785,6 @@ void print_rule_details(const struct iptables_command_state *cs,
 	}
 }
 
-static void
-print_iface(char letter, const char *iface, const unsigned char *mask, int inv)
-{
-	unsigned int i;
-
-	if (mask[0] == 0)
-		return;
-
-	printf("%s -%c ", inv ? " !" : "", letter);
-
-	for (i = 0; i < IFNAMSIZ; i++) {
-		if (mask[i] != 0) {
-			if (iface[i] != '\0')
-				printf("%c", iface[i]);
-			} else {
-				if (iface[i-1] != '\0')
-					printf("+");
-				break;
-		}
-	}
-}
-
 void save_rule_details(const struct iptables_command_state *cs,
 		       uint8_t invflags, uint16_t proto,
 		       const char *iniface,
@@ -815,11 +793,11 @@ void save_rule_details(const struct iptables_command_state *cs,
 		       unsigned const char *outiface_mask)
 {
 	if (iniface != NULL) {
-		print_iface('i', iniface, iniface_mask,
+		save_iface('i', iniface, iniface_mask,
 			    invflags & IPT_INV_VIA_IN);
 	}
 	if (outiface != NULL) {
-		print_iface('o', outiface, outiface_mask,
+		save_iface('o', outiface, outiface_mask,
 			    invflags & IPT_INV_VIA_OUT);
 	}
 

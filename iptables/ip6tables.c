@@ -707,32 +707,6 @@ list_entries(const xt_chainlabel chain, int rulenum, int verbose, int numeric,
 	return found;
 }
 
-/* This assumes that mask is contiguous, and byte-bounded. */
-static void
-print_iface(char letter, const char *iface, const unsigned char *mask,
-	    int invert)
-{
-	unsigned int i;
-
-	if (mask[0] == 0)
-		return;
-
-	printf("%s -%c ", invert ? " !" : "", letter);
-
-	for (i = 0; i < IFNAMSIZ; i++) {
-		if (mask[i] != 0) {
-			if (iface[i] != '\0')
-				printf("%c", iface[i]);
-		} else {
-			/* we can access iface[i-1] here, because
-			 * a few lines above we make sure that mask[0] != 0 */
-			if (iface[i-1] != '\0')
-				printf("+");
-			break;
-		}
-	}
-}
-
 static void print_proto(uint16_t proto, int invert)
 {
 	if (proto) {
@@ -821,10 +795,10 @@ void print_rule6(const struct ip6t_entry *e,
 	print_ip("-d", &(e->ipv6.dst), &(e->ipv6.dmsk),
 			e->ipv6.invflags & IP6T_INV_DSTIP);
 
-	print_iface('i', e->ipv6.iniface, e->ipv6.iniface_mask,
+	save_iface('i', e->ipv6.iniface, e->ipv6.iniface_mask,
 		    e->ipv6.invflags & IP6T_INV_VIA_IN);
 
-	print_iface('o', e->ipv6.outiface, e->ipv6.outiface_mask,
+	save_iface('o', e->ipv6.outiface, e->ipv6.outiface_mask,
 		    e->ipv6.invflags & IP6T_INV_VIA_OUT);
 
 	print_proto(e->ipv6.proto, e->ipv6.invflags & XT_INV_PROTO);

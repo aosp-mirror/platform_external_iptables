@@ -226,6 +226,8 @@ void print_ipv6_addresses(const struct ip6t_entry *fw6, unsigned int format);
 
 void print_ifaces(const char *iniface, const char *outiface, uint8_t invflags,
 		  unsigned int format);
+void save_iface(char letter, const char *iface,
+		const unsigned char *mask, int invert);
 
 void command_match(struct iptables_command_state *cs, bool invert);
 const char *xt_parse_target(const char *targetname);
