@@ -224,26 +224,6 @@ static void nft_ipv6_print_rule(struct nft_handle *h, struct nftnl_rule *r,
 	nft_clear_iptables_command_state(&cs);
 }
 
-static void save_ipv6_addr(char letter, const struct in6_addr *addr,
-			   const struct in6_addr *mask,
-			   int invert)
-{
-	char addr_str[INET6_ADDRSTRLEN];
-	int l = xtables_ip6mask_to_cidr(mask);
-
-	if (!invert && l == 0)
-		return;
-
-	printf("%s -%c %s",
-		invert ? " !" : "", letter,
-		inet_ntop(AF_INET6, addr, addr_str, sizeof(addr_str)));
-
-	if (l == -1)
-		printf("/%s", inet_ntop(AF_INET6, mask, addr_str, sizeof(addr_str)));
-	else
-		printf("/%d", l);
-}
-
 static void nft_ipv6_save_rule(const void *data, unsigned int format)
 {
 	const struct iptables_command_state *cs = data;

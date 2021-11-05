@@ -738,36 +738,6 @@ static int print_match_save(const struct xt_entry_match *e,
 	return 0;
 }
 
-/* Print a given ip including mask if necessary. */
-static void print_ip(const char *prefix, uint32_t ip,
-		     uint32_t mask, int invert)
-{
-	uint32_t bits, hmask = ntohl(mask);
-	int i;
-
-	if (!mask && !ip && !invert)
-		return;
-
-	printf("%s %s %u.%u.%u.%u",
-		invert ? " !" : "",
-		prefix,
-		IP_PARTS(ip));
-
-	if (mask == 0xFFFFFFFFU) {
-		printf("/32");
-		return;
-	}
-
-	i    = 32;
-	bits = 0xFFFFFFFEU;
-	while (--i >= 0 && hmask != bits)
-		bits <<= 1;
-	if (i >= 0)
-		printf("/%u", i);
-	else
-		printf("/%u.%u.%u.%u", IP_PARTS(mask));
-}
-
 /* We want this to be readable, so only print out necessary fields.
  * Because that's the kind of world I want to live in.
  */
@@ -785,10 +755,10 @@ void print_rule4(const struct ipt_entry *e,
 	printf("-A %s", chain);
 
 	/* Print IP part. */
-	print_ip("-s", e->ip.src.s_addr,e->ip.smsk.s_addr,
-			e->ip.invflags & IPT_INV_SRCIP);
+	save_ipv4_addr('s', &e->ip.src, &e->ip.smsk,
+		       e->ip.invflags & IPT_INV_SRCIP);
 
-	print_ip("-d", e->ip.dst.s_addr, e->ip.dmsk.s_addr,
+	save_ipv4_addr('d', &e->ip.dst, &e->ip.dmsk,
 			e->ip.invflags & IPT_INV_DSTIP);
 
 	save_rule_details(e->ip.iniface, e->ip.iniface_mask,

@@ -222,7 +222,11 @@ const char *ipv4_addr_to_string(const struct in_addr *addr,
 				const struct in_addr *mask,
 				unsigned int format);
 void print_ipv4_addresses(const struct ipt_entry *fw, unsigned int format);
+void save_ipv4_addr(char letter, const struct in_addr *addr,
+		    const struct in_addr *mask, int invert);
 void print_ipv6_addresses(const struct ip6t_entry *fw6, unsigned int format);
+void save_ipv6_addr(char letter, const struct in6_addr *addr,
+		    const struct in6_addr *mask, int invert);
 
 void print_ifaces(const char *iniface, const char *outiface, uint8_t invflags,
 		  unsigned int format);

@@ -134,32 +134,6 @@ static void get_frag(struct nft_xt_ctx *ctx, struct nftnl_expr *e, bool *inv)
 	ctx->flags &= ~NFT_XT_CTX_BITWISE;
 }
 
-static const char *mask_to_str(uint32_t mask)
-{
-	static char mask_str[INET_ADDRSTRLEN];
-	uint32_t bits, hmask = ntohl(mask);
-	struct in_addr mask_addr = {
-		.s_addr = mask,
-	};
-	int i;
-
-	if (mask == 0xFFFFFFFFU) {
-		sprintf(mask_str, "32");
-		return mask_str;
-	}
-
-	i    = 32;
-	bits = 0xFFFFFFFEU;
-	while (--i >= 0 && hmask != bits)
-		bits <<= 1;
-	if (i >= 0)
-		sprintf(mask_str, "%u", i);
-	else
-		inet_ntop(AF_INET, &mask_addr, mask_str, sizeof(mask_str));
-
-	return mask_str;
-}
-
 static void nft_ipv4_parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e,
 				void *data)
 {
@@ -295,26 +269,13 @@ static void nft_ipv4_print_rule(struct nft_handle *h, struct nftnl_rule *r,
 	nft_clear_iptables_command_state(&cs);
 }
 
-static void save_ipv4_addr(char letter, const struct in_addr *addr,
-			   uint32_t mask, int invert)
-{
-	char addrbuf[INET_ADDRSTRLEN];
-
-	if (!mask && !invert && !addr->s_addr)
-		return;
-
-	printf("%s -%c %s/%s", invert ? " !" : "", letter,
-	       inet_ntop(AF_INET, addr, addrbuf, sizeof(addrbuf)),
-	       mask_to_str(mask));
-}
-
 static void nft_ipv4_save_rule(const void *data, unsigned int format)
 {
 	const struct iptables_command_state *cs = data;
 
-	save_ipv4_addr('s', &cs->fw.ip.src, cs->fw.ip.smsk.s_addr,
+	save_ipv4_addr('s', &cs->fw.ip.src, &cs->fw.ip.smsk,
 		       cs->fw.ip.invflags & IPT_INV_SRCIP);
-	save_ipv4_addr('d', &cs->fw.ip.dst, cs->fw.ip.dmsk.s_addr,
+	save_ipv4_addr('d', &cs->fw.ip.dst, &cs->fw.ip.dmsk,
 		       cs->fw.ip.invflags & IPT_INV_DSTIP);
 
 	save_rule_details(cs->fw.ip.iniface, cs->fw.ip.iniface_mask,

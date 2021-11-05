@@ -738,27 +738,6 @@ static int print_match_save(const struct xt_entry_match *e,
 	return 0;
 }
 
-/* Print a given ip including mask if necessary. */
-static void print_ip(const char *prefix, const struct in6_addr *ip,
-		     const struct in6_addr *mask, int invert)
-{
-	char buf[51];
-	int l = xtables_ip6mask_to_cidr(mask);
-
-	if (l == 0 && !invert)
-		return;
-
-	printf("%s %s %s",
-		invert ? " !" : "",
-		prefix,
-		inet_ntop(AF_INET6, ip, buf, sizeof buf));
-
-	if (l == -1)
-		printf("/%s", inet_ntop(AF_INET6, mask, buf, sizeof buf));
-	else
-		printf("/%d", l);
-}
-
 /* We want this to be readable, so only print out necessary fields.
  * Because that's the kind of world I want to live in.
  */
@@ -776,11 +755,11 @@ void print_rule6(const struct ip6t_entry *e,
 	printf("-A %s", chain);
 
 	/* Print IP part. */
-	print_ip("-s", &(e->ipv6.src), &(e->ipv6.smsk),
-			e->ipv6.invflags & IP6T_INV_SRCIP);
+	save_ipv6_addr('s', &e->ipv6.src, &e->ipv6.smsk,
+		       e->ipv6.invflags & IP6T_INV_SRCIP);
 
-	print_ip("-d", &(e->ipv6.dst), &(e->ipv6.dmsk),
-			e->ipv6.invflags & IP6T_INV_DSTIP);
+	save_ipv6_addr('d', &e->ipv6.dst, &e->ipv6.dmsk,
+		       e->ipv6.invflags & IP6T_INV_DSTIP);
 
 	save_rule_details(e->ipv6.iniface, e->ipv6.iniface_mask,
 			  e->ipv6.outiface, e->ipv6.outiface_mask,

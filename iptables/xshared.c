@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <arpa/inet.h>
 #include <sys/file.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -578,6 +579,42 @@ void print_ipv4_addresses(const struct ipt_entry *fw, unsigned int format)
 	       ipv4_addr_to_string(&fw->ip.dst, &fw->ip.dmsk, format));
 }
 
+static const char *mask_to_str(const struct in_addr *mask)
+{
+	uint32_t bits, hmask = ntohl(mask->s_addr);
+	static char mask_str[INET_ADDRSTRLEN];
+	int i;
+
+	if (mask->s_addr == 0xFFFFFFFFU) {
+		sprintf(mask_str, "32");
+		return mask_str;
+	}
+
+	i    = 32;
+	bits = 0xFFFFFFFEU;
+	while (--i >= 0 && hmask != bits)
+		bits <<= 1;
+	if (i >= 0)
+		sprintf(mask_str, "%u", i);
+	else
+		inet_ntop(AF_INET, mask, mask_str, sizeof(mask_str));
+
+	return mask_str;
+}
+
+void save_ipv4_addr(char letter, const struct in_addr *addr,
+		    const struct in_addr *mask, int invert)
+{
+	char addrbuf[INET_ADDRSTRLEN];
+
+	if (!mask->s_addr && !invert && !addr->s_addr)
+		return;
+
+	printf("%s -%c %s/%s", invert ? " !" : "", letter,
+	       inet_ntop(AF_INET, addr, addrbuf, sizeof(addrbuf)),
+	       mask_to_str(mask));
+}
+
 static const char *ipv6_addr_to_string(const struct in6_addr *addr,
 				       const struct in6_addr *mask,
 				       unsigned int format)
@@ -610,6 +647,26 @@ void print_ipv6_addresses(const struct ip6t_entry *fw6, unsigned int format)
 	printf(FMT("%-19s ", "-> %s"),
 	       ipv6_addr_to_string(&fw6->ipv6.dst,
 				   &fw6->ipv6.dmsk, format));
+}
+
+void save_ipv6_addr(char letter, const struct in6_addr *addr,
+		    const struct in6_addr *mask, int invert)
+{
+	int l = xtables_ip6mask_to_cidr(mask);
+	char addr_str[INET6_ADDRSTRLEN];
+
+	if (!invert && l == 0)
+		return;
+
+	printf("%s -%c %s",
+		invert ? " !" : "", letter,
+		inet_ntop(AF_INET6, addr, addr_str, sizeof(addr_str)));
+
+	if (l == -1)
+		printf("/%s", inet_ntop(AF_INET6, mask,
+					addr_str, sizeof(addr_str)));
+	else
+		printf("/%d", l);
 }
 
 /* Luckily, IPT_INV_VIA_IN and IPT_INV_VIA_OUT
