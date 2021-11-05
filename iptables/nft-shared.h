@@ -173,12 +173,6 @@ void print_rule_details(const struct iptables_command_state *cs,
 			unsigned int num, unsigned int format);
 void print_matches_and_target(struct iptables_command_state *cs,
 			      unsigned int format);
-void save_rule_details(const struct iptables_command_state *cs,
-		       uint8_t invflags, uint16_t proto,
-		       const char *iniface,
-		       unsigned const char *iniface_mask,
-		       const char *outiface,
-		       unsigned const char *outiface_mask);
 void nft_ipv46_save_chain(const struct nftnl_chain *c, const char *policy);
 void save_matches_and_target(const struct iptables_command_state *cs,
 			     bool goto_flag, const void *fw,

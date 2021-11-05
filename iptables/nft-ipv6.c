@@ -253,9 +253,9 @@ static void nft_ipv6_save_rule(const void *data, unsigned int format)
 	save_ipv6_addr('d', &cs->fw6.ipv6.dst, &cs->fw6.ipv6.dmsk,
 		       cs->fw6.ipv6.invflags & IP6T_INV_DSTIP);
 
-	save_rule_details(cs, cs->fw6.ipv6.invflags, cs->fw6.ipv6.proto,
-			  cs->fw6.ipv6.iniface, cs->fw6.ipv6.iniface_mask,
-			  cs->fw6.ipv6.outiface, cs->fw6.ipv6.outiface_mask);
+	save_rule_details(cs->fw6.ipv6.iniface, cs->fw6.ipv6.iniface_mask,
+			  cs->fw6.ipv6.outiface, cs->fw6.ipv6.outiface_mask,
+			  cs->fw6.ipv6.proto, 0, cs->fw6.ipv6.invflags);
 
 	save_matches_and_target(cs, cs->fw6.ipv6.flags & IP6T_F_GOTO,
 				&cs->fw6, format);

@@ -707,19 +707,6 @@ list_entries(const xt_chainlabel chain, int rulenum, int verbose, int numeric,
 	return found;
 }
 
-static void print_proto(uint16_t proto, int invert)
-{
-	if (proto) {
-		const char *pname = proto_to_name(proto, 0);
-		const char *invertstr = invert ? " !" : "";
-
-		if (pname)
-			printf("%s -p %s", invertstr, pname);
-		else
-			printf("%s -p %u", invertstr, proto);
-	}
-}
-
 static int print_match_save(const struct xt_entry_match *e,
 			const struct ip6t_ip6 *ip)
 {
@@ -795,13 +782,9 @@ void print_rule6(const struct ip6t_entry *e,
 	print_ip("-d", &(e->ipv6.dst), &(e->ipv6.dmsk),
 			e->ipv6.invflags & IP6T_INV_DSTIP);
 
-	save_iface('i', e->ipv6.iniface, e->ipv6.iniface_mask,
-		    e->ipv6.invflags & IP6T_INV_VIA_IN);
-
-	save_iface('o', e->ipv6.outiface, e->ipv6.outiface_mask,
-		    e->ipv6.invflags & IP6T_INV_VIA_OUT);
-
-	print_proto(e->ipv6.proto, e->ipv6.invflags & XT_INV_PROTO);
+	save_rule_details(e->ipv6.iniface, e->ipv6.iniface_mask,
+			  e->ipv6.outiface, e->ipv6.outiface_mask,
+			  e->ipv6.proto, 0, e->ipv6.invflags);
 
 #if 0
 	/* not definied in ipv6

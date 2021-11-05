@@ -699,19 +699,6 @@ list_entries(const xt_chainlabel chain, int rulenum, int verbose, int numeric,
 	return found;
 }
 
-static void print_proto(uint16_t proto, int invert)
-{
-	if (proto) {
-		const char *pname = proto_to_name(proto, 0);
-		const char *invertstr = invert ? " !" : "";
-
-		if (pname)
-			printf("%s -p %s", invertstr, pname);
-		else
-			printf("%s -p %u", invertstr, proto);
-	}
-}
-
 #define IP_PARTS_NATIVE(n)			\
 (unsigned int)((n)>>24)&0xFF,			\
 (unsigned int)((n)>>16)&0xFF,			\
@@ -804,17 +791,10 @@ void print_rule4(const struct ipt_entry *e,
 	print_ip("-d", e->ip.dst.s_addr, e->ip.dmsk.s_addr,
 			e->ip.invflags & IPT_INV_DSTIP);
 
-	save_iface('i', e->ip.iniface, e->ip.iniface_mask,
-		    e->ip.invflags & IPT_INV_VIA_IN);
-
-	save_iface('o', e->ip.outiface, e->ip.outiface_mask,
-		    e->ip.invflags & IPT_INV_VIA_OUT);
-
-	print_proto(e->ip.proto, e->ip.invflags & XT_INV_PROTO);
-
-	if (e->ip.flags & IPT_F_FRAG)
-		printf("%s -f",
-		       e->ip.invflags & IPT_INV_FRAG ? " !" : "");
+	save_rule_details(e->ip.iniface, e->ip.iniface_mask,
+			  e->ip.outiface, e->ip.outiface_mask,
+			  e->ip.proto, e->ip.flags & IPT_F_FRAG,
+			  e->ip.invflags);
 
 	/* Print matchinfo part */
 	if (e->target_offset)

@@ -785,35 +785,6 @@ void print_rule_details(const struct iptables_command_state *cs,
 	}
 }
 
-void save_rule_details(const struct iptables_command_state *cs,
-		       uint8_t invflags, uint16_t proto,
-		       const char *iniface,
-		       unsigned const char *iniface_mask,
-		       const char *outiface,
-		       unsigned const char *outiface_mask)
-{
-	if (iniface != NULL) {
-		save_iface('i', iniface, iniface_mask,
-			    invflags & IPT_INV_VIA_IN);
-	}
-	if (outiface != NULL) {
-		save_iface('o', outiface, outiface_mask,
-			    invflags & IPT_INV_VIA_OUT);
-	}
-
-	if (proto > 0) {
-		const char *pname = proto_to_name(proto, 0);
-
-		if (invflags & XT_INV_PROTO)
-			printf(" !");
-
-		if (pname)
-			printf(" -p %s", pname);
-		else
-			printf(" -p %u", proto);
-	}
-}
-
 void nft_ipv46_save_chain(const struct nftnl_chain *c, const char *policy)
 {
 	const char *chain = nftnl_chain_get_str(c, NFTNL_CHAIN_NAME);

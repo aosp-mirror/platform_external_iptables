@@ -242,4 +242,8 @@ void parse_chain(const char *chainname);
 void generic_opt_check(int command, int options);
 char opt2char(int option);
 
+void save_rule_details(const char *iniface, unsigned const char *iniface_mask,
+		       const char *outiface, unsigned const char *outiface_mask,
+		       uint16_t proto, int frag, uint8_t invflags);
+
 #endif /* IPTABLES_XSHARED_H */

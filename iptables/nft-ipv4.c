@@ -317,15 +317,10 @@ static void nft_ipv4_save_rule(const void *data, unsigned int format)
 	save_ipv4_addr('d', &cs->fw.ip.dst, cs->fw.ip.dmsk.s_addr,
 		       cs->fw.ip.invflags & IPT_INV_DSTIP);
 
-	save_rule_details(cs, cs->fw.ip.invflags, cs->fw.ip.proto,
-			  cs->fw.ip.iniface, cs->fw.ip.iniface_mask,
-			  cs->fw.ip.outiface, cs->fw.ip.outiface_mask);
-
-	if (cs->fw.ip.flags & IPT_F_FRAG) {
-		if (cs->fw.ip.invflags & IPT_INV_FRAG)
-			printf(" !");
-		printf(" -f");
-	}
+	save_rule_details(cs->fw.ip.iniface, cs->fw.ip.iniface_mask,
+			  cs->fw.ip.outiface, cs->fw.ip.outiface_mask,
+			  cs->fw.ip.proto, cs->fw.ip.flags & IPT_F_FRAG,
+			  cs->fw.ip.invflags);
 
 	save_matches_and_target(cs, cs->fw.ip.flags & IPT_F_GOTO,
 				&cs->fw, format);
