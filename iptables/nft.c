@@ -1513,10 +1513,10 @@ nft_rule_print_save(struct nft_handle *h, const struct nftnl_rule *r,
 	/* print chain name */
 	switch(type) {
 	case NFT_RULE_APPEND:
-		printf("-A %s ", chain);
+		printf("-A %s", chain);
 		break;
 	case NFT_RULE_DEL:
-		printf("-D %s ", chain);
+		printf("-D %s", chain);
 		break;
 	}
 

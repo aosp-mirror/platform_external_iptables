@@ -479,6 +479,7 @@ nft_arp_save_rule(const void *data, unsigned int format)
 
 	format |= FMT_NUMERIC;
 
+	printf(" ");
 	nft_arp_print_rule_details(cs, format);
 	if (cs->target && cs->target->save)
 		cs->target->save(&cs->fw, cs->target->t);

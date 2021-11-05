@@ -303,7 +303,7 @@ static void save_ipv4_addr(char letter, const struct in_addr *addr,
 	if (!mask && !invert && !addr->s_addr)
 		return;
 
-	printf("%s-%c %s/%s ", invert ? "! " : "", letter,
+	printf("%s -%c %s/%s", invert ? " !" : "", letter,
 	       inet_ntop(AF_INET, addr, addrbuf, sizeof(addrbuf)),
 	       mask_to_str(mask));
 }
@@ -323,8 +323,8 @@ static void nft_ipv4_save_rule(const void *data, unsigned int format)
 
 	if (cs->fw.ip.flags & IPT_F_FRAG) {
 		if (cs->fw.ip.invflags & IPT_INV_FRAG)
-			printf("! ");
-		printf("-f ");
+			printf(" !");
+		printf(" -f");
 	}
 
 	save_matches_and_target(cs, cs->fw.ip.flags & IPT_F_GOTO,

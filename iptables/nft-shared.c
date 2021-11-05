@@ -793,7 +793,7 @@ print_iface(char letter, const char *iface, const unsigned char *mask, int inv)
 	if (mask[0] == 0)
 		return;
 
-	printf("%s-%c ", inv ? "! " : "", letter);
+	printf("%s -%c ", inv ? " !" : "", letter);
 
 	for (i = 0; i < IFNAMSIZ; i++) {
 		if (mask[i] != 0) {
@@ -805,8 +805,6 @@ print_iface(char letter, const char *iface, const unsigned char *mask, int inv)
 				break;
 		}
 	}
-
-	printf(" ");
 }
 
 void save_rule_details(const struct iptables_command_state *cs,
@@ -829,12 +827,12 @@ void save_rule_details(const struct iptables_command_state *cs,
 		const char *pname = proto_to_name(proto, 0);
 
 		if (invflags & XT_INV_PROTO)
-			printf("! ");
+			printf(" !");
 
 		if (pname)
-			printf("-p %s ", pname);
+			printf(" -p %s", pname);
 		else
-			printf("-p %u ", proto);
+			printf(" -p %u", proto);
 	}
 }
 
@@ -856,33 +854,33 @@ void save_matches_and_target(const struct iptables_command_state *cs,
 
 	for (matchp = cs->matches; matchp; matchp = matchp->next) {
 		if (matchp->match->alias) {
-			printf("-m %s",
+			printf(" -m %s",
 			       matchp->match->alias(matchp->match->m));
 		} else
-			printf("-m %s", matchp->match->name);
+			printf(" -m %s", matchp->match->name);
 
 		if (matchp->match->save != NULL) {
 			/* cs->fw union makes the trick */
 			matchp->match->save(fw, matchp->match->m);
 		}
-		printf(" ");
 	}
 
 	if ((format & (FMT_NOCOUNTS | FMT_C_COUNTS)) == FMT_C_COUNTS)
-		printf("-c %llu %llu ",
+		printf(" -c %llu %llu",
 		       (unsigned long long)cs->counters.pcnt,
 		       (unsigned long long)cs->counters.bcnt);
 
 	if (cs->target != NULL) {
 		if (cs->target->alias) {
-			printf("-j %s", cs->target->alias(cs->target->t));
+			printf(" -j %s", cs->target->alias(cs->target->t));
 		} else
-			printf("-j %s", cs->jumpto);
+			printf(" -j %s", cs->jumpto);
 
-		if (cs->target->save != NULL)
+		if (cs->target->save != NULL) {
 			cs->target->save(fw, cs->target->t);
+		}
 	} else if (strlen(cs->jumpto) > 0) {
-		printf("-%c %s", goto_flag ? 'g' : 'j', cs->jumpto);
+		printf(" -%c %s", goto_flag ? 'g' : 'j', cs->jumpto);
 	}
 
 	printf("\n");

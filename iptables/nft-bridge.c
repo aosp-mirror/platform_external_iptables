@@ -601,7 +601,7 @@ static void print_protocol(uint16_t ethproto, bool invert, unsigned int bitmask)
 		printf("%s ", ent->e_name);
 }
 
-static void nft_bridge_save_rule(const void *data, unsigned int format)
+static void __nft_bridge_save_rule(const void *data, unsigned int format)
 {
 	const struct iptables_command_state *cs = data;
 
@@ -652,6 +652,12 @@ static void nft_bridge_save_rule(const void *data, unsigned int format)
 		fputc('\n', stdout);
 }
 
+static void nft_bridge_save_rule(const void *data, unsigned int format)
+{
+	printf(" ");
+	__nft_bridge_save_rule(data, format);
+}
+
 static void nft_bridge_print_rule(struct nft_handle *h, struct nftnl_rule *r,
 				  unsigned int num, unsigned int format)
 {
@@ -661,7 +667,7 @@ static void nft_bridge_print_rule(struct nft_handle *h, struct nftnl_rule *r,
 		printf("%d ", num);
 
 	nft_rule_to_ebtables_command_state(h, r, &cs);
-	nft_bridge_save_rule(&cs, format);
+	__nft_bridge_save_rule(&cs, format);
 	ebt_cs_clean(&cs);
 }
 

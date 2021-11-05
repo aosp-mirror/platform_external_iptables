@@ -234,14 +234,14 @@ static void save_ipv6_addr(char letter, const struct in6_addr *addr,
 	if (!invert && l == 0)
 		return;
 
-	printf("%s-%c %s",
-		invert ? "! " : "", letter,
+	printf("%s -%c %s",
+		invert ? " !" : "", letter,
 		inet_ntop(AF_INET6, addr, addr_str, sizeof(addr_str)));
 
 	if (l == -1)
-		printf("/%s ", inet_ntop(AF_INET6, mask, addr_str, sizeof(addr_str)));
+		printf("/%s", inet_ntop(AF_INET6, mask, addr_str, sizeof(addr_str)));
 	else
-		printf("/%d ", l);
+		printf("/%d", l);
 }
 
 static void nft_ipv6_save_rule(const void *data, unsigned int format)
