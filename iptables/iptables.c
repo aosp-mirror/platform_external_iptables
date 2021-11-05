@@ -322,25 +322,8 @@ print_firewall(const struct ipt_entry *fw,
 	t = ipt_get_target((struct ipt_entry *)fw);
 	flags = fw->ip.flags;
 
-	if (format & FMT_LINENUMBERS)
-		printf(FMT("%-4u ", "%u "), num);
-
-	if (!(format & FMT_NOCOUNTS)) {
-		xtables_print_num(fw->counters.pcnt, format);
-		xtables_print_num(fw->counters.bcnt, format);
-	}
-
-	if (!(format & FMT_NOTARGET))
-		printf(FMT("%-9s ", "%s "), targname);
-
-	fputc(fw->ip.invflags & XT_INV_PROTO ? '!' : ' ', stdout);
-	{
-		const char *pname = proto_to_name(fw->ip.proto, format&FMT_NUMERIC);
-		if (pname)
-			printf(FMT("%-5s", "%s "), pname);
-		else
-			printf(FMT("%-5hu", "%hu "), fw->ip.proto);
-	}
+	print_rule_details(num, &fw->counters, targname, fw->ip.proto,
+			   fw->ip.flags, fw->ip.invflags, format);
 
 	if (format & FMT_OPTIONS) {
 		if (format & FMT_NOTABLE)

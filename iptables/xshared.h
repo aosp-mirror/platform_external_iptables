@@ -164,7 +164,6 @@ enum {
 
 extern void print_extension_helps(const struct xtables_target *,
 	const struct xtables_rule_match *);
-extern const char *proto_to_name(uint16_t, int);
 extern int command_default(struct iptables_command_state *,
 	struct xtables_globals *, bool invert);
 extern struct xtables_match *load_proto(struct iptables_command_state *);
@@ -246,6 +245,9 @@ void parse_chain(const char *chainname);
 void generic_opt_check(int command, int options);
 char opt2char(int option);
 
+void print_rule_details(unsigned int linenum, const struct xt_counters *ctrs,
+			const char *targname, uint8_t proto, uint8_t flags,
+			uint8_t invflags, unsigned int format);
 void save_rule_details(const char *iniface, unsigned const char *iniface_mask,
 		       const char *outiface, unsigned const char *outiface_mask,
 		       uint16_t proto, int frag, uint8_t invflags);

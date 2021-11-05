@@ -246,8 +246,8 @@ static void nft_ipv4_print_rule(struct nft_handle *h, struct nftnl_rule *r,
 
 	nft_rule_to_iptables_command_state(h, r, &cs);
 
-	print_rule_details(&cs, cs.jumpto, cs.fw.ip.flags,
-			   cs.fw.ip.invflags, cs.fw.ip.proto, num, format);
+	print_rule_details(num, &cs.counters, cs.jumpto, cs.fw.ip.proto,
+			   cs.fw.ip.flags, cs.fw.ip.invflags, format);
 	print_fragment(cs.fw.ip.flags, cs.fw.ip.invflags, format);
 	print_ifaces(cs.fw.ip.iniface, cs.fw.ip.outiface, cs.fw.ip.invflags,
 		     format);

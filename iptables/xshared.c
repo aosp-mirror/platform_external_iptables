@@ -48,7 +48,7 @@ void print_extension_helps(const struct xtables_target *t,
 	}
 }
 
-const char *
+static const char *
 proto_to_name(uint16_t proto, int nolookup)
 {
 	unsigned int i;
@@ -997,6 +997,31 @@ void parse_chain(const char *chainname)
 		if (isspace(*ptr))
 			xtables_error(PARAMETER_PROBLEM,
 				      "Invalid chain name `%s'", chainname);
+}
+
+void print_rule_details(unsigned int linenum, const struct xt_counters *ctrs,
+			const char *targname, uint8_t proto, uint8_t flags,
+			uint8_t invflags, unsigned int format)
+{
+	const char *pname = proto_to_name(proto, format&FMT_NUMERIC);
+
+	if (format & FMT_LINENUMBERS)
+		printf(FMT("%-4u ", "%u "), linenum);
+
+	if (!(format & FMT_NOCOUNTS)) {
+		xtables_print_num(ctrs->pcnt, format);
+		xtables_print_num(ctrs->bcnt, format);
+	}
+
+	if (!(format & FMT_NOTARGET))
+		printf(FMT("%-9s ", "%s "), targname ? targname : "");
+
+	fputc(invflags & XT_INV_PROTO ? '!' : ' ', stdout);
+
+	if (pname)
+		printf(FMT("%-5s", "%s "), pname);
+	else
+		printf(FMT("%-5hu", "%hu "), proto);
 }
 
 void save_rule_details(const char *iniface, unsigned const char *iniface_mask,

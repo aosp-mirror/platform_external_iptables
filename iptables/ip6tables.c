@@ -329,25 +329,8 @@ print_firewall(const struct ip6t_entry *fw,
 
 	t = ip6t_get_target((struct ip6t_entry *)fw);
 
-	if (format & FMT_LINENUMBERS)
-		printf(FMT("%-4u ", "%u "), num);
-
-	if (!(format & FMT_NOCOUNTS)) {
-		xtables_print_num(fw->counters.pcnt, format);
-		xtables_print_num(fw->counters.bcnt, format);
-	}
-
-	if (!(format & FMT_NOTARGET))
-		printf(FMT("%-9s ", "%s "), targname);
-
-	fputc(fw->ipv6.invflags & XT_INV_PROTO ? '!' : ' ', stdout);
-	{
-		const char *pname = proto_to_name(fw->ipv6.proto, format&FMT_NUMERIC);
-		if (pname)
-			printf(FMT("%-5s", "%s "), pname);
-		else
-			printf(FMT("%-5hu", "%hu "), fw->ipv6.proto);
-	}
+	print_rule_details(num, &fw->counters, targname, fw->ipv6.proto,
+			   fw->ipv6.flags, fw->ipv6.invflags, format);
 
 	if (format & FMT_OPTIONS) {
 		if (format & FMT_NOTABLE)

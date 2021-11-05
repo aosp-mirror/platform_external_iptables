@@ -167,10 +167,6 @@ void nft_clear_iptables_command_state(struct iptables_command_state *cs);
 void print_header(unsigned int format, const char *chain, const char *pol,
 		  const struct xt_counters *counters, bool basechain,
 		  uint32_t refs, uint32_t entries);
-void print_rule_details(const struct iptables_command_state *cs,
-			const char *targname, uint8_t flags,
-			uint8_t invflags, uint8_t proto,
-			unsigned int num, unsigned int format);
 void print_matches_and_target(struct iptables_command_state *cs,
 			      unsigned int format);
 void nft_ipv46_save_chain(const struct nftnl_chain *c, const char *policy);

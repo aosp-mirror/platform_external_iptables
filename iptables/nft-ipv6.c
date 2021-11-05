@@ -198,9 +198,8 @@ static void nft_ipv6_print_rule(struct nft_handle *h, struct nftnl_rule *r,
 
 	nft_rule_to_iptables_command_state(h, r, &cs);
 
-	print_rule_details(&cs, cs.jumpto, cs.fw6.ipv6.flags,
-			   cs.fw6.ipv6.invflags, cs.fw6.ipv6.proto,
-			   num, format);
+	print_rule_details(num, &cs.counters, cs.jumpto, cs.fw6.ipv6.proto,
+			   cs.fw6.ipv6.flags, cs.fw6.ipv6.invflags, format);
 	if (format & FMT_OPTIONS) {
 		if (format & FMT_NOTABLE)
 			fputs("opt ", stdout);
