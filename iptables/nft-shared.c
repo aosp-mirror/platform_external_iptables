@@ -373,21 +373,6 @@ static void nft_parse_match(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 		ctx->h->ops->parse_match(match, ctx->cs);
 }
 
-void print_proto(uint16_t proto, int invert)
-{
-	const struct protoent *pent = getprotobynumber(proto);
-
-	if (invert)
-		printf("! ");
-
-	if (pent) {
-		printf("-p %s ", pent->p_name);
-		return;
-	}
-
-	printf("-p %u ", proto);
-}
-
 void get_cmp_data(struct nftnl_expr *e, void *data, size_t dlen, bool *inv)
 {
 	uint32_t len;
