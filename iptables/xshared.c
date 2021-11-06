@@ -107,7 +107,7 @@ static bool should_load_proto(struct iptables_command_state *cs)
 	return !cs->proto_used;
 }
 
-struct xtables_match *load_proto(struct iptables_command_state *cs)
+static struct xtables_match *load_proto(struct iptables_command_state *cs)
 {
 	if (!should_load_proto(cs))
 		return NULL;
