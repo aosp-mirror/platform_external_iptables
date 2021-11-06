@@ -253,10 +253,17 @@ static int do_command_xlate(struct nft_handle *h, int argc, char *argv[],
 		.restore	= restore,
 		.xlate		= true,
 	};
-	struct iptables_command_state cs;
+	struct iptables_command_state cs = {
+		.jumpto = "",
+		.argv = argv,
+	};
+
 	struct xtables_args args = {
 		.family = h->family,
 	};
+
+	if (h->ops->init_cs)
+		h->ops->init_cs(&cs);
 
 	do_parse(h, argc, argv, &p, &cs, &args);
 
