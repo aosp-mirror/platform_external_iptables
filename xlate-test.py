@@ -80,15 +80,15 @@ def run_test(name, payload):
 
 def load_test_files():
     test_files = total_tests = total_passed = total_error = total_failed = 0
-    for test in sorted(os.listdir("extensions")):
-        if test.endswith(".txlate"):
-            with open("extensions/" + test, "r") as payload:
-                tests, passed, failed, errors = run_test(test, payload)
-                test_files += 1
-                total_tests += tests
-                total_passed += passed
-                total_failed += failed
-                total_error += errors
+    tests = sorted(os.listdir("extensions"))
+    for test in ['extensions/' + f for f in tests if f.endswith(".txlate")]:
+        with open(test, "r") as payload:
+            tests, passed, failed, errors = run_test(test, payload)
+            test_files += 1
+            total_tests += tests
+            total_passed += passed
+            total_failed += failed
+            total_error += errors
     return (test_files, total_tests, total_passed, total_failed, total_error)
 
 
