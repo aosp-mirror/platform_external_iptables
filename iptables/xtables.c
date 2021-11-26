@@ -514,10 +514,6 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 				xtables_error(PARAMETER_PROBLEM,
 					      "The -t option cannot be used in %s.\n",
 					      xt_params->program_name);
-			if (!nft_table_builtin_find(h, optarg))
-				xtables_error(VERSION_PROBLEM,
-					      "table '%s' does not exist",
-					      optarg);
 			p->table = optarg;
 			table_set = true;
 			break;
@@ -720,6 +716,10 @@ int do_commandx(struct nft_handle *h, int argc, char *argv[], char **table,
 
 	do_parse(h, argc, argv, &p, &cs, &args);
 
+	if (!nft_table_builtin_find(h, p.table))
+		xtables_error(VERSION_PROBLEM,
+			      "table '%s' does not exist",
+			      p.table);
 	switch (p.command) {
 	case CMD_APPEND:
 		ret = h->ops->add_entry(h, p.chain, p.table, &cs, &args,
