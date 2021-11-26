@@ -994,8 +994,8 @@ int do_command4(int argc, char *argv[], char **table,
 					   "unexpected ! flag before --table");
 			if (restore && table_set)
 				xtables_error(PARAMETER_PROBLEM,
-					      "The -t option (seen in line %u) cannot be used in %s.\n",
-					      line, xt_params->program_name);
+					      "The -t option cannot be used in %s.\n",
+					      xt_params->program_name);
 			*table = optarg;
 			table_set = true;
 			break;
