@@ -90,7 +90,7 @@ void xtables_exit_error(enum xtables_exittype status, const char *msg, ...) __at
 
 struct xtables_globals xtables_globals = {
 	.option_offset = 0,
-	.program_version = PACKAGE_VERSION,
+	.program_version = PACKAGE_VERSION " (nf_tables)",
 	.optstring = OPTSTRING_COMMON "R:S::W::" "46bfg:h::m:nvw::x",
 	.orig_opts = original_opts,
 	.exit_err = xtables_exit_error,
@@ -108,7 +108,7 @@ xtables_exit_error(enum xtables_exittype status, const char *msg, ...)
 	va_list args;
 
 	va_start(args, msg);
-	fprintf(stderr, "%s v%s (nf_tables): ", prog_name, prog_vers);
+	fprintf(stderr, "%s v%s: ", prog_name, prog_vers);
 	vfprintf(stderr, msg, args);
 	va_end(args);
 	fprintf(stderr, "\n");
@@ -554,7 +554,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 			if (invert)
 				printf("Not %s ;-)\n", prog_vers);
 			else
-				printf("%s v%s (nf_tables)\n",
+				printf("%s v%s\n",
 				       prog_name, prog_vers);
 			exit(0);
 

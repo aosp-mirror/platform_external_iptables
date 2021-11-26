@@ -184,7 +184,7 @@ xtables_save_main(int family, int argc, char *argv[],
 			dump = true;
 			break;
 		case 'V':
-			printf("%s v%s (nf_tables)\n", prog_name, prog_vers);
+			printf("%s v%s\n", prog_name, prog_vers);
 			exit(0);
 		default:
 			fprintf(stderr,

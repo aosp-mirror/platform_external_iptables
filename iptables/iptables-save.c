@@ -173,7 +173,7 @@ do_iptables_save(struct iptables_save_cb *cb, int argc, char *argv[])
 			do_output(cb, tablename);
 			exit(0);
 		case 'V':
-			printf("%s v%s (legacy)\n",
+			printf("%s v%s\n",
 			       xt_params->program_name,
 			       xt_params->program_version);
 			exit(0);

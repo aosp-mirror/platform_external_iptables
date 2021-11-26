@@ -117,7 +117,7 @@ ip46tables_restore_main(const struct iptables_restore_cb *cb,
 				verbose = 1;
 				break;
 			case 'V':
-				printf("%s v%s (legacy)\n",
+				printf("%s v%s\n",
 				       xt_params->program_name,
 				       xt_params->program_version);
 				exit(0);

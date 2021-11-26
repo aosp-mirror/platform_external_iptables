@@ -219,7 +219,7 @@ struct option ebt_original_options[] =
 extern void xtables_exit_error(enum xtables_exittype status, const char *msg, ...) __attribute__((noreturn, format(printf,2,3)));
 struct xtables_globals ebtables_globals = {
 	.option_offset 		= 0,
-	.program_version	= PACKAGE_VERSION,
+	.program_version	= PACKAGE_VERSION " (nf_tables)",
 	.optstring		= OPTSTRING_COMMON "h",
 	.orig_opts		= ebt_original_options,
 	.exit_err		= xtables_exit_error,
@@ -860,7 +860,7 @@ print_zero:
 			if (OPT_COMMANDS)
 				xtables_error(PARAMETER_PROBLEM,
 					      "Multiple commands are not allowed");
-			printf("%s %s (nf_tables)\n", prog_name, prog_vers);
+			printf("%s %s\n", prog_name, prog_vers);
 			exit(0);
 		case 'h': /* Help */
 			if (OPT_COMMANDS)

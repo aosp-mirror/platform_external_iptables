@@ -312,7 +312,7 @@ xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 				verbose = 1;
 				break;
 			case 'V':
-				printf("%s v%s (nf_tables)\n", prog_name, prog_vers);
+				printf("%s v%s\n", prog_name, prog_vers);
 				exit(0);
 			case 't':
 				p.testing = 1;

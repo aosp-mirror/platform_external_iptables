@@ -88,7 +88,7 @@ void iptables_exit_error(enum xtables_exittype status, const char *msg, ...) __a
 
 struct xtables_globals iptables_globals = {
 	.option_offset = 0,
-	.program_version = PACKAGE_VERSION,
+	.program_version = PACKAGE_VERSION " (legacy)",
 	.orig_opts = original_opts,
 	.exit_err = iptables_exit_error,
 	.compat_rev = xtables_compatible_revision,
@@ -111,7 +111,7 @@ iptables_exit_error(enum xtables_exittype status, const char *msg, ...)
 	va_list args;
 
 	va_start(args, msg);
-	fprintf(stderr, "%s v%s (legacy): ", prog_name, prog_vers);
+	fprintf(stderr, "%s v%s: ", prog_name, prog_vers);
 	vfprintf(stderr, msg, args);
 	va_end(args);
 	fprintf(stderr, "\n");
@@ -1032,7 +1032,7 @@ int do_command4(int argc, char *argv[], char **table,
 			if (invert)
 				printf("Not %s ;-)\n", prog_vers);
 			else
-				printf("%s v%s (legacy)\n",
+				printf("%s v%s\n",
 				       prog_name, prog_vers);
 			exit(0);
 
