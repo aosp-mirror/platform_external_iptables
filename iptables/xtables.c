@@ -657,10 +657,6 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 		xtables_error(PARAMETER_PROBLEM,
 			   "nothing appropriate following !");
 
-	/* Set only if required, needed by xtables-restore */
-	if (h->family == AF_UNSPEC)
-		h->family = args->family;
-
 	h->ops->post_parse(p->command, cs, args);
 
 	if (p->command == CMD_REPLACE &&
