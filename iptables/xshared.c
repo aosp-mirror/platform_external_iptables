@@ -1836,6 +1836,10 @@ void ipv6_proto_parse(struct iptables_command_state *cs,
 	cs->fw6.ipv6.proto = args->proto;
 	cs->fw6.ipv6.invflags = args->invflags;
 
+	/* this is needed for ip6tables-legacy only */
+	args->flags |= IP6T_F_PROTO;
+	cs->fw6.ipv6.flags |= IP6T_F_PROTO;
+
 	if (is_exthdr(cs->fw6.ipv6.proto)
 	    && (cs->fw6.ipv6.invflags & XT_INV_PROTO) == 0)
 		fprintf(stderr,
