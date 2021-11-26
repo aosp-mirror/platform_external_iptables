@@ -90,6 +90,18 @@ void basic_exit_err(enum xtables_exittype status, const char *msg, ...)
 	vfprintf(stderr, msg, args);
 	va_end(args);
 	fprintf(stderr, "\n");
+	if (status == PARAMETER_PROBLEM) {
+		if (line != -1)
+			fprintf(stderr, "Error occurred at line: %d\n", line);
+		fprintf(stderr, "Try `%s -h' or '%s --help' for more information.\n",
+				xt_params->program_name, xt_params->program_name);
+	} else if (status == VERSION_PROBLEM) {
+		fprintf(stderr,
+			"Perhaps %s or your kernel needs to be upgraded.\n",
+			xt_params->program_name);
+	}
+	/* On error paths, make sure that we don't leak memory */
+	xtables_free_opts(1);
 	exit(status);
 }
 

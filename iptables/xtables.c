@@ -86,14 +86,11 @@ static struct option original_opts[] = {
 	{NULL},
 };
 
-void xtables_exit_error(enum xtables_exittype status, const char *msg, ...) __attribute__((noreturn, format(printf,2,3)));
-
 struct xtables_globals xtables_globals = {
 	.option_offset = 0,
 	.program_version = PACKAGE_VERSION " (nf_tables)",
 	.optstring = OPTSTRING_COMMON "R:S::W::" "46bfg:h::m:nvw::x",
 	.orig_opts = original_opts,
-	.exit_err = xtables_exit_error,
 	.compat_rev = nft_compatible_revision,
 	.print_help = xtables_printhelp,
 };
@@ -101,26 +98,6 @@ struct xtables_globals xtables_globals = {
 #define opts xt_params->opts
 #define prog_name xt_params->program_name
 #define prog_vers xt_params->program_version
-
-void
-xtables_exit_error(enum xtables_exittype status, const char *msg, ...)
-{
-	va_list args;
-
-	va_start(args, msg);
-	fprintf(stderr, "%s v%s: ", prog_name, prog_vers);
-	vfprintf(stderr, msg, args);
-	va_end(args);
-	fprintf(stderr, "\n");
-	if (status == PARAMETER_PROBLEM)
-		exit_tryhelp(status, line);
-	if (status == VERSION_PROBLEM)
-		fprintf(stderr,
-			"Perhaps iptables or your kernel needs to be upgraded.\n");
-	/* On error paths, make sure that we don't leak memory */
-	xtables_free_opts(1);
-	exit(status);
-}
 
 /*
  *	All functions starting with "parse" should succeed, otherwise

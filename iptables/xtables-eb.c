@@ -216,13 +216,11 @@ struct option ebt_original_options[] =
 	{ 0 }
 };
 
-extern void xtables_exit_error(enum xtables_exittype status, const char *msg, ...) __attribute__((noreturn, format(printf,2,3)));
 struct xtables_globals ebtables_globals = {
 	.option_offset 		= 0,
 	.program_version	= PACKAGE_VERSION " (nf_tables)",
 	.optstring		= OPTSTRING_COMMON "h",
 	.orig_opts		= ebt_original_options,
-	.exit_err		= xtables_exit_error,
 	.compat_rev		= nft_compatible_revision,
 };
 
