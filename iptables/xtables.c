@@ -102,17 +102,6 @@ struct xtables_globals xtables_globals = {
 #define prog_name xt_params->program_name
 #define prog_vers xt_params->program_version
 
-static void __attribute__((noreturn))
-exit_tryhelp(int status)
-{
-	if (line != -1)
-		fprintf(stderr, "Error occurred at line: %d\n", line);
-	fprintf(stderr, "Try `%s -h' or '%s --help' for more information.\n",
-			prog_name, prog_name);
-	xtables_free_opts(1);
-	exit(status);
-}
-
 void
 xtables_exit_error(enum xtables_exittype status, const char *msg, ...)
 {
@@ -124,7 +113,7 @@ xtables_exit_error(enum xtables_exittype status, const char *msg, ...)
 	va_end(args);
 	fprintf(stderr, "\n");
 	if (status == PARAMETER_PROBLEM)
-		exit_tryhelp(status);
+		exit_tryhelp(status, line);
 	if (status == VERSION_PROBLEM)
 		fprintf(stderr,
 			"Perhaps iptables or your kernel needs to be upgraded.\n");
@@ -631,7 +620,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 			if (p->restore && args->family == AF_INET6)
 				return;
 
-			exit_tryhelp(2);
+			exit_tryhelp(2, line);
 
 		case '6':
 			if (args->family == AF_INET6)
@@ -640,7 +629,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 			if (p->restore && args->family == AF_INET)
 				return;
 
-			exit_tryhelp(2);
+			exit_tryhelp(2, line);
 
 		case 1: /* non option */
 			if (optarg[0] == '!' && optarg[1] == '\0') {
@@ -653,7 +642,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 				continue;
 			}
 			fprintf(stderr, "Bad argument `%s'\n", optarg);
-			exit_tryhelp(2);
+			exit_tryhelp(2, line);
 
 		default:
 			if (command_default(cs, xt_params, invert))
@@ -849,7 +838,7 @@ int do_commandx(struct nft_handle *h, int argc, char *argv[], char **table,
 		break;
 	default:
 		/* We should never reach this... */
-		exit_tryhelp(2);
+		exit_tryhelp(2, line);
 	}
 
 	*table = p.table;

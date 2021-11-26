@@ -98,17 +98,6 @@ struct xtables_globals iptables_globals = {
 #define prog_name iptables_globals.program_name
 #define prog_vers iptables_globals.program_version
 
-static void __attribute__((noreturn))
-exit_tryhelp(int status)
-{
-	if (line != -1)
-		fprintf(stderr, "Error occurred at line: %d\n", line);
-	fprintf(stderr, "Try `%s -h' or '%s --help' for more information.\n",
-			prog_name, prog_name);
-	xtables_free_opts(1);
-	exit(status);
-}
-
 static void
 exit_printhelp(const struct xtables_rule_match *matches)
 {
@@ -127,7 +116,7 @@ iptables_exit_error(enum xtables_exittype status, const char *msg, ...)
 	va_end(args);
 	fprintf(stderr, "\n");
 	if (status == PARAMETER_PROBLEM)
-		exit_tryhelp(status);
+		exit_tryhelp(status, line);
 	if (status == VERSION_PROBLEM)
 		fprintf(stderr,
 			"Perhaps iptables or your kernel needs to be upgraded.\n");
@@ -1093,7 +1082,7 @@ int do_command4(int argc, char *argv[], char **table,
 			if (line != -1)
 				return 1; /* success: line ignored */
 			fprintf(stderr, "This is the IPv4 version of iptables.\n");
-			exit_tryhelp(2);
+			exit_tryhelp(2, line);
 
 		case 1: /* non option */
 			if (optarg[0] == '!' && optarg[1] == '\0') {
@@ -1106,7 +1095,7 @@ int do_command4(int argc, char *argv[], char **table,
 				continue;
 			}
 			fprintf(stderr, "Bad argument `%s'\n", optarg);
-			exit_tryhelp(2);
+			exit_tryhelp(2, line);
 
 		default:
 			if (command_default(&cs, &iptables_globals, invert))
@@ -1353,7 +1342,7 @@ int do_command4(int argc, char *argv[], char **table,
 		break;
 	default:
 		/* We should never reach this... */
-		exit_tryhelp(2);
+		exit_tryhelp(2, line);
 	}
 
 	if (verbose > 1)

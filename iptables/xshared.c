@@ -1252,3 +1252,13 @@ xtables_printhelp(const struct xtables_rule_match *matches)
 
 	print_extension_helps(xtables_targets, matches);
 }
+
+void exit_tryhelp(int status, int line)
+{
+	if (line != -1)
+		fprintf(stderr, "Error occurred at line: %d\n", line);
+	fprintf(stderr, "Try `%s -h' or '%s --help' for more information.\n",
+			xt_params->program_name, xt_params->program_name);
+	xtables_free_opts(1);
+	exit(status);
+}
