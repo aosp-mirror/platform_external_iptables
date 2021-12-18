@@ -443,7 +443,7 @@ static void nft_parse_payload(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 		ctx->flags |= NFT_XT_CTX_PREV_PAYLOAD;
 	}
 
-	ctx->reg = nftnl_expr_get_u32(e, NFTNL_EXPR_META_DREG);
+	ctx->reg = nftnl_expr_get_u32(e, NFTNL_EXPR_PAYLOAD_DREG);
 	ctx->payload.base = nftnl_expr_get_u32(e, NFTNL_EXPR_PAYLOAD_BASE);
 	ctx->payload.offset = nftnl_expr_get_u32(e, NFTNL_EXPR_PAYLOAD_OFFSET);
 	ctx->payload.len = nftnl_expr_get_u32(e, NFTNL_EXPR_PAYLOAD_LEN);
