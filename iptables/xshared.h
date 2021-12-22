@@ -262,4 +262,16 @@ int print_match_save(const struct xt_entry_match *e, const void *ip);
 void xtables_printhelp(const struct xtables_rule_match *matches);
 void exit_tryhelp(int status, int line) __attribute__((noreturn));
 
+struct xt_cmd_parse {
+	unsigned int			command;
+	unsigned int			rulenum;
+	char				*table;
+	const char			*chain;
+	const char			*newname;
+	const char			*policy;
+	bool				restore;
+	int				verbose;
+	bool				xlate;
+};
+
 #endif /* IPTABLES_XSHARED_H */

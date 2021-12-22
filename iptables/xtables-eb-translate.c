@@ -152,7 +152,7 @@ static void print_ebt_cmd(int argc, char *argv[])
 	printf("\n");
 }
 
-static int nft_rule_eb_xlate_add(struct nft_handle *h, const struct nft_xt_cmd_parse *p,
+static int nft_rule_eb_xlate_add(struct nft_handle *h, const struct xt_cmd_parse *p,
 				 const struct iptables_command_state *cs, bool append)
 {
 	struct xt_xlate *xl = xt_xlate_alloc(10240);
@@ -191,7 +191,7 @@ static int do_commandeb_xlate(struct nft_handle *h, int argc, char *argv[], char
 	int selected_chain = -1;
 	struct xtables_rule_match *xtrm_i;
 	struct ebt_match *match;
-	struct nft_xt_cmd_parse p = {
+	struct xt_cmd_parse p = {
 		.table          = *table,
         };
 

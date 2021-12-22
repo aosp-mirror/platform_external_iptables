@@ -187,7 +187,7 @@ static void check_inverse(struct nft_handle *h, const char option[],
 }
 
 void do_parse(struct nft_handle *h, int argc, char *argv[],
-	      struct nft_xt_cmd_parse *p, struct iptables_command_state *cs,
+	      struct xt_cmd_parse *p, struct iptables_command_state *cs,
 	      struct xtables_args *args)
 {
 	struct xtables_match *m;
@@ -699,7 +699,7 @@ int do_commandx(struct nft_handle *h, int argc, char *argv[], char **table,
 		bool restore)
 {
 	int ret = 1;
-	struct nft_xt_cmd_parse p = {
+	struct xt_cmd_parse p = {
 		.table		= *table,
 		.restore	= restore,
 	};

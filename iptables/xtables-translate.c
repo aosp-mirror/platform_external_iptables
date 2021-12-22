@@ -150,7 +150,7 @@ const char *family2str[] = {
 };
 
 static int nft_rule_xlate_add(struct nft_handle *h,
-			      const struct nft_xt_cmd_parse *p,
+			      const struct xt_cmd_parse *p,
 			      const struct iptables_command_state *cs,
 			      bool append)
 {
@@ -186,11 +186,11 @@ err_out:
 	return ret;
 }
 
-static int xlate(struct nft_handle *h, struct nft_xt_cmd_parse *p,
+static int xlate(struct nft_handle *h, struct xt_cmd_parse *p,
 		 struct iptables_command_state *cs,
 		 struct xtables_args *args, bool append,
 		 int (*cb)(struct nft_handle *h,
-			   const struct nft_xt_cmd_parse *p,
+			   const struct xt_cmd_parse *p,
 			   const struct iptables_command_state *cs,
 			   bool append))
 {
@@ -248,7 +248,7 @@ static int do_command_xlate(struct nft_handle *h, int argc, char *argv[],
 			    char **table, bool restore)
 {
 	int ret = 0;
-	struct nft_xt_cmd_parse p = {
+	struct xt_cmd_parse p = {
 		.table		= *table,
 		.restore	= restore,
 		.xlate		= true,

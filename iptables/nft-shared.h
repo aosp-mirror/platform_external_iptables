@@ -210,20 +210,8 @@ struct xtables_args {
 	unsigned long long pcnt_cnt, bcnt_cnt;
 };
 
-struct nft_xt_cmd_parse {
-	unsigned int			command;
-	unsigned int			rulenum;
-	char				*table;
-	const char			*chain;
-	const char			*newname;
-	const char			*policy;
-	bool				restore;
-	int				verbose;
-	bool				xlate;
-};
-
 void do_parse(struct nft_handle *h, int argc, char *argv[],
-	      struct nft_xt_cmd_parse *p, struct iptables_command_state *cs,
+	      struct xt_cmd_parse *p, struct iptables_command_state *cs,
 	      struct xtables_args *args);
 
 struct nftnl_chain_list;
