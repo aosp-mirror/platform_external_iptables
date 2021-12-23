@@ -158,10 +158,10 @@ static void check_empty_interface(struct xtables_args *args, const char *arg)
 	fprintf(stderr, "%s", msg);
 }
 
-static void check_inverse(struct nft_handle *h, const char option[],
+static void check_inverse(struct xtables_args *args, const char option[],
 			  bool *invert, int *optidx, int argc)
 {
-	switch (h->family) {
+	switch (args->family) {
 	case NFPROTO_ARP:
 		break;
 	default:
@@ -364,7 +364,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 			 * Option selection
 			 */
 		case 'p':
-			check_inverse(h, optarg, &invert, &optind, argc);
+			check_inverse(args, optarg, &invert, &optind, argc);
 			set_option(&cs->options, OPT_PROTOCOL,
 				   &args->invflags, invert);
 
@@ -387,14 +387,14 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 			break;
 
 		case 's':
-			check_inverse(h, optarg, &invert, &optind, argc);
+			check_inverse(args, optarg, &invert, &optind, argc);
 			set_option(&cs->options, OPT_SOURCE,
 				   &args->invflags, invert);
 			args->shostnetworkmask = argv[optind - 1];
 			break;
 
 		case 'd':
-			check_inverse(h, optarg, &invert, &optind, argc);
+			check_inverse(args, optarg, &invert, &optind, argc);
 			set_option(&cs->options, OPT_DESTINATION,
 				   &args->invflags, invert);
 			args->dhostnetworkmask = argv[optind - 1];
@@ -410,21 +410,21 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 #endif
 
 		case 2:/* src-mac */
-			check_inverse(h, optarg, &invert, &optind, argc);
+			check_inverse(args, optarg, &invert, &optind, argc);
 			set_option(&cs->options, OPT_S_MAC, &args->invflags,
 				   invert);
 			args->src_mac = argv[optind - 1];
 			break;
 
 		case 3:/* dst-mac */
-			check_inverse(h, optarg, &invert, &optind, argc);
+			check_inverse(args, optarg, &invert, &optind, argc);
 			set_option(&cs->options, OPT_D_MAC, &args->invflags,
 				   invert);
 			args->dst_mac = argv[optind - 1];
 			break;
 
 		case 'l':/* hardware length */
-			check_inverse(h, optarg, &invert, &optind, argc);
+			check_inverse(args, optarg, &invert, &optind, argc);
 			set_option(&cs->options, OPT_H_LENGTH, &args->invflags,
 				   invert);
 			args->arp_hlen = argv[optind - 1];
@@ -433,21 +433,21 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 		case 8: /* was never supported, not even in arptables-legacy */
 			xtables_error(PARAMETER_PROBLEM, "not supported");
 		case 4:/* opcode */
-			check_inverse(h, optarg, &invert, &optind, argc);
+			check_inverse(args, optarg, &invert, &optind, argc);
 			set_option(&cs->options, OPT_OPCODE, &args->invflags,
 				   invert);
 			args->arp_opcode = argv[optind - 1];
 			break;
 
 		case 5:/* h-type */
-			check_inverse(h, optarg, &invert, &optind, argc);
+			check_inverse(args, optarg, &invert, &optind, argc);
 			set_option(&cs->options, OPT_H_TYPE, &args->invflags,
 				   invert);
 			args->arp_htype = argv[optind - 1];
 			break;
 
 		case 6:/* proto-type */
-			check_inverse(h, optarg, &invert, &optind, argc);
+			check_inverse(args, optarg, &invert, &optind, argc);
 			set_option(&cs->options, OPT_P_TYPE, &args->invflags,
 				   invert);
 			args->arp_ptype = argv[optind - 1];
@@ -461,7 +461,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 
 		case 'i':
 			check_empty_interface(args, optarg);
-			check_inverse(h, optarg, &invert, &optind, argc);
+			check_inverse(args, optarg, &invert, &optind, argc);
 			set_option(&cs->options, OPT_VIANAMEIN,
 				   &args->invflags, invert);
 			xtables_parse_interface(argv[optind - 1],
@@ -471,7 +471,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 
 		case 'o':
 			check_empty_interface(args, optarg);
-			check_inverse(h, optarg, &invert, &optind, argc);
+			check_inverse(args, optarg, &invert, &optind, argc);
 			set_option(&cs->options, OPT_VIANAMEOUT,
 				   &args->invflags, invert);
 			xtables_parse_interface(argv[optind - 1],
