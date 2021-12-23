@@ -145,14 +145,14 @@ list_rules(struct nft_handle *h, const char *chain, const char *table,
 	return nft_cmd_rule_list_save(h, chain, table, rulenum, counters);
 }
 
-static void check_empty_interface(struct nft_handle *h, const char *arg)
+static void check_empty_interface(struct xtables_args *args, const char *arg)
 {
 	const char *msg = "Empty interface is likely to be undesired";
 
 	if (*arg != '\0')
 		return;
 
-	if (h->family != NFPROTO_ARP)
+	if (args->family != NFPROTO_ARP)
 		xtables_error(PARAMETER_PROBLEM, msg);
 
 	fprintf(stderr, "%s", msg);
@@ -460,7 +460,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 			break;
 
 		case 'i':
-			check_empty_interface(h, optarg);
+			check_empty_interface(args, optarg);
 			check_inverse(h, optarg, &invert, &optind, argc);
 			set_option(&cs->options, OPT_VIANAMEIN,
 				   &args->invflags, invert);
@@ -470,7 +470,7 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 			break;
 
 		case 'o':
-			check_empty_interface(h, optarg);
+			check_empty_interface(args, optarg);
 			check_inverse(h, optarg, &invert, &optind, argc);
 			set_option(&cs->options, OPT_VIANAMEOUT,
 				   &args->invflags, invert);
