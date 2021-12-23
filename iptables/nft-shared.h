@@ -174,10 +174,6 @@ void nft_ipv46_parse_target(struct xtables_target *t, void *data);
 bool compare_matches(struct xtables_rule_match *mt1, struct xtables_rule_match *mt2);
 bool compare_targets(struct xtables_target *tg1, struct xtables_target *tg2);
 
-void do_parse(int argc, char *argv[],
-	      struct xt_cmd_parse *p, struct iptables_command_state *cs,
-	      struct xtables_args *args);
-
 struct nftnl_chain_list;
 
 struct nft_xt_restore_cb {

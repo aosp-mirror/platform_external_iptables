@@ -251,6 +251,7 @@ static int do_command_xlate(struct nft_handle *h, int argc, char *argv[],
 	struct xt_cmd_parse p = {
 		.table		= *table,
 		.restore	= restore,
+		.line		= line,
 		.xlate		= true,
 		.ops		= &h->ops->cmd_parse,
 	};

@@ -311,9 +311,14 @@ struct xt_cmd_parse {
 	const char			*newname;
 	const char			*policy;
 	bool				restore;
+	int				line;
 	int				verbose;
 	bool				xlate;
 	struct xt_cmd_parse_ops		*ops;
 };
+
+void do_parse(int argc, char *argv[],
+	      struct xt_cmd_parse *p, struct iptables_command_state *cs,
+	      struct xtables_args *args);
 
 #endif /* IPTABLES_XSHARED_H */
