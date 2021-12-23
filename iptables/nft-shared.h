@@ -100,10 +100,7 @@ struct nft_family_ops {
 			   unsigned int num, unsigned int format);
 	void (*save_rule)(const void *data, unsigned int format);
 	void (*save_chain)(const struct nftnl_chain *c, const char *policy);
-	void (*proto_parse)(struct iptables_command_state *cs,
-			    struct xtables_args *args);
-	void (*post_parse)(int command, struct iptables_command_state *cs,
-			   struct xtables_args *args);
+	struct xt_cmd_parse_ops cmd_parse;
 	void (*parse_match)(struct xtables_match *m, void *data);
 	void (*parse_target)(struct xtables_target *t, void *data);
 	void (*init_cs)(struct iptables_command_state *cs);
@@ -177,40 +174,7 @@ void nft_ipv46_parse_target(struct xtables_target *t, void *data);
 bool compare_matches(struct xtables_rule_match *mt1, struct xtables_rule_match *mt2);
 bool compare_targets(struct xtables_target *tg1, struct xtables_target *tg2);
 
-struct addr_mask {
-	union {
-		struct in_addr	*v4;
-		struct in6_addr *v6;
-		void *ptr;
-	} addr;
-
-	unsigned int naddrs;
-
-	union {
-		struct in_addr	*v4;
-		struct in6_addr *v6;
-		void *ptr;
-	} mask;
-};
-
-struct xtables_args {
-	int		family;
-	uint16_t	proto;
-	uint8_t		flags;
-	uint16_t	invflags;
-	char		iniface[IFNAMSIZ], outiface[IFNAMSIZ];
-	unsigned char	iniface_mask[IFNAMSIZ], outiface_mask[IFNAMSIZ];
-	bool		goto_set;
-	const char	*shostnetworkmask, *dhostnetworkmask;
-	const char	*pcnt, *bcnt;
-	struct addr_mask s, d;
-	const char	*src_mac, *dst_mac;
-	const char	*arp_hlen, *arp_opcode;
-	const char	*arp_htype, *arp_ptype;
-	unsigned long long pcnt_cnt, bcnt_cnt;
-};
-
-void do_parse(struct nft_handle *h, int argc, char *argv[],
+void do_parse(int argc, char *argv[],
 	      struct xt_cmd_parse *p, struct iptables_command_state *cs,
 	      struct xtables_args *args);
 

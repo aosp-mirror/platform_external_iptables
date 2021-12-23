@@ -262,6 +262,47 @@ int print_match_save(const struct xt_entry_match *e, const void *ip);
 void xtables_printhelp(const struct xtables_rule_match *matches);
 void exit_tryhelp(int status, int line) __attribute__((noreturn));
 
+struct addr_mask {
+	union {
+		struct in_addr	*v4;
+		struct in6_addr *v6;
+		void *ptr;
+	} addr;
+
+	unsigned int naddrs;
+
+	union {
+		struct in_addr	*v4;
+		struct in6_addr *v6;
+		void *ptr;
+	} mask;
+};
+
+struct xtables_args {
+	int		family;
+	uint16_t	proto;
+	uint8_t		flags;
+	uint16_t	invflags;
+	char		iniface[IFNAMSIZ], outiface[IFNAMSIZ];
+	unsigned char	iniface_mask[IFNAMSIZ], outiface_mask[IFNAMSIZ];
+	bool		goto_set;
+	const char	*shostnetworkmask, *dhostnetworkmask;
+	const char	*pcnt, *bcnt;
+	struct addr_mask s, d;
+	const char	*src_mac, *dst_mac;
+	const char	*arp_hlen, *arp_opcode;
+	const char	*arp_htype, *arp_ptype;
+	unsigned long long pcnt_cnt, bcnt_cnt;
+};
+
+struct xt_cmd_parse_ops {
+	void	(*proto_parse)(struct iptables_command_state *cs,
+			       struct xtables_args *args);
+	void	(*post_parse)(int command,
+			      struct iptables_command_state *cs,
+			      struct xtables_args *args);
+};
+
 struct xt_cmd_parse {
 	unsigned int			command;
 	unsigned int			rulenum;
@@ -272,6 +313,7 @@ struct xt_cmd_parse {
 	bool				restore;
 	int				verbose;
 	bool				xlate;
+	struct xt_cmd_parse_ops		*ops;
 };
 
 #endif /* IPTABLES_XSHARED_H */

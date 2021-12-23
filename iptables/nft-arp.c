@@ -802,7 +802,9 @@ struct nft_family_ops nft_family_ops_arp = {
 	.print_rule		= nft_arp_print_rule,
 	.save_rule		= nft_arp_save_rule,
 	.save_chain		= nft_arp_save_chain,
-	.post_parse		= nft_arp_post_parse,
+	.cmd_parse		= {
+		.post_parse	= nft_arp_post_parse,
+	},
 	.rule_to_cs		= nft_rule_to_iptables_command_state,
 	.init_cs		= nft_arp_init_cs,
 	.clear_cs		= nft_clear_iptables_command_state,

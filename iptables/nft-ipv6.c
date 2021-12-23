@@ -495,8 +495,10 @@ struct nft_family_ops nft_family_ops_ipv6 = {
 	.print_rule		= nft_ipv6_print_rule,
 	.save_rule		= nft_ipv6_save_rule,
 	.save_chain		= nft_ipv46_save_chain,
-	.proto_parse		= nft_ipv6_proto_parse,
-	.post_parse		= nft_ipv6_post_parse,
+	.cmd_parse		= {
+		.proto_parse	= nft_ipv6_proto_parse,
+		.post_parse	= nft_ipv6_post_parse,
+	},
 	.parse_target		= nft_ipv46_parse_target,
 	.rule_to_cs		= nft_rule_to_iptables_command_state,
 	.clear_cs		= nft_clear_iptables_command_state,

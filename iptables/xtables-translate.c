@@ -252,6 +252,7 @@ static int do_command_xlate(struct nft_handle *h, int argc, char *argv[],
 		.table		= *table,
 		.restore	= restore,
 		.xlate		= true,
+		.ops		= &h->ops->cmd_parse,
 	};
 	struct iptables_command_state cs = {
 		.jumpto = "",
@@ -265,7 +266,7 @@ static int do_command_xlate(struct nft_handle *h, int argc, char *argv[],
 	if (h->ops->init_cs)
 		h->ops->init_cs(&cs);
 
-	do_parse(h, argc, argv, &p, &cs, &args);
+	do_parse(argc, argv, &p, &cs, &args);
 
 	cs.restore = restore;
 

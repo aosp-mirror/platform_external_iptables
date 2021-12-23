@@ -186,7 +186,7 @@ static void check_inverse(struct xtables_args *args, const char option[],
 	}
 }
 
-void do_parse(struct nft_handle *h, int argc, char *argv[],
+void do_parse(int argc, char *argv[],
 	      struct xt_cmd_parse *p, struct iptables_command_state *cs,
 	      struct xtables_args *args)
 {
@@ -382,8 +382,8 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 					   "rule would never match protocol");
 
 			/* This needs to happen here to parse extensions */
-			if (h->ops->proto_parse)
-				h->ops->proto_parse(cs, args);
+			if (p->ops->proto_parse)
+				p->ops->proto_parse(cs, args);
 			break;
 
 		case 's':
@@ -653,7 +653,8 @@ void do_parse(struct nft_handle *h, int argc, char *argv[],
 		xtables_error(PARAMETER_PROBLEM,
 			   "nothing appropriate following !");
 
-	h->ops->post_parse(p->command, cs, args);
+	if (p->ops->post_parse)
+		p->ops->post_parse(p->command, cs, args);
 
 	if (p->command == CMD_REPLACE &&
 	    (args->s.naddrs != 1 || args->d.naddrs != 1))
@@ -702,6 +703,7 @@ int do_commandx(struct nft_handle *h, int argc, char *argv[], char **table,
 	struct xt_cmd_parse p = {
 		.table		= *table,
 		.restore	= restore,
+		.ops		= &h->ops->cmd_parse,
 	};
 	struct iptables_command_state cs = {
 		.jumpto = "",
@@ -714,7 +716,7 @@ int do_commandx(struct nft_handle *h, int argc, char *argv[], char **table,
 	if (h->ops->init_cs)
 		h->ops->init_cs(&cs);
 
-	do_parse(h, argc, argv, &p, &cs, &args);
+	do_parse(argc, argv, &p, &cs, &args);
 
 	if (!nft_table_builtin_find(h, p.table))
 		xtables_error(VERSION_PROBLEM,
