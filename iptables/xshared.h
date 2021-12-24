@@ -323,4 +323,13 @@ void do_parse(int argc, char *argv[],
 	      struct xt_cmd_parse *p, struct iptables_command_state *cs,
 	      struct xtables_args *args);
 
+void ipv4_proto_parse(struct iptables_command_state *cs,
+		      struct xtables_args *args);
+void ipv6_proto_parse(struct iptables_command_state *cs,
+		      struct xtables_args *args);
+void ipv4_post_parse(int command, struct iptables_command_state *cs,
+		     struct xtables_args *args);
+void ipv6_post_parse(int command, struct iptables_command_state *cs,
+		     struct xtables_args *args);
+
 #endif /* IPTABLES_XSHARED_H */

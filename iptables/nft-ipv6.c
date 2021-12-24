@@ -236,78 +236,6 @@ static void nft_ipv6_save_rule(const void *data, unsigned int format)
 				&cs->fw6, format);
 }
 
-/* These are invalid numbers as upper layer protocol */
-static int is_exthdr(uint16_t proto)
-{
-	return (proto == IPPROTO_ROUTING ||
-		proto == IPPROTO_FRAGMENT ||
-		proto == IPPROTO_AH ||
-		proto == IPPROTO_DSTOPTS);
-}
-
-static void nft_ipv6_proto_parse(struct iptables_command_state *cs,
-				 struct xtables_args *args)
-{
-	cs->fw6.ipv6.proto = args->proto;
-	cs->fw6.ipv6.invflags = args->invflags;
-
-	if (is_exthdr(cs->fw6.ipv6.proto)
-	    && (cs->fw6.ipv6.invflags & XT_INV_PROTO) == 0)
-		fprintf(stderr,
-			"Warning: never matched protocol: %s. "
-			"use extension match instead.\n",
-			cs->protocol);
-}
-
-static void nft_ipv6_post_parse(int command, struct iptables_command_state *cs,
-				struct xtables_args *args)
-{
-	cs->fw6.ipv6.flags = args->flags;
-	/* We already set invflags in proto_parse, but we need to refresh it
-	 * to include new parsed options.
-	 */
-	cs->fw6.ipv6.invflags = args->invflags;
-
-	memcpy(cs->fw6.ipv6.iniface, args->iniface, IFNAMSIZ);
-	memcpy(cs->fw6.ipv6.iniface_mask,
-	       args->iniface_mask, IFNAMSIZ*sizeof(unsigned char));
-
-	memcpy(cs->fw6.ipv6.outiface, args->outiface, IFNAMSIZ);
-	memcpy(cs->fw6.ipv6.outiface_mask,
-	       args->outiface_mask, IFNAMSIZ*sizeof(unsigned char));
-
-	if (args->goto_set)
-		cs->fw6.ipv6.flags |= IP6T_F_GOTO;
-
-	cs->fw6.counters.pcnt = args->pcnt_cnt;
-	cs->fw6.counters.bcnt = args->bcnt_cnt;
-
-	if (command & (CMD_REPLACE | CMD_INSERT |
-			CMD_DELETE | CMD_APPEND | CMD_CHECK)) {
-		if (!(cs->options & OPT_DESTINATION))
-			args->dhostnetworkmask = "::0/0";
-		if (!(cs->options & OPT_SOURCE))
-			args->shostnetworkmask = "::0/0";
-	}
-
-	if (args->shostnetworkmask)
-		xtables_ip6parse_multiple(args->shostnetworkmask,
-					  &args->s.addr.v6,
-					  &args->s.mask.v6,
-					  &args->s.naddrs);
-	if (args->dhostnetworkmask)
-		xtables_ip6parse_multiple(args->dhostnetworkmask,
-					  &args->d.addr.v6,
-					  &args->d.mask.v6,
-					  &args->d.naddrs);
-
-	if ((args->s.naddrs > 1 || args->d.naddrs > 1) &&
-	    (cs->fw6.ipv6.invflags & (IP6T_INV_SRCIP | IP6T_INV_DSTIP)))
-		xtables_error(PARAMETER_PROBLEM,
-			      "! not allowed with multiple"
-			      " source or destination IP addresses");
-}
-
 static void xlate_ipv6_addr(const char *selector, const struct in6_addr *addr,
 			    const struct in6_addr *mask,
 			    int invert, struct xt_xlate *xl)
@@ -496,8 +424,8 @@ struct nft_family_ops nft_family_ops_ipv6 = {
 	.save_rule		= nft_ipv6_save_rule,
 	.save_chain		= nft_ipv46_save_chain,
 	.cmd_parse		= {
-		.proto_parse	= nft_ipv6_proto_parse,
-		.post_parse	= nft_ipv6_post_parse,
+		.proto_parse	= ipv6_proto_parse,
+		.post_parse	= ipv6_post_parse,
 	},
 	.parse_target		= nft_ipv46_parse_target,
 	.rule_to_cs		= nft_rule_to_iptables_command_state,
