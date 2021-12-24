@@ -1311,11 +1311,9 @@ void do_parse(int argc, char *argv[],
 	struct xtables_match *m;
 	struct xtables_rule_match *matchp;
 	bool wait_interval_set = false;
-	struct timeval wait_interval;
 	struct xtables_target *t;
 	bool table_set = false;
 	bool invert = false;
-	int wait = 0;
 
 	/* re-set optind to 0 in case do_command4 gets called
 	 * a second time */
@@ -1658,7 +1656,7 @@ void do_parse(int argc, char *argv[],
 					      "iptables-restore");
 			}
 
-			wait = parse_wait_time(argc, argv);
+			args->wait = parse_wait_time(argc, argv);
 			break;
 
 		case 'W':
@@ -1668,7 +1666,7 @@ void do_parse(int argc, char *argv[],
 					      "iptables-restore");
 			}
 
-			parse_wait_interval(argc, argv, &wait_interval);
+			parse_wait_interval(argc, argv, &args->wait_interval);
 			wait_interval_set = true;
 			break;
 
@@ -1753,7 +1751,7 @@ void do_parse(int argc, char *argv[],
 			"\nThe \"nat\" table is not intended for filtering, "
 			"the use of DROP is therefore inhibited.\n\n");
 
-	if (!wait && wait_interval_set)
+	if (!args->wait && wait_interval_set)
 		xtables_error(PARAMETER_PROBLEM,
 			      "--wait-interval only makes sense with --wait\n");
 

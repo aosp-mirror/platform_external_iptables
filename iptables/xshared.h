@@ -293,6 +293,8 @@ struct xtables_args {
 	const char	*arp_hlen, *arp_opcode;
 	const char	*arp_htype, *arp_ptype;
 	unsigned long long pcnt_cnt, bcnt_cnt;
+	int		wait;
+	struct timeval	wait_interval;
 };
 
 struct xt_cmd_parse_ops {
