@@ -294,7 +294,7 @@ print_zero:
 					      "Multiple commands are not allowed");
 			if (exec_style == EXEC_STYLE_DAEMON)
 				xtables_error(PARAMETER_PROBLEM,
-					      "%s %s\n", prog_name, prog_vers);
+					      "%s %s", prog_name, prog_vers);
 			printf("%s %s\n", prog_name, prog_vers);
 			exit(0);
 		case 'h':

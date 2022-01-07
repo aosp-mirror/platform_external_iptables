@@ -68,12 +68,12 @@ parse_nft_among_pair(char *buf, struct nft_among_pair *pair, bool have_ip)
 
 		if (!inet_pton(AF_INET, sep + 1, &pair->in))
 			xtables_error(PARAMETER_PROBLEM,
-				      "Invalid IP address '%s'\n", sep + 1);
+				      "Invalid IP address '%s'", sep + 1);
 	}
 	ether = ether_aton(buf);
 	if (!ether)
 		xtables_error(PARAMETER_PROBLEM,
-			      "Invalid MAC address '%s'\n", buf);
+			      "Invalid MAC address '%s'", buf);
 	memcpy(&pair->ether, ether, sizeof(*ether));
 }
 

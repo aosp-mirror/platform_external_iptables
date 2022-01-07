@@ -883,7 +883,7 @@ print_zero:
 		case 't': /* Table */
 			if (restore && table_set)
 				xtables_error(PARAMETER_PROBLEM,
-					      "The -t option cannot be used in %s.\n",
+					      "The -t option cannot be used in %s.",
 					      xt_params->program_name);
 			else if (table_set)
 				xtables_error(PARAMETER_PROBLEM,

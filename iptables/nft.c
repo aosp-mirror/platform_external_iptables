@@ -3857,6 +3857,6 @@ void nft_assert_table_compatible(struct nft_handle *h,
 		chain = "";
 	}
 	xtables_error(OTHER_PROBLEM,
-		      "%s%s%stable `%s' is incompatible, use 'nft' tool.\n",
+		      "%s%s%stable `%s' is incompatible, use 'nft' tool.",
 		      pfx, chain, sfx, table);
 }

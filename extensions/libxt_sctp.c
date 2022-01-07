@@ -144,10 +144,8 @@ save_chunk_flag_info(struct xt_sctp_flag_info *flag_info,
 	}
 	
 	if (*flag_count == XT_NUM_SCTP_FLAGS) {
-		xtables_error (PARAMETER_PROBLEM,
-			"Number of chunk types with flags exceeds currently allowed limit."
-			"Increasing this limit involves changing IPT_NUM_SCTP_FLAGS and"
-			"recompiling both the kernel space and user space modules\n");
+		xtables_error(PARAMETER_PROBLEM,
+			      "Number of chunk types with flags exceeds currently allowed limit. Increasing this limit involves changing IPT_NUM_SCTP_FLAGS and recompiling both the kernel space and user space modules");
 	}
 
 	flag_info[*flag_count].chunktype = chunktype;
@@ -219,7 +217,8 @@ parse_sctp_chunk(struct xt_sctp_info *einfo,
 						isupper(chunk_flags[j]));
 				} else {
 					xtables_error(PARAMETER_PROBLEM,
-						"Invalid flags for chunk type %d\n", i);
+						      "Invalid flags for chunk type %d",
+						      i);
 				}
 			}
 		}

@@ -356,12 +356,12 @@ static bool parse_bytes(const char *rate, void *val, struct hashlimit_mt_udata *
 	tmp = (uint64_t) r * factor;
 	if (tmp > max)
 		xtables_error(PARAMETER_PROBLEM,
-			"Rate value too large \"%"PRIu64"\" (max %"PRIu64")\n",
-					tmp, max);
+			      "Rate value too large \"%"PRIu64"\" (max %"PRIu64")",
+			      tmp, max);
 
 	tmp = bytes_to_cost(tmp);
 	if (tmp == 0)
-		xtables_error(PARAMETER_PROBLEM, "Rate too high \"%s\"\n", rate);
+		xtables_error(PARAMETER_PROBLEM, "Rate too high \"%s\"", rate);
 
 	ud->mult = XT_HASHLIMIT_BYTE_EXPIRE;
 
@@ -407,7 +407,7 @@ int parse_rate(const char *rate, void *val, struct hashlimit_mt_udata *ud, int r
 		 * The rate maps to infinity. (1/day is the minimum they can
 		 * specify, so we are ok at that end).
 		 */
-		xtables_error(PARAMETER_PROBLEM, "Rate too fast \"%s\"\n", rate);
+		xtables_error(PARAMETER_PROBLEM, "Rate too fast \"%s\"", rate);
 
 	if(revision == 1)
 		*((uint32_t*)val) = tmp;

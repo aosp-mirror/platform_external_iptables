@@ -761,8 +761,8 @@ int do_command4(int argc, char *argv[], char **table,
 #ifdef IPT_F_GOTO
 			if (cs.fw.ip.flags & IPT_F_GOTO)
 				xtables_error(PARAMETER_PROBLEM,
-					   "goto '%s' is not a chain\n",
-					   cs.jumpto);
+					      "goto '%s' is not a chain",
+					      cs.jumpto);
 #endif
 			xtables_find_target(cs.jumpto, XTF_LOAD_MUST_SUCCEED);
 		} else {

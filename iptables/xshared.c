@@ -400,15 +400,15 @@ bool tokenize_rule_counters(char **bufferp, char **pcntp, char **bcntp, int line
 
 	ptr = strchr(buffer, ']');
 	if (!ptr)
-		xtables_error(PARAMETER_PROBLEM, "Bad line %u: need ]\n", line);
+		xtables_error(PARAMETER_PROBLEM, "Bad line %u: need ]", line);
 
 	pcnt = strtok(buffer+1, ":");
 	if (!pcnt)
-		xtables_error(PARAMETER_PROBLEM, "Bad line %u: need :\n", line);
+		xtables_error(PARAMETER_PROBLEM, "Bad line %u: need :", line);
 
 	bcnt = strtok(NULL, "]");
 	if (!bcnt)
-		xtables_error(PARAMETER_PROBLEM, "Bad line %u: need ]\n", line);
+		xtables_error(PARAMETER_PROBLEM, "Bad line %u: need ]", line);
 
 	*pcntp = pcnt;
 	*bcntp = bcnt;
@@ -433,10 +433,10 @@ void add_argv(struct argv_store *store, const char *what, int quoted)
 
 	if (store->argc + 1 >= MAX_ARGC)
 		xtables_error(PARAMETER_PROBLEM,
-			      "Parser cannot handle more arguments\n");
+			      "Parser cannot handle more arguments");
 	if (!what)
 		xtables_error(PARAMETER_PROBLEM,
-			      "Trying to store NULL argument\n");
+			      "Trying to store NULL argument");
 
 	store->argv[store->argc] = xtables_strdup(what);
 	store->argvattr[store->argc] = quoted;
@@ -900,8 +900,7 @@ static char cmd2char(int option)
 		;
 	if (i >= ARRAY_SIZE(cmdflags))
 		xtables_error(OTHER_PROBLEM,
-			      "cmd2char(): Invalid command number %u.\n",
-			      1 << i);
+			      "cmd2char(): Invalid command number %u.", 1 << i);
 	return cmdflags[i];
 }
 
@@ -911,8 +910,8 @@ static void add_command(unsigned int *cmd, const int newcmd,
 	if (invert)
 		xtables_error(PARAMETER_PROBLEM, "unexpected '!' flag");
 	if (*cmd & (~othercmds))
-		xtables_error(PARAMETER_PROBLEM, "Cannot use -%c with -%c\n",
-			   cmd2char(newcmd), cmd2char(*cmd & (~othercmds)));
+		xtables_error(PARAMETER_PROBLEM, "Cannot use -%c with -%c",
+			      cmd2char(newcmd), cmd2char(*cmd & (~othercmds)));
 	*cmd |= newcmd;
 }
 
@@ -979,9 +978,8 @@ static void generic_opt_check(int command, int options)
 			if (!(options & (1<<i))) {
 				if (commands_v_options[j][i] == '+')
 					xtables_error(PARAMETER_PROBLEM,
-						   "You need to supply the `-%c' "
-						   "option for this command\n",
-						   optflags[i]);
+						      "You need to supply the `-%c' option for this command",
+						      optflags[i]);
 			} else {
 				if (commands_v_options[j][i] != 'x')
 					legal = 1;
@@ -991,8 +989,8 @@ static void generic_opt_check(int command, int options)
 		}
 		if (legal == -1)
 			xtables_error(PARAMETER_PROBLEM,
-				   "Illegal option `-%c' with this command\n",
-				   optflags[i]);
+				      "Illegal option `-%c' with this command",
+				      optflags[i]);
 	}
 }
 
@@ -1060,12 +1058,12 @@ void assert_valid_chain_name(const char *chainname)
 
 	if (*chainname == '-' || *chainname == '!')
 		xtables_error(PARAMETER_PROBLEM,
-			      "chain name not allowed to start with `%c'\n",
+			      "chain name not allowed to start with `%c'",
 			      *chainname);
 
 	if (xtables_find_target(chainname, XTF_TRY_LOAD))
 		xtables_error(PARAMETER_PROBLEM,
-			      "chain name may not clash with target name\n");
+			      "chain name may not clash with target name");
 
 	for (ptr = chainname; *ptr; ptr++)
 		if (isspace(*ptr))

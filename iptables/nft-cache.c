@@ -105,7 +105,8 @@ static void mnl_genid_get(struct nft_handle *h, uint32_t *genid)
 		return;
 
 	xtables_error(RESOURCE_PROBLEM,
-		      "Could not fetch rule set generation id: %s\n", nft_strerror(errno));
+		      "Could not fetch rule set generation id: %s",
+		      nft_strerror(errno));
 }
 
 static int nftnl_table_list_cb(const struct nlmsghdr *nlh, void *data)
