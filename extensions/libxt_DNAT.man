@@ -18,12 +18,6 @@ if the rule also specifies one of the following protocols:
 If no port range is specified, then the destination port will never be
 modified. If no IP address is specified then only the destination port
 will be modified.
-In Kernels up to 2.6.10 you can add several \-\-to\-destination options. For
-those kernels, if you specify more than one destination address, either via an
-address range or multiple \-\-to\-destination options, a simple round-robin (one
-after another in cycle) load balancing takes place between these addresses.
-Later Kernels (>= 2.6.11-rc1) don't have the ability to NAT to multiple ranges
-anymore.
 .TP
 \fB\-\-random\fP
 If option
