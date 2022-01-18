@@ -3312,6 +3312,11 @@ int nft_compatible_revision(const char *name, uint8_t rev, int opt)
 err:
 	mnl_socket_close(nl);
 
+	/* pretend revision 0 is valid if not permitted to check -
+	 * this is required for printing extension help texts as user */
+	if (ret < 0 && errno == EPERM && rev == 0)
+		return 1;
+
 	return ret < 0 ? 0 : 1;
 }
 

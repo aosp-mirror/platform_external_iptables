@@ -1473,8 +1473,7 @@ void do_parse(int argc, char *argv[],
 					XTF_TRY_LOAD, &cs->matches);
 
 			xt_params->print_help(cs->matches);
-			p->command = CMD_NONE;
-			return;
+			exit(0);
 
 			/*
 			 * Option selection
