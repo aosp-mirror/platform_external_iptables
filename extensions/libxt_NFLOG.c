@@ -74,7 +74,7 @@ static void NFLOG_check(struct xt_fcheck_call *cb)
 
 	if (cb->xflags & F_RANGE)
 		fprintf(stderr, "warn: --nflog-range has never worked and is no"
-			" longer supported, please use --nflog-size insted\n");
+			" longer supported, please use --nflog-size instead\n");
 
 	if (cb->xflags & F_SIZE)
 		info->flags |= XT_NFLOG_F_COPY_LEN;
