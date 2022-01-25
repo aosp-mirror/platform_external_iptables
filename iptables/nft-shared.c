@@ -751,6 +751,20 @@ static void nft_parse_th_port_range(struct nft_xt_ctx *ctx,
 	}
 }
 
+static void nft_parse_tcp_flags(struct nft_xt_ctx *ctx,
+				struct iptables_command_state *cs,
+				uint8_t op, uint8_t flags, uint8_t mask)
+{
+	struct xt_tcp *tcp = nft_tcp_match(ctx, cs);
+
+	if (!tcp)
+		return;
+
+	if (op == NFT_CMP_NEQ)
+		tcp->invflags |= XT_TCP_INV_FLAGS;
+	tcp->flg_cmp = flags;
+	tcp->flg_mask = mask;
+}
 
 static void nft_parse_transport(struct nft_xt_ctx *ctx,
 				struct nftnl_expr *e, void *data)
@@ -797,6 +811,18 @@ static void nft_parse_transport(struct nft_xt_ctx *ctx,
 			return;
 		}
 		break;
+	case 13: /* th->flags */
+		if (len == 1 && proto == IPPROTO_TCP) {
+			uint8_t flags = nftnl_expr_get_u8(e, NFTNL_EXPR_CMP_DATA);
+			uint8_t mask = ~0;
+
+			if (ctx->flags & NFT_XT_CTX_BITWISE) {
+				memcpy(&mask, &ctx->bitwise.mask, sizeof(mask));
+				ctx->flags &= ~NFT_XT_CTX_BITWISE;
+			}
+			nft_parse_tcp_flags(ctx, cs, op, flags, mask);
+		}
+		return;
 	}
 }
 
