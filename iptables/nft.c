@@ -1346,6 +1346,36 @@ static int add_nft_udp(struct nftnl_rule *r, struct xt_entry_match *m)
 			      udp->dpts, udp->invflags & XT_UDP_INV_DSTPT);
 }
 
+static bool tcp_all_zero(const struct xt_tcp *t)
+{
+	static const struct xt_tcp zero = {
+		.spts[1] = 0xffff,
+		.dpts[1] = 0xffff,
+	};
+
+	return memcmp(t, &zero, sizeof(*t)) == 0;
+}
+
+static int add_nft_tcp(struct nftnl_rule *r, struct xt_entry_match *m)
+{
+	static const uint8_t supported = XT_TCP_INV_SRCPT | XT_TCP_INV_DSTPT;
+	struct xt_tcp *tcp = (void *)m->data;
+
+	if (tcp->invflags & ~supported || tcp->option ||
+	    tcp->flg_mask || tcp->flg_cmp ||
+	    tcp_all_zero(tcp)) {
+		struct nftnl_expr *expr = nftnl_expr_alloc("match");
+		int ret;
+
+		ret = __add_match(expr, m);
+		nftnl_rule_add_expr(r, expr);
+		return ret;
+	}
+
+	return add_nft_tcpudp(r, tcp->spts, tcp->invflags & XT_TCP_INV_SRCPT,
+			      tcp->dpts, tcp->invflags & XT_TCP_INV_DSTPT);
+}
+
 int add_match(struct nft_handle *h,
 	      struct nftnl_rule *r, struct xt_entry_match *m)
 {
@@ -1358,6 +1388,8 @@ int add_match(struct nft_handle *h,
 		return add_nft_among(h, r, m);
 	else if (!strcmp(m->u.user.name, "udp"))
 		return add_nft_udp(r, m);
+	else if (!strcmp(m->u.user.name, "tcp"))
+		return add_nft_tcp(r, m);
 
 	expr = nftnl_expr_alloc("match");
 	if (expr == NULL)
