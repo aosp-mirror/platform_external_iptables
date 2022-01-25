@@ -468,6 +468,170 @@ static void nft_parse_bitwise(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 	ctx->flags |= NFT_XT_CTX_BITWISE;
 }
 
+static struct xtables_match *
+nft_create_match(struct nft_xt_ctx *ctx,
+		 struct iptables_command_state *cs,
+		 const char *name)
+{
+	struct xtables_match *match;
+	struct xt_entry_match *m;
+	unsigned int size;
+
+	match = xtables_find_match(name, XTF_TRY_LOAD,
+				   &cs->matches);
+	if (!match)
+		return NULL;
+
+	size = XT_ALIGN(sizeof(struct xt_entry_match)) + match->size;
+	m = xtables_calloc(1, size);
+	m->u.match_size = size;
+	m->u.user.revision = match->revision;
+
+	strcpy(m->u.user.name, match->name);
+	match->m = m;
+
+	xs_init_match(match);
+
+	return match;
+}
+
+static struct xt_tcp *nft_tcp_match(struct nft_xt_ctx *ctx,
+			            struct iptables_command_state *cs)
+{
+	struct xt_tcp *tcp = ctx->tcpudp.tcp;
+	struct xtables_match *match;
+
+	if (!tcp) {
+		match = nft_create_match(ctx, cs, "tcp");
+		if (!match)
+			return NULL;
+
+		tcp = (void*)match->m->data;
+		ctx->tcpudp.tcp = tcp;
+	}
+
+	return tcp;
+}
+
+static void nft_parse_tcp(struct nft_xt_ctx *ctx,
+			  struct iptables_command_state *cs,
+			  int sport, int dport,
+			  uint8_t op)
+{
+	struct xt_tcp *tcp = nft_tcp_match(ctx, cs);
+
+	if (!tcp)
+		return;
+
+	if (sport >= 0) {
+		switch (op) {
+		case NFT_CMP_NEQ:
+			tcp->invflags |= XT_TCP_INV_SRCPT;
+			/* fallthrough */
+		case NFT_CMP_EQ:
+			tcp->spts[0] = sport;
+			tcp->spts[1] = sport;
+			break;
+		case NFT_CMP_LT:
+			tcp->spts[1] = sport > 1 ? sport - 1 : 1;
+			break;
+		case NFT_CMP_LTE:
+			tcp->spts[1] = sport;
+			break;
+		case NFT_CMP_GT:
+			tcp->spts[0] = sport < 0xffff ? sport + 1 : 0xffff;
+			break;
+		case NFT_CMP_GTE:
+			tcp->spts[0] = sport;
+			break;
+		}
+	}
+
+	if (dport >= 0) {
+		switch (op) {
+		case NFT_CMP_NEQ:
+			tcp->invflags |= XT_TCP_INV_DSTPT;
+			/* fallthrough */
+		case NFT_CMP_EQ:
+			tcp->dpts[0] = dport;
+			tcp->dpts[1] = dport;
+			break;
+		case NFT_CMP_LT:
+			tcp->dpts[1] = dport > 1 ? dport - 1 : 1;
+			break;
+		case NFT_CMP_LTE:
+			tcp->dpts[1] = dport;
+			break;
+		case NFT_CMP_GT:
+			tcp->dpts[0] = dport < 0xffff ? dport + 1 : 0xffff;
+			break;
+		case NFT_CMP_GTE:
+			tcp->dpts[0] = dport;
+			break;
+		}
+	}
+}
+
+static void nft_parse_th_port(struct nft_xt_ctx *ctx,
+			      struct iptables_command_state *cs,
+			      uint8_t proto,
+			      int sport, int dport, uint8_t op)
+{
+	switch (proto) {
+	case IPPROTO_TCP:
+		nft_parse_tcp(ctx, cs, sport, dport, op);
+		break;
+	}
+}
+
+static void nft_parse_transport(struct nft_xt_ctx *ctx,
+				   struct nftnl_expr *e, void *data)
+{
+	struct iptables_command_state *cs = data;
+	uint32_t sdport;
+	uint16_t port;
+	uint8_t proto, op;
+	unsigned int len;
+
+	switch (ctx->h->family) {
+	case NFPROTO_IPV4:
+		proto = ctx->cs->fw.ip.proto;
+		break;
+	case NFPROTO_IPV6:
+		proto = ctx->cs->fw6.ipv6.proto;
+		break;
+	default:
+		proto = 0;
+		break;
+	}
+
+	nftnl_expr_get(e, NFTNL_EXPR_CMP_DATA, &len);
+	op = nftnl_expr_get_u32(e, NFTNL_EXPR_CMP_OP);
+
+	switch(ctx->payload.offset) {
+	case 0: /* th->sport */
+		switch (len) {
+		case 2: /* load sport only */
+			port = ntohs(nftnl_expr_get_u16(e, NFTNL_EXPR_CMP_DATA));
+			nft_parse_th_port(ctx, cs, proto, port, -1, op);
+			return;
+		case 4: /* load both src and dst port */
+			sdport = ntohl(nftnl_expr_get_u32(e, NFTNL_EXPR_CMP_DATA));
+			nft_parse_th_port(ctx, cs, proto, sdport >> 16, sdport & 0xffff, op);
+			return;
+		}
+		break;
+	case 2: /* th->dport */
+		switch (len) {
+		case 2:
+			port = ntohs(nftnl_expr_get_u16(e, NFTNL_EXPR_CMP_DATA));
+			nft_parse_th_port(ctx, cs, proto, -1, port, op);
+			return;
+		}
+		break;
+	}
+}
+
 static void nft_parse_cmp(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 {
 	void *data = ctx->cs;
@@ -483,8 +647,18 @@ static void nft_parse_cmp(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 	}
 	/* bitwise context is interpreted from payload */
 	if (ctx->flags & NFT_XT_CTX_PAYLOAD) {
-		ctx->h->ops->parse_payload(ctx, e, data);
-		ctx->flags &= ~NFT_XT_CTX_PAYLOAD;
+		switch (ctx->payload.base) {
+		case NFT_PAYLOAD_LL_HEADER:
+			if (ctx->h->family == NFPROTO_BRIDGE)
+				ctx->h->ops->parse_payload(ctx, e, data);
+			break;
+		case NFT_PAYLOAD_NETWORK_HEADER:
+			ctx->h->ops->parse_payload(ctx, e, data);
+			break;
+		case NFT_PAYLOAD_TRANSPORT_HEADER:
+			nft_parse_transport(ctx, e, data);
+			break;
+		}
 	}
 }
 
