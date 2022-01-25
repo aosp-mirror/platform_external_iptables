@@ -56,6 +56,7 @@ struct nft_xt_ctx {
 	const char *table;
 	union {
 		struct xt_tcp *tcp;
+		struct xt_udp *udp;
 	} tcpudp;
 
 	uint32_t reg;

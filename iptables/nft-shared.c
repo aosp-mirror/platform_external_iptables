@@ -495,6 +495,24 @@ nft_create_match(struct nft_xt_ctx *ctx,
 	return match;
 }
 
+static struct xt_udp *nft_udp_match(struct nft_xt_ctx *ctx,
+			            struct iptables_command_state *cs)
+{
+	struct xt_udp *udp = ctx->tcpudp.udp;
+	struct xtables_match *match;
+
+	if (!udp) {
+		match = nft_create_match(ctx, cs, "udp");
+		if (!match)
+			return NULL;
+
+		udp = (void*)match->m->data;
+		ctx->tcpudp.udp = udp;
+	}
+
+	return udp;
+}
+
 static struct xt_tcp *nft_tcp_match(struct nft_xt_ctx *ctx,
 			            struct iptables_command_state *cs)
 {
@@ -513,11 +531,47 @@ static struct xt_tcp *nft_tcp_match(struct nft_xt_ctx *ctx,
 	return tcp;
 }
 
+static void nft_parse_udp_range(struct nft_xt_ctx *ctx,
+			        struct iptables_command_state *cs,
+			        int sport_from, int sport_to,
+			        int dport_from, int dport_to,
+				uint8_t op)
+{
+	struct xt_udp *udp = nft_udp_match(ctx, cs);
+
+	if (!udp)
+		return;
+
+	if (sport_from >= 0) {
+		switch (op) {
+		case NFT_RANGE_NEQ:
+			udp->invflags |= XT_UDP_INV_SRCPT;
+			/* fallthrough */
+		case NFT_RANGE_EQ:
+			udp->spts[0] = sport_from;
+			udp->spts[1] = sport_to;
+			break;
+		}
+	}
+
+	if (dport_to >= 0) {
+		switch (op) {
+		case NFT_CMP_NEQ:
+			udp->invflags |= XT_UDP_INV_DSTPT;
+			/* fallthrough */
+		case NFT_CMP_EQ:
+			udp->dpts[0] = dport_from;
+			udp->dpts[1] = dport_to;
+			break;
+		}
+	}
+}
+
 static void nft_parse_tcp_range(struct nft_xt_ctx *ctx,
-			           struct iptables_command_state *cs,
-			           int sport_from, int sport_to,
-			           int dport_from, int dport_to,
-				   uint8_t op)
+			        struct iptables_command_state *cs,
+			        int sport_from, int sport_to,
+			        int dport_from, int dport_to,
+				uint8_t op)
 {
 	struct xt_tcp *tcp = nft_tcp_match(ctx, cs);
 
@@ -549,6 +603,63 @@ static void nft_parse_tcp_range(struct nft_xt_ctx *ctx,
 	}
 }
 
+static void nft_parse_udp(struct nft_xt_ctx *ctx,
+			  struct iptables_command_state *cs,
+			  int sport, int dport,
+			  uint8_t op)
+{
+	struct xt_udp *udp = nft_udp_match(ctx, cs);
+
+	if (!udp)
+		return;
+
+	if (sport >= 0) {
+		switch (op) {
+		case NFT_CMP_NEQ:
+			udp->invflags |= XT_UDP_INV_SRCPT;
+			/* fallthrough */
+		case NFT_CMP_EQ:
+			udp->spts[0] = sport;
+			udp->spts[1] = sport;
+			break;
+		case NFT_CMP_LT:
+			udp->spts[1] = sport > 1 ? sport - 1 : 1;
+			break;
+		case NFT_CMP_LTE:
+			udp->spts[1] = sport;
+			break;
+		case NFT_CMP_GT:
+			udp->spts[0] = sport < 0xffff ? sport + 1 : 0xffff;
+			break;
+		case NFT_CMP_GTE:
+			udp->spts[0] = sport;
+			break;
+		}
+	}
+	if (dport >= 0) {
+		switch (op) {
+		case NFT_CMP_NEQ:
+			udp->invflags |= XT_UDP_INV_DSTPT;
+			/* fallthrough */
+		case NFT_CMP_EQ:
+			udp->dpts[0] = dport;
+			udp->dpts[1] = dport;
+			break;
+		case NFT_CMP_LT:
+			udp->dpts[1] = dport > 1 ? dport - 1 : 1;
+			break;
+		case NFT_CMP_LTE:
+			udp->dpts[1] = dport;
+			break;
+		case NFT_CMP_GT:
+			udp->dpts[0] = dport < 0xffff ? dport + 1 : 0xffff;
+			break;
+		case NFT_CMP_GTE:
+			udp->dpts[0] = dport;
+			break;
+		}
+	}
+}
 
 static void nft_parse_tcp(struct nft_xt_ctx *ctx,
 			  struct iptables_command_state *cs,
@@ -615,6 +726,9 @@ static void nft_parse_th_port(struct nft_xt_ctx *ctx,
 			      int sport, int dport, uint8_t op)
 {
 	switch (proto) {
+	case IPPROTO_UDP:
+		nft_parse_udp(ctx, cs, sport, dport, op);
+		break;
 	case IPPROTO_TCP:
 		nft_parse_tcp(ctx, cs, sport, dport, op);
 		break;
@@ -628,6 +742,9 @@ static void nft_parse_th_port_range(struct nft_xt_ctx *ctx,
 				    int dport_from, int dport_to, uint8_t op)
 {
 	switch (proto) {
+	case IPPROTO_UDP:
+		nft_parse_udp_range(ctx, cs, sport_from, sport_to, dport_from, dport_to, op);
+		break;
 	case IPPROTO_TCP:
 		nft_parse_tcp_range(ctx, cs, sport_from, sport_to, dport_from, dport_to, op);
 		break;
