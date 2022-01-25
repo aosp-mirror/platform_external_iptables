@@ -45,6 +45,7 @@ enum {
 	NFT_XT_CTX_BITWISE	= (1 << 2),
 	NFT_XT_CTX_IMMEDIATE	= (1 << 3),
 	NFT_XT_CTX_PREV_PAYLOAD	= (1 << 4),
+	NFT_XT_CTX_RANGE	= (1 << 5),
 };
 
 struct nft_xt_ctx {

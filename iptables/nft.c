@@ -3529,6 +3529,7 @@ static const char *supported_exprs[] = {
 	"counter",
 	"immediate",
 	"lookup",
+	"range",
 };
 
 
