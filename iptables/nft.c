@@ -1226,6 +1226,126 @@ static int add_nft_among(struct nft_handle *h,
 	return 0;
 }
 
+static int expr_gen_range_cmp16(struct nftnl_rule *r,
+				uint16_t lo,
+				uint16_t hi,
+				bool invert)
+{
+	struct nftnl_expr *e;
+
+	if (lo == hi) {
+		add_cmp_u16(r, htons(lo), invert ? NFT_CMP_NEQ : NFT_CMP_EQ);
+		return 0;
+	}
+
+	if (lo == 0 && hi < 0xffff) {
+		add_cmp_u16(r, htons(hi) , invert ? NFT_CMP_GT : NFT_CMP_LTE);
+		return 0;
+	}
+
+	e = nftnl_expr_alloc("range");
+	if (!e)
+		return -ENOMEM;
+
+	nftnl_expr_set_u32(e, NFTNL_EXPR_RANGE_SREG, NFT_REG_1);
+	nftnl_expr_set_u32(e, NFTNL_EXPR_RANGE_OP, invert ? NFT_RANGE_NEQ : NFT_RANGE_EQ);
+
+	lo = htons(lo);
+	nftnl_expr_set(e, NFTNL_EXPR_RANGE_FROM_DATA, &lo, sizeof(lo));
+	hi = htons(hi);
+	nftnl_expr_set(e, NFTNL_EXPR_RANGE_TO_DATA, &hi, sizeof(hi));
+
+	nftnl_rule_add_expr(r, e);
+	return 0;
+}
+
+static int add_nft_tcpudp(struct nftnl_rule *r,
+			  uint16_t src[2],
+			  bool invert_src,
+			  uint16_t dst[2],
+			  bool invert_dst)
+{
+	struct nftnl_expr *expr;
+	uint8_t op = NFT_CMP_EQ;
+	int ret;
+
+	if (src[0] && src[0] == src[1] &&
+	    dst[0] && dst[0] == dst[1] &&
+	    invert_src == invert_dst) {
+		uint32_t combined = dst[0] | (src[0] << 16);
+
+		if (invert_src)
+			op = NFT_CMP_NEQ;
+
+		expr = gen_payload(NFT_PAYLOAD_TRANSPORT_HEADER, 0, 4,
+				   NFT_REG_1);
+		if (!expr)
+			return -ENOMEM;
+
+		nftnl_rule_add_expr(r, expr);
+		add_cmp_u32(r, htonl(combined), op);
+		return 0;
+	}
+
+	if (src[0] || src[1] < 0xffff) {
+		expr = gen_payload(NFT_PAYLOAD_TRANSPORT_HEADER,
+				   0, 2, NFT_REG_1);
+		if (!expr)
+			return -ENOMEM;
+
+		nftnl_rule_add_expr(r, expr);
+		ret = expr_gen_range_cmp16(r, src[0], src[1], invert_src);
+		if (ret)
+			return ret;
+	}
+
+	if (dst[0] || dst[1] < 0xffff) {
+		expr = gen_payload(NFT_PAYLOAD_TRANSPORT_HEADER,
+				   2, 2, NFT_REG_1);
+		if (!expr)
+			return -ENOMEM;
+
+		nftnl_rule_add_expr(r, expr);
+		ret = expr_gen_range_cmp16(r, dst[0], dst[1], invert_dst);
+		if (ret)
+			return ret;
+	}
+
+	return 0;
+}
+
+/* without this, "iptables -A INPUT -m udp" is
+ * turned into "iptables -A INPUT", which isn't
+ * compatible with iptables-legacy behaviour.
+ */
+static bool udp_all_zero(const struct xt_udp *u)
+{
+	static const struct xt_udp zero = {
+		.spts[1] = 0xffff,
+		.dpts[1] = 0xffff,
+	};
+
+	return memcmp(u, &zero, sizeof(*u)) == 0;
+}
+
+static int add_nft_udp(struct nftnl_rule *r, struct xt_entry_match *m)
+{
+	struct xt_udp *udp = (void *)m->data;
+
+	if (udp->invflags > XT_UDP_INV_MASK ||
+	    udp_all_zero(udp)) {
+		struct nftnl_expr *expr = nftnl_expr_alloc("match");
+		int ret;
+
+		ret = __add_match(expr, m);
+		nftnl_rule_add_expr(r, expr);
+		return ret;
+	}
+
+	return add_nft_tcpudp(r, udp->spts, udp->invflags & XT_UDP_INV_SRCPT,
+			      udp->dpts, udp->invflags & XT_UDP_INV_DSTPT);
+}
+
 int add_match(struct nft_handle *h,
 	      struct nftnl_rule *r, struct xt_entry_match *m)
 {
@@ -1236,6 +1356,8 @@ int add_match(struct nft_handle *h,
 		return add_nft_limit(r, m);
 	else if (!strcmp(m->u.user.name, "among"))
 		return add_nft_among(h, r, m);
+	else if (!strcmp(m->u.user.name, "udp"))
+		return add_nft_udp(r, m);
 
 	expr = nftnl_expr_alloc("match");
 	if (expr == NULL)
