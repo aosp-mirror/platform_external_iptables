@@ -1346,6 +1346,26 @@ static int add_nft_udp(struct nftnl_rule *r, struct xt_entry_match *m)
 			      udp->dpts, udp->invflags & XT_UDP_INV_DSTPT);
 }
 
+static int add_nft_tcpflags(struct nftnl_rule *r,
+			    uint8_t cmp, uint8_t mask,
+			    bool invert)
+{
+	struct nftnl_expr *e;
+
+	e = gen_payload(NFT_PAYLOAD_TRANSPORT_HEADER,
+			13, 1, NFT_REG_1);
+
+	if (!e)
+		return -ENOMEM;
+
+	nftnl_rule_add_expr(r, e);
+
+	add_bitwise(r, &mask, 1);
+	add_cmp_u8(r, cmp, invert ? NFT_CMP_NEQ : NFT_CMP_EQ);
+
+	return 0;
+}
+
 static bool tcp_all_zero(const struct xt_tcp *t)
 {
 	static const struct xt_tcp zero = {
@@ -1358,11 +1378,10 @@ static bool tcp_all_zero(const struct xt_tcp *t)
 
 static int add_nft_tcp(struct nftnl_rule *r, struct xt_entry_match *m)
 {
-	static const uint8_t supported = XT_TCP_INV_SRCPT | XT_TCP_INV_DSTPT;
+	static const uint8_t supported = XT_TCP_INV_SRCPT | XT_TCP_INV_DSTPT | XT_TCP_INV_FLAGS;
 	struct xt_tcp *tcp = (void *)m->data;
 
 	if (tcp->invflags & ~supported || tcp->option ||
-	    tcp->flg_mask || tcp->flg_cmp ||
 	    tcp_all_zero(tcp)) {
 		struct nftnl_expr *expr = nftnl_expr_alloc("match");
 		int ret;
@@ -1370,6 +1389,14 @@ static int add_nft_tcp(struct nftnl_rule *r, struct xt_entry_match *m)
 		ret = __add_match(expr, m);
 		nftnl_rule_add_expr(r, expr);
 		return ret;
+	}
+
+	if (tcp->flg_mask) {
+		int ret = add_nft_tcpflags(r, tcp->flg_cmp, tcp->flg_mask,
+					   tcp->invflags & XT_TCP_INV_FLAGS);
+
+		if (ret < 0)
+			return ret;
 	}
 
 	return add_nft_tcpudp(r, tcp->spts, tcp->invflags & XT_TCP_INV_SRCPT,
