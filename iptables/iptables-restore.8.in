@@ -54,6 +54,7 @@ Only parse and construct the ruleset, but do not commit it.
 .TP
 \fB\-v\fP, \fB\-\-verbose\fP
 Print additional debug info during ruleset processing.
+Specify multiple times to increase debug level.
 .TP
 \fB\-V\fP, \fB\-\-version\fP
 Print the program version number.

@@ -206,10 +206,14 @@ static void xtables_restore_parse_line(struct nft_handle *h,
 		char *pcnt = NULL;
 		char *bcnt = NULL;
 		char *parsestart = buffer;
+		int i;
 
 		add_argv(&state->av_store, xt_params->program_name, 0);
 		add_argv(&state->av_store, "-t", 0);
 		add_argv(&state->av_store, state->curtable->name, 0);
+
+		for (i = 0; !h->noflush && i < verbose; i++)
+			add_argv(&state->av_store, "-v", 0);
 
 		tokenize_rule_counters(&parsestart, &pcnt, &bcnt, line);
 		if (counters && pcnt && bcnt) {
@@ -309,7 +313,7 @@ xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 				counters = 1;
 				break;
 			case 'v':
-				verbose = 1;
+				verbose++;
 				break;
 			case 'V':
 				printf("%s v%s\n", prog_name, prog_vers);

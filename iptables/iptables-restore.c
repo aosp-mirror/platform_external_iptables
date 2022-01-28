@@ -114,7 +114,7 @@ ip46tables_restore_main(const struct iptables_restore_cb *cb,
 				counters = 1;
 				break;
 			case 'v':
-				verbose = 1;
+				verbose++;
 				break;
 			case 'V':
 				printf("%s v%s\n",
@@ -317,10 +317,14 @@ ip46tables_restore_main(const struct iptables_restore_cb *cb,
 			char *pcnt = NULL;
 			char *bcnt = NULL;
 			char *parsestart = buffer;
+			int i;
 
 			add_argv(&av_store, argv[0], 0);
 			add_argv(&av_store, "-t", 0);
 			add_argv(&av_store, curtable, 0);
+
+			for (i = 0; !noflush && i < verbose; i++)
+				add_argv(&av_store, "-v", 0);
 
 			tokenize_rule_counters(&parsestart, &pcnt, &bcnt, line);
 			if (counters && pcnt && bcnt) {
