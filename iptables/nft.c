@@ -926,15 +926,16 @@ void nft_fini(struct nft_handle *h)
 	mnl_socket_close(h->nl);
 }
 
-static void nft_chain_print_debug(struct nftnl_chain *c, struct nlmsghdr *nlh)
+static void nft_chain_print_debug(struct nft_handle *h,
+				  struct nftnl_chain *c, struct nlmsghdr *nlh)
 {
-#ifdef NLDEBUG
-	char tmp[1024];
-
-	nftnl_chain_snprintf(tmp, sizeof(tmp), c, 0, 0);
-	printf("DEBUG: chain: %s\n", tmp);
-	mnl_nlmsg_fprintf(stdout, nlh, nlh->nlmsg_len, sizeof(struct nfgenmsg));
-#endif
+	if (h->verbose > 1) {
+		nftnl_chain_fprintf(stdout, c, 0, 0);
+		fprintf(stdout, "\n");
+	}
+	if (h->verbose > 2)
+		mnl_nlmsg_fprintf(stdout, nlh, nlh->nlmsg_len,
+				  sizeof(struct nfgenmsg));
 }
 
 static struct nftnl_chain *nft_chain_new(struct nft_handle *h,
@@ -1567,15 +1568,16 @@ int add_log(struct nftnl_rule *r, struct iptables_command_state *cs)
 	return 0;
 }
 
-static void nft_rule_print_debug(struct nftnl_rule *r, struct nlmsghdr *nlh)
+static void nft_rule_print_debug(struct nft_handle *h,
+				 struct nftnl_rule *r, struct nlmsghdr *nlh)
 {
-#ifdef NLDEBUG
-	char tmp[1024];
-
-	nftnl_rule_snprintf(tmp, sizeof(tmp), r, 0, 0);
-	printf("DEBUG: rule: %s\n", tmp);
-	mnl_nlmsg_fprintf(stdout, nlh, nlh->nlmsg_len, sizeof(struct nfgenmsg));
-#endif
+	if (h->verbose > 1) {
+		nftnl_rule_fprintf(stdout, r, 0, 0);
+		fprintf(stdout, "\n");
+	}
+	if (h->verbose > 2)
+		mnl_nlmsg_fprintf(stdout, nlh, nlh->nlmsg_len,
+				  sizeof(struct nfgenmsg));
 }
 
 int add_counters(struct nftnl_rule *r, uint64_t packets, uint64_t bytes)
@@ -2879,7 +2881,7 @@ static void nft_compat_chain_batch_add(struct nft_handle *h, uint16_t type,
 	nlh = nftnl_chain_nlmsg_build_hdr(nftnl_batch_buffer(h->batch),
 					type, h->family, flags, seq);
 	nftnl_chain_nlmsg_build_payload(nlh, chain);
-	nft_chain_print_debug(chain, nlh);
+	nft_chain_print_debug(h, chain, nlh);
 }
 
 static void nft_compat_rule_batch_add(struct nft_handle *h, uint16_t type,
@@ -2891,7 +2893,7 @@ static void nft_compat_rule_batch_add(struct nft_handle *h, uint16_t type,
 	nlh = nftnl_rule_nlmsg_build_hdr(nftnl_batch_buffer(h->batch),
 				       type, h->family, flags, seq);
 	nftnl_rule_nlmsg_build_payload(nlh, rule);
-	nft_rule_print_debug(rule, nlh);
+	nft_rule_print_debug(h, rule, nlh);
 }
 
 static void batch_obj_del(struct nft_handle *h, struct obj_update *o)

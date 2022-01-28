@@ -163,6 +163,7 @@ int do_commandx(struct nft_handle *h, int argc, char *argv[], char **table,
 		h->ops->init_cs(&cs);
 
 	do_parse(argc, argv, &p, &cs, &args);
+	h->verbose = p.verbose;
 
 	if (!nft_table_builtin_find(h, p.table))
 		xtables_error(VERSION_PROBLEM,

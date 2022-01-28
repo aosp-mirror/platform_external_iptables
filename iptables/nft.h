@@ -109,6 +109,7 @@ struct nft_handle {
 	int8_t			config_done;
 	struct list_head	cmd_list;
 	bool			cache_init;
+	int			verbose;
 
 	/* meta data, for error reporting */
 	struct {

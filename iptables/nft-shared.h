@@ -13,7 +13,6 @@
 #include "xshared.h"
 
 #ifdef DEBUG
-#define NLDEBUG
 #define DEBUG_DEL
 #endif
 
