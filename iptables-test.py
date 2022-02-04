@@ -182,6 +182,28 @@ def execute_cmd(cmd, filename, lineno):
     return ret
 
 
+def variant_res(res, variant):
+    '''
+    Adjust expected result with given variant
+
+    If expected result is scoped to a variant, the other one yields a different
+    result. Therefore map @res to itself if given variant is current, invert it
+    otherwise.
+
+    :param res: expected result from test spec ("OK" or "FAIL")
+    :param variant: variant @res is scoped to by test spec ("NFT" or "LEGACY")
+    '''
+    variant_executable = {
+            "NFT": "xtables-nft-multi",
+            "LEGACY": "xtables-legacy-multi"
+    }
+    res_inverse = { "OK": "FAIL", "FAIL": "OK" }
+
+    if variant_executable[variant] == EXECUTABLE:
+        return res
+    return res_inverse[res]
+
+
 def run_test_file(filename, netns):
     '''
     Runs a test file
@@ -275,6 +297,9 @@ def run_test_file(filename, netns):
                 rule_save = chain + " " + item[1]
 
             res = item[2].rstrip()
+            if len(item) > 3:
+                res = variant_res(res, item[3].rstrip())
+
             ret = run_test(iptables, rule, rule_save,
                            res, filename, lineno + 1, netns)
 
