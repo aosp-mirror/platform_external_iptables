@@ -665,7 +665,7 @@ static int nft_table_builtin_add(struct nft_handle *h,
 }
 
 static struct nftnl_chain *
-nft_chain_builtin_alloc(const struct builtin_table *table,
+nft_chain_builtin_alloc(int family, const char *tname,
 			const struct builtin_chain *chain, int policy)
 {
 	struct nftnl_chain *c;
@@ -674,7 +674,8 @@ nft_chain_builtin_alloc(const struct builtin_table *table,
 	if (c == NULL)
 		return NULL;
 
-	nftnl_chain_set_str(c, NFTNL_CHAIN_TABLE, table->name);
+	nftnl_chain_set_u32(c, NFTNL_CHAIN_FAMILY, family);
+	nftnl_chain_set_str(c, NFTNL_CHAIN_TABLE, tname);
 	nftnl_chain_set_str(c, NFTNL_CHAIN_NAME, chain->name);
 	nftnl_chain_set_u32(c, NFTNL_CHAIN_HOOKNUM, chain->hook);
 	nftnl_chain_set_u32(c, NFTNL_CHAIN_PRIO, chain->prio);
@@ -693,7 +694,7 @@ static void nft_chain_builtin_add(struct nft_handle *h,
 {
 	struct nftnl_chain *c;
 
-	c = nft_chain_builtin_alloc(table, chain, NF_ACCEPT);
+	c = nft_chain_builtin_alloc(h->family, table->name, chain, NF_ACCEPT);
 	if (c == NULL)
 		return;
 
@@ -959,7 +960,7 @@ static struct nftnl_chain *nft_chain_new(struct nft_handle *h,
 	_c = nft_chain_builtin_find(_t, chain);
 	if (_c != NULL) {
 		/* This is a built-in chain */
-		c = nft_chain_builtin_alloc(_t, _c, policy);
+		c = nft_chain_builtin_alloc(h->family, _t->name, _c, policy);
 		if (c == NULL)
 			return NULL;
 	} else {
@@ -1999,6 +2000,7 @@ int nft_chain_user_add(struct nft_handle *h, const char *chain, const char *tabl
 	if (c == NULL)
 		return 0;
 
+	nftnl_chain_set_u32(c, NFTNL_CHAIN_FAMILY, h->family);
 	nftnl_chain_set_str(c, NFTNL_CHAIN_TABLE, table);
 	nftnl_chain_set_str(c, NFTNL_CHAIN_NAME, chain);
 	if (h->family == NFPROTO_BRIDGE)
@@ -2029,6 +2031,7 @@ int nft_chain_restore(struct nft_handle *h, const char *chain, const char *table
 		if (!c)
 			return 0;
 
+		nftnl_chain_set_u32(c, NFTNL_CHAIN_FAMILY, h->family);
 		nftnl_chain_set_str(c, NFTNL_CHAIN_TABLE, table);
 		nftnl_chain_set_str(c, NFTNL_CHAIN_NAME, chain);
 		created = true;
@@ -2190,6 +2193,7 @@ int nft_chain_user_rename(struct nft_handle *h,const char *chain,
 	if (c == NULL)
 		return 0;
 
+	nftnl_chain_set_u32(c, NFTNL_CHAIN_FAMILY, h->family);
 	nftnl_chain_set_str(c, NFTNL_CHAIN_TABLE, table);
 	nftnl_chain_set_str(c, NFTNL_CHAIN_NAME, newname);
 	nftnl_chain_set_u64(c, NFTNL_CHAIN_HANDLE, handle);
