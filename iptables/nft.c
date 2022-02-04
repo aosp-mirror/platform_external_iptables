@@ -657,6 +657,7 @@ static int nft_table_builtin_add(struct nft_handle *h,
 	if (t == NULL)
 		return -1;
 
+	nftnl_table_set_u32(t, NFTNL_TABLE_FAMILY, h->family);
 	nftnl_table_set_str(t, NFTNL_TABLE_NAME, _t->name);
 
 	ret = batch_table_add(h, NFT_COMPAT_TABLE_ADD, t) ? 0 : - 1;
@@ -2242,6 +2243,7 @@ static int __nft_table_flush(struct nft_handle *h, const char *table, bool exist
 	if (t == NULL)
 		return -1;
 
+	nftnl_table_set_u32(t, NFTNL_TABLE_FAMILY, h->family);
 	nftnl_table_set_str(t, NFTNL_TABLE_NAME, table);
 
 	obj = batch_table_add(h, NFT_COMPAT_TABLE_FLUSH, t);
@@ -2832,6 +2834,18 @@ error:
 	return ret;
 }
 
+static void nft_table_print_debug(struct nft_handle *h,
+				  struct nftnl_table *t, struct nlmsghdr *nlh)
+{
+	if (h->verbose > 1) {
+		nftnl_table_fprintf(stdout, t, 0, 0);
+		fprintf(stdout, "\n");
+	}
+	if (h->verbose > 2)
+		mnl_nlmsg_fprintf(stdout, nlh, nlh->nlmsg_len,
+				  sizeof(struct nfgenmsg));
+}
+
 static void nft_compat_table_batch_add(struct nft_handle *h, uint16_t type,
 				       uint16_t flags, uint32_t seq,
 				       struct nftnl_table *table)
@@ -2841,6 +2855,7 @@ static void nft_compat_table_batch_add(struct nft_handle *h, uint16_t type,
 	nlh = nftnl_table_nlmsg_build_hdr(nftnl_batch_buffer(h->batch),
 					type, h->family, flags, seq);
 	nftnl_table_nlmsg_build_payload(nlh, table);
+	nft_table_print_debug(h, table, nlh);
 }
 
 static void nft_compat_set_batch_add(struct nft_handle *h, uint16_t type,
