@@ -417,6 +417,7 @@ static const struct nft_xt_restore_cb ebt_restore_cb = {
 
 static const struct option ebt_restore_options[] = {
 	{.name = "noflush", .has_arg = 0, .val = 'n'},
+	{.name = "verbose", .has_arg = 0, .val = 'v'},
 	{ 0 }
 };
 
@@ -430,15 +431,18 @@ int xtables_eb_restore_main(int argc, char *argv[])
 	struct nft_handle h;
 	int c;
 
-	while ((c = getopt_long(argc, argv, "n",
+	while ((c = getopt_long(argc, argv, "nv",
 				ebt_restore_options, NULL)) != -1) {
 		switch(c) {
 		case 'n':
 			noflush = 1;
 			break;
+		case 'v':
+			verbose++;
+			break;
 		default:
 			fprintf(stderr,
-				"Usage: ebtables-restore [ --noflush ]\n");
+				"Usage: ebtables-restore [ --verbose ] [ --noflush ]\n");
 			exit(1);
 			break;
 		}

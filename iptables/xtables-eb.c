@@ -195,6 +195,7 @@ struct option ebt_original_options[] =
 	{ "out-interface"  , required_argument, 0, 'o' },
 	{ "out-if"         , required_argument, 0, 'o' },
 	{ "version"        , no_argument      , 0, 'V' },
+	{ "verbose"        , no_argument      , 0, 'v' },
 	{ "help"           , no_argument      , 0, 'h' },
 	{ "jump"           , required_argument, 0, 'j' },
 	{ "set-counters"   , required_argument, 0, 'c' },
@@ -219,7 +220,7 @@ struct option ebt_original_options[] =
 struct xtables_globals ebtables_globals = {
 	.option_offset 		= 0,
 	.program_version	= PACKAGE_VERSION " (nf_tables)",
-	.optstring		= OPTSTRING_COMMON "h",
+	.optstring		= OPTSTRING_COMMON "hv",
 	.orig_opts		= ebt_original_options,
 	.compat_rev		= nft_compatible_revision,
 };
@@ -325,6 +326,7 @@ static void print_help(const struct xtables_target *t,
 "          pcnt bcnt           : set the counters of the to be added rule\n"
 "--modprobe -M program         : try to insert modules using this program\n"
 "--concurrent                  : use a file lock to support concurrent scripts\n"
+"--verbose -v                  : verbose mode\n"
 "--version -V                  : print package version\n\n"
 "Environment variable:\n"
 /*ATOMIC_ENV_VARIABLE "          : if set <FILE> (see above) will equal its value"*/
@@ -726,6 +728,9 @@ int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table,
 	struct ebt_match *match;
 	bool table_set = false;
 
+	/* avoid cumulating verbosity with ebtables-restore */
+	h->verbose = 0;
+
 	/* prevent getopt to spoil our error reporting */
 	optind = 0;
 	opterr = false;
@@ -853,6 +858,10 @@ print_zero:
 				chain = argv[optind];
 				optind++;
 			}
+			break;
+		case 'v': /* verbose */
+			flags |= OPT_VERBOSE;
+			h->verbose++;
 			break;
 		case 'V': /* Version */
 			if (OPT_COMMANDS)
@@ -1146,24 +1155,26 @@ print_zero:
 		}
 	} else if (command == 'L') {
 		ret = list_rules(h, chain, *table, rule_nr,
-				 0,
+				 flags & OPT_VERBOSE,
 				 0,
 				 /*flags&OPT_EXPANDED*/0,
 				 flags&LIST_N,
 				 flags&LIST_C);
 	}
 	if (flags & OPT_ZERO) {
-		ret = nft_cmd_chain_zero_counters(h, chain, *table, 0);
+		ret = nft_cmd_chain_zero_counters(h, chain, *table,
+						  flags & OPT_VERBOSE);
 	} else if (command == 'F') {
-		ret = nft_cmd_rule_flush(h, chain, *table, 0);
+		ret = nft_cmd_rule_flush(h, chain, *table, flags & OPT_VERBOSE);
 	} else if (command == 'A') {
-		ret = append_entry(h, chain, *table, &cs, 0, 0, true);
+		ret = append_entry(h, chain, *table, &cs, 0,
+				   flags & OPT_VERBOSE, true);
 	} else if (command == 'I') {
 		ret = append_entry(h, chain, *table, &cs, rule_nr - 1,
-				   0, false);
+				   flags & OPT_VERBOSE, false);
 	} else if (command == 'D') {
 		ret = delete_entry(h, chain, *table, &cs, rule_nr - 1,
-				   rule_nr_end, 0);
+				   rule_nr_end, flags & OPT_VERBOSE);
 	} /*else if (replace->command == 'C') {
 		ebt_change_counters(replace, new_entry, rule_nr, rule_nr_end, &(new_entry->cnt_surplus), chcounter);
 		if (ebt_errormsg[0] != '\0')
