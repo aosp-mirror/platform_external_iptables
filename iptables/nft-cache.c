@@ -538,9 +538,15 @@ static int fetch_chain_cache(struct nft_handle *h,
 	return ret;
 }
 
+struct rule_list_cb_data {
+	struct nftnl_chain *chain;
+	int verbose;
+};
+
 static int nftnl_rule_list_cb(const struct nlmsghdr *nlh, void *data)
 {
-	struct nftnl_chain *c = data;
+	struct rule_list_cb_data *rld = data;
+	struct nftnl_chain *c = rld->chain;
 	struct nftnl_rule *r;
 
 	r = nftnl_rule_alloc();
@@ -552,6 +558,10 @@ static int nftnl_rule_list_cb(const struct nlmsghdr *nlh, void *data)
 		return MNL_CB_OK;
 	}
 
+	if (rld->verbose > 1) {
+		nftnl_rule_fprintf(stdout, r, 0, 0);
+		fprintf(stdout, "\n");
+	}
 	nftnl_chain_rule_add_tail(r, c);
 	return MNL_CB_OK;
 }
@@ -560,6 +570,10 @@ static int nft_rule_list_update(struct nft_chain *nc, void *data)
 {
 	struct nftnl_chain *c = nc->nftnl;
 	struct nft_handle *h = data;
+	struct rule_list_cb_data rld = {
+		.chain = c,
+		.verbose = h->verbose,
+	};
 	char buf[16536];
 	struct nlmsghdr *nlh;
 	struct nftnl_rule *rule;
@@ -581,7 +595,7 @@ static int nft_rule_list_update(struct nft_chain *nc, void *data)
 					NLM_F_DUMP, h->seq);
 	nftnl_rule_nlmsg_build_payload(nlh, rule);
 
-	ret = mnl_talk(h, nlh, nftnl_rule_list_cb, c);
+	ret = mnl_talk(h, nlh, nftnl_rule_list_cb, &rld);
 	if (ret < 0 && errno == EINTR)
 		assert(nft_restart(h) >= 0);
 
