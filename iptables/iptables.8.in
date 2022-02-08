@@ -360,7 +360,11 @@ byte counters are also listed, with the suffix 'K', 'M' or 'G' for
 the \fB\-x\fP flag to change this).
 For appending, insertion, deletion and replacement, this causes
 detailed information on the rule or rules to be printed. \fB\-v\fP may be
-specified multiple times to possibly emit more detailed debug statements.
+specified multiple times to possibly emit more detailed debug statements:
+Specified twice, \fBiptables-legacy\fP will dump table info and entries in
+libiptc, \fBiptables-nft\fP dumps rules in netlink (VM code) presentation.
+Specified three times, \fBiptables-nft\fP will also dump any netlink messages
+sent to kernel.
 .TP
 \fB\-V\fP, \fB\-\-version\fP
 Show program version and the kernel API used.
