@@ -697,6 +697,7 @@ xtables_find_match(const char *name, enum xtables_tryload tryload,
 	struct xtables_match **dptr;
 	struct xtables_match *ptr;
 	const char *icmp6 = "icmp6";
+	bool found = false;
 
 	if (strlen(name) >= XT_EXTENSION_MAXNAMELEN)
 		xtables_error(PARAMETER_PROBLEM,
@@ -715,7 +716,9 @@ xtables_find_match(const char *name, enum xtables_tryload tryload,
 		if (extension_cmp(name, (*dptr)->name, (*dptr)->family)) {
 			ptr = *dptr;
 			*dptr = (*dptr)->next;
-			if (xtables_fully_register_pending_match(ptr, prev)) {
+			if (!found &&
+			    xtables_fully_register_pending_match(ptr, prev)) {
+				found = true;
 				prev = ptr;
 				continue;
 			} else if (prev) {
@@ -817,6 +820,7 @@ xtables_find_target(const char *name, enum xtables_tryload tryload)
 	struct xtables_target *prev = NULL;
 	struct xtables_target **dptr;
 	struct xtables_target *ptr;
+	bool found = false;
 
 	/* Standard target? */
 	if (strcmp(name, "") == 0
@@ -831,7 +835,9 @@ xtables_find_target(const char *name, enum xtables_tryload tryload)
 		if (extension_cmp(name, (*dptr)->name, (*dptr)->family)) {
 			ptr = *dptr;
 			*dptr = (*dptr)->next;
-			if (xtables_fully_register_pending_target(ptr, prev)) {
+			if (!found &&
+			    xtables_fully_register_pending_target(ptr, prev)) {
+				found = true;
 				prev = ptr;
 				continue;
 			} else if (prev) {
