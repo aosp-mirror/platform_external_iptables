@@ -958,7 +958,12 @@ int xtables_compatible_revision(const char *name, uint8_t revision, int opt)
 		/* Definitely don't support this? */
 		if (errno == ENOENT || errno == EPROTONOSUPPORT) {
 			close(sockfd);
-			return 0;
+			/* Pretend revision 0 support for better error messaging */
+			if (revision == 0)
+				fprintf(stderr,
+					"Warning: Extension %s revision 0 not supported, missing kernel module?\n",
+					name);
+			return (revision == 0);
 		} else if (errno == ENOPROTOOPT) {
 			close(sockfd);
 			/* Assume only revision 0 support (old kernel) */
