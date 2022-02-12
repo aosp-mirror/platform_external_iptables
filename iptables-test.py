@@ -73,9 +73,9 @@ def run_test(iptables, rule, rule_save, res, filename, lineno, netns):
     Executes an unit test. Returns the output of delete_rule().
 
     Parameters:
-    :param  iptables: string with the iptables command to execute
+    :param iptables: string with the iptables command to execute
     :param rule: string with iptables arguments for the rule to test
-    :param rule_save: string to find the rule in the output of iptables -save
+    :param rule_save: string to find the rule in the output of iptables-save
     :param res: expected result of the rule. Valid values: "OK", "FAIL"
     :param filename: name of the file tested (used for print_error purposes)
     :param lineno: line number being tested (used for print_error purposes)
@@ -92,7 +92,7 @@ def run_test(iptables, rule, rule_save, res, filename, lineno, netns):
     # report failed test
     #
     if ret:
-        if res == "OK":
+        if res != "FAIL":
             reason = "cannot load: " + cmd
             print_error(reason, filename, lineno)
             return -1
@@ -146,10 +146,20 @@ def run_test(iptables, rule, rule_save, res, filename, lineno, netns):
     # find the rule
     matching = out.find(rule_save.encode('utf-8'))
     if matching < 0:
-        reason = "cannot find: " + iptables + " -I " + rule
-        print_error(reason, filename, lineno)
-        delete_rule(iptables, rule, filename, lineno)
-        return -1
+        if res == "OK":
+            reason = "cannot find: " + iptables + " -I " + rule
+            print_error(reason, filename, lineno)
+            delete_rule(iptables, rule, filename, lineno)
+            return -1
+        else:
+            # do not report this error
+            return 0
+    else:
+        if res != "OK":
+            reason = "should not match: " + cmd
+            print_error(reason, filename, lineno)
+            delete_rule(iptables, rule, filename, lineno)
+            return -1
 
     # Test "ip netns del NETNS" path with rules in place
     if netns:
@@ -190,14 +200,18 @@ def variant_res(res, variant):
     result. Therefore map @res to itself if given variant is current, invert it
     otherwise.
 
-    :param res: expected result from test spec ("OK" or "FAIL")
+    :param res: expected result from test spec ("OK", "FAIL" or "NOMATCH")
     :param variant: variant @res is scoped to by test spec ("NFT" or "LEGACY")
     '''
     variant_executable = {
-            "NFT": "xtables-nft-multi",
-            "LEGACY": "xtables-legacy-multi"
+        "NFT": "xtables-nft-multi",
+        "LEGACY": "xtables-legacy-multi"
     }
-    res_inverse = { "OK": "FAIL", "FAIL": "OK" }
+    res_inverse = {
+        "OK": "FAIL",
+        "FAIL": "OK",
+        "NOMATCH": "OK"
+    }
 
     if variant_executable[variant] == EXECUTABLE:
         return res
