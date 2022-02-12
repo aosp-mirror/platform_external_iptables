@@ -107,20 +107,20 @@ def run_test(iptables, rule, rule_save, res, filename, lineno, netns):
             return -1
 
     matching = 0
-    splitted = iptables.split(" ")
-    if len(splitted) == 2:
-        if splitted[1] == '-4':
+    tokens = iptables.split(" ")
+    if len(tokens) == 2:
+        if tokens[1] == '-4':
             command = IPTABLES_SAVE
-        elif splitted[1] == '-6':
+        elif tokens[1] == '-6':
             command = IP6TABLES_SAVE
-    elif len(splitted) == 1:
-        if splitted[0] == IPTABLES:
+    elif len(tokens) == 1:
+        if tokens[0] == IPTABLES:
             command = IPTABLES_SAVE
-        elif splitted[0] == IP6TABLES:
+        elif tokens[0] == IP6TABLES:
             command = IP6TABLES_SAVE
-        elif splitted[0] == ARPTABLES:
+        elif tokens[0] == ARPTABLES:
             command = ARPTABLES_SAVE
-        elif splitted[0] == EBTABLES:
+        elif tokens[0] == EBTABLES:
             command = EBTABLES_SAVE
 
     command = EXECUTABLE + " " + command
@@ -128,7 +128,7 @@ def run_test(iptables, rule, rule_save, res, filename, lineno, netns):
     if netns:
             command = "ip netns exec ____iptables-container-test " + command
 
-    args = splitted[1:]
+    args = tokens[1:]
     proc = subprocess.Popen(command, shell=True,
                             stdin=subprocess.PIPE,
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
