@@ -186,22 +186,23 @@ def execute_cmd(cmd, filename, lineno):
     log_file.flush()
 
     # generic check for segfaults
-    if ret  == -11:
+    if ret == -11:
         reason = "command segfaults: " + cmd
         print_error(reason, filename, lineno)
     return ret
 
 
-def variant_res(res, variant):
+def variant_res(res, variant, alt_res=None):
     '''
     Adjust expected result with given variant
 
     If expected result is scoped to a variant, the other one yields a different
-    result. Therefore map @res to itself if given variant is current, invert it
-    otherwise.
+    result. Therefore map @res to itself if given variant is current, use the
+    alternate result, @alt_res, if specified, invert @res otherwise.
 
     :param res: expected result from test spec ("OK", "FAIL" or "NOMATCH")
     :param variant: variant @res is scoped to by test spec ("NFT" or "LEGACY")
+    :param alt_res: optional expected result for the alternate variant.
     '''
     variant_executable = {
         "NFT": "xtables-nft-multi",
@@ -215,6 +216,8 @@ def variant_res(res, variant):
 
     if variant_executable[variant] == EXECUTABLE:
         return res
+    if alt_res is not None:
+        return alt_res
     return res_inverse[res]
 
 
@@ -312,7 +315,12 @@ def run_test_file(filename, netns):
 
             res = item[2].rstrip()
             if len(item) > 3:
-                res = variant_res(res, item[3].rstrip())
+                variant = item[3].rstrip()
+                if len(item) > 4:
+                    alt_res = item[4].rstrip()
+                else:
+                    alt_res = None
+                res = variant_res(res, variant, alt_res)
 
             ret = run_test(iptables, rule, rule_save,
                            res, filename, lineno + 1, netns)
