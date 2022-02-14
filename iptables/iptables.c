@@ -706,15 +706,11 @@ int do_command4(int argc, char *argv[], char **table,
 	};
 	struct xtables_args args = {
 		.family = AF_INET,
-		.wait_interval.tv_sec = 1,
 	};
 	struct ipt_entry *e = NULL;
 	unsigned int nsaddrs = 0, ndaddrs = 0;
 	struct in_addr *saddrs = NULL, *smasks = NULL;
 	struct in_addr *daddrs = NULL, *dmasks = NULL;
-	struct timeval wait_interval = {
-		.tv_sec = 1,
-	};
 	int verbose = 0;
 	int wait = 0;
 	const char *chain = NULL;
@@ -732,7 +728,6 @@ int do_command4(int argc, char *argv[], char **table,
 	newname		= p.newname;
 	verbose		= p.verbose;
 	wait		= args.wait;
-	wait_interval	= args.wait_interval;
 	nsaddrs		= args.s.naddrs;
 	ndaddrs		= args.d.naddrs;
 	saddrs		= args.s.addr.v4;
@@ -742,7 +737,7 @@ int do_command4(int argc, char *argv[], char **table,
 
 	/* Attempt to acquire the xtables lock */
 	if (!restore)
-		xtables_lock_or_exit(wait, &wait_interval);
+		xtables_lock_or_exit(wait);
 
 	/* only allocate handle if we weren't called with a handle */
 	if (!*handle)

@@ -6,7 +6,6 @@
 #include <stdint.h>
 #include <netinet/in.h>
 #include <net/if.h>
-#include <sys/time.h>
 #include <linux/netfilter_arp/arp_tables.h>
 #include <linux/netfilter_ipv4/ip_tables.h>
 #include <linux/netfilter_ipv6/ip6_tables.h>
@@ -189,10 +188,10 @@ enum {
 	XT_LOCK_NOT_ACQUIRED  = -3,
 };
 extern void xtables_unlock(int lock);
-extern int xtables_lock_or_exit(int wait, struct timeval *tv);
+extern int xtables_lock_or_exit(int wait);
 
 int parse_wait_time(int argc, char *argv[]);
-void parse_wait_interval(int argc, char *argv[], struct timeval *wait_interval);
+void parse_wait_interval(int argc, char *argv[]);
 int parse_counters(const char *string, struct xt_counters *ctr);
 bool tokenize_rule_counters(char **bufferp, char **pcnt, char **bcnt, int line);
 bool xs_has_arg(int argc, char *argv[]);
@@ -294,7 +293,6 @@ struct xtables_args {
 	const char	*arp_htype, *arp_ptype;
 	unsigned long long pcnt_cnt, bcnt_cnt;
 	int		wait;
-	struct timeval	wait_interval;
 };
 
 struct xt_cmd_parse_ops {

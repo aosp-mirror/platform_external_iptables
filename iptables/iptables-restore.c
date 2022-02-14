@@ -22,10 +22,6 @@
 
 static int counters, verbose, noflush, wait;
 
-static struct timeval wait_interval = {
-	.tv_sec	= 1,
-};
-
 /* Keeping track of external matches and targets.  */
 static const struct option options[] = {
 	{.name = "counters",      .has_arg = 0, .val = 'c'},
@@ -51,7 +47,6 @@ static void print_usage(const char *name, const char *version)
 			"	   [ --help ]\n"
 			"	   [ --noflush ]\n"
 			"	   [ --wait=<seconds>\n"
-			"	   [ --wait-interval=<usecs>\n"
 			"	   [ --table=<TABLE> ]\n"
 			"	   [ --modprobe=<command> ]\n", name);
 }
@@ -101,6 +96,7 @@ ip46tables_restore_main(const struct iptables_restore_cb *cb,
 	FILE *in;
 	int in_table = 0, testing = 0;
 	const char *tablename = NULL;
+	bool wait_interval_set = false;
 
 	line = 0;
 	lock = XT_LOCK_NOT_ACQUIRED;
@@ -135,7 +131,8 @@ ip46tables_restore_main(const struct iptables_restore_cb *cb,
 				wait = parse_wait_time(argc, argv);
 				break;
 			case 'W':
-				parse_wait_interval(argc, argv, &wait_interval);
+				parse_wait_interval(argc, argv);
+				wait_interval_set = true;
 				break;
 			case 'M':
 				xtables_modprobe_program = optarg;
@@ -165,7 +162,7 @@ ip46tables_restore_main(const struct iptables_restore_cb *cb,
 	}
 	else in = stdin;
 
-	if (!wait_interval.tv_sec && !wait) {
+	if (wait_interval_set && !wait) {
 		fprintf(stderr, "Option --wait-interval requires option --wait\n");
 		exit(1);
 	}
@@ -203,7 +200,7 @@ ip46tables_restore_main(const struct iptables_restore_cb *cb,
 			in_table = 0;
 		} else if ((buffer[0] == '*') && (!in_table)) {
 			/* Acquire a lock before we create a new table handle */
-			lock = xtables_lock_or_exit(wait, &wait_interval);
+			lock = xtables_lock_or_exit(wait);
 
 			/* New table */
 			char *table;

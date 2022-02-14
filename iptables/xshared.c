@@ -13,11 +13,11 @@
 #include <sys/file.h>
 #include <sys/socket.h>
 #include <sys/un.h>
-#include <sys/time.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <xtables.h>
 #include <math.h>
+#include <signal.h>
 #include "xshared.h"
 
 /*
@@ -243,14 +243,14 @@ void xs_init_match(struct xtables_match *match)
 		match->init(match->m);
 }
 
-static int xtables_lock(int wait, struct timeval *wait_interval)
-{
-	struct timeval time_left, wait_time;
-	const char *lock_file;
-	int fd, i = 0;
+static void alarm_ignore(int i) {
+}
 
-	time_left.tv_sec = wait;
-	time_left.tv_usec = 0;
+static int xtables_lock(int wait)
+{
+	struct sigaction sigact_alarm;
+	const char *lock_file;
+	int fd;
 
 	lock_file = getenv("XTABLES_LOCKFILE");
 	if (lock_file == NULL || lock_file[0] == '\0')
@@ -263,31 +263,24 @@ static int xtables_lock(int wait, struct timeval *wait_interval)
 		return XT_LOCK_FAILED;
 	}
 
-	if (wait == -1) {
-		if (flock(fd, LOCK_EX) == 0)
-			return fd;
-
-		fprintf(stderr, "Can't lock %s: %s\n", lock_file,
-			strerror(errno));
-		return XT_LOCK_BUSY;
+	if (wait != -1) {
+		sigact_alarm.sa_handler = alarm_ignore;
+		sigact_alarm.sa_flags = SA_RESETHAND;
+		sigemptyset(&sigact_alarm.sa_mask);
+		sigaction(SIGALRM, &sigact_alarm, NULL);
+		alarm(wait);
 	}
 
-	while (1) {
-		if (flock(fd, LOCK_EX | LOCK_NB) == 0)
-			return fd;
-		else if (timercmp(&time_left, wait_interval, <))
-			return XT_LOCK_BUSY;
+	if (flock(fd, LOCK_EX) == 0)
+		return fd;
 
-		if (++i % 10 == 0) {
-			fprintf(stderr, "Another app is currently holding the xtables lock; "
-				"still %lds %ldus time ahead to have a chance to grab the lock...\n",
-				time_left.tv_sec, time_left.tv_usec);
-		}
-
-		wait_time = *wait_interval;
-		select(0, NULL, NULL, NULL, &wait_time);
-		timersub(&time_left, wait_interval, &time_left);
+	if (errno == EINTR) {
+		errno = EWOULDBLOCK;
 	}
+
+	fprintf(stderr, "Can't lock %s: %s\n", lock_file,
+		strerror(errno));
+	return XT_LOCK_BUSY;
 }
 
 void xtables_unlock(int lock)
@@ -296,9 +289,9 @@ void xtables_unlock(int lock)
 		close(lock);
 }
 
-int xtables_lock_or_exit(int wait, struct timeval *wait_interval)
+int xtables_lock_or_exit(int wait)
 {
-	int lock = xtables_lock(wait, wait_interval);
+	int lock = xtables_lock(wait);
 
 	if (lock == XT_LOCK_FAILED) {
 		xtables_free_opts(1);
@@ -334,7 +327,7 @@ int parse_wait_time(int argc, char *argv[])
 	return wait;
 }
 
-void parse_wait_interval(int argc, char *argv[], struct timeval *wait_interval)
+void parse_wait_interval(int argc, char *argv[])
 {
 	const char *arg;
 	unsigned int usec;
@@ -354,8 +347,7 @@ void parse_wait_interval(int argc, char *argv[], struct timeval *wait_interval)
 				      "too long usec wait %u > 999999 usec",
 				      usec);
 
-		wait_interval->tv_sec = 0;
-		wait_interval->tv_usec = usec;
+		fprintf(stderr, "Ignoring deprecated --wait-interval option.\n");
 		return;
 	}
 	xtables_error(PARAMETER_PROBLEM, "wait interval not numeric");
@@ -1235,9 +1227,6 @@ xtables_printhelp(const struct xtables_rule_match *matches)
 "  --table	-t table	table to manipulate (default: `filter')\n"
 "  --verbose	-v		verbose mode\n"
 "  --wait	-w [seconds]	maximum wait to acquire xtables lock before give up\n"
-"  --wait-interval -W [usecs]	wait time to try to acquire xtables lock\n"
-"				interval to wait for xtables lock\n"
-"				default is 1 second\n"
 "  --line-numbers		print line numbers when listing\n"
 "  --exact	-x		expand numbers (display exact values)\n");
 
@@ -1665,7 +1654,7 @@ void do_parse(int argc, char *argv[],
 					      "iptables-restore");
 			}
 
-			parse_wait_interval(argc, argv, &args->wait_interval);
+			parse_wait_interval(argc, argv);
 			wait_interval_set = true;
 			break;
 

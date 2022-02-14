@@ -712,7 +712,6 @@ int do_command6(int argc, char *argv[], char **table,
 	};
 	struct xtables_args args = {
 		.family = AF_INET6,
-		.wait_interval.tv_sec = 1,
 	};
 	struct ip6t_entry *e = NULL;
 	unsigned int nsaddrs = 0, ndaddrs = 0;
@@ -721,9 +720,6 @@ int do_command6(int argc, char *argv[], char **table,
 
 	int verbose = 0;
 	int wait = 0;
-	struct timeval wait_interval = {
-		.tv_sec	= 1,
-	};
 	const char *chain = NULL;
 	const char *policy = NULL, *newname = NULL;
 	unsigned int rulenum = 0, command = 0;
@@ -739,7 +735,6 @@ int do_command6(int argc, char *argv[], char **table,
 	newname		= p.newname;
 	verbose		= p.verbose;
 	wait		= args.wait;
-	wait_interval	= args.wait_interval;
 	nsaddrs		= args.s.naddrs;
 	ndaddrs		= args.d.naddrs;
 	saddrs		= args.s.addr.v6;
@@ -749,7 +744,7 @@ int do_command6(int argc, char *argv[], char **table,
 
 	/* Attempt to acquire the xtables lock */
 	if (!restore)
-		xtables_lock_or_exit(wait, &wait_interval);
+		xtables_lock_or_exit(wait);
 
 	/* only allocate handle if we weren't called with a handle */
 	if (!*handle)
