@@ -1,1 +1,2 @@
-include platform/system/netd:/OWNERS
+set noparent
+file:platform/packages/modules/Connectivity:master:/OWNERS_core_networking
