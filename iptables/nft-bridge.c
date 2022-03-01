@@ -97,9 +97,9 @@ static int _add_action(struct nftnl_rule *r, struct iptables_command_state *cs)
 }
 
 static int nft_bridge_add(struct nft_handle *h,
-			  struct nftnl_rule *r, void *data)
+			  struct nftnl_rule *r,
+			  struct iptables_command_state *cs)
 {
-	struct iptables_command_state *cs = data;
 	struct ebt_match *iter;
 	struct ebt_entry *fw = &cs->eb;
 	uint32_t op;
@@ -164,9 +164,9 @@ static int nft_bridge_add(struct nft_handle *h,
 }
 
 static void nft_bridge_parse_meta(struct nft_xt_ctx *ctx,
-				  struct nftnl_expr *e, void *data)
+				  struct nftnl_expr *e,
+				  struct iptables_command_state *cs)
 {
-	struct iptables_command_state *cs = data;
 	struct ebt_entry *fw = &cs->eb;
 	uint8_t invflags = 0;
 	char iifname[IFNAMSIZ] = {}, oifname[IFNAMSIZ] = {};
@@ -200,9 +200,9 @@ static void nft_bridge_parse_meta(struct nft_xt_ctx *ctx,
 }
 
 static void nft_bridge_parse_payload(struct nft_xt_ctx *ctx,
-				     struct nftnl_expr *e, void *data)
+				     struct nftnl_expr *e,
+				     struct iptables_command_state *cs)
 {
-	struct iptables_command_state *cs = data;
 	struct ebt_entry *fw = &cs->eb;
 	unsigned char addr[ETH_ALEN];
 	unsigned short int ethproto;
@@ -397,7 +397,7 @@ static struct nftnl_set *set_from_lookup_expr(struct nft_xt_ctx *ctx,
 }
 
 static void nft_bridge_parse_lookup(struct nft_xt_ctx *ctx,
-				    struct nftnl_expr *e, void *data)
+				    struct nftnl_expr *e)
 {
 	struct xtables_match *match = NULL;
 	struct nft_among_data *among_data;
@@ -483,17 +483,15 @@ static void parse_watcher(void *object, struct ebt_match **match_list,
 		(*match_list)->next = m;
 }
 
-static void nft_bridge_parse_match(struct xtables_match *m, void *data)
+static void nft_bridge_parse_match(struct xtables_match *m,
+				   struct iptables_command_state *cs)
 {
-	struct iptables_command_state *cs = data;
-
 	parse_watcher(m, &cs->match_list, true);
 }
 
-static void nft_bridge_parse_target(struct xtables_target *t, void *data)
+static void nft_bridge_parse_target(struct xtables_target *t,
+				    struct iptables_command_state *cs)
 {
-	struct iptables_command_state *cs = data;
-
 	/* harcoded names :-( */
 	if (strcmp(t->name, "log") == 0 ||
 	    strcmp(t->name, "nflog") == 0) {
@@ -594,10 +592,9 @@ static void print_protocol(uint16_t ethproto, bool invert, unsigned int bitmask)
 		printf("%s ", ent->e_name);
 }
 
-static void __nft_bridge_save_rule(const void *data, unsigned int format)
+static void __nft_bridge_save_rule(const struct iptables_command_state *cs,
+				   unsigned int format)
 {
-	const struct iptables_command_state *cs = data;
-
 	if (cs->eb.ethproto)
 		print_protocol(cs->eb.ethproto, cs->eb.invflags & EBT_IPROTO,
 			       cs->eb.bitmask);
@@ -645,10 +642,11 @@ static void __nft_bridge_save_rule(const void *data, unsigned int format)
 		fputc('\n', stdout);
 }
 
-static void nft_bridge_save_rule(const void *data, unsigned int format)
+static void nft_bridge_save_rule(const struct iptables_command_state *cs,
+				 unsigned int format)
 {
 	printf(" ");
-	__nft_bridge_save_rule(data, format);
+	__nft_bridge_save_rule(cs, format);
 }
 
 static void nft_bridge_print_rule(struct nft_handle *h, struct nftnl_rule *r,
@@ -672,10 +670,11 @@ static void nft_bridge_save_chain(const struct nftnl_chain *c,
 	printf(":%s %s\n", chain, policy ?: "ACCEPT");
 }
 
-static bool nft_bridge_is_same(const void *data_a, const void *data_b)
+static bool nft_bridge_is_same(const struct iptables_command_state *cs_a,
+			       const struct iptables_command_state *cs_b)
 {
-	const struct ebt_entry *a = data_a;
-	const struct ebt_entry *b = data_b;
+	const struct ebt_entry *a = &cs_a->eb;
+	const struct ebt_entry *b = &cs_b->eb;
 	int i;
 
 	if (a->ethproto != b->ethproto ||
@@ -821,9 +820,9 @@ static void nft_bridge_xlate_mac(struct xt_xlate *xl, const char *type, bool inv
 	xt_xlate_add(xl, " ");
 }
 
-static int nft_bridge_xlate(const void *data, struct xt_xlate *xl)
+static int nft_bridge_xlate(const struct iptables_command_state *cs,
+			    struct xt_xlate *xl)
 {
-	const struct iptables_command_state *cs = data;
 	int ret;
 
 	xlate_ifname(xl, "iifname", cs->eb.in,

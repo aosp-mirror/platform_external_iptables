@@ -54,9 +54,9 @@ static bool need_devaddr(struct arpt_devaddr_info *info)
 	return false;
 }
 
-static int nft_arp_add(struct nft_handle *h, struct nftnl_rule *r, void *data)
+static int nft_arp_add(struct nft_handle *h, struct nftnl_rule *r,
+		       struct iptables_command_state *cs)
 {
-	struct iptables_command_state *cs = data;
 	struct arpt_entry *fw = &cs->arp;
 	uint32_t op;
 	int ret = 0;
@@ -169,9 +169,8 @@ static int nft_arp_add(struct nft_handle *h, struct nftnl_rule *r, void *data)
 }
 
 static void nft_arp_parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e,
-			       void *data)
+			       struct iptables_command_state *cs)
 {
-	struct iptables_command_state *cs = data;
 	struct arpt_entry *fw = &cs->arp;
 	uint8_t flags = 0;
 
@@ -213,9 +212,9 @@ static bool nft_arp_parse_devaddr(struct nft_xt_ctx *ctx,
 }
 
 static void nft_arp_parse_payload(struct nft_xt_ctx *ctx,
-				  struct nftnl_expr *e, void *data)
+				  struct nftnl_expr *e,
+				  struct iptables_command_state *cs)
 {
-	struct iptables_command_state *cs = data;
 	struct arpt_entry *fw = &cs->arp;
 	struct in_addr addr;
 	uint16_t ar_hrd, ar_pro, ar_op;
@@ -464,10 +463,8 @@ after_devdst:
 }
 
 static void
-nft_arp_save_rule(const void *data, unsigned int format)
+nft_arp_save_rule(const struct iptables_command_state *cs, unsigned int format)
 {
-	const struct iptables_command_state *cs = data;
-
 	format |= FMT_NUMERIC;
 
 	printf(" ");
@@ -504,11 +501,11 @@ nft_arp_print_rule(struct nft_handle *h, struct nftnl_rule *r,
 	nft_clear_iptables_command_state(&cs);
 }
 
-static bool nft_arp_is_same(const void *data_a,
-			    const void *data_b)
+static bool nft_arp_is_same(const struct iptables_command_state *cs_a,
+			    const struct iptables_command_state *cs_b)
 {
-	const struct arpt_entry *a = data_a;
-	const struct arpt_entry *b = data_b;
+	const struct arpt_entry *a = &cs_a->arp;
+	const struct arpt_entry *b = &cs_b->arp;
 
 	if (a->arp.src.s_addr != b->arp.src.s_addr
 	    || a->arp.tgt.s_addr != b->arp.tgt.s_addr

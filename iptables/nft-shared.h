@@ -78,21 +78,17 @@ struct nft_xt_ctx {
 };
 
 struct nft_family_ops {
-	int (*add)(struct nft_handle *h, struct nftnl_rule *r, void *data);
-	bool (*is_same)(const void *data_a,
-			const void *data_b);
+	int (*add)(struct nft_handle *h, struct nftnl_rule *r,
+		   struct iptables_command_state *cs);
+	bool (*is_same)(const struct iptables_command_state *cs_a,
+			const struct iptables_command_state *cs_b);
 	void (*print_payload)(struct nftnl_expr *e,
 			      struct nftnl_expr_iter *iter);
 	void (*parse_meta)(struct nft_xt_ctx *ctx, struct nftnl_expr *e,
-			   void *data);
+			   struct iptables_command_state *cs);
 	void (*parse_payload)(struct nft_xt_ctx *ctx, struct nftnl_expr *e,
-			      void *data);
-	void (*parse_bitwise)(struct nft_xt_ctx *ctx, struct nftnl_expr *e,
-			      void *data);
-	void (*parse_cmp)(struct nft_xt_ctx *ctx, struct nftnl_expr *e,
-			  void *data);
-	void (*parse_lookup)(struct nft_xt_ctx *ctx, struct nftnl_expr *e,
-			     void *data);
+			      struct iptables_command_state *cs);
+	void (*parse_lookup)(struct nft_xt_ctx *ctx, struct nftnl_expr *e);
 	void (*set_goto_flag)(struct iptables_command_state *cs);
 
 	void (*print_table_header)(const char *tablename);
@@ -102,16 +98,20 @@ struct nft_family_ops {
 			     int refs, uint32_t entries);
 	void (*print_rule)(struct nft_handle *h, struct nftnl_rule *r,
 			   unsigned int num, unsigned int format);
-	void (*save_rule)(const void *data, unsigned int format);
+	void (*save_rule)(const struct iptables_command_state *cs,
+			  unsigned int format);
 	void (*save_chain)(const struct nftnl_chain *c, const char *policy);
 	struct xt_cmd_parse_ops cmd_parse;
-	void (*parse_match)(struct xtables_match *m, void *data);
-	void (*parse_target)(struct xtables_target *t, void *data);
+	void (*parse_match)(struct xtables_match *m,
+			    struct iptables_command_state *cs);
+	void (*parse_target)(struct xtables_target *t,
+			     struct iptables_command_state *cs);
 	void (*init_cs)(struct iptables_command_state *cs);
 	void (*rule_to_cs)(struct nft_handle *h, const struct nftnl_rule *r,
 			   struct iptables_command_state *cs);
 	void (*clear_cs)(struct iptables_command_state *cs);
-	int (*xlate)(const void *data, struct xt_xlate *xl);
+	int (*xlate)(const struct iptables_command_state *cs,
+		     struct xt_xlate *xl);
 	int (*add_entry)(struct nft_handle *h,
 			 const char *chain, const char *table,
 			 struct iptables_command_state *cs,
@@ -173,7 +173,8 @@ void save_matches_and_target(const struct iptables_command_state *cs,
 
 struct nft_family_ops *nft_family_ops_lookup(int family);
 
-void nft_ipv46_parse_target(struct xtables_target *t, void *data);
+void nft_ipv46_parse_target(struct xtables_target *t,
+			    struct iptables_command_state *cs);
 
 bool compare_matches(struct xtables_rule_match *mt1, struct xtables_rule_match *mt2);
 bool compare_targets(struct xtables_target *tg1, struct xtables_target *tg2);

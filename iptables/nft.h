@@ -173,7 +173,7 @@ struct nftnl_set *nft_set_batch_lookup_byid(struct nft_handle *h,
  */
 struct nftnl_rule;
 
-struct nftnl_rule *nft_rule_new(struct nft_handle *h, const char *chain, const char *table, void *data);
+struct nftnl_rule *nft_rule_new(struct nft_handle *h, const char *chain, const char *table, struct iptables_command_state *cs);
 int nft_rule_append(struct nft_handle *h, const char *chain, const char *table, struct nftnl_rule *r, struct nftnl_rule *ref, bool verbose);
 int nft_rule_insert(struct nft_handle *h, const char *chain, const char *table, struct nftnl_rule *r, int rulenum, bool verbose);
 int nft_rule_check(struct nft_handle *h, const char *chain, const char *table, struct nftnl_rule *r, bool verbose);

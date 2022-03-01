@@ -319,7 +319,6 @@ static void nft_parse_target(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 	struct xtables_target *target;
 	struct xt_entry_target *t;
 	size_t size;
-	void *data = ctx->cs;
 
 	target = xtables_find_target(targname, XTF_TRY_LOAD);
 	if (target == NULL)
@@ -335,7 +334,7 @@ static void nft_parse_target(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 
 	target->t = t;
 
-	ctx->h->ops->parse_target(target, data);
+	ctx->h->ops->parse_target(target, ctx->cs);
 }
 
 static void nft_parse_match(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
@@ -767,9 +766,9 @@ static void nft_parse_tcp_flags(struct nft_xt_ctx *ctx,
 }
 
 static void nft_parse_transport(struct nft_xt_ctx *ctx,
-				struct nftnl_expr *e, void *data)
+				struct nftnl_expr *e,
+				struct iptables_command_state *cs)
 {
-	struct iptables_command_state *cs = data;
 	uint32_t sdport;
 	uint16_t port;
 	uint8_t proto, op;
@@ -869,7 +868,6 @@ static void nft_parse_transport_range(struct nft_xt_ctx *ctx,
 
 static void nft_parse_cmp(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 {
-	void *data = ctx->cs;
 	uint32_t reg;
 
 	reg = nftnl_expr_get_u32(e, NFTNL_EXPR_CMP_SREG);
@@ -877,7 +875,7 @@ static void nft_parse_cmp(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 		return;
 
 	if (ctx->flags & NFT_XT_CTX_META) {
-		ctx->h->ops->parse_meta(ctx, e, data);
+		ctx->h->ops->parse_meta(ctx, e, ctx->cs);
 		ctx->flags &= ~NFT_XT_CTX_META;
 	}
 	/* bitwise context is interpreted from payload */
@@ -885,13 +883,13 @@ static void nft_parse_cmp(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 		switch (ctx->payload.base) {
 		case NFT_PAYLOAD_LL_HEADER:
 			if (ctx->h->family == NFPROTO_BRIDGE)
-				ctx->h->ops->parse_payload(ctx, e, data);
+				ctx->h->ops->parse_payload(ctx, e, ctx->cs);
 			break;
 		case NFT_PAYLOAD_NETWORK_HEADER:
-			ctx->h->ops->parse_payload(ctx, e, data);
+			ctx->h->ops->parse_payload(ctx, e, ctx->cs);
 			break;
 		case NFT_PAYLOAD_TRANSPORT_HEADER:
-			nft_parse_transport(ctx, e, data);
+			nft_parse_transport(ctx, e, ctx->cs);
 			break;
 		}
 	}
@@ -1055,7 +1053,7 @@ static void nft_parse_lookup(struct nft_xt_ctx *ctx, struct nft_handle *h,
 			     struct nftnl_expr *e)
 {
 	if (ctx->h->ops->parse_lookup)
-		ctx->h->ops->parse_lookup(ctx, e, NULL);
+		ctx->h->ops->parse_lookup(ctx, e);
 }
 
 static void nft_parse_range(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
@@ -1319,10 +1317,9 @@ bool compare_targets(struct xtables_target *tg1, struct xtables_target *tg2)
 	return true;
 }
 
-void nft_ipv46_parse_target(struct xtables_target *t, void *data)
+void nft_ipv46_parse_target(struct xtables_target *t,
+			    struct iptables_command_state *cs)
 {
-	struct iptables_command_state *cs = data;
-
 	cs->target = t;
 	cs->jumpto = t->name;
 }

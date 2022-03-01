@@ -25,9 +25,9 @@
 #include "nft.h"
 #include "nft-shared.h"
 
-static int nft_ipv6_add(struct nft_handle *h, struct nftnl_rule *r, void *data)
+static int nft_ipv6_add(struct nft_handle *h, struct nftnl_rule *r,
+			struct iptables_command_state *cs)
 {
-	struct iptables_command_state *cs = data;
 	struct xtables_rule_match *matchp;
 	uint32_t op;
 	int ret;
@@ -82,12 +82,9 @@ static int nft_ipv6_add(struct nft_handle *h, struct nftnl_rule *r, void *data)
 	return add_action(r, cs, !!(cs->fw6.ipv6.flags & IP6T_F_GOTO));
 }
 
-static bool nft_ipv6_is_same(const void *data_a,
-			     const void *data_b)
+static bool nft_ipv6_is_same(const struct iptables_command_state *a,
+			     const struct iptables_command_state *b)
 {
-	const struct iptables_command_state *a = data_a;
-	const struct iptables_command_state *b = data_b;
-
 	if (memcmp(a->fw6.ipv6.src.s6_addr, b->fw6.ipv6.src.s6_addr,
 		   sizeof(struct in6_addr)) != 0
 	    || memcmp(a->fw6.ipv6.dst.s6_addr, b->fw6.ipv6.dst.s6_addr,
@@ -108,10 +105,8 @@ static bool nft_ipv6_is_same(const void *data_a,
 }
 
 static void nft_ipv6_parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e,
-				void *data)
+				struct iptables_command_state *cs)
 {
-	struct iptables_command_state *cs = data;
-
 	switch (ctx->meta.key) {
 	case NFT_META_L4PROTO:
 		cs->fw6.ipv6.proto = nftnl_expr_get_u8(e, NFTNL_EXPR_CMP_DATA);
@@ -133,9 +128,9 @@ static void parse_mask_ipv6(struct nft_xt_ctx *ctx, struct in6_addr *mask)
 }
 
 static void nft_ipv6_parse_payload(struct nft_xt_ctx *ctx,
-				   struct nftnl_expr *e, void *data)
+				   struct nftnl_expr *e,
+				   struct iptables_command_state *cs)
 {
-	struct iptables_command_state *cs = data;
 	struct in6_addr addr;
 	uint8_t proto;
 	bool inv;
@@ -213,10 +208,9 @@ static void nft_ipv6_print_rule(struct nft_handle *h, struct nftnl_rule *r,
 	nft_clear_iptables_command_state(&cs);
 }
 
-static void nft_ipv6_save_rule(const void *data, unsigned int format)
+static void nft_ipv6_save_rule(const struct iptables_command_state *cs,
+			       unsigned int format)
 {
-	const struct iptables_command_state *cs = data;
-
 	save_ipv6_addr('s', &cs->fw6.ipv6.src, &cs->fw6.ipv6.smsk,
 		       cs->fw6.ipv6.invflags & IP6T_INV_SRCIP);
 	save_ipv6_addr('d', &cs->fw6.ipv6.dst, &cs->fw6.ipv6.dmsk,
@@ -257,9 +251,9 @@ static void xlate_ipv6_addr(const char *selector, const struct in6_addr *addr,
 	}
 }
 
-static int nft_ipv6_xlate(const void *data, struct xt_xlate *xl)
+static int nft_ipv6_xlate(const struct iptables_command_state *cs,
+			  struct xt_xlate *xl)
 {
-	const struct iptables_command_state *cs = data;
 	const char *comment;
 	int ret;
 

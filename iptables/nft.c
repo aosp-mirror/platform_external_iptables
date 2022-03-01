@@ -1648,7 +1648,7 @@ void add_compat(struct nftnl_rule *r, uint32_t proto, bool inv)
 
 struct nftnl_rule *
 nft_rule_new(struct nft_handle *h, const char *chain, const char *table,
-	     void *data)
+	     struct iptables_command_state *cs)
 {
 	struct nftnl_rule *r;
 
@@ -1660,7 +1660,7 @@ nft_rule_new(struct nft_handle *h, const char *chain, const char *table,
 	nftnl_rule_set_str(r, NFTNL_RULE_TABLE, table);
 	nftnl_rule_set_str(r, NFTNL_RULE_CHAIN, chain);
 
-	if (h->ops->add(h, r, data) < 0)
+	if (h->ops->add(h, r, cs) < 0)
 		goto err;
 
 	return r;
