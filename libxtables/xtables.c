@@ -2101,10 +2101,11 @@ const struct xtables_pprot xtables_chain_protos[] = {
 	{"udp",       IPPROTO_UDP},
 	{"udplite",   IPPROTO_UDPLITE},
 	{"icmp",      IPPROTO_ICMP},
-	{"icmpv6",    IPPROTO_ICMPV6},
 	{"ipv6-icmp", IPPROTO_ICMPV6},
+	{"icmpv6",    IPPROTO_ICMPV6},
 	{"esp",       IPPROTO_ESP},
 	{"ah",        IPPROTO_AH},
+	{"mobility-header", IPPROTO_MH},
 	{"ipv6-mh",   IPPROTO_MH},
 	{"mh",        IPPROTO_MH},
 	{"all",       0},
@@ -2120,23 +2121,15 @@ xtables_parse_protocol(const char *s)
 	if (xtables_strtoui(s, NULL, &proto, 0, UINT8_MAX))
 		return proto;
 
-	/* first deal with the special case of 'all' to prevent
-	 * people from being able to redefine 'all' in nsswitch
-	 * and/or provoke expensive [not working] ldap/nis/...
-	 * lookups */
-	if (strcmp(s, "all") == 0)
-		return 0;
+	for (i = 0; xtables_chain_protos[i].name != NULL; ++i) {
+		if (strcmp(s, xtables_chain_protos[i].name) == 0)
+			return xtables_chain_protos[i].num;
+	}
 
 	pent = getprotobyname(s);
 	if (pent != NULL)
 		return pent->p_proto;
 
-	for (i = 0; i < ARRAY_SIZE(xtables_chain_protos); ++i) {
-		if (xtables_chain_protos[i].name == NULL)
-			continue;
-		if (strcmp(s, xtables_chain_protos[i].name) == 0)
-			return xtables_chain_protos[i].num;
-	}
 	xt_params->exit_err(PARAMETER_PROBLEM,
 		"unknown protocol \"%s\" specified", s);
 	return -1;
