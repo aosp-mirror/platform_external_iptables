@@ -502,6 +502,7 @@ static void nft_bridge_parse_target(struct xtables_target *t, void *data)
 	}
 
 	cs->target = t;
+	cs->jumpto = t->name;
 }
 
 static void nft_rule_to_ebtables_command_state(struct nft_handle *h,

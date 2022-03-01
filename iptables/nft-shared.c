@@ -907,6 +907,8 @@ static void nft_parse_immediate(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 {
 	const char *chain = nftnl_expr_get_str(e, NFTNL_EXPR_IMM_CHAIN);
 	struct iptables_command_state *cs = ctx->cs;
+	struct xt_entry_target *t;
+	uint32_t size;
 	int verdict;
 
 	if (nftnl_expr_is_set(e, NFTNL_EXPR_IMM_DATA)) {
@@ -943,8 +945,21 @@ static void nft_parse_immediate(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 		/* fall through */
 	case NFT_JUMP:
 		cs->jumpto = chain;
-		break;
+		/* fall through */
+	default:
+		return;
 	}
+
+	cs->target = xtables_find_target(cs->jumpto, XTF_TRY_LOAD);
+	if (!cs->target)
+		return;
+
+	size = XT_ALIGN(sizeof(struct xt_entry_target)) + cs->target->size;
+	t = xtables_calloc(1, size);
+	t->u.target_size = size;
+	t->u.user.revision = cs->target->revision;
+	strcpy(t->u.user.name, cs->jumpto);
+	cs->target->t = t;
 }
 
 static void nft_parse_limit(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
@@ -1143,25 +1158,8 @@ void nft_rule_to_iptables_command_state(struct nft_handle *h,
 		}
 	}
 
-	if (cs->target != NULL) {
-		cs->jumpto = cs->target->name;
-	} else if (cs->jumpto != NULL) {
-		struct xt_entry_target *t;
-		uint32_t size;
-
-		cs->target = xtables_find_target(cs->jumpto, XTF_TRY_LOAD);
-		if (!cs->target)
-			return;
-
-		size = XT_ALIGN(sizeof(struct xt_entry_target)) + cs->target->size;
-		t = xtables_calloc(1, size);
-		t->u.target_size = size;
-		t->u.user.revision = cs->target->revision;
-		strcpy(t->u.user.name, cs->jumpto);
-		cs->target->t = t;
-	} else {
+	if (!cs->jumpto)
 		cs->jumpto = "";
-	}
 }
 
 void nft_clear_iptables_command_state(struct iptables_command_state *cs)
@@ -1326,6 +1324,7 @@ void nft_ipv46_parse_target(struct xtables_target *t, void *data)
 	struct iptables_command_state *cs = data;
 
 	cs->target = t;
+	cs->jumpto = t->name;
 }
 
 void nft_check_xt_legacy(int family, bool is_ipt_save)
