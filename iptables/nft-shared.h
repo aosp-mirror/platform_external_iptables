@@ -93,7 +93,7 @@ struct nft_family_ops {
 			  void *data);
 	void (*parse_lookup)(struct nft_xt_ctx *ctx, struct nftnl_expr *e,
 			     void *data);
-	void (*parse_immediate)(const char *jumpto, bool nft_goto, void *data);
+	void (*set_goto_flag)(struct iptables_command_state *cs);
 
 	void (*print_table_header)(const char *tablename);
 	void (*print_header)(unsigned int format, const char *chain,

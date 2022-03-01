@@ -906,9 +906,7 @@ static void nft_parse_counter(struct nftnl_expr *e, struct xt_counters *counters
 static void nft_parse_immediate(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 {
 	const char *chain = nftnl_expr_get_str(e, NFTNL_EXPR_IMM_CHAIN);
-	const char *jumpto = NULL;
-	bool nft_goto = false;
-	void *data = ctx->cs;
+	struct iptables_command_state *cs = ctx->cs;
 	int verdict;
 
 	if (nftnl_expr_is_set(e, NFTNL_EXPR_IMM_DATA)) {
@@ -931,23 +929,22 @@ static void nft_parse_immediate(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 	/* Standard target? */
 	switch(verdict) {
 	case NF_ACCEPT:
-		jumpto = "ACCEPT";
+		cs->jumpto = "ACCEPT";
 		break;
 	case NF_DROP:
-		jumpto = "DROP";
+		cs->jumpto = "DROP";
 		break;
 	case NFT_RETURN:
-		jumpto = "RETURN";
+		cs->jumpto = "RETURN";
 		break;;
 	case NFT_GOTO:
-		nft_goto = true;
+		if (ctx->h->ops->set_goto_flag)
+			ctx->h->ops->set_goto_flag(cs);
 		/* fall through */
 	case NFT_JUMP:
-		jumpto = chain;
+		cs->jumpto = chain;
 		break;
 	}
-
-	ctx->h->ops->parse_immediate(jumpto, nft_goto, data);
 }
 
 static void nft_parse_limit(struct nft_xt_ctx *ctx, struct nftnl_expr *e)

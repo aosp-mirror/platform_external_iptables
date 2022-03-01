@@ -215,15 +215,9 @@ static void nft_ipv4_parse_payload(struct nft_xt_ctx *ctx,
 	}
 }
 
-static void nft_ipv4_parse_immediate(const char *jumpto, bool nft_goto,
-				     void *data)
+static void nft_ipv4_set_goto_flag(struct iptables_command_state *cs)
 {
-	struct iptables_command_state *cs = data;
-
-	cs->jumpto = jumpto;
-
-	if (nft_goto)
-		cs->fw.ip.flags |= IPT_F_GOTO;
+	cs->fw.ip.flags |= IPT_F_GOTO;
 }
 
 static void nft_ipv4_print_rule(struct nft_handle *h, struct nftnl_rule *r,
@@ -450,7 +444,7 @@ struct nft_family_ops nft_family_ops_ipv4 = {
 	.is_same		= nft_ipv4_is_same,
 	.parse_meta		= nft_ipv4_parse_meta,
 	.parse_payload		= nft_ipv4_parse_payload,
-	.parse_immediate	= nft_ipv4_parse_immediate,
+	.set_goto_flag		= nft_ipv4_set_goto_flag,
 	.print_header		= print_header,
 	.print_rule		= nft_ipv4_print_rule,
 	.save_rule		= nft_ipv4_save_rule,

@@ -182,14 +182,6 @@ static void nft_arp_parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e,
 	fw->arp.invflags |= flags;
 }
 
-static void nft_arp_parse_immediate(const char *jumpto, bool nft_goto,
-				    void *data)
-{
-	struct iptables_command_state *cs = data;
-
-	cs->jumpto = jumpto;
-}
-
 static void parse_mask_ipv4(struct nft_xt_ctx *ctx, struct in_addr *mask)
 {
 	mask->s_addr = ctx->bitwise.mask[0];
@@ -797,7 +789,6 @@ struct nft_family_ops nft_family_ops_arp = {
 	.print_payload		= NULL,
 	.parse_meta		= nft_arp_parse_meta,
 	.parse_payload		= nft_arp_parse_payload,
-	.parse_immediate	= nft_arp_parse_immediate,
 	.print_header		= nft_arp_print_header,
 	.print_rule		= nft_arp_print_rule,
 	.save_rule		= nft_arp_save_rule,

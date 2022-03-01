@@ -251,14 +251,6 @@ static void nft_bridge_parse_payload(struct nft_xt_ctx *ctx,
 	}
 }
 
-static void nft_bridge_parse_immediate(const char *jumpto, bool nft_goto,
-				       void *data)
-{
-	struct iptables_command_state *cs = data;
-
-	cs->jumpto = jumpto;
-}
-
 /* return 0 if saddr, 1 if daddr, -1 on error */
 static int
 lookup_check_ether_payload(uint32_t base, uint32_t offset, uint32_t len)
@@ -891,7 +883,6 @@ struct nft_family_ops nft_family_ops_bridge = {
 	.print_payload		= NULL,
 	.parse_meta		= nft_bridge_parse_meta,
 	.parse_payload		= nft_bridge_parse_payload,
-	.parse_immediate	= nft_bridge_parse_immediate,
 	.parse_lookup		= nft_bridge_parse_lookup,
 	.parse_match		= nft_bridge_parse_match,
 	.parse_target		= nft_bridge_parse_target,
