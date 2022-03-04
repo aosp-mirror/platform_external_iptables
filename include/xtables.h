@@ -654,6 +654,9 @@ const char *xt_xlate_get(struct xt_xlate *xl);
 #define xt_xlate_rule_get xt_xlate_get
 const char *xt_xlate_set_get(struct xt_xlate *xl);
 
+/* informed target lookups */
+void xtables_announce_chain(const char *name);
+
 #ifdef XTABLES_INTERNAL
 
 /* Shipped modules rely on this... */

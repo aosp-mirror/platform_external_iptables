@@ -308,6 +308,7 @@ ip46tables_restore_main(const struct iptables_restore_cb *cb,
 						cb->ops->strerror(errno));
 			}
 
+			xtables_announce_chain(chain);
 			ret = 1;
 
 		} else if (in_table) {

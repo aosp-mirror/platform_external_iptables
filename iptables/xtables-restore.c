@@ -155,6 +155,7 @@ static void xtables_restore_parse_line(struct nft_handle *h,
 				   "%s: line %u chain name invalid\n",
 				   xt_params->program_name, line);
 
+		xtables_announce_chain(chain);
 		assert_valid_chain_name(chain);
 
 		policy = strtok(NULL, " \t\n");

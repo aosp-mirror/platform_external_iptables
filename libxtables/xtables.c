@@ -321,6 +321,12 @@ static void notargets_hlist_insert(const char *name)
 	hlist_add_head(&cur->node, &notargets[djb_hash(name) % NOTARGET_HSIZE]);
 }
 
+void xtables_announce_chain(const char *name)
+{
+	if (!notargets_hlist_lookup(name))
+		notargets_hlist_insert(name);
+}
+
 void xtables_init(void)
 {
 	/* xtables cannot be used with setuid in a safe way. */
