@@ -668,6 +668,7 @@ int nft_init_eb(struct nft_handle *h, const char *pname)
 			ebtables_globals.program_version);
 		exit(1);
 	}
+	init_extensions();
 	init_extensionsb();
 
 	if (nft_init(h, NFPROTO_BRIDGE) < 0)

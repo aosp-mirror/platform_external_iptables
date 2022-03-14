@@ -75,7 +75,12 @@ xtables_main(int family, const char *progname, int argc, char *argv[])
 		init_extensions6();
 		break;
 	case NFPROTO_ARP:
+		init_extensions();
 		init_extensionsa();
+		break;
+	case NFPROTO_BRIDGE:
+		init_extensions();
+		init_extensionsb();
 		break;
 	}
 

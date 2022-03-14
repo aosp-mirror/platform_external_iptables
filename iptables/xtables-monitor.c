@@ -628,6 +628,8 @@ int xtables_monitor_main(int argc, char *argv[])
 	init_extensions();
 	init_extensions4();
 	init_extensions6();
+	init_extensionsa();
+	init_extensionsb();
 
 	if (nft_init(&h, AF_INET)) {
 		fprintf(stderr, "%s/%s Failed to initialize nft: %s\n",

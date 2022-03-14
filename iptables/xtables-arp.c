@@ -205,6 +205,7 @@ int nft_init_arp(struct nft_handle *h, const char *pname)
 			arptables_globals.program_version);
 		exit(1);
 	}
+	init_extensions();
 	init_extensionsa();
 
 	if (nft_init(h, NFPROTO_ARP) < 0)
