@@ -1418,7 +1418,7 @@ void xtables_param_act(unsigned int status, const char *p1, ...)
 
 const char *xtables_ipaddr_to_numeric(const struct in_addr *addrp)
 {
-	static char buf[20];
+	static char buf[16];
 	const unsigned char *bytep = (const void *)&addrp->s_addr;
 
 	sprintf(buf, "%u.%u.%u.%u", bytep[0], bytep[1], bytep[2], bytep[3]);
