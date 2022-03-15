@@ -67,19 +67,18 @@ xtables_main(int family, const char *progname, int argc, char *argv[])
 		exit(1);
 	}
 	xt_params->program_name = progname;
+	init_extensions();
 	switch (family) {
 	case NFPROTO_IPV4:
-	case NFPROTO_IPV6:
-		init_extensions();
 		init_extensions4();
+		break;
+	case NFPROTO_IPV6:
 		init_extensions6();
 		break;
 	case NFPROTO_ARP:
-		init_extensions();
 		init_extensionsa();
 		break;
 	case NFPROTO_BRIDGE:
-		init_extensions();
 		init_extensionsb();
 		break;
 	}

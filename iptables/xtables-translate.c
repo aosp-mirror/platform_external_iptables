@@ -485,19 +485,18 @@ static int xtables_xlate_main_common(struct nft_handle *h,
 			xtables_globals.program_version);
 		return 1;
 	}
+	init_extensions();
 	switch (family) {
 	case NFPROTO_IPV4:
-	case NFPROTO_IPV6: /* fallthrough: same table */
-		init_extensions();
 		init_extensions4();
+		break;
+	case NFPROTO_IPV6:
 		init_extensions6();
 		break;
 	case NFPROTO_ARP:
-		init_extensions();
 		init_extensionsa();
 		break;
 	case NFPROTO_BRIDGE:
-		init_extensions();
 		init_extensionsb();
 		break;
 	default:

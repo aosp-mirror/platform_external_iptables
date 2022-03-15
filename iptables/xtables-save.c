@@ -199,16 +199,17 @@ xtables_save_main(int family, int argc, char *argv[],
 		exit(1);
 	}
 
+	init_extensions();
 	switch (family) {
 	case NFPROTO_IPV4:
-	case NFPROTO_IPV6: /* fallthough, same table */
-		init_extensions();
 		init_extensions4();
+		d.commit = true;
+		break;
+	case NFPROTO_IPV6:
 		init_extensions6();
 		d.commit = true;
 		break;
 	case NFPROTO_ARP:
-		init_extensions();
 		init_extensionsa();
 		break;
 	case NFPROTO_BRIDGE: {
@@ -220,7 +221,6 @@ xtables_save_main(int family, int argc, char *argv[],
 			d.format &= ~FMT_NOCOUNTS;
 			d.format |= FMT_C_COUNTS | FMT_EBT_SAVE;
 		}
-		init_extensions();
 		init_extensionsb();
 		break;
 	}
