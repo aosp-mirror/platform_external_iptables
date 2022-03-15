@@ -67,7 +67,6 @@ xtables_main(int family, const char *progname, int argc, char *argv[])
 		exit(1);
 	}
 	xt_params->program_name = progname;
-#if defined(ALL_INCLUSIVE) || defined(NO_SHARED_LIBS)
 	switch (family) {
 	case NFPROTO_IPV4:
 	case NFPROTO_IPV6:
@@ -79,7 +78,6 @@ xtables_main(int family, const char *progname, int argc, char *argv[])
 		init_extensionsa();
 		break;
 	}
-#endif
 
 	if (nft_init(&h, family) < 0) {
 		fprintf(stderr, "%s: Failed to initialize nft: %s\n",

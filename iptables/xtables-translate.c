@@ -488,11 +488,9 @@ static int xtables_xlate_main_common(struct nft_handle *h,
 	switch (family) {
 	case NFPROTO_IPV4:
 	case NFPROTO_IPV6: /* fallthrough: same table */
-#if defined(ALL_INCLUSIVE) || defined(NO_SHARED_LIBS)
 	init_extensions();
 	init_extensions4();
 	init_extensions6();
-#endif
 		break;
 	case NFPROTO_ARP:
 	case NFPROTO_BRIDGE:

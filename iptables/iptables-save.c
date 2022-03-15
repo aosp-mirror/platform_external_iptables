@@ -227,10 +227,8 @@ iptables_save_main(int argc, char *argv[])
 				iptables_globals.program_version);
 		exit(1);
 	}
-#if defined(ALL_INCLUSIVE) || defined(NO_SHARED_LIBS)
 	init_extensions();
 	init_extensions4();
-#endif
 
 	ret = do_iptables_save(&ipt_save_cb, argc, argv);
 
@@ -273,10 +271,8 @@ ip6tables_save_main(int argc, char *argv[])
 				ip6tables_globals.program_version);
 		exit(1);
 	}
-#if defined(ALL_INCLUSIVE) || defined(NO_SHARED_LIBS)
 	init_extensions();
 	init_extensions6();
-#endif
 
 	ret = do_iptables_save(&ip6t_save_cb, argc, argv);
 

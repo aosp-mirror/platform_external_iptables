@@ -363,11 +363,9 @@ xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 	switch (family) {
 	case NFPROTO_IPV4:
 	case NFPROTO_IPV6: /* fallthough, same table */
-#if defined(ALL_INCLUSIVE) || defined(NO_SHARED_LIBS)
 		init_extensions();
 		init_extensions4();
 		init_extensions6();
-#endif
 		break;
 	case NFPROTO_ARP:
 	case NFPROTO_BRIDGE:

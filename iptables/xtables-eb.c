@@ -668,10 +668,7 @@ int nft_init_eb(struct nft_handle *h, const char *pname)
 			ebtables_globals.program_version);
 		exit(1);
 	}
-
-#if defined(ALL_INCLUSIVE) || defined(NO_SHARED_LIBS)
 	init_extensionsb();
-#endif
 
 	if (nft_init(h, NFPROTO_BRIDGE) < 0)
 		xtables_error(OTHER_PROBLEM,

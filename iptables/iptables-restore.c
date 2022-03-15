@@ -383,10 +383,8 @@ iptables_restore_main(int argc, char *argv[])
 				iptables_globals.program_version);
 		exit(1);
 	}
-#if defined(ALL_INCLUSIVE) || defined(NO_SHARED_LIBS)
 	init_extensions();
 	init_extensions4();
-#endif
 
 	ret = ip46tables_restore_main(&ipt_restore_cb, argc, argv);
 
@@ -417,10 +415,8 @@ ip6tables_restore_main(int argc, char *argv[])
 				ip6tables_globals.program_version);
 		exit(1);
 	}
-#if defined(ALL_INCLUSIVE) || defined(NO_SHARED_LIBS)
 	init_extensions();
 	init_extensions6();
-#endif
 
 	ret = ip46tables_restore_main(&ip6t_restore_cb, argc, argv);
 
