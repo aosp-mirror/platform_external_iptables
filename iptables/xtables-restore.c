@@ -155,10 +155,7 @@ static void xtables_restore_parse_line(struct nft_handle *h,
 				   "%s: line %u chain name invalid\n",
 				   xt_params->program_name, line);
 
-		if (strlen(chain) >= XT_EXTENSION_MAXNAMELEN)
-			xtables_error(PARAMETER_PROBLEM,
-				   "Invalid chain name `%s' (%u chars max)",
-				   chain, XT_EXTENSION_MAXNAMELEN - 1);
+		assert_valid_chain_name(chain);
 
 		policy = strtok(NULL, " \t\n");
 		DEBUGP("line %u, policy '%s'\n", line, policy);

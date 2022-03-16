@@ -244,7 +244,7 @@ char cmd2char(int option);
 void add_command(unsigned int *cmd, const int newcmd,
 		 const int othercmds, int invert);
 int parse_rulenumber(const char *rule);
-void parse_chain(const char *chainname);
+void assert_valid_chain_name(const char *chainname);
 
 void generic_opt_check(int command, int options);
 char opt2char(int option);

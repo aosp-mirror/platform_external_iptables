@@ -1031,7 +1031,7 @@ set_option(unsigned int *options, unsigned int option, u_int16_t *invflg,
 	}
 }
 
-void parse_chain(const char *chainname)
+void assert_valid_chain_name(const char *chainname)
 {
 	const char *ptr;
 
@@ -1412,7 +1412,7 @@ void do_parse(int argc, char *argv[],
 			break;
 
 		case 'N':
-			parse_chain(optarg);
+			assert_valid_chain_name(optarg);
 			add_command(&p->command, CMD_NEW_CHAIN, CMD_NONE,
 				    invert);
 			p->chain = optarg;
