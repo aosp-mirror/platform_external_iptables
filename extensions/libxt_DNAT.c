@@ -28,10 +28,12 @@
 
 enum {
 	O_TO_DEST = 0,
+	O_TO_PORTS,
 	O_RANDOM,
 	O_PERSISTENT,
-	F_TO_DEST = 1 << O_TO_DEST,
-	F_RANDOM  = 1 << O_RANDOM,
+	F_TO_DEST  = 1 << O_TO_DEST,
+	F_TO_PORTS = 1 << O_TO_PORTS,
+	F_RANDOM   = 1 << O_RANDOM,
 };
 
 static void DNAT_help(void)
@@ -52,11 +54,26 @@ static void DNAT_help_v2(void)
 "[--random] [--persistent]\n");
 }
 
+static void REDIRECT_help(void)
+{
+	printf(
+"REDIRECT target options:\n"
+" --to-ports <port>[-<port>]\n"
+"				Port (range) to map to.\n"
+" [--random]\n");
+}
+
 static const struct xt_option_entry DNAT_opts[] = {
 	{.name = "to-destination", .id = O_TO_DEST, .type = XTTYPE_STRING,
 	 .flags = XTOPT_MAND},
 	{.name = "random", .id = O_RANDOM, .type = XTTYPE_NONE},
 	{.name = "persistent", .id = O_PERSISTENT, .type = XTTYPE_NONE},
+	XTOPT_TABLEEND,
+};
+
+static const struct xt_option_entry REDIRECT_opts[] = {
+	{.name = "to-ports", .id = O_TO_PORTS, .type = XTTYPE_STRING},
+	{.name = "random", .id = O_RANDOM, .type = XTTYPE_NONE},
 	XTOPT_TABLEEND,
 };
 
@@ -73,9 +90,13 @@ parse_ports(const char *arg, bool portok, struct nf_nat_range2 *range)
 
 	range->flags |= NF_NAT_RANGE_PROTO_SPECIFIED;
 
-	if (!xtables_strtoui(arg, &end, &port, 1, UINT16_MAX))
-		xtables_error(PARAMETER_PROBLEM,
-			      "Port `%s' not valid", arg);
+	if (!xtables_strtoui(arg, &end, &port, 0, UINT16_MAX)) {
+		port = xtables_service_to_port(arg, NULL);
+		if (port == (unsigned)-1)
+			xtables_error(PARAMETER_PROBLEM,
+				      "Port `%s' not valid", arg);
+		end = "";
+	}
 
 	switch (*end) {
 	case '\0':
@@ -94,9 +115,9 @@ parse_ports(const char *arg, bool portok, struct nf_nat_range2 *range)
 			      "Garbage after port value: `%s'", end);
 	}
 
-	if (!xtables_strtoui(arg, &end, &maxport, 1, UINT16_MAX))
-		xtables_error(PARAMETER_PROBLEM,
-			      "Port `%s' not valid", arg);
+	/* it is a range, don't allow service names here */
+	if (!xtables_strtoui(arg, &end, &maxport, 0, UINT16_MAX))
+		xtables_error(PARAMETER_PROBLEM, "Port `%s' not valid", arg);
 
 	if (maxport < port)
 		/* People are stupid. */
@@ -117,9 +138,12 @@ parse_ports(const char *arg, bool portok, struct nf_nat_range2 *range)
 			      "Garbage after port range: `%s'", end);
 	}
 
-	if (!xtables_strtoui(arg, &end, &baseport, 1, UINT16_MAX))
-		xtables_error(PARAMETER_PROBLEM,
-			      "Port `%s' not valid", arg);
+	if (!xtables_strtoui(arg, &end, &baseport, 1, UINT16_MAX)) {
+		baseport = xtables_service_to_port(arg, NULL);
+		if (baseport == (unsigned)-1)
+			xtables_error(PARAMETER_PROBLEM,
+				      "Port `%s' not valid", arg);
+	}
 
 	range->flags |= NF_NAT_RANGE_PROTO_OFFSET;
 	range->base_proto.tcp.port = htons(baseport);
@@ -199,6 +223,9 @@ static void __DNAT_parse(struct xt_option_call *cb, __u16 proto,
 	case O_TO_DEST:
 		parse_to(cb->arg, portok, range, family);
 		break;
+	case O_TO_PORTS:
+		parse_ports(cb->arg, portok, range);
+		break;
 	case O_PERSISTENT:
 		range->flags |= NF_NAT_RANGE_PERSISTENT;
 		break;
@@ -217,6 +244,8 @@ static void DNAT_parse(struct xt_option_call *cb)
 	case O_TO_DEST:
 		mr->range->min_ip = range.min_addr.ip;
 		mr->range->max_ip = range.max_addr.ip;
+		/* fall through */
+	case O_TO_PORTS:
 		mr->range->min = range.min_proto;
 		mr->range->max = range.max_proto;
 		/* fall through */
@@ -228,9 +257,11 @@ static void DNAT_parse(struct xt_option_call *cb)
 
 static void __DNAT_fcheck(struct xt_fcheck_call *cb, unsigned int *flags)
 {
-	static const unsigned int f = F_TO_DEST | F_RANDOM;
+	static const unsigned int redir_f = F_TO_PORTS | F_RANDOM;
+	static const unsigned int dnat_f = F_TO_DEST | F_RANDOM;
 
-	if ((cb->xflags & f) == f)
+	if ((cb->xflags & redir_f) == redir_f ||
+	    (cb->xflags & dnat_f) == dnat_f)
 		*flags |= NF_NAT_RANGE_PROTO_RANDOM;
 }
 
@@ -443,6 +474,84 @@ static int DNAT_xlate6_v2(struct xt_xlate *xl,
 	return __DNAT_xlate(xl, (const void *)params->target->data, AF_INET6);
 }
 
+static void __REDIRECT_print(const struct nf_nat_range2 *range, bool save)
+{
+	char *range_str = sprint_range(range, AF_INET);
+	const char *dashdash = save ? "--" : "";
+
+	if (strlen(range_str))
+		/* range_str starts with colon, skip over them */
+		printf(" %s %s", save ? "--to-ports" : "redir ports",
+		       range_str + 1);
+	if (range->flags & NF_NAT_RANGE_PROTO_RANDOM)
+		printf(" %srandom", dashdash);
+}
+
+static int __REDIRECT_xlate(struct xt_xlate *xl,
+			    const struct nf_nat_range2 *range)
+{
+	char *range_str = sprint_range(range, AF_INET);
+
+	xt_xlate_add(xl, "redirect");
+	if (strlen(range_str))
+		xt_xlate_add(xl, " to %s", range_str);
+	if (range->flags & NF_NAT_RANGE_PROTO_RANDOM)
+		xt_xlate_add(xl, " random");
+
+	return 1;
+}
+
+static void REDIRECT_print(const void *ip, const struct xt_entry_target *target,
+                           int numeric)
+{
+	struct nf_nat_range2 range = RANGE2_INIT_FROM_IPV4_MRC(target->data);
+
+	__REDIRECT_print(&range, false);
+}
+
+static void REDIRECT_save(const void *ip, const struct xt_entry_target *target)
+{
+	struct nf_nat_range2 range = RANGE2_INIT_FROM_IPV4_MRC(target->data);
+
+	__REDIRECT_print(&range, true);
+}
+
+static int REDIRECT_xlate(struct xt_xlate *xl,
+			   const struct xt_xlate_tg_params *params)
+{
+	struct nf_nat_range2 range =
+		RANGE2_INIT_FROM_IPV4_MRC(params->target->data);
+
+	return __REDIRECT_xlate(xl, &range);
+}
+
+static void REDIRECT_print6(const void *ip, const struct xt_entry_target *target,
+                            int numeric)
+{
+	struct nf_nat_range2 range = {};
+
+	memcpy(&range, (const void *)target->data, sizeof(struct nf_nat_range));
+	__REDIRECT_print(&range, false);
+}
+
+static void REDIRECT_save6(const void *ip, const struct xt_entry_target *target)
+{
+	struct nf_nat_range2 range = {};
+
+	memcpy(&range, (const void *)target->data, sizeof(struct nf_nat_range));
+	__REDIRECT_print(&range, true);
+}
+
+static int REDIRECT_xlate6(struct xt_xlate *xl,
+			   const struct xt_xlate_tg_params *params)
+{
+	struct nf_nat_range2 range = {};
+
+	memcpy(&range, (const void *)params->target->data,
+	       sizeof(struct nf_nat_range));
+	return __REDIRECT_xlate(xl, &range);
+}
+
 static struct xtables_target dnat_tg_reg[] = {
 	{
 		.name		= "DNAT",
@@ -460,6 +569,21 @@ static struct xtables_target dnat_tg_reg[] = {
 		.xlate		= DNAT_xlate,
 	},
 	{
+		.name		= "REDIRECT",
+		.version	= XTABLES_VERSION,
+		.family		= NFPROTO_IPV4,
+		.revision	= 0,
+		.size		= XT_ALIGN(sizeof(struct nf_nat_ipv4_multi_range_compat)),
+		.userspacesize	= XT_ALIGN(sizeof(struct nf_nat_ipv4_multi_range_compat)),
+		.help		= REDIRECT_help,
+		.print		= REDIRECT_print,
+		.save		= REDIRECT_save,
+		.x6_parse	= DNAT_parse,
+		.x6_fcheck	= DNAT_fcheck,
+		.x6_options	= REDIRECT_opts,
+		.xlate		= REDIRECT_xlate,
+	},
+	{
 		.name		= "DNAT",
 		.version	= XTABLES_VERSION,
 		.family		= NFPROTO_IPV6,
@@ -473,6 +597,20 @@ static struct xtables_target dnat_tg_reg[] = {
 		.x6_fcheck	= DNAT_fcheck6,
 		.x6_options	= DNAT_opts,
 		.xlate		= DNAT_xlate6,
+	},
+	{
+		.name		= "REDIRECT",
+		.version	= XTABLES_VERSION,
+		.family		= NFPROTO_IPV6,
+		.size		= XT_ALIGN(sizeof(struct nf_nat_range)),
+		.userspacesize	= XT_ALIGN(sizeof(struct nf_nat_range)),
+		.help		= REDIRECT_help,
+		.print		= REDIRECT_print6,
+		.save		= REDIRECT_save6,
+		.x6_parse	= DNAT_parse6,
+		.x6_fcheck	= DNAT_fcheck6,
+		.x6_options	= REDIRECT_opts,
+		.xlate		= REDIRECT_xlate6,
 	},
 	{
 		.name		= "DNAT",
