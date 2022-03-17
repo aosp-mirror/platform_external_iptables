@@ -19,10 +19,8 @@ enum {
 	O_TO_DEST = 0,
 	O_RANDOM,
 	O_PERSISTENT,
-	O_X_TO_DEST,
 	F_TO_DEST   = 1 << O_TO_DEST,
 	F_RANDOM   = 1 << O_RANDOM,
-	F_X_TO_DEST = 1 << O_X_TO_DEST,
 };
 
 static void DNAT_help(void)
@@ -45,7 +43,7 @@ static void DNAT_help_v2(void)
 
 static const struct xt_option_entry DNAT_opts[] = {
 	{.name = "to-destination", .id = O_TO_DEST, .type = XTTYPE_STRING,
-	 .flags = XTOPT_MAND | XTOPT_MULTI},
+	 .flags = XTOPT_MAND},
 	{.name = "random", .id = O_RANDOM, .type = XTTYPE_NONE},
 	{.name = "persistent", .id = O_PERSISTENT, .type = XTTYPE_NONE},
 	XTOPT_TABLEEND,
@@ -183,12 +181,7 @@ static void _DNAT_parse(struct xt_option_call *cb,
 	xtables_option_parse(cb);
 	switch (cb->entry->id) {
 	case O_TO_DEST:
-		if (cb->xflags & F_X_TO_DEST) {
-			xtables_error(PARAMETER_PROBLEM,
-				      "DNAT: Multiple --to-destination not supported");
-		}
 		parse_to(cb->arg, portok, range, rev);
-		cb->xflags |= F_X_TO_DEST;
 		break;
 	case O_PERSISTENT:
 		range->flags |= NF_NAT_RANGE_PERSISTENT;

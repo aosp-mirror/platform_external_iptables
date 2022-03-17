@@ -12,10 +12,8 @@ enum {
 	O_TO_DEST = 0,
 	O_RANDOM,
 	O_PERSISTENT,
-	O_X_TO_DEST, /* hidden flag */
-	F_TO_DEST   = 1 << O_TO_DEST,
-	F_RANDOM    = 1 << O_RANDOM,
-	F_X_TO_DEST = 1 << O_X_TO_DEST,
+	F_TO_DEST = 1 << O_TO_DEST,
+	F_RANDOM  = 1 << O_RANDOM,
 };
 
 static void DNAT_help(void)
@@ -145,7 +143,6 @@ static void DNAT_parse(struct xt_option_call *cb)
 	switch (cb->entry->id) {
 	case O_TO_DEST:
 		parse_to(cb->arg, portok, mr->range);
-		cb->xflags |= F_X_TO_DEST;
 		break;
 	case O_PERSISTENT:
 		mr->range->flags |= NF_NAT_RANGE_PERSISTENT;
@@ -367,7 +364,6 @@ static void DNAT_parse_v2(struct xt_option_call *cb)
 	switch (cb->entry->id) {
 	case O_TO_DEST:
 		parse_to_v2(cb->arg, portok, range);
-		cb->xflags |= F_X_TO_DEST;
 		break;
 	case O_PERSISTENT:
 		range->flags |= NF_NAT_RANGE_PERSISTENT;

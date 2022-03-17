@@ -13,11 +13,9 @@ enum {
 	O_RANDOM,
 	O_RANDOM_FULLY,
 	O_PERSISTENT,
-	O_X_TO_SRC,
 	F_TO_SRC       = 1 << O_TO_SRC,
 	F_RANDOM       = 1 << O_RANDOM,
 	F_RANDOM_FULLY = 1 << O_RANDOM_FULLY,
-	F_X_TO_SRC     = 1 << O_X_TO_SRC,
 };
 
 static void SNAT_help(void)
@@ -139,7 +137,6 @@ static void SNAT_parse(struct xt_option_call *cb)
 	switch (cb->entry->id) {
 	case O_TO_SRC:
 		parse_to(cb->arg, portok, mr->range);
-		cb->xflags |= F_X_TO_SRC;
 		break;
 	case O_PERSISTENT:
 		mr->range->flags |= NF_NAT_RANGE_PERSISTENT;
