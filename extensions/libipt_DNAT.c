@@ -9,6 +9,15 @@
 #include <linux/netfilter_ipv4/ip_tables.h>
 #include <linux/netfilter/nf_nat.h>
 
+#define TO_IPV4_MRC(ptr) ((const struct nf_nat_ipv4_multi_range_compat *)(ptr))
+#define RANGE2_INIT_FROM_IPV4_MRC(ptr) {			\
+	.flags		= TO_IPV4_MRC(ptr)->range[0].flags,	\
+	.min_addr.ip	= TO_IPV4_MRC(ptr)->range[0].min_ip,	\
+	.max_addr.ip	= TO_IPV4_MRC(ptr)->range[0].max_ip,	\
+	.min_proto	= TO_IPV4_MRC(ptr)->range[0].min,	\
+	.max_proto	= TO_IPV4_MRC(ptr)->range[0].max,	\
+};
+
 enum {
 	O_TO_DEST = 0,
 	O_RANDOM,
@@ -206,51 +215,55 @@ static void DNAT_fcheck(struct xt_fcheck_call *cb)
 			      "Shifted portmap ranges not supported with this kernel");
 }
 
-static void print_range(const struct nf_nat_ipv4_range *r)
+static char *sprint_range(const struct nf_nat_range2 *r)
 {
-	if (r->flags & NF_NAT_RANGE_MAP_IPS) {
-		struct in_addr a;
+	static char buf[INET_ADDRSTRLEN * 2 + 1 + 6 * 3];
 
-		a.s_addr = r->min_ip;
-		printf("%s", xtables_ipaddr_to_numeric(&a));
-		if (r->max_ip != r->min_ip) {
-			a.s_addr = r->max_ip;
-			printf("-%s", xtables_ipaddr_to_numeric(&a));
-		}
+	if (r->flags & NF_NAT_RANGE_MAP_IPS) {
+		sprintf(buf, "%s", xtables_ipaddr_to_numeric(&r->min_addr.in));
+		if (memcmp(&r->min_addr, &r->max_addr, sizeof(r->min_addr)))
+			sprintf(buf + strlen(buf), "-%s",
+				xtables_ipaddr_to_numeric(&r->max_addr.in));
+	} else {
+		buf[0] = '\0';
 	}
 	if (r->flags & NF_NAT_RANGE_PROTO_SPECIFIED) {
-		printf(":");
-		printf("%hu", ntohs(r->min.tcp.port));
-		if (r->max.tcp.port != r->min.tcp.port)
-			printf("-%hu", ntohs(r->max.tcp.port));
+		sprintf(buf + strlen(buf), ":%hu",
+			ntohs(r->min_proto.tcp.port));
+		if (r->max_proto.tcp.port != r->min_proto.tcp.port)
+			sprintf(buf + strlen(buf), "-%hu",
+				ntohs(r->max_proto.tcp.port));
+		if (r->flags & NF_NAT_RANGE_PROTO_OFFSET)
+			sprintf(buf + strlen(buf), "/%hu",
+				ntohs(r->base_proto.tcp.port));
 	}
+	return buf;
+}
+
+static void __DNAT_print(const struct nf_nat_range2 *r, bool save)
+{
+	const char *dashdash = save ? "--" : "";
+
+	printf(" %s%s", save ? "--to-destination " : "to:", sprint_range(r));
+	if (r->flags & NF_NAT_RANGE_PROTO_RANDOM)
+		printf(" %srandom", dashdash);
+	if (r->flags & NF_NAT_RANGE_PERSISTENT)
+		printf(" %spersistent", dashdash);
 }
 
 static void DNAT_print(const void *ip, const struct xt_entry_target *target,
                        int numeric)
 {
-	const struct nf_nat_ipv4_multi_range_compat *mr =
-				(const void *)target->data;
+	struct nf_nat_range2 range = RANGE2_INIT_FROM_IPV4_MRC(target->data);
 
-	printf(" to:");
-	print_range(mr->range);
-	if (mr->range->flags & NF_NAT_RANGE_PROTO_RANDOM)
-		printf(" random");
-	if (mr->range->flags & NF_NAT_RANGE_PERSISTENT)
-		printf(" persistent");
+	__DNAT_print(&range, false);
 }
 
 static void DNAT_save(const void *ip, const struct xt_entry_target *target)
 {
-	const struct nf_nat_ipv4_multi_range_compat *mr =
-				(const void *)target->data;
+	struct nf_nat_range2 range = RANGE2_INIT_FROM_IPV4_MRC(target->data);
 
-	printf(" --to-destination ");
-	print_range(mr->range);
-	if (mr->range->flags & NF_NAT_RANGE_PROTO_RANDOM)
-		printf(" --random");
-	if (mr->range->flags & NF_NAT_RANGE_PERSISTENT)
-		printf(" --persistent");
+	__DNAT_print(&range, true);
 }
 
 static void print_range_xlate(const struct nf_nat_ipv4_range *r,
@@ -312,47 +325,15 @@ static void DNAT_fcheck_v2(struct xt_fcheck_call *cb)
 		range->flags |= NF_NAT_RANGE_PROTO_RANDOM;
 }
 
-static void print_range_v2(const struct nf_nat_range2 *range)
-{
-	if (range->flags & NF_NAT_RANGE_MAP_IPS) {
-		printf("%s", xtables_ipaddr_to_numeric(&range->min_addr.in));
-		if (memcmp(&range->min_addr, &range->max_addr,
-			   sizeof(range->min_addr)))
-			printf("-%s", xtables_ipaddr_to_numeric(&range->max_addr.in));
-	}
-	if (range->flags & NF_NAT_RANGE_PROTO_SPECIFIED) {
-		printf(":");
-		printf("%hu", ntohs(range->min_proto.tcp.port));
-		if (range->max_proto.tcp.port != range->min_proto.tcp.port)
-			printf("-%hu", ntohs(range->max_proto.tcp.port));
-		if (range->flags & NF_NAT_RANGE_PROTO_OFFSET)
-			printf("/%hu", ntohs(range->base_proto.tcp.port));
-	}
-}
-
 static void DNAT_print_v2(const void *ip, const struct xt_entry_target *target,
                        int numeric)
 {
-	const struct nf_nat_range2 *range = (const void *)target->data;
-
-	printf(" to:");
-	print_range_v2(range);
-	if (range->flags & NF_NAT_RANGE_PROTO_RANDOM)
-		printf(" random");
-	if (range->flags & NF_NAT_RANGE_PERSISTENT)
-		printf(" persistent");
+	__DNAT_print((const void *)target->data, false);
 }
 
 static void DNAT_save_v2(const void *ip, const struct xt_entry_target *target)
 {
-	const struct nf_nat_range2 *range = (const void *)target->data;
-
-	printf(" --to-destination ");
-	print_range_v2(range);
-	if (range->flags & NF_NAT_RANGE_PROTO_RANDOM)
-		printf(" --random");
-	if (range->flags & NF_NAT_RANGE_PERSISTENT)
-		printf(" --persistent");
+	__DNAT_print((const void *)target->data, true);
 }
 
 static void print_range_xlate_v2(const struct nf_nat_range2 *range,
