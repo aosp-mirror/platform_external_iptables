@@ -42,6 +42,7 @@ def run_test(name, payload):
     line = payload.readline()
     while line:
         if line.startswith(keywords):
+            sourceline = line
             tests += 1
             process = Popen([ xtables_nft_multi ] + shlex.split(line), stdout=PIPE, stderr=PIPE)
             (output, error) = process.communicate()
@@ -58,7 +59,7 @@ def run_test(name, payload):
                     test_passed = False
                     failed += 1
                     result.append(name + ": " + red("Fail"))
-                    result.append(magenta("src: ") + line.rstrip(" \n"))
+                    result.append(magenta("src: ") + sourceline.rstrip(" \n"))
                     result.append(magenta("exp: ") + expected)
                     result.append(magenta("res: ") + translation + "\n")
                 else:
