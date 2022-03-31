@@ -21,6 +21,8 @@ will be modified.
 If \fBbaseport\fP is given, the difference of the original destination port and
 its value is used as offset into the mapping port range. This allows to create
 shifted portmap ranges and is available since kernel version 4.18.
+For a single port or \fIbaseport\fP, a service name as listed in
+\fB/etc/services\fP may be used.
 .TP
 \fB\-\-random\fP
 If option
