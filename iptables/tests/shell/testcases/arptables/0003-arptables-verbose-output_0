@@ -4,7 +4,7 @@ set -e
 set -x
 
 # there is no legacy backend to test
-[[ $XT_MULTI == *xtables-nft-multi ]] || { echo "skip $XT_MULTI"; exit 0; }
+[[ $XT_MULTI == */xtables-nft-multi ]] || { echo "skip $XT_MULTI"; exit 0; }
 
 $XT_MULTI arptables -N foo
 

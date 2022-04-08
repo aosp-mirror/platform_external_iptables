@@ -1,4 +1,4 @@
-This module matches the policy used by IPsec for handling a packet.
+This modules matches the policy used by IPsec for handling a packet.
 .TP
 \fB\-\-dir\fP {\fBin\fP|\fBout\fP}
 Used to select whether to match the policy used for decapsulation or the

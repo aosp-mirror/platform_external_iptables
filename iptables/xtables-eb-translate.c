@@ -397,9 +397,7 @@ print_zero:
 				if (ebt_check_inverse2(optarg, argc, argv))
 					cs.eb.invflags |= EBT_ISOURCE;
 
-				if (xtables_parse_mac_and_mask(optarg,
-							       cs.eb.sourcemac,
-							       cs.eb.sourcemsk))
+				if (ebt_get_mac_and_mask(optarg, cs.eb.sourcemac, cs.eb.sourcemsk))
 					xtables_error(PARAMETER_PROBLEM, "Problem with specified source mac '%s'", optarg);
 				cs.eb.bitmask |= EBT_SOURCEMAC;
 				break;
@@ -408,9 +406,7 @@ print_zero:
 				if (ebt_check_inverse2(optarg, argc, argv))
 					cs.eb.invflags |= EBT_IDEST;
 
-				if (xtables_parse_mac_and_mask(optarg,
-							       cs.eb.destmac,
-							       cs.eb.destmsk))
+				if (ebt_get_mac_and_mask(optarg, cs.eb.destmac, cs.eb.destmsk))
 					xtables_error(PARAMETER_PROBLEM, "Problem with specified destination mac '%s'", optarg);
 				cs.eb.bitmask |= EBT_DESTMAC;
 				break;

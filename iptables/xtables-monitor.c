@@ -93,8 +93,6 @@ static int rule_cb(const struct nlmsghdr *nlh, void *data)
 	if (arg->nfproto && arg->nfproto != family)
 		goto err_free;
 
-	arg->h->ops = nft_family_ops_lookup(family);
-
 	if (arg->is_event)
 		printf(" EVENT: ");
 	switch (family) {
@@ -106,7 +104,6 @@ static int rule_cb(const struct nlmsghdr *nlh, void *data)
 		printf("-0 ");
 		break;
 	default:
-		puts("");
 		goto err_free;
 	}
 
@@ -228,12 +225,12 @@ static void trace_print_rule(const struct nftnl_trace *nlt, struct cb_arg *args)
 		exit(EXIT_FAILURE);
 	}
 
-	nlh = nftnl_chain_nlmsg_build_hdr(buf, NFT_MSG_GETRULE, family, 0, 0);
+	nlh = nftnl_chain_nlmsg_build_hdr(buf, NFT_MSG_GETRULE, family, NLM_F_DUMP, 0);
 
         nftnl_rule_set_u32(r, NFTNL_RULE_FAMILY, family);
 	nftnl_rule_set_str(r, NFTNL_RULE_CHAIN, chain);
 	nftnl_rule_set_str(r, NFTNL_RULE_TABLE, table);
-	nftnl_rule_set_u64(r, NFTNL_RULE_HANDLE, handle);
+	nftnl_rule_set_u64(r, NFTNL_RULE_POSITION, handle);
 	nftnl_rule_nlmsg_build_payload(nlh, r);
 	nftnl_rule_free(r);
 
@@ -249,21 +246,24 @@ static void trace_print_rule(const struct nftnl_trace *nlt, struct cb_arg *args)
 	}
 
 	portid = mnl_socket_get_portid(nl);
-	if (mnl_socket_sendto(nl, nlh, nlh->nlmsg_len) < 0) {
-		perror("mnl_socket_send");
-		exit(EXIT_FAILURE);
-	}
+        if (mnl_socket_sendto(nl, nlh, nlh->nlmsg_len) < 0) {
+                perror("mnl_socket_send");
+                exit(EXIT_FAILURE);
+        }
 
 	ret = mnl_socket_recvfrom(nl, buf, sizeof(buf));
-	if (ret > 0) {
+        while (ret > 0) {
 		args->is_event = false;
-		ret = mnl_cb_run(buf, ret, 0, portid, rule_cb, args);
-	}
-	if (ret == -1) {
-		perror("error");
-		exit(EXIT_FAILURE);
-	}
-	mnl_socket_close(nl);
+                ret = mnl_cb_run(buf, ret, 0, portid, rule_cb, args);
+                if (ret <= 0)
+                        break;
+                ret = mnl_socket_recvfrom(nl, buf, sizeof(buf));
+        }
+        if (ret == -1) {
+                perror("error");
+                exit(EXIT_FAILURE);
+        }
+        mnl_socket_close(nl);
 }
 
 static void trace_print_packet(const struct nftnl_trace *nlt, struct cb_arg *args)
@@ -274,14 +274,14 @@ static void trace_print_packet(const struct nftnl_trace *nlt, struct cb_arg *arg
 	uint32_t mark;
 	char name[IFNAMSIZ];
 
-	family = nftnl_trace_get_u32(nlt, NFTNL_TRACE_FAMILY);
-	printf("PACKET: %d %08x ", family, nftnl_trace_get_u32(nlt, NFTNL_TRACE_ID));
+	printf("PACKET: %d %08x ", args->nfproto, nftnl_trace_get_u32(nlt, NFTNL_TRACE_ID));
 
 	if (nftnl_trace_is_set(nlt, NFTNL_TRACE_IIF))
 		printf("IN=%s ", if_indextoname(nftnl_trace_get_u32(nlt, NFTNL_TRACE_IIF), name));
 	if (nftnl_trace_is_set(nlt, NFTNL_TRACE_OIF))
 		printf("OUT=%s ", if_indextoname(nftnl_trace_get_u32(nlt, NFTNL_TRACE_OIF), name));
 
+	family = nftnl_trace_get_u32(nlt, NFTNL_TRACE_FAMILY);
 	nfproto = family;
 	if (nftnl_trace_is_set(nlt, NFTNL_TRACE_NFPROTO)) {
 		nfproto = nftnl_trace_get_u32(nlt, NFTNL_TRACE_NFPROTO);
@@ -305,9 +305,6 @@ static void trace_print_packet(const struct nftnl_trace *nlt, struct cb_arg *arg
 			printf("MACSRC=%s ", ether_ntoa((const void *)eh->h_source));
 			printf("MACDST=%s ", ether_ntoa((const void *)eh->h_dest));
 			printf("MACPROTO=%04x ", ntohs(eh->h_proto));
-			break;
-		case ARPHRD_LOOPBACK:
-			printf("LOOPBACK ");
 			break;
 		default:
 			printf("LL=0x%x ", type);
@@ -437,18 +434,9 @@ static void trace_print_packet(const struct nftnl_trace *nlt, struct cb_arg *arg
 	mark = nftnl_trace_get_u32(nlt, NFTNL_TRACE_MARK);
 	if (mark)
 		printf("MARK=0x%x ", mark);
-	puts("");
 }
 
-static void trace_print_hdr(const struct nftnl_trace *nlt)
-{
-	printf(" TRACE: %d %08x %s:%s", nftnl_trace_get_u32(nlt, NFTNL_TABLE_FAMILY),
-					nftnl_trace_get_u32(nlt, NFTNL_TRACE_ID),
-					nftnl_trace_get_str(nlt, NFTNL_TRACE_TABLE),
-					nftnl_trace_get_str(nlt, NFTNL_TRACE_CHAIN));
-}
-
-static void print_verdict(const struct nftnl_trace *nlt, uint32_t verdict)
+static void print_verdict(struct nftnl_trace *nlt, uint32_t verdict)
 {
 	const char *chain;
 
@@ -509,41 +497,38 @@ static int trace_cb(const struct nlmsghdr *nlh, struct cb_arg *arg)
 	    arg->nfproto != nftnl_trace_get_u32(nlt, NFTNL_TABLE_FAMILY))
 		goto err_free;
 
+	printf(" TRACE: %d %08x %s:%s", nftnl_trace_get_u32(nlt, NFTNL_TABLE_FAMILY),
+					nftnl_trace_get_u32(nlt, NFTNL_TRACE_ID),
+					nftnl_trace_get_str(nlt, NFTNL_TRACE_TABLE),
+					nftnl_trace_get_str(nlt, NFTNL_TRACE_CHAIN));
+
 	switch (nftnl_trace_get_u32(nlt, NFTNL_TRACE_TYPE)) {
 	case NFT_TRACETYPE_RULE:
 		verdict = nftnl_trace_get_u32(nlt, NFTNL_TRACE_VERDICT);
+		printf(":rule:0x%llx:", (unsigned long long)nftnl_trace_get_u64(nlt, NFTNL_TRACE_RULE_HANDLE));
+		print_verdict(nlt, verdict);
 
+		if (nftnl_trace_is_set(nlt, NFTNL_TRACE_RULE_HANDLE))
+			trace_print_rule(nlt, arg);
 		if (nftnl_trace_is_set(nlt, NFTNL_TRACE_LL_HEADER) ||
 		    nftnl_trace_is_set(nlt, NFTNL_TRACE_NETWORK_HEADER))
 			trace_print_packet(nlt, arg);
-
-		if (nftnl_trace_is_set(nlt, NFTNL_TRACE_RULE_HANDLE)) {
-			trace_print_hdr(nlt);
-			printf(":rule:0x%" PRIx64":", nftnl_trace_get_u64(nlt, NFTNL_TRACE_RULE_HANDLE));
-			print_verdict(nlt, verdict);
-			printf(" ");
-			trace_print_rule(nlt, arg);
-		}
 		break;
 	case NFT_TRACETYPE_POLICY:
-		trace_print_hdr(nlt);
 		printf(":policy:");
 		verdict = nftnl_trace_get_u32(nlt, NFTNL_TRACE_POLICY);
 
 		print_verdict(nlt, verdict);
-		puts("");
 		break;
 	case NFT_TRACETYPE_RETURN:
-		trace_print_hdr(nlt);
 		printf(":return:");
 		trace_print_return(nlt);
-		puts("");
 		break;
 	}
+	puts("");
 err_free:
 	nftnl_trace_free(nlt);
 err:
-	fflush(stdout);
 	return MNL_CB_OK;
 }
 
@@ -630,7 +615,7 @@ int xtables_monitor_main(int argc, char *argv[])
 	init_extensions4();
 #endif
 
-	if (nft_init(&h, AF_INET, xtables_ipv4)) {
+	if (nft_init(&h, xtables_ipv4)) {
 		fprintf(stderr, "%s/%s Failed to initialize nft: %s\n",
 			xtables_globals.program_name,
 			xtables_globals.program_version,
@@ -702,8 +687,6 @@ int xtables_monitor_main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 	mnl_socket_close(nl);
-
-	xtables_fini();
 
 	return EXIT_SUCCESS;
 }

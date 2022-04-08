@@ -27,7 +27,7 @@ iptables \-A PREROUTING \-t mangle \-i eth1 \-m cluster
 iptables \-A PREROUTING \-t mangle \-i eth2 \-m cluster
 \-\-cluster\-total\-nodes 2 \-\-cluster\-local\-node 1
 \-\-cluster\-hash\-seed 0xdeadbeef
-\-j MARK \-\-set\-mark 0xffff
+\-j MARK -\-set\-mark 0xffff
 .IP
 iptables \-A PREROUTING \-t mangle \-i eth1
 \-m mark ! \-\-mark 0xffff \-j DROP

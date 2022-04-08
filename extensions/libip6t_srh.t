@@ -23,6 +23,6 @@
 -m srh ! --srh-tag 0;=;OK
 -m srh --srh-next-hdr 17 --srh-segs-left-eq 1 --srh-last-entry-eq 4 --srh-tag 0;=;OK
 -m srh ! --srh-next-hdr 17 ! --srh-segs-left-eq 0 --srh-tag 0;=;OK
--m srh --srh-psid a::/64 --srh-nsid b::/128 --srh-lsid c::/0;=;OK
--m srh ! --srh-psid a::/64 ! --srh-nsid b::/128 ! --srh-lsid c::/0;=;OK
+-m srh --srh-psid A::/64 --srh-nsid B:: --srh-lsid C::/0;;OK
+-m srh ! --srh-psid A::/64 ! --srh-nsid B:: ! --srh-lsid C::/0;;OK
 -m srh;=;OK

@@ -150,6 +150,54 @@ static void print_range(unsigned int l, unsigned int u)
 		printf("%u:%u ", l, u);
 }
 
+static int brstp_get_mac_and_mask(const char *from, unsigned char *to, unsigned char *mask)
+{
+	char *p;
+	int i;
+	struct ether_addr *addr = NULL;
+
+	static const unsigned char mac_type_unicast[ETH_ALEN];
+	static const unsigned char msk_type_unicast[ETH_ALEN] =   {1,0,0,0,0,0};
+	static const unsigned char mac_type_multicast[ETH_ALEN] = {1,0,0,0,0,0};
+	static const unsigned char mac_type_broadcast[ETH_ALEN] = {255,255,255,255,255,255};
+	static const unsigned char mac_type_bridge_group[ETH_ALEN] = {0x01,0x80,0xc2,0,0,0};
+	static const unsigned char msk_type_bridge_group[ETH_ALEN] = {255,255,255,255,255,255};
+
+	if (strcasecmp(from, "Unicast") == 0) {
+		memcpy(to, mac_type_unicast, ETH_ALEN);
+		memcpy(mask, msk_type_unicast, ETH_ALEN);
+		return 0;
+	}
+	if (strcasecmp(from, "Multicast") == 0) {
+		memcpy(to, mac_type_multicast, ETH_ALEN);
+		memcpy(mask, mac_type_multicast, ETH_ALEN);
+		return 0;
+	}
+	if (strcasecmp(from, "Broadcast") == 0) {
+		memcpy(to, mac_type_broadcast, ETH_ALEN);
+		memcpy(mask, mac_type_broadcast, ETH_ALEN);
+		return 0;
+	}
+	if (strcasecmp(from, "BGA") == 0) {
+		memcpy(to, mac_type_bridge_group, ETH_ALEN);
+		memcpy(mask, msk_type_bridge_group, ETH_ALEN);
+		return 0;
+	}
+	if ( (p = strrchr(from, '/')) != NULL) {
+		*p = '\0';
+		if (!(addr = ether_aton(p + 1)))
+			return -1;
+		memcpy(mask, addr, ETH_ALEN);
+	} else
+		memset(mask, 0xff, ETH_ALEN);
+	if (!(addr = ether_aton(from)))
+		return -1;
+	memcpy(to, addr, ETH_ALEN);
+	for (i = 0; i < ETH_ALEN; i++)
+		to[i] &= mask[i];
+	return 0;
+}
+
 static int
 brstp_parse(int c, char **argv, int invert, unsigned int *flags,
 	    const void *entry, struct xt_entry_match **match)
@@ -232,15 +280,15 @@ brstp_parse(int c, char **argv, int invert, unsigned int *flags,
 			xtables_error(PARAMETER_PROBLEM, "Bad --stp-forward-delay range");
 		break;
 	case EBT_STP_ROOTADDR:
-		if (xtables_parse_mac_and_mask(argv[optind-1],
-					       stpinfo->config.root_addr,
-					       stpinfo->config.root_addrmsk))
+		if (brstp_get_mac_and_mask(argv[optind-1],
+		    (unsigned char *)stpinfo->config.root_addr,
+		    (unsigned char *)stpinfo->config.root_addrmsk))
 			xtables_error(PARAMETER_PROBLEM, "Bad --stp-root-addr address");
 		break;
 	case EBT_STP_SENDERADDR:
-		if (xtables_parse_mac_and_mask(argv[optind-1],
-					       stpinfo->config.sender_addr,
-					       stpinfo->config.sender_addrmsk))
+		if (brstp_get_mac_and_mask(argv[optind-1],
+		    (unsigned char *)stpinfo->config.sender_addr,
+		    (unsigned char *)stpinfo->config.sender_addrmsk))
 			xtables_error(PARAMETER_PROBLEM, "Bad --stp-sender-addr address");
 		break;
 	default:

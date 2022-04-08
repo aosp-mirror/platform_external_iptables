@@ -256,11 +256,6 @@ static int icmp_xlate(struct xt_xlate *xl,
 		if (!type_xlate_print(xl, info->type, info->code[0],
 				      info->code[1]))
 			return 0;
-	} else {
-		/* '-m icmp --icmp-type any' is a noop by itself,
-		 * but it eats a (mandatory) previous '-p icmp' so
-		 * emit it here */
-		xt_xlate_add(xl, "ip protocol icmp");
 	}
 	return 1;
 }

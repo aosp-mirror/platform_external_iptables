@@ -156,7 +156,7 @@ static int cluster_xlate(struct xt_xlate *xl,
 		xt_xlate_add(xl, "%s %u seed 0x%08x ", jhash_st,
 				info->total_nodes, info->hash_seed);
 		for (node = 0; node < 32; node++) {
-			if (info->node_mask & (1u << node)) {
+			if (info->node_mask & (1 << node)) {
 				if (needs_set == 0) {
 					xt_xlate_add(xl, "{ ");
 					needs_set = 1;

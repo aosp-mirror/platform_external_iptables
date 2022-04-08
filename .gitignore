@@ -22,6 +22,3 @@ Makefile.in
 
 /iptables/xtables-multi
 /iptables/xtables-compat-multi
-
-# vim/nano swap file
-*.swp

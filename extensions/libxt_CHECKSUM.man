@@ -1,4 +1,4 @@
-This target selectively works around broken/old applications.
+This target allows to selectively work around broken/old applications.
 It can only be used in the mangle table.
 .TP
 \fB\-\-checksum\-fill\fP

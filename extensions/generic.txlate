@@ -18,19 +18,3 @@ nft add rule bridge filter FORWARD iifname != "iname" meta ibrname "ilogname" oi
 
 ebtables-translate -I INPUT -p ip -d 1:2:3:4:5:6/ff:ff:ff:ff:00:00
 nft insert rule bridge filter INPUT ether type 0x800 ether daddr 01:02:03:04:00:00 and ff:ff:ff:ff:00:00 == 01:02:03:04:00:00 counter
-
-# asterisk is not special in iptables and it is even a valid interface name
-iptables-translate -A FORWARD -i '*' -o 'eth*foo'
-nft add rule ip filter FORWARD iifname "\*" oifname "eth\*foo" counter
-
-# escape all asterisks but translate only the first plus character
-iptables-translate -A FORWARD -i 'eth*foo*+' -o 'eth++'
-nft add rule ip filter FORWARD iifname "eth\*foo\**" oifname "eth+*" counter
-
-# skip for always matching interface names
-iptables-translate -A FORWARD -i '+'
-nft add rule ip filter FORWARD counter
-
-# match against invalid interface name to simulate never matching rule
-iptables-translate -A FORWARD ! -i '+'
-nft add rule ip filter FORWARD iifname "INVAL/D" counter

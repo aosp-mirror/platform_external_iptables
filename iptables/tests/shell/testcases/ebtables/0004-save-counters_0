@@ -3,7 +3,7 @@
 set -e
 
 # there is no legacy backend to test
-[[ $XT_MULTI == *xtables-nft-multi ]] || { echo "skip $XT_MULTI"; exit 0; }
+[[ $XT_MULTI == */xtables-nft-multi ]] || { echo "skip $XT_MULTI"; exit 0; }
 
 $XT_MULTI ebtables --init-table
 $XT_MULTI ebtables -A FORWARD -i nodev123 -o nodev432 -j ACCEPT

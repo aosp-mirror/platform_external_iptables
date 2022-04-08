@@ -1169,7 +1169,7 @@ static int iptcc_compile_chain(struct xtc_handle *h, STRUCT_REPLACE *repl, struc
 	else
 		foot->target.verdict = RETURN;
 	/* set policy-counters */
-	foot->e.counters = c->counters;
+	memcpy(&foot->e.counters, &c->counters, sizeof(STRUCT_COUNTERS));
 
 	return 0;
 }

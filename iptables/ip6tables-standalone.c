@@ -64,8 +64,6 @@ ip6tables_main(int argc, char *argv[])
 		ip6tc_free(handle);
 	}
 
-	xtables_fini();
-
 	if (!ret) {
 		if (errno == EINVAL) {
 			fprintf(stderr, "ip6tables: %s. "

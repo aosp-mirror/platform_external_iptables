@@ -42,10 +42,3 @@ nft add rule ip filter INPUT ct direction original counter accept
 
 iptables-translate -t filter -A INPUT -m conntrack --ctstate NEW --ctproto tcp --ctorigsrc 192.168.0.1 --ctorigdst 192.168.0.1 --ctreplsrc 192.168.0.1 --ctrepldst 192.168.0.1 --ctorigsrcport 12 --ctorigdstport 14 --ctreplsrcport 16 --ctrepldstport 18 --ctexpire 10 --ctstatus SEEN_REPLY --ctdir ORIGINAL -j ACCEPT
 nft add rule ip filter INPUT ct direction original ct original protocol 6 ct state new ct status seen-reply ct expiration 10 ct original saddr 192.168.0.1 ct original daddr 192.168.0.1 ct reply saddr 192.168.0.1 ct reply daddr 192.168.0.1 ct original proto-src 12 ct original proto-dst 14 ct reply proto-src 16 ct reply proto-dst 18 counter accept
-
-iptables-translate -t filter -A INPUT -m conntrack --ctstate SNAT -j ACCEPT
-nft add rule ip filter INPUT ct status snat counter accept
-
-iptables-translate -t filter -A INPUT -m conntrack --ctstate DNAT -j ACCEPT
-nft add rule ip filter INPUT ct status dnat counter accept
-

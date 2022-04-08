@@ -372,7 +372,7 @@ static const struct iptables_restore_cb ipt_restore_cb = {
 int
 iptables_restore_main(int argc, char *argv[])
 {
-	int c, ret;
+	int c;
 
 	iptables_globals.program_name = "iptables-restore";
 	c = xtables_init_all(&iptables_globals, NFPROTO_IPV4);
@@ -387,10 +387,7 @@ iptables_restore_main(int argc, char *argv[])
 	init_extensions4();
 #endif
 
-	ret = ip46tables_restore_main(&ipt_restore_cb, argc, argv);
-
-	xtables_fini();
-	return ret;
+	return ip46tables_restore_main(&ipt_restore_cb, argc, argv);
 }
 #endif
 
@@ -406,7 +403,7 @@ static const struct iptables_restore_cb ip6t_restore_cb = {
 int
 ip6tables_restore_main(int argc, char *argv[])
 {
-	int c, ret;
+	int c;
 
 	ip6tables_globals.program_name = "ip6tables-restore";
 	c = xtables_init_all(&ip6tables_globals, NFPROTO_IPV6);
@@ -421,9 +418,6 @@ ip6tables_restore_main(int argc, char *argv[])
 	init_extensions6();
 #endif
 
-	ret = ip46tables_restore_main(&ip6t_restore_cb, argc, argv);
-
-	xtables_fini();
-	return ret;
+	return ip46tables_restore_main(&ip6t_restore_cb, argc, argv);
 }
 #endif

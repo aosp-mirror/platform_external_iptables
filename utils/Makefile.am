@@ -14,11 +14,6 @@ sbin_PROGRAMS += nfnl_osf
 pkgdata_DATA += pf.os
 
 nfnl_osf_LDADD = ${libnfnetlink_LIBS}
-
-uninstall-hook:
-	dir=${DESTDIR}${pkgdatadir}; { \
-		test ! -d "$$dir" && test ! -f "$$dir" && test ! -r "$$dir"; \
-	} || rmdir -p --ignore-fail-on-non-empty "$$dir"
 endif
 
 if ENABLE_BPFC

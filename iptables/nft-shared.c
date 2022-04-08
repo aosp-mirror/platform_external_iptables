@@ -20,6 +20,7 @@
 
 #include <xtables.h>
 
+#include <linux/netfilter/nf_tables.h>
 #include <linux/netfilter/xt_comment.h>
 #include <linux/netfilter/xt_limit.h>
 
@@ -161,26 +162,20 @@ void add_outiface(struct nftnl_rule *r, char *iface, uint32_t op)
 		add_cmp_ptr(r, op, iface, iface_len + 1);
 }
 
-void add_addr(struct nftnl_rule *r, enum nft_payload_bases base, int offset,
+void add_addr(struct nftnl_rule *r, int offset,
 	      void *data, void *mask, size_t len, uint32_t op)
 {
-	const unsigned char *m = mask;
-	bool bitwise = false;
+	const char *m = mask;
 	int i;
 
+	add_payload(r, offset, len, NFT_PAYLOAD_NETWORK_HEADER);
+
 	for (i = 0; i < len; i++) {
-		if (m[i] != 0xff) {
-			bitwise = m[i] != 0;
+		if (m[i] != 0xff)
 			break;
-		}
 	}
 
-	if (!bitwise)
-		len = i;
-
-	add_payload(r, offset, len, base);
-
-	if (bitwise)
+	if (i != len)
 		add_bitwise(r, mask, len);
 
 	add_cmp_ptr(r, op, data, len);
@@ -836,6 +831,14 @@ void save_rule_details(const struct iptables_command_state *cs,
 	}
 }
 
+void save_counters(const void *data)
+{
+	const struct iptables_command_state *cs = data;
+
+	printf("[%llu:%llu] ", (unsigned long long)cs->counters.pcnt,
+			       (unsigned long long)cs->counters.bcnt);
+}
+
 void nft_ipv46_save_chain(const struct nftnl_chain *c, const char *policy)
 {
 	const char *chain = nftnl_chain_get_str(c, NFTNL_CHAIN_NAME);
@@ -984,6 +987,41 @@ void nft_ipv46_parse_target(struct xtables_target *t, void *data)
 	struct iptables_command_state *cs = data;
 
 	cs->target = t;
+}
+
+bool nft_ipv46_rule_find(struct nft_handle *h, struct nftnl_rule *r, void *data)
+{
+	struct iptables_command_state *cs = data, this = {};
+	bool ret = false;
+
+	nft_rule_to_iptables_command_state(h, r, &this);
+
+	DEBUGP("comparing with... ");
+#ifdef DEBUG_DEL
+	nft_rule_print_save(r, NFT_RULE_APPEND, 0);
+#endif
+	if (!h->ops->is_same(cs, &this))
+		goto out;
+
+	if (!compare_matches(cs->matches, this.matches)) {
+		DEBUGP("Different matches\n");
+		goto out;
+	}
+
+	if (!compare_targets(cs->target, this.target)) {
+		DEBUGP("Different target\n");
+		goto out;
+	}
+
+	if (strcmp(cs->jumpto, this.jumpto) != 0) {
+		DEBUGP("Different verdict\n");
+		goto out;
+	}
+
+	ret = true;
+out:
+	h->ops->clear_cs(&this);
+	return ret;
 }
 
 void nft_check_xt_legacy(int family, bool is_ipt_save)

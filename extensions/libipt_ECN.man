@@ -1,4 +1,4 @@
-This target selectively works around known ECN blackholes.
+This target allows to selectively work around known ECN blackholes.
 It can only be used in the mangle table.
 .TP
 \fB\-\-ecn\-tcp\-remove\fP

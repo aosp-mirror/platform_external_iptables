@@ -3,7 +3,7 @@
 set -e
 
 # there is no legacy backend to test
-[[ $XT_MULTI == *xtables-nft-multi ]] || { echo "skip $XT_MULTI"; exit 0; }
+[[ $XT_MULTI == */xtables-nft-multi ]] || { echo "skip $XT_MULTI"; exit 0; }
 
 EXPECT='*filter
 :INPUT ACCEPT

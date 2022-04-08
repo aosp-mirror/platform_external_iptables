@@ -45,7 +45,8 @@ get_target()
 
 make_dummy_rules()
 {
-	echo "*${1:-filter}"
+
+	echo "*filter"
 	echo ":INPUT ACCEPT [0:0]"
 	echo ":FORWARD ACCEPT [0:0]"
 	echo ":OUTPUT ACCEPT [0:0]"
@@ -73,7 +74,7 @@ make_dummy_rules()
 tmpfile=$(mktemp) || exit 1
 dumpfile=$(mktemp) || exit 1
 
-(make_dummy_rules; make_dummy_rules security) > $dumpfile
+make_dummy_rules > $dumpfile
 $XT_MULTI iptables-restore -w < $dumpfile
 LINES1=$(wc -l < $dumpfile)
 $XT_MULTI iptables-save | grep -v '^#' > $dumpfile
@@ -85,7 +86,7 @@ if [ $LINES1 -ne $LINES2 ]; then
 fi
 
 case "$XT_MULTI" in
-*xtables-nft-multi)
+*/xtables-nft-multi)
 	attempts=$((RANDOM%10))
 	attempts=$((attempts+1))
 	;;

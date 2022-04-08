@@ -551,6 +551,10 @@ Same as
 .BR "--among-src-file " "[!] \fIfile\fP"
 Same as
 .BR --among-src " but the list is read in from the specified file."
+.PP
+Note that in this implementation of ebtables, among lists uses must be
+internally homogeneous regarding whether IP addresses are present or not. Mixed
+use of MAC addresses and MAC/IP address pairs is not supported yet.
 .SS arp
 Specify (R)ARP fields. The protocol must be specified as
 .IR ARP " or " RARP .

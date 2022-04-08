@@ -218,8 +218,6 @@ struct iptables_save_cb ipt_save_cb = {
 int
 iptables_save_main(int argc, char *argv[])
 {
-	int ret;
-
 	iptables_globals.program_name = "iptables-save";
 	if (xtables_init_all(&iptables_globals, NFPROTO_IPV4) < 0) {
 		fprintf(stderr, "%s/%s Failed to initialize xtables\n",
@@ -232,10 +230,7 @@ iptables_save_main(int argc, char *argv[])
 	init_extensions4();
 #endif
 
-	ret = do_iptables_save(&ipt_save_cb, argc, argv);
-
-	xtables_fini();
-	return ret;
+	return do_iptables_save(&ipt_save_cb, argc, argv);
 }
 #endif /* ENABLE_IPV4 */
 
@@ -264,8 +259,6 @@ struct iptables_save_cb ip6t_save_cb = {
 int
 ip6tables_save_main(int argc, char *argv[])
 {
-	int ret;
-
 	ip6tables_globals.program_name = "ip6tables-save";
 	if (xtables_init_all(&ip6tables_globals, NFPROTO_IPV6) < 0) {
 		fprintf(stderr, "%s/%s Failed to initialize xtables\n",
@@ -278,9 +271,6 @@ ip6tables_save_main(int argc, char *argv[])
 	init_extensions6();
 #endif
 
-	ret = do_iptables_save(&ip6t_save_cb, argc, argv);
-
-	xtables_fini();
-	return ret;
+	return do_iptables_save(&ip6t_save_cb, argc, argv);
 }
 #endif /* ENABLE_IPV6 */

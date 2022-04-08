@@ -1,4 +1,4 @@
-This target alters the MSS value of TCP SYN packets, to control
+This target allows to alter the MSS value of TCP SYN packets, to control
 the maximum size for that connection (usually limiting it to your
 outgoing interface's MTU minus 40 for IPv4 or 60 for IPv6, respectively).
 Of course, it can only be used

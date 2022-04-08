@@ -30,19 +30,14 @@ enum {
 	OPT_VIANAMEOUT  = 1 << 8,
 	OPT_LINENUMBERS = 1 << 9,
 	OPT_COUNTERS    = 1 << 10,
-	OPT_FRAGMENT	= 1 << 11,
 	/* below are for arptables only */
-	OPT_S_MAC	= 1 << 12,
-	OPT_D_MAC	= 1 << 13,
-	OPT_H_LENGTH	= 1 << 14,
-	OPT_OPCODE	= 1 << 15,
-	OPT_H_TYPE	= 1 << 16,
-	OPT_P_TYPE	= 1 << 17,
+	OPT_S_MAC	= 1 << 11,
+	OPT_D_MAC	= 1 << 12,
+	OPT_H_LENGTH	= 1 << 13,
+	OPT_OPCODE	= 1 << 14,
+	OPT_H_TYPE	= 1 << 15,
+	OPT_P_TYPE	= 1 << 16,
 };
-
-#define NUMBER_OF_OPT	ARRAY_SIZE(optflags)
-static const char optflags[]
-= { 'n', 's', 'd', 'p', 'j', 'v', 'x', 'i', 'o', '0', 'c', 'f', 2, 3, 'l', 4, 5, 6 };
 
 enum {
 	CMD_NONE		= 0,
@@ -220,8 +215,5 @@ char cmd2char(int option);
 void add_command(unsigned int *cmd, const int newcmd,
 		 const int othercmds, int invert);
 int parse_rulenumber(const char *rule);
-
-void generic_opt_check(int command, int options);
-char opt2char(int option);
 
 #endif /* IPTABLES_XSHARED_H */

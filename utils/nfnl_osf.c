@@ -378,11 +378,9 @@ static int osf_load_line(char *buffer, int len, int del)
 	memset(buf, 0, sizeof(buf));
 
 	if (del)
-		nfnl_fill_hdr(nfnlssh, nmh, 0, AF_UNSPEC, 0, OSF_MSG_REMOVE,
-			      NLM_F_ACK | NLM_F_REQUEST);
+		nfnl_fill_hdr(nfnlssh, nmh, 0, AF_UNSPEC, 0, OSF_MSG_REMOVE, NLM_F_REQUEST);
 	else
-		nfnl_fill_hdr(nfnlssh, nmh, 0, AF_UNSPEC, 0, OSF_MSG_ADD,
-			      NLM_F_ACK | NLM_F_REQUEST | NLM_F_CREATE);
+		nfnl_fill_hdr(nfnlssh, nmh, 0, AF_UNSPEC, 0, OSF_MSG_ADD, NLM_F_REQUEST | NLM_F_CREATE);
 
 	nfnl_addattr_l(nmh, sizeof(buf), OSF_ATTR_FINGER, &f, sizeof(struct xt_osf_user_finger));
 
@@ -392,7 +390,7 @@ static int osf_load_line(char *buffer, int len, int del)
 static int osf_load_entries(char *path, int del)
 {
 	FILE *inf;
-	int err = 0, lineno = 0;
+	int err = 0;
 	char buf[1024];
 
 	inf = fopen(path, "r");
@@ -402,9 +400,7 @@ static int osf_load_entries(char *path, int del)
 	}
 
 	while(fgets(buf, sizeof(buf), inf)) {
-		int len, rc;
-
-		lineno++;
+		int len;
 
 		if (buf[0] == '#' || buf[0] == '\n' || buf[0] == '\r')
 			continue;
@@ -416,11 +412,9 @@ static int osf_load_entries(char *path, int del)
 
 		buf[len] = '\0';
 
-		rc = osf_load_line(buf, len, del);
-		if (rc && (!del || errno != ENOENT)) {
-			ulog_err("Failed to load line %d", lineno);
-			err = rc;
-		}
+		err = osf_load_line(buf, len, del);
+		if (err)
+			break;
 
 		memset(buf, 0, sizeof(buf));
 	}
@@ -452,7 +446,6 @@ int main(int argc, char *argv[])
 
 	if (!fingerprints) {
 		err = -ENOENT;
-		ulog("Missing fingerprints file argument.\n");
 		goto err_out_exit;
 	}
 

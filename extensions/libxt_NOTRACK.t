@@ -1,3 +1,4 @@
 :PREROUTING,OUTPUT
 *raw
--j NOTRACK;=;OK
+# ERROR: cannot find: iptables -I PREROUTING -t raw -j NOTRACK
+#-j NOTRACK;=;OK
