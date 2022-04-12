@@ -42,7 +42,7 @@ endif
 pfx_build_mod := $(patsubst ${srcdir}/libxt_%.c,%,$(sort $(wildcard ${srcdir}/libxt_*.c)))
 @ENABLE_NFTABLES_TRUE@ pfb_build_mod := $(patsubst ${srcdir}/libebt_%.c,%,$(sort $(wildcard ${srcdir}/libebt_*.c)))
 @ENABLE_NFTABLES_TRUE@ pfa_build_mod := $(patsubst ${srcdir}/libarpt_%.c,%,$(sort $(wildcard ${srcdir}/libarpt_*.c)))
-pfx_symlinks  := NOTRACK state REDIRECT
+pfx_symlinks  := NOTRACK state REDIRECT MASQUERADE SNAT DNAT
 @ENABLE_IPV4_TRUE@ pf4_build_mod := $(patsubst ${srcdir}/libipt_%.c,%,$(sort $(wildcard ${srcdir}/libipt_*.c)))
 @ENABLE_IPV6_TRUE@ pf6_build_mod := $(patsubst ${srcdir}/libip6t_%.c,%,$(sort $(wildcard ${srcdir}/libip6t_*.c)))
 pfx_build_mod := $(filter-out @blacklist_modules@ @blacklist_x_modules@,${pfx_build_mod})
@@ -130,7 +130,13 @@ libxt_NOTRACK.so: libxt_CT.so
 	ln -fs $< $@
 libxt_state.so: libxt_conntrack.so
 	ln -fs $< $@
-libxt_REDIRECT.so: libxt_DNAT.so
+libxt_REDIRECT.so: libxt_NAT.so
+	ln -fs $< $@
+libxt_MASQUERADE.so: libxt_NAT.so
+	ln -fs $< $@
+libxt_SNAT.so: libxt_NAT.so
+	ln -fs $< $@
+libxt_DNAT.so: libxt_NAT.so
 	ln -fs $< $@
 
 # Need the LIBADDs in iptables/Makefile.am too for libxtables_la_LIBADD
