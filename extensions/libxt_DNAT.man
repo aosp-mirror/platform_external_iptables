@@ -25,9 +25,7 @@ For a single port or \fIbaseport\fP, a service name as listed in
 \fB/etc/services\fP may be used.
 .TP
 \fB\-\-random\fP
-If option
-\fB\-\-random\fP
-is used then port mapping will be randomized (kernel >= 2.6.22).
+Randomize source port mapping (kernel >= 2.6.22).
 .TP
 \fB\-\-persistent\fP
 Gives a client the same source-/destination-address for each connection.
