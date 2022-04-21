@@ -460,6 +460,8 @@ static void nft_parse_bitwise(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 	if (ctx->reg && reg != ctx->reg)
 		return;
 
+	reg = nftnl_expr_get_u32(e, NFTNL_EXPR_BITWISE_DREG);
+	ctx->reg = reg;
 	data = nftnl_expr_get(e, NFTNL_EXPR_BITWISE_XOR, &len);
 	memcpy(ctx->bitwise.xor, data, len);
 	data = nftnl_expr_get(e, NFTNL_EXPR_BITWISE_MASK, &len);
