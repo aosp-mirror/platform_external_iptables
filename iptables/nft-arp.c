@@ -73,18 +73,22 @@ static int nft_arp_add(struct nft_handle *h, struct nftnl_rule *r,
 
 	if (fw->arp.arhrd != 0 ||
 	    fw->arp.invflags & IPT_INV_ARPHRD) {
+		uint8_t reg;
+
 		op = nft_invflags2cmp(fw->arp.invflags, IPT_INV_ARPHRD);
 		add_payload(h, r, offsetof(struct arphdr, ar_hrd), 2,
-			    NFT_PAYLOAD_NETWORK_HEADER);
-		add_cmp_u16(r, fw->arp.arhrd, op);
+			    NFT_PAYLOAD_NETWORK_HEADER, &reg);
+		add_cmp_u16(r, fw->arp.arhrd, op, reg);
 	}
 
 	if (fw->arp.arpro != 0 ||
 	    fw->arp.invflags & IPT_INV_PROTO) {
+		uint8_t reg;
+
 		op = nft_invflags2cmp(fw->arp.invflags, IPT_INV_PROTO);
 	        add_payload(h, r, offsetof(struct arphdr, ar_pro), 2,
-			    NFT_PAYLOAD_NETWORK_HEADER);
-		add_cmp_u16(r, fw->arp.arpro, op);
+			    NFT_PAYLOAD_NETWORK_HEADER, &reg);
+		add_cmp_u16(r, fw->arp.arpro, op, reg);
 	}
 
 	if (fw->arp.arhln != 0 ||
@@ -98,10 +102,12 @@ static int nft_arp_add(struct nft_handle *h, struct nftnl_rule *r,
 
 	if (fw->arp.arpop != 0 ||
 	    fw->arp.invflags & IPT_INV_ARPOP) {
+		uint8_t reg;
+
 		op = nft_invflags2cmp(fw->arp.invflags, IPT_INV_ARPOP);
 		add_payload(h, r, offsetof(struct arphdr, ar_op), 2,
-			    NFT_PAYLOAD_NETWORK_HEADER);
-		add_cmp_u16(r, fw->arp.arpop, op);
+			    NFT_PAYLOAD_NETWORK_HEADER, &reg);
+		add_cmp_u16(r, fw->arp.arpop, op, reg);
 	}
 
 	if (need_devaddr(&fw->arp.src_devaddr)) {

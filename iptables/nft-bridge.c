@@ -69,28 +69,30 @@ static void add_logical_iniface(struct nft_handle *h, struct nftnl_rule *r,
 				char *iface, uint32_t op)
 {
 	int iface_len;
+	uint8_t reg;
 
 	iface_len = strlen(iface);
 
-	add_meta(h, r, NFT_META_BRI_IIFNAME);
+	add_meta(h, r, NFT_META_BRI_IIFNAME, &reg);
 	if (iface[iface_len - 1] == '+')
-		add_cmp_ptr(r, op, iface, iface_len - 1);
+		add_cmp_ptr(r, op, iface, iface_len - 1, reg);
 	else
-		add_cmp_ptr(r, op, iface, iface_len + 1);
+		add_cmp_ptr(r, op, iface, iface_len + 1, reg);
 }
 
 static void add_logical_outiface(struct nft_handle *h, struct nftnl_rule *r,
 				 char *iface, uint32_t op)
 {
 	int iface_len;
+	uint8_t reg;
 
 	iface_len = strlen(iface);
 
-	add_meta(h, r, NFT_META_BRI_OIFNAME);
+	add_meta(h, r, NFT_META_BRI_OIFNAME, &reg);
 	if (iface[iface_len - 1] == '+')
-		add_cmp_ptr(r, op, iface, iface_len - 1);
+		add_cmp_ptr(r, op, iface, iface_len - 1, reg);
 	else
-		add_cmp_ptr(r, op, iface, iface_len + 1);
+		add_cmp_ptr(r, op, iface, iface_len + 1, reg);
 }
 
 static int _add_action(struct nftnl_rule *r, struct iptables_command_state *cs)
@@ -141,10 +143,12 @@ static int nft_bridge_add(struct nft_handle *h,
 	}
 
 	if ((fw->bitmask & EBT_NOPROTO) == 0) {
+		uint8_t reg;
+
 		op = nft_invflags2cmp(fw->invflags, EBT_IPROTO);
 		add_payload(h, r, offsetof(struct ethhdr, h_proto), 2,
-			    NFT_PAYLOAD_LL_HEADER);
-		add_cmp_u16(r, fw->ethproto, op);
+			    NFT_PAYLOAD_LL_HEADER, &reg);
+		add_cmp_u16(r, fw->ethproto, op, reg);
 	}
 
 	add_compat(r, fw->ethproto, fw->invflags & EBT_IPROTO);

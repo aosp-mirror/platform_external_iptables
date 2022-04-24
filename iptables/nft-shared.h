@@ -132,14 +132,14 @@ struct nft_family_ops {
 			     int rulenum);
 };
 
-void add_meta(struct nft_handle *h, struct nftnl_rule *r, uint32_t key);
-void add_payload(struct nft_handle *h, struct nftnl_rule *r, int offset, int len, uint32_t base);
-void add_bitwise(struct nftnl_rule *r, uint8_t *mask, size_t len);
-void add_bitwise_u16(struct nftnl_rule *r, uint16_t mask, uint16_t xor);
-void add_cmp_ptr(struct nftnl_rule *r, uint32_t op, void *data, size_t len);
-void add_cmp_u8(struct nftnl_rule *r, uint8_t val, uint32_t op);
-void add_cmp_u16(struct nftnl_rule *r, uint16_t val, uint32_t op);
-void add_cmp_u32(struct nftnl_rule *r, uint32_t val, uint32_t op);
+void add_meta(struct nft_handle *h, struct nftnl_rule *r, uint32_t key, uint8_t *dreg);
+void add_payload(struct nft_handle *h, struct nftnl_rule *r, int offset, int len, uint32_t base, uint8_t *dreg);
+void add_bitwise(struct nft_handle *h, struct nftnl_rule *r, uint8_t *mask, size_t len, uint8_t sreg, uint8_t *dreg);
+void add_bitwise_u16(struct nft_handle *h, struct nftnl_rule *r, uint16_t mask, uint16_t xor, uint8_t sreg, uint8_t *dreg);
+void add_cmp_ptr(struct nftnl_rule *r, uint32_t op, void *data, size_t len, uint8_t sreg);
+void add_cmp_u8(struct nftnl_rule *r, uint8_t val, uint32_t op, uint8_t sreg);
+void add_cmp_u16(struct nftnl_rule *r, uint16_t val, uint32_t op, uint8_t sreg);
+void add_cmp_u32(struct nftnl_rule *r, uint32_t val, uint32_t op, uint8_t sreg);
 void add_iniface(struct nft_handle *h, struct nftnl_rule *r, char *iface, uint32_t op);
 void add_outiface(struct nft_handle *h, struct nftnl_rule *r, char *iface, uint32_t op);
 void add_addr(struct nft_handle *h, struct nftnl_rule *r, enum nft_payload_bases base, int offset,

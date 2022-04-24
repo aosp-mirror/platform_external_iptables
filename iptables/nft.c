@@ -1090,16 +1090,22 @@ static struct nftnl_set *add_anon_set(struct nft_handle *h, const char *table,
 }
 
 static struct nftnl_expr *
-gen_payload(uint32_t base, uint32_t offset, uint32_t len, uint32_t dreg)
+gen_payload(struct nft_handle *h, uint32_t base, uint32_t offset, uint32_t len,
+	    uint8_t *dreg)
 {
 	struct nftnl_expr *e = nftnl_expr_alloc("payload");
+	uint8_t reg;
 
 	if (!e)
 		return NULL;
+
+	reg = NFT_REG_1;
 	nftnl_expr_set_u32(e, NFTNL_EXPR_PAYLOAD_BASE, base);
 	nftnl_expr_set_u32(e, NFTNL_EXPR_PAYLOAD_OFFSET, offset);
 	nftnl_expr_set_u32(e, NFTNL_EXPR_PAYLOAD_LEN, len);
-	nftnl_expr_set_u32(e, NFTNL_EXPR_PAYLOAD_DREG, dreg);
+	nftnl_expr_set_u32(e, NFTNL_EXPR_PAYLOAD_DREG, reg);
+	*dreg = reg;
+
 	return e;
 }
 
@@ -1144,6 +1150,7 @@ static int __add_nft_among(struct nft_handle *h, const char *table,
 	struct nftnl_expr *e;
 	struct nftnl_set *s;
 	uint32_t flags = 0;
+	uint8_t reg;
 	int idx = 0;
 
 	if (ip) {
@@ -1184,21 +1191,22 @@ static int __add_nft_among(struct nft_handle *h, const char *table,
 		nftnl_set_elem_add(s, elem);
 	}
 
-	e = gen_payload(NFT_PAYLOAD_LL_HEADER,
-			eth_addr_off[dst], ETH_ALEN, NFT_REG_1);
+	e = gen_payload(h, NFT_PAYLOAD_LL_HEADER,
+			eth_addr_off[dst], ETH_ALEN, &reg);
 	if (!e)
 		return -ENOMEM;
 	nftnl_rule_add_expr(r, e);
 
 	if (ip) {
-		e = gen_payload(NFT_PAYLOAD_NETWORK_HEADER, ip_addr_off[dst],
-				sizeof(struct in_addr), NFT_REG32_02);
+		e = gen_payload(h, NFT_PAYLOAD_NETWORK_HEADER, ip_addr_off[dst],
+				sizeof(struct in_addr), &reg);
 		if (!e)
 			return -ENOMEM;
 		nftnl_rule_add_expr(r, e);
 	}
 
-	e = gen_lookup(NFT_REG_1, "__set%d", set_id, inv);
+	reg = NFT_REG_1;
+	e = gen_lookup(reg, "__set%d", set_id, inv);
 	if (!e)
 		return -ENOMEM;
 	nftnl_rule_add_expr(r, e);
@@ -1215,9 +1223,10 @@ static int add_nft_among(struct nft_handle *h,
 	if ((data->src.cnt && data->src.ip) ||
 	    (data->dst.cnt && data->dst.ip)) {
 		uint16_t eth_p_ip = htons(ETH_P_IP);
+		uint8_t reg;
 
-		add_meta(h, r, NFT_META_PROTOCOL);
-		add_cmp_ptr(r, NFT_CMP_EQ, &eth_p_ip, 2);
+		add_meta(h, r, NFT_META_PROTOCOL, &reg);
+		add_cmp_ptr(r, NFT_CMP_EQ, &eth_p_ip, 2, reg);
 	}
 
 	if (data->src.cnt)
@@ -1233,17 +1242,17 @@ static int add_nft_among(struct nft_handle *h,
 static int expr_gen_range_cmp16(struct nftnl_rule *r,
 				uint16_t lo,
 				uint16_t hi,
-				bool invert)
+				bool invert, uint8_t reg)
 {
 	struct nftnl_expr *e;
 
 	if (lo == hi) {
-		add_cmp_u16(r, htons(lo), invert ? NFT_CMP_NEQ : NFT_CMP_EQ);
+		add_cmp_u16(r, htons(lo), invert ? NFT_CMP_NEQ : NFT_CMP_EQ, reg);
 		return 0;
 	}
 
 	if (lo == 0 && hi < 0xffff) {
-		add_cmp_u16(r, htons(hi) , invert ? NFT_CMP_GT : NFT_CMP_LTE);
+		add_cmp_u16(r, htons(hi) , invert ? NFT_CMP_GT : NFT_CMP_LTE, reg);
 		return 0;
 	}
 
@@ -1251,7 +1260,7 @@ static int expr_gen_range_cmp16(struct nftnl_rule *r,
 	if (!e)
 		return -ENOMEM;
 
-	nftnl_expr_set_u32(e, NFTNL_EXPR_RANGE_SREG, NFT_REG_1);
+	nftnl_expr_set_u32(e, NFTNL_EXPR_RANGE_SREG, reg);
 	nftnl_expr_set_u32(e, NFTNL_EXPR_RANGE_OP, invert ? NFT_RANGE_NEQ : NFT_RANGE_EQ);
 
 	lo = htons(lo);
@@ -1269,6 +1278,7 @@ static int add_nft_tcpudp(struct nft_handle *h,struct nftnl_rule *r,
 {
 	struct nftnl_expr *expr;
 	uint8_t op = NFT_CMP_EQ;
+	uint8_t reg;
 	int ret;
 
 	if (src[0] && src[0] == src[1] &&
@@ -1279,36 +1289,33 @@ static int add_nft_tcpudp(struct nft_handle *h,struct nftnl_rule *r,
 		if (invert_src)
 			op = NFT_CMP_NEQ;
 
-		expr = gen_payload(NFT_PAYLOAD_TRANSPORT_HEADER, 0, 4,
-				   NFT_REG_1);
+		expr = gen_payload(h, NFT_PAYLOAD_TRANSPORT_HEADER, 0, 4, &reg);
 		if (!expr)
 			return -ENOMEM;
 
 		nftnl_rule_add_expr(r, expr);
-		add_cmp_u32(r, htonl(combined), op);
+		add_cmp_u32(r, htonl(combined), op, reg);
 		return 0;
 	}
 
 	if (src[0] || src[1] < 0xffff) {
-		expr = gen_payload(NFT_PAYLOAD_TRANSPORT_HEADER,
-				   0, 2, NFT_REG_1);
+		expr = gen_payload(h, NFT_PAYLOAD_TRANSPORT_HEADER, 0, 2, &reg);
 		if (!expr)
 			return -ENOMEM;
 
 		nftnl_rule_add_expr(r, expr);
-		ret = expr_gen_range_cmp16(r, src[0], src[1], invert_src);
+		ret = expr_gen_range_cmp16(r, src[0], src[1], invert_src, reg);
 		if (ret)
 			return ret;
 	}
 
 	if (dst[0] || dst[1] < 0xffff) {
-		expr = gen_payload(NFT_PAYLOAD_TRANSPORT_HEADER,
-				   2, 2, NFT_REG_1);
+		expr = gen_payload(h, NFT_PAYLOAD_TRANSPORT_HEADER, 2, 2, &reg);
 		if (!expr)
 			return -ENOMEM;
 
 		nftnl_rule_add_expr(r, expr);
-		ret = expr_gen_range_cmp16(r, dst[0], dst[1], invert_dst);
+		ret = expr_gen_range_cmp16(r, dst[0], dst[1], invert_dst, reg);
 		if (ret)
 			return ret;
 	}
@@ -1349,22 +1356,22 @@ static int add_nft_udp(struct nft_handle *h, struct nftnl_rule *r,
 			      udp->dpts, udp->invflags & XT_UDP_INV_DSTPT);
 }
 
-static int add_nft_tcpflags(struct nftnl_rule *r,
+static int add_nft_tcpflags(struct nft_handle *h, struct nftnl_rule *r,
 			    uint8_t cmp, uint8_t mask,
 			    bool invert)
 {
 	struct nftnl_expr *e;
+	uint8_t reg;
 
-	e = gen_payload(NFT_PAYLOAD_TRANSPORT_HEADER,
-			13, 1, NFT_REG_1);
+	e = gen_payload(h, NFT_PAYLOAD_TRANSPORT_HEADER, 13, 1, &reg);
 
 	if (!e)
 		return -ENOMEM;
 
 	nftnl_rule_add_expr(r, e);
 
-	add_bitwise(r, &mask, 1);
-	add_cmp_u8(r, cmp, invert ? NFT_CMP_NEQ : NFT_CMP_EQ);
+	add_bitwise(h, r, &mask, 1, reg, &reg);
+	add_cmp_u8(r, cmp, invert ? NFT_CMP_NEQ : NFT_CMP_EQ, reg);
 
 	return 0;
 }
@@ -1396,7 +1403,7 @@ static int add_nft_tcp(struct nft_handle *h, struct nftnl_rule *r,
 	}
 
 	if (tcp->flg_mask) {
-		int ret = add_nft_tcpflags(r, tcp->flg_cmp, tcp->flg_mask,
+		int ret = add_nft_tcpflags(h, r, tcp->flg_cmp, tcp->flg_mask,
 					   tcp->invflags & XT_TCP_INV_FLAGS);
 
 		if (ret < 0)
@@ -1411,18 +1418,19 @@ static int add_nft_mark(struct nft_handle *h, struct nftnl_rule *r,
 			struct xt_entry_match *m)
 {
 	struct xt_mark_mtinfo1 *mark = (void *)m->data;
+	uint8_t reg;
 	int op;
 
-	add_meta(h, r, NFT_META_MARK);
+	add_meta(h, r, NFT_META_MARK, &reg);
 	if (mark->mask != 0xffffffff)
-		add_bitwise(r, (uint8_t *)&mark->mask, sizeof(uint32_t));
+		add_bitwise(h, r, (uint8_t *)&mark->mask, sizeof(uint32_t), reg, &reg);
 
 	if (mark->invert)
 		op = NFT_CMP_NEQ;
 	else
 		op = NFT_CMP_EQ;
 
-	add_cmp_u32(r, mark->mark, op);
+	add_cmp_u32(r, mark->mark, op, reg);
 
 	return 0;
 }
