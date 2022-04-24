@@ -1090,20 +1090,30 @@ static struct nftnl_set *add_anon_set(struct nft_handle *h, const char *table,
 }
 
 static struct nftnl_expr *
-gen_payload(struct nft_handle *h, uint32_t base, uint32_t offset, uint32_t len,
-	    uint8_t *dreg)
+__gen_payload(uint32_t base, uint32_t offset, uint32_t len, uint8_t reg)
 {
 	struct nftnl_expr *e = nftnl_expr_alloc("payload");
-	uint8_t reg;
 
 	if (!e)
 		return NULL;
 
-	reg = NFT_REG_1;
 	nftnl_expr_set_u32(e, NFTNL_EXPR_PAYLOAD_BASE, base);
 	nftnl_expr_set_u32(e, NFTNL_EXPR_PAYLOAD_OFFSET, offset);
 	nftnl_expr_set_u32(e, NFTNL_EXPR_PAYLOAD_LEN, len);
 	nftnl_expr_set_u32(e, NFTNL_EXPR_PAYLOAD_DREG, reg);
+
+	return e;
+}
+
+static struct nftnl_expr *
+gen_payload(struct nft_handle *h, uint32_t base, uint32_t offset, uint32_t len,
+	    uint8_t *dreg)
+{
+	struct nftnl_expr *e;
+	uint8_t reg;
+
+	reg = NFT_REG_1;
+	e = __gen_payload(base, offset, len, reg);
 	*dreg = reg;
 
 	return e;
