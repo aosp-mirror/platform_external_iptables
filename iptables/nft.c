@@ -1216,7 +1216,7 @@ static int add_nft_among(struct nft_handle *h,
 	    (data->dst.cnt && data->dst.ip)) {
 		uint16_t eth_p_ip = htons(ETH_P_IP);
 
-		add_meta(r, NFT_META_PROTOCOL);
+		add_meta(h, r, NFT_META_PROTOCOL);
 		add_cmp_ptr(r, NFT_CMP_EQ, &eth_p_ip, 2);
 	}
 
@@ -1263,11 +1263,9 @@ static int expr_gen_range_cmp16(struct nftnl_rule *r,
 	return 0;
 }
 
-static int add_nft_tcpudp(struct nftnl_rule *r,
-			  uint16_t src[2],
-			  bool invert_src,
-			  uint16_t dst[2],
-			  bool invert_dst)
+static int add_nft_tcpudp(struct nft_handle *h,struct nftnl_rule *r,
+			  uint16_t src[2], bool invert_src,
+			  uint16_t dst[2], bool invert_dst)
 {
 	struct nftnl_expr *expr;
 	uint8_t op = NFT_CMP_EQ;
@@ -1332,7 +1330,8 @@ static bool udp_all_zero(const struct xt_udp *u)
 	return memcmp(u, &zero, sizeof(*u)) == 0;
 }
 
-static int add_nft_udp(struct nftnl_rule *r, struct xt_entry_match *m)
+static int add_nft_udp(struct nft_handle *h, struct nftnl_rule *r,
+		       struct xt_entry_match *m)
 {
 	struct xt_udp *udp = (void *)m->data;
 
@@ -1346,7 +1345,7 @@ static int add_nft_udp(struct nftnl_rule *r, struct xt_entry_match *m)
 		return ret;
 	}
 
-	return add_nft_tcpudp(r, udp->spts, udp->invflags & XT_UDP_INV_SRCPT,
+	return add_nft_tcpudp(h, r, udp->spts, udp->invflags & XT_UDP_INV_SRCPT,
 			      udp->dpts, udp->invflags & XT_UDP_INV_DSTPT);
 }
 
@@ -1380,7 +1379,8 @@ static bool tcp_all_zero(const struct xt_tcp *t)
 	return memcmp(t, &zero, sizeof(*t)) == 0;
 }
 
-static int add_nft_tcp(struct nftnl_rule *r, struct xt_entry_match *m)
+static int add_nft_tcp(struct nft_handle *h, struct nftnl_rule *r,
+		       struct xt_entry_match *m)
 {
 	static const uint8_t supported = XT_TCP_INV_SRCPT | XT_TCP_INV_DSTPT | XT_TCP_INV_FLAGS;
 	struct xt_tcp *tcp = (void *)m->data;
@@ -1403,7 +1403,7 @@ static int add_nft_tcp(struct nftnl_rule *r, struct xt_entry_match *m)
 			return ret;
 	}
 
-	return add_nft_tcpudp(r, tcp->spts, tcp->invflags & XT_TCP_INV_SRCPT,
+	return add_nft_tcpudp(h, r, tcp->spts, tcp->invflags & XT_TCP_INV_SRCPT,
 			      tcp->dpts, tcp->invflags & XT_TCP_INV_DSTPT);
 }
 
@@ -1413,7 +1413,7 @@ static int add_nft_mark(struct nft_handle *h, struct nftnl_rule *r,
 	struct xt_mark_mtinfo1 *mark = (void *)m->data;
 	int op;
 
-	add_meta(r, NFT_META_MARK);
+	add_meta(h, r, NFT_META_MARK);
 	if (mark->mask != 0xffffffff)
 		add_bitwise(r, (uint8_t *)&mark->mask, sizeof(uint32_t));
 
@@ -1438,9 +1438,9 @@ int add_match(struct nft_handle *h,
 	else if (!strcmp(m->u.user.name, "among"))
 		return add_nft_among(h, r, m);
 	else if (!strcmp(m->u.user.name, "udp"))
-		return add_nft_udp(r, m);
+		return add_nft_udp(h, r, m);
 	else if (!strcmp(m->u.user.name, "tcp"))
-		return add_nft_tcp(r, m);
+		return add_nft_tcp(h, r, m);
 	else if (!strcmp(m->u.user.name, "mark"))
 		return add_nft_mark(h, r, m);
 

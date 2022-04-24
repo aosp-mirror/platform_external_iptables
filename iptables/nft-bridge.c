@@ -65,26 +65,28 @@ static void ebt_print_mac_and_mask(const unsigned char *mac, const unsigned char
 		xtables_print_mac_and_mask(mac, mask);
 }
 
-static void add_logical_iniface(struct nftnl_rule *r, char *iface, uint32_t op)
+static void add_logical_iniface(struct nft_handle *h, struct nftnl_rule *r,
+				char *iface, uint32_t op)
 {
 	int iface_len;
 
 	iface_len = strlen(iface);
 
-	add_meta(r, NFT_META_BRI_IIFNAME);
+	add_meta(h, r, NFT_META_BRI_IIFNAME);
 	if (iface[iface_len - 1] == '+')
 		add_cmp_ptr(r, op, iface, iface_len - 1);
 	else
 		add_cmp_ptr(r, op, iface, iface_len + 1);
 }
 
-static void add_logical_outiface(struct nftnl_rule *r, char *iface, uint32_t op)
+static void add_logical_outiface(struct nft_handle *h, struct nftnl_rule *r,
+				 char *iface, uint32_t op)
 {
 	int iface_len;
 
 	iface_len = strlen(iface);
 
-	add_meta(r, NFT_META_BRI_OIFNAME);
+	add_meta(h, r, NFT_META_BRI_OIFNAME);
 	if (iface[iface_len - 1] == '+')
 		add_cmp_ptr(r, op, iface, iface_len - 1);
 	else
@@ -106,41 +108,41 @@ static int nft_bridge_add(struct nft_handle *h,
 
 	if (fw->in[0] != '\0') {
 		op = nft_invflags2cmp(fw->invflags, EBT_IIN);
-		add_iniface(r, fw->in, op);
+		add_iniface(h, r, fw->in, op);
 	}
 
 	if (fw->out[0] != '\0') {
 		op = nft_invflags2cmp(fw->invflags, EBT_IOUT);
-		add_outiface(r, fw->out, op);
+		add_outiface(h, r, fw->out, op);
 	}
 
 	if (fw->logical_in[0] != '\0') {
 		op = nft_invflags2cmp(fw->invflags, EBT_ILOGICALIN);
-		add_logical_iniface(r, fw->logical_in, op);
+		add_logical_iniface(h, r, fw->logical_in, op);
 	}
 
 	if (fw->logical_out[0] != '\0') {
 		op = nft_invflags2cmp(fw->invflags, EBT_ILOGICALOUT);
-		add_logical_outiface(r, fw->logical_out, op);
+		add_logical_outiface(h, r, fw->logical_out, op);
 	}
 
 	if (fw->bitmask & EBT_ISOURCE) {
 		op = nft_invflags2cmp(fw->invflags, EBT_ISOURCE);
-		add_addr(r, NFT_PAYLOAD_LL_HEADER,
+		add_addr(h, r, NFT_PAYLOAD_LL_HEADER,
 			 offsetof(struct ethhdr, h_source),
 			 fw->sourcemac, fw->sourcemsk, ETH_ALEN, op);
 	}
 
 	if (fw->bitmask & EBT_IDEST) {
 		op = nft_invflags2cmp(fw->invflags, EBT_IDEST);
-		add_addr(r, NFT_PAYLOAD_LL_HEADER,
+		add_addr(h, r, NFT_PAYLOAD_LL_HEADER,
 			 offsetof(struct ethhdr, h_dest),
 			 fw->destmac, fw->destmsk, ETH_ALEN, op);
 	}
 
 	if ((fw->bitmask & EBT_NOPROTO) == 0) {
 		op = nft_invflags2cmp(fw->invflags, EBT_IPROTO);
-		add_payload(r, offsetof(struct ethhdr, h_proto), 2,
+		add_payload(h, r, offsetof(struct ethhdr, h_proto), 2,
 			    NFT_PAYLOAD_LL_HEADER);
 		add_cmp_u16(r, fw->ethproto, op);
 	}

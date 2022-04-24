@@ -40,7 +40,7 @@ extern struct nft_family_ops nft_family_ops_ipv6;
 extern struct nft_family_ops nft_family_ops_arp;
 extern struct nft_family_ops nft_family_ops_bridge;
 
-void add_meta(struct nftnl_rule *r, uint32_t key)
+void add_meta(struct nft_handle *h, struct nftnl_rule *r, uint32_t key)
 {
 	struct nftnl_expr *expr;
 
@@ -54,7 +54,8 @@ void add_meta(struct nftnl_rule *r, uint32_t key)
 	nftnl_rule_add_expr(r, expr);
 }
 
-void add_payload(struct nftnl_rule *r, int offset, int len, uint32_t base)
+void add_payload(struct nft_handle *h, struct nftnl_rule *r,
+		 int offset, int len, uint32_t base)
 {
 	struct nftnl_expr *expr;
 
@@ -136,13 +137,14 @@ void add_cmp_u32(struct nftnl_rule *r, uint32_t val, uint32_t op)
 	add_cmp_ptr(r, op, &val, sizeof(val));
 }
 
-void add_iniface(struct nftnl_rule *r, char *iface, uint32_t op)
+void add_iniface(struct nft_handle *h, struct nftnl_rule *r,
+		 char *iface, uint32_t op)
 {
 	int iface_len;
 
 	iface_len = strlen(iface);
 
-	add_meta(r, NFT_META_IIFNAME);
+	add_meta(h, r, NFT_META_IIFNAME);
 	if (iface[iface_len - 1] == '+') {
 		if (iface_len > 1)
 			add_cmp_ptr(r, op, iface, iface_len - 1);
@@ -150,13 +152,14 @@ void add_iniface(struct nftnl_rule *r, char *iface, uint32_t op)
 		add_cmp_ptr(r, op, iface, iface_len + 1);
 }
 
-void add_outiface(struct nftnl_rule *r, char *iface, uint32_t op)
+void add_outiface(struct nft_handle *h, struct nftnl_rule *r,
+		  char *iface, uint32_t op)
 {
 	int iface_len;
 
 	iface_len = strlen(iface);
 
-	add_meta(r, NFT_META_OIFNAME);
+	add_meta(h, r, NFT_META_OIFNAME);
 	if (iface[iface_len - 1] == '+') {
 		if (iface_len > 1)
 			add_cmp_ptr(r, op, iface, iface_len - 1);
@@ -164,7 +167,8 @@ void add_outiface(struct nftnl_rule *r, char *iface, uint32_t op)
 		add_cmp_ptr(r, op, iface, iface_len + 1);
 }
 
-void add_addr(struct nftnl_rule *r, enum nft_payload_bases base, int offset,
+void add_addr(struct nft_handle *h, struct nftnl_rule *r,
+	      enum nft_payload_bases base, int offset,
 	      void *data, void *mask, size_t len, uint32_t op)
 {
 	const unsigned char *m = mask;
@@ -183,7 +187,7 @@ void add_addr(struct nftnl_rule *r, enum nft_payload_bases base, int offset,
 	if (!bitwise)
 		len = i;
 
-	add_payload(r, offset, len, base);
+	add_payload(h, r, offset, len, base);
 
 	if (bitwise)
 		add_bitwise(r, mask, len);
@@ -191,16 +195,17 @@ void add_addr(struct nftnl_rule *r, enum nft_payload_bases base, int offset,
 	add_cmp_ptr(r, op, data, len);
 }
 
-void add_proto(struct nftnl_rule *r, int offset, size_t len,
-	       uint8_t proto, uint32_t op)
+void add_proto(struct nft_handle *h, struct nftnl_rule *r,
+	       int offset, size_t len, uint8_t proto, uint32_t op)
 {
-	add_payload(r, offset, len, NFT_PAYLOAD_NETWORK_HEADER);
+	add_payload(h, r, offset, len, NFT_PAYLOAD_NETWORK_HEADER);
 	add_cmp_u8(r, proto, op);
 }
 
-void add_l4proto(struct nftnl_rule *r, uint8_t proto, uint32_t op)
+void add_l4proto(struct nft_handle *h, struct nftnl_rule *r,
+		 uint8_t proto, uint32_t op)
 {
-	add_meta(r, NFT_META_L4PROTO);
+	add_meta(h, r, NFT_META_L4PROTO);
 	add_cmp_u8(r, proto, op);
 }
 

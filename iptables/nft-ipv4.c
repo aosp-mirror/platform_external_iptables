@@ -35,35 +35,35 @@ static int nft_ipv4_add(struct nft_handle *h, struct nftnl_rule *r,
 
 	if (cs->fw.ip.iniface[0] != '\0') {
 		op = nft_invflags2cmp(cs->fw.ip.invflags, IPT_INV_VIA_IN);
-		add_iniface(r, cs->fw.ip.iniface, op);
+		add_iniface(h, r, cs->fw.ip.iniface, op);
 	}
 
 	if (cs->fw.ip.outiface[0] != '\0') {
 		op = nft_invflags2cmp(cs->fw.ip.invflags, IPT_INV_VIA_OUT);
-		add_outiface(r, cs->fw.ip.outiface, op);
+		add_outiface(h, r, cs->fw.ip.outiface, op);
 	}
 
 	if (cs->fw.ip.proto != 0) {
 		op = nft_invflags2cmp(cs->fw.ip.invflags, XT_INV_PROTO);
-		add_l4proto(r, cs->fw.ip.proto, op);
+		add_l4proto(h, r, cs->fw.ip.proto, op);
 	}
 
 	if (cs->fw.ip.src.s_addr || cs->fw.ip.smsk.s_addr || cs->fw.ip.invflags & IPT_INV_SRCIP) {
 		op = nft_invflags2cmp(cs->fw.ip.invflags, IPT_INV_SRCIP);
-		add_addr(r, NFT_PAYLOAD_NETWORK_HEADER,
+		add_addr(h, r, NFT_PAYLOAD_NETWORK_HEADER,
 			 offsetof(struct iphdr, saddr),
 			 &cs->fw.ip.src.s_addr, &cs->fw.ip.smsk.s_addr,
 			 sizeof(struct in_addr), op);
 	}
 	if (cs->fw.ip.dst.s_addr || cs->fw.ip.dmsk.s_addr || cs->fw.ip.invflags & IPT_INV_DSTIP) {
 		op = nft_invflags2cmp(cs->fw.ip.invflags, IPT_INV_DSTIP);
-		add_addr(r, NFT_PAYLOAD_NETWORK_HEADER,
+		add_addr(h, r, NFT_PAYLOAD_NETWORK_HEADER,
 			 offsetof(struct iphdr, daddr),
 			 &cs->fw.ip.dst.s_addr, &cs->fw.ip.dmsk.s_addr,
 			 sizeof(struct in_addr), op);
 	}
 	if (cs->fw.ip.flags & IPT_F_FRAG) {
-		add_payload(r, offsetof(struct iphdr, frag_off), 2,
+		add_payload(h, r, offsetof(struct iphdr, frag_off), 2,
 			    NFT_PAYLOAD_NETWORK_HEADER);
 		/* get the 13 bits that contain the fragment offset */
 		add_bitwise_u16(r, htons(0x1fff), 0);
