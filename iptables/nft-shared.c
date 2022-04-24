@@ -261,9 +261,9 @@ static void parse_ifname(const char *name, unsigned int len, char *dst, unsigned
 		memset(mask, 0xff, len - 2);
 }
 
-int parse_meta(struct nftnl_expr *e, uint8_t key, char *iniface,
-		unsigned char *iniface_mask, char *outiface,
-		unsigned char *outiface_mask, uint8_t *invflags)
+int parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e, uint8_t key,
+	       char *iniface, unsigned char *iniface_mask,
+	       char *outiface, unsigned char *outiface_mask, uint8_t *invflags)
 {
 	uint32_t value;
 	const void *ifname;

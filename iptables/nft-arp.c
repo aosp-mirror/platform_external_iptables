@@ -174,7 +174,7 @@ static void nft_arp_parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e,
 	struct arpt_entry *fw = &cs->arp;
 	uint8_t flags = 0;
 
-	parse_meta(e, ctx->meta.key, fw->arp.iniface, fw->arp.iniface_mask,
+	parse_meta(ctx, e, ctx->meta.key, fw->arp.iniface, fw->arp.iniface_mask,
 		   fw->arp.outiface, fw->arp.outiface_mask,
 		   &flags);
 

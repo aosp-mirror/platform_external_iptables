@@ -117,7 +117,7 @@ static void nft_ipv6_parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e,
 		break;
 	}
 
-	parse_meta(e, ctx->meta.key, cs->fw6.ipv6.iniface,
+	parse_meta(ctx, e, ctx->meta.key, cs->fw6.ipv6.iniface,
 		   cs->fw6.ipv6.iniface_mask, cs->fw6.ipv6.outiface,
 		   cs->fw6.ipv6.outiface_mask, &cs->fw6.ipv6.invflags);
 }

@@ -171,7 +171,7 @@ static void nft_bridge_parse_meta(struct nft_xt_ctx *ctx,
 	uint8_t invflags = 0;
 	char iifname[IFNAMSIZ] = {}, oifname[IFNAMSIZ] = {};
 
-	parse_meta(e, ctx->meta.key, iifname, NULL, oifname, NULL, &invflags);
+	parse_meta(ctx, e, ctx->meta.key, iifname, NULL, oifname, NULL, &invflags);
 
 	switch (ctx->meta.key) {
 	case NFT_META_BRI_IIFNAME:
