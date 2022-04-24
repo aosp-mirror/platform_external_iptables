@@ -40,6 +40,7 @@
 
 #include <linux/netfilter/xt_limit.h>
 #include <linux/netfilter/xt_NFLOG.h>
+#include <linux/netfilter/xt_mark.h>
 
 #include <libmnl/libmnl.h>
 #include <libnftnl/gen.h>
@@ -1406,6 +1407,26 @@ static int add_nft_tcp(struct nftnl_rule *r, struct xt_entry_match *m)
 			      tcp->dpts, tcp->invflags & XT_TCP_INV_DSTPT);
 }
 
+static int add_nft_mark(struct nft_handle *h, struct nftnl_rule *r,
+			struct xt_entry_match *m)
+{
+	struct xt_mark_mtinfo1 *mark = (void *)m->data;
+	int op;
+
+	add_meta(r, NFT_META_MARK);
+	if (mark->mask != 0xffffffff)
+		add_bitwise(r, (uint8_t *)&mark->mask, sizeof(uint32_t));
+
+	if (mark->invert)
+		op = NFT_CMP_NEQ;
+	else
+		op = NFT_CMP_EQ;
+
+	add_cmp_u32(r, mark->mark, op);
+
+	return 0;
+}
+
 int add_match(struct nft_handle *h,
 	      struct nftnl_rule *r, struct xt_entry_match *m)
 {
@@ -1420,6 +1441,8 @@ int add_match(struct nft_handle *h,
 		return add_nft_udp(r, m);
 	else if (!strcmp(m->u.user.name, "tcp"))
 		return add_nft_tcp(r, m);
+	else if (!strcmp(m->u.user.name, "mark"))
+		return add_nft_mark(h, r, m);
 
 	expr = nftnl_expr_alloc("match");
 	if (expr == NULL)

@@ -24,6 +24,7 @@
 #include <linux/netfilter/xt_comment.h>
 #include <linux/netfilter/xt_limit.h>
 #include <linux/netfilter/xt_NFLOG.h>
+#include <linux/netfilter/xt_mark.h>
 
 #include <libmnl/libmnl.h>
 #include <libnftnl/rule.h>
@@ -261,6 +262,38 @@ static void parse_ifname(const char *name, unsigned int len, char *dst, unsigned
 		memset(mask, 0xff, len - 2);
 }
 
+static struct xtables_match *
+nft_create_match(struct nft_xt_ctx *ctx,
+		 struct iptables_command_state *cs,
+		 const char *name);
+
+static int parse_meta_mark(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
+{
+	struct xt_mark_mtinfo1 *mark;
+	struct xtables_match *match;
+	uint32_t value;
+
+	match = nft_create_match(ctx, ctx->cs, "mark");
+	if (!match)
+		return -1;
+
+	mark = (void*)match->m->data;
+
+	if (nftnl_expr_get_u32(e, NFTNL_EXPR_CMP_OP) == NFT_CMP_NEQ)
+		mark->invert = 1;
+
+	value = nftnl_expr_get_u32(e, NFTNL_EXPR_CMP_DATA);
+	mark->mark = value;
+	if (ctx->flags & NFT_XT_CTX_BITWISE) {
+		memcpy(&mark->mask, &ctx->bitwise.mask, sizeof(mark->mask));
+		ctx->flags &= ~NFT_XT_CTX_BITWISE;
+	} else {
+		mark->mask = 0xffffffff;
+	}
+
+	return 0;
+}
+
 int parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e, uint8_t key,
 	       char *iniface, unsigned char *iniface_mask,
 	       char *outiface, unsigned char *outiface_mask, uint8_t *invflags)
@@ -303,6 +336,9 @@ int parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e, uint8_t key,
 			*invflags |= IPT_INV_VIA_OUT;
 
 		parse_ifname(ifname, len, outiface, outiface_mask);
+		break;
+	case NFT_META_MARK:
+		parse_meta_mark(ctx, e);
 		break;
 	default:
 		return -1;
