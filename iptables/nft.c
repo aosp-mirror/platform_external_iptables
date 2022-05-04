@@ -3555,15 +3555,18 @@ int nft_compatible_revision(const char *name, uint8_t rev, int opt)
 err:
 	mnl_socket_close(nl);
 
-	/* pretend revision 0 is valid -
+	/* ignore EPERM and errors for revision 0 -
 	 * this is required for printing extension help texts as user, also
 	 * helps error messaging on unavailable kernel extension */
-	if (ret < 0 && rev == 0) {
-		if (errno != EPERM)
+	if (ret < 0) {
+		if (errno == EPERM)
+			return 1;
+		if (rev == 0) {
 			fprintf(stderr,
 				"Warning: Extension %s revision 0 not supported, missing kernel module?\n",
 				name);
-		return 1;
+			return 1;
+		}
 	}
 
 	return ret < 0 ? 0 : 1;

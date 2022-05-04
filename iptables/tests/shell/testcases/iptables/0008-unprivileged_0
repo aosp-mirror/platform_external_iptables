@@ -35,6 +35,12 @@ let "rc+=$?"
 grep_or_rc "DNAT target options:" <<< "$out"
 let "rc+=$?"
 
+# TEE has no revision 0
+out=$(run $XT_MULTI iptables -j TEE --help)
+let "rc+=$?"
+grep_or_rc "TEE target options:" <<< "$out"
+let "rc+=$?"
+
 out=$(run $XT_MULTI iptables -p tcp -j DNAT --help)
 let "rc+=$?"
 grep_or_rc "tcp match options:" <<< "$out"
