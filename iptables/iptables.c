@@ -90,7 +90,6 @@ struct xtables_globals iptables_globals = {
 	.optstring = OPTSTRING_COMMON "R:S::W::" "46bfg:h::m:nvw::x",
 	.orig_opts = original_opts,
 	.compat_rev = xtables_compatible_revision,
-	.print_help = xtables_printhelp,
 };
 
 /*

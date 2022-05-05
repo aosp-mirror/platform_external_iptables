@@ -1156,7 +1156,7 @@ int print_match_save(const struct xt_entry_match *e, const void *ip)
 	return 0;
 }
 
-void
+static void
 xtables_printhelp(const struct xtables_rule_match *matches)
 {
 	const char *prog_name = xt_params->program_name;
@@ -1203,23 +1203,40 @@ xtables_printhelp(const struct xtables_rule_match *matches)
 "				Change policy on chain to target\n"
 "  --rename-chain\n"
 "            -E old-chain new-chain\n"
-"				Change chain name, (moving any references)\n");
+"				Change chain name, (moving any references)\n"
+"\n"
+"Options:\n");
 
-	printf(
-"Options:\n"
+	if (afinfo->family == NFPROTO_ARP) {
+		printf(
+"[!] --source-ip	-s address[/mask]\n"
+"				source specification\n"
+"[!] --destination-ip -d address[/mask]\n"
+"				destination specification\n"
+"[!] --source-mac address[/mask]\n"
+"[!] --destination-mac address[/mask]\n"
+"    --h-length   -l   length[/mask] hardware length (nr of bytes)\n"
+"    --opcode code[/mask] operation code (2 bytes)\n"
+"    --h-type   type[/mask]  hardware type (2 bytes, hexadecimal)\n"
+"    --proto-type   type[/mask]  protocol type (2 bytes)\n");
+	} else {
+		printf(
 "    --ipv4	-4		%s (line is ignored by ip6tables-restore)\n"
 "    --ipv6	-6		%s (line is ignored by iptables-restore)\n"
 "[!] --protocol	-p proto	protocol: by number or name, eg. `tcp'\n"
 "[!] --source	-s address[/mask][...]\n"
 "				source specification\n"
 "[!] --destination -d address[/mask][...]\n"
-"				destination specification\n"
+"				destination specification\n",
+		afinfo->family == NFPROTO_IPV4 ? "Nothing" : "Error",
+		afinfo->family == NFPROTO_IPV4 ? "Error" : "Nothing");
+	}
+
+	printf(
 "[!] --in-interface -i input name[+]\n"
 "				network interface name ([+] for wildcard)\n"
 " --jump	-j target\n"
-"				target for rule (may load target extension)\n",
-	afinfo->family == NFPROTO_IPV4 ? "Nothing" : "Error",
-	afinfo->family == NFPROTO_IPV4 ? "Error" : "Nothing");
+"				target for rule (may load target extension)\n");
 
 	if (0
 #ifdef IPT_F_GOTO
@@ -1250,8 +1267,24 @@ xtables_printhelp(const struct xtables_rule_match *matches)
 
 	printf(
 "  --modprobe=<command>		try to insert modules using this command\n"
-"  --set-counters PKTS BYTES	set the counter during insert/append\n"
+"  --set-counters -c PKTS BYTES	set the counter during insert/append\n"
 "[!] --version	-V		print package version.\n");
+
+	if (afinfo->family == NFPROTO_ARP) {
+		int i;
+
+		printf(" opcode strings: \n");
+		for (i = 0; i < ARP_NUMOPCODES; i++)
+			printf(" %d = %s\n", i + 1, arp_opcodes[i]);
+		printf(
+	" hardware type string: 1 = Ethernet\n"
+	" protocol type string: 0x800 = IPv4\n");
+
+		xtables_find_target("standard", XTF_TRY_LOAD);
+		xtables_find_target("mangle", XTF_TRY_LOAD);
+		xtables_find_target("CLASSIFY", XTF_TRY_LOAD);
+		xtables_find_target("MARK", XTF_TRY_LOAD);
+	}
 
 	print_extension_helps(xtables_targets, matches);
 }
@@ -1475,7 +1508,7 @@ void do_parse(int argc, char *argv[],
 				xtables_find_match(cs->protocol,
 					XTF_TRY_LOAD, &cs->matches);
 
-			xt_params->print_help(cs->matches);
+			xtables_printhelp(cs->matches);
 			exit(0);
 
 			/*

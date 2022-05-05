@@ -93,7 +93,6 @@ struct xtables_globals ip6tables_globals = {
 	.optstring = OPTSTRING_COMMON "R:S::W::" "46bg:h::m:nvw::x",
 	.orig_opts = original_opts,
 	.compat_rev = xtables_compatible_revision,
-	.print_help = xtables_printhelp,
 };
 
 /*
