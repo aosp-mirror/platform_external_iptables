@@ -220,7 +220,6 @@ struct option ebt_original_options[] =
 struct xtables_globals ebtables_globals = {
 	.option_offset 		= 0,
 	.program_version	= PACKAGE_VERSION " (nf_tables)",
-	.optstring		= OPTSTRING_COMMON "hv",
 	.orig_opts		= ebt_original_options,
 	.compat_rev		= nft_compatible_revision,
 };
@@ -734,7 +733,7 @@ int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table,
 	opterr = false;
 
 	/* Getopt saves the day */
-	while ((c = getopt_long(argc, argv, xt_params->optstring,
+	while ((c = getopt_long(argc, argv, EBT_OPTSTRING,
 					opts, NULL)) != -1) {
 		cs.c = c;
 		switch (c) {

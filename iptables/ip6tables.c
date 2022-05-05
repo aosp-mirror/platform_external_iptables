@@ -90,7 +90,6 @@ static struct option original_opts[] = {
 struct xtables_globals ip6tables_globals = {
 	.option_offset = 0,
 	.program_version = PACKAGE_VERSION " (legacy)",
-	.optstring = OPTSTRING_COMMON "R:S::W::" "46bg:h::m:nvw::x",
 	.orig_opts = original_opts,
 	.compat_rev = xtables_compatible_revision,
 };

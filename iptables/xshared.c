@@ -1340,6 +1340,20 @@ static void check_inverse(struct xtables_args *args, const char option[],
 	}
 }
 
+static const char *optstring_lookup(int family)
+{
+	switch (family) {
+	case AF_INET:
+	case AF_INET6:
+		return IPT_OPTSTRING;
+	case NFPROTO_ARP:
+		return ARPT_OPTSTRING;
+	case NFPROTO_BRIDGE:
+		return EBT_OPTSTRING;
+	}
+	return "";
+}
+
 void do_parse(int argc, char *argv[],
 	      struct xt_cmd_parse *p, struct iptables_command_state *cs,
 	      struct xtables_args *args)
@@ -1370,7 +1384,8 @@ void do_parse(int argc, char *argv[],
 	opterr = 0;
 
 	xt_params->opts = xt_params->orig_opts;
-	while ((cs->c = getopt_long(argc, argv, xt_params->optstring,
+	while ((cs->c = getopt_long(argc, argv,
+				    optstring_lookup(afinfo->family),
 				    xt_params->opts, NULL)) != -1) {
 		switch (cs->c) {
 			/*

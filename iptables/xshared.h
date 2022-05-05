@@ -68,6 +68,9 @@ struct xtables_rule_match;
 struct xtables_target;
 
 #define OPTSTRING_COMMON "-:A:C:D:E:F::I:L::M:N:P:VX::Z::" "c:d:i:j:o:p:s:t:"
+#define IPT_OPTSTRING	OPTSTRING_COMMON "R:S::W::" "46bfg:h::m:nvw::x"
+#define ARPT_OPTSTRING	OPTSTRING_COMMON "R:S::" "h::l:nv" /* "m:" */
+#define EBT_OPTSTRING	OPTSTRING_COMMON "hv"
 
 /* define invflags which won't collide with IPT ones */
 #define IPT_INV_SRCDEVADDR	0x0080

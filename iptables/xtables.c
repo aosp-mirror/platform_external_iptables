@@ -88,7 +88,6 @@ static struct option original_opts[] = {
 struct xtables_globals xtables_globals = {
 	.option_offset = 0,
 	.program_version = PACKAGE_VERSION " (nf_tables)",
-	.optstring = OPTSTRING_COMMON "R:S::W::" "46bfg:h::m:nvw::x",
 	.orig_opts = original_opts,
 	.compat_rev = nft_compatible_revision,
 };
