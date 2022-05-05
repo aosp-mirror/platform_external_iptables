@@ -20,6 +20,20 @@
 #include <signal.h>
 #include "xshared.h"
 
+/* a few arp opcode names */
+char *arp_opcodes[] =
+{
+	"Request",
+	"Reply",
+	"Request_Reverse",
+	"Reply_Reverse",
+	"DRARP_Request",
+	"DRARP_Reply",
+	"DRARP_Error",
+	"InARP_Request",
+	"ARP_NAK",
+};
+
 /*
  * Print out any special helps. A user might like to be able to add a --help
  * to the commandline, and see expected results. So we call help for all

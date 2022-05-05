@@ -330,4 +330,7 @@ void ipv4_post_parse(int command, struct iptables_command_state *cs,
 void ipv6_post_parse(int command, struct iptables_command_state *cs,
 		     struct xtables_args *args);
 
+extern char *arp_opcodes[];
+#define ARP_NUMOPCODES 9
+
 #endif /* IPTABLES_XSHARED_H */

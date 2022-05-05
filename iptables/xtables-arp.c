@@ -37,7 +37,6 @@
 #include "xshared.h"
 
 #include "nft.h"
-#include "nft-arp.h"
 
 static struct option original_opts[] = {
 	{ "append", 1, 0, 'A' },

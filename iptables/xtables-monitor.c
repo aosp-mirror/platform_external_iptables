@@ -37,7 +37,6 @@
 #include "iptables.h" /* for xtables_globals */
 #include "xtables-multi.h"
 #include "nft.h"
-#include "nft-arp.h"
 
 struct cb_arg {
 	uint32_t nfproto;

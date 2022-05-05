@@ -25,22 +25,8 @@
 #include <linux/netfilter/nf_tables.h>
 
 #include "nft-shared.h"
-#include "nft-arp.h"
 #include "nft.h"
-
-/* a few names */
-char *arp_opcodes[] =
-{
-	"Request",
-	"Reply",
-	"Request_Reverse",
-	"Reply_Reverse",
-	"DRARP_Request",
-	"DRARP_Reply",
-	"DRARP_Error",
-	"InARP_Request",
-	"ARP_NAK",
-};
+#include "xshared.h"
 
 static bool need_devaddr(struct arpt_devaddr_info *info)
 {
@@ -429,7 +415,7 @@ after_devdst:
 
 		printf("%s%s", sep, fw->arp.invflags & IPT_INV_ARPOP
 			? "! " : "");
-		if (tmp <= NUMOPCODES && !(format & FMT_NUMERIC))
+		if (tmp <= ARP_NUMOPCODES && !(format & FMT_NUMERIC))
 			printf("--opcode %s", arp_opcodes[tmp-1]);
 		else
 			printf("--opcode %d", tmp);
@@ -660,11 +646,11 @@ static void nft_arp_post_parse(int command,
 				   &cs->arp.arp.arpop_mask, 10)) {
 			int i;
 
-			for (i = 0; i < NUMOPCODES; i++)
+			for (i = 0; i < ARP_NUMOPCODES; i++)
 				if (!strcasecmp(arp_opcodes[i],
 						args->arp_opcode))
 					break;
-			if (i == NUMOPCODES)
+			if (i == ARP_NUMOPCODES)
 				xtables_error(PARAMETER_PROBLEM,
 					      "Problem with specified opcode");
 			cs->arp.arp.arpop = htons(i+1);

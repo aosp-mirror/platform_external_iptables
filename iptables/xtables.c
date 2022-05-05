@@ -42,7 +42,6 @@
 #include <fcntl.h>
 #include "xshared.h"
 #include "nft-shared.h"
-#include "nft-arp.h"
 #include "nft.h"
 
 static struct option original_opts[] = {
