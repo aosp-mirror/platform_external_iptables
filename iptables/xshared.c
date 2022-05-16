@@ -1025,7 +1025,7 @@ static const int inverse_for_options[NUMBER_OF_OPT] =
 };
 
 void
-set_option(unsigned int *options, unsigned int option, u_int16_t *invflg,
+set_option(unsigned int *options, unsigned int option, uint16_t *invflg,
 	   bool invert)
 {
 	if (*options & option)

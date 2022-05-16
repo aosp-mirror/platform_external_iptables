@@ -778,7 +778,7 @@ matchinfo_print(const void *ip, const struct xt_entry_match *match, int numeric,
 
 static void
 conntrack_dump_ports(const char *prefix, const char *opt,
-		     u_int16_t port_low, u_int16_t port_high)
+		     uint16_t port_low, uint16_t port_high)
 {
 	if (port_high == 0 || port_low == port_high)
 		printf(" %s%s %u", prefix, opt, port_low);

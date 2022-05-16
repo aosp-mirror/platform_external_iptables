@@ -80,7 +80,7 @@ struct xtables_target;
 #define IPT_INV_ARPHRD		0x0800
 
 void
-set_option(unsigned int *options, unsigned int option, u_int16_t *invflg,
+set_option(unsigned int *options, unsigned int option, uint16_t *invflg,
 	   bool invert);
 
 /**
