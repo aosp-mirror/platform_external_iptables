@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <netinet/ether.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/statfs.h>
@@ -45,7 +46,6 @@
 
 #include <xtables.h>
 #include <limits.h> /* INT_MAX in ip_tables.h/ip6_tables.h */
-#include <linux/if_ether.h> /* ETH_ALEN */
 #include <linux/netfilter_ipv4/ip_tables.h>
 #include <linux/netfilter_ipv6/ip6_tables.h>
 #include <libiptc/libxtc.h>
@@ -70,6 +70,10 @@
 
 #ifndef PROC_SYS_MODPROBE
 #define PROC_SYS_MODPROBE "/proc/sys/kernel/modprobe"
+#endif
+
+#ifndef ETH_ALEN
+#define ETH_ALEN 6
 #endif
 
 /* we need this for ip6?tables-restore.  ip6?tables-restore.c sets line to the
@@ -2244,8 +2248,6 @@ void xtables_print_num(uint64_t number, unsigned int format)
 	number = (number + 500) / 1000;
 	printf(FMT("%4lluT ","%lluT "), (unsigned long long)number);
 }
-
-#include <netinet/ether.h>
 
 static const unsigned char mac_type_unicast[ETH_ALEN] =   {};
 static const unsigned char msk_type_unicast[ETH_ALEN] =   {1};
