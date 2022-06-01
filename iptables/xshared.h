@@ -39,10 +39,6 @@ enum {
 	OPT_P_TYPE	= 1 << 17,
 };
 
-#define NUMBER_OF_OPT	ARRAY_SIZE(optflags)
-static const char optflags[]
-= { 'n', 's', 'd', 'p', 'j', 'v', 'x', 'i', 'o', '0', 'c', 'f', 2, 3, 'l', 4, 5, 6 };
-
 enum {
 	CMD_NONE		= 0,
 	CMD_INSERT		= 1 << 0,
@@ -78,10 +74,6 @@ struct xtables_target;
 #define IPT_INV_ARPHLN		0x0200
 #define IPT_INV_ARPOP		0x0400
 #define IPT_INV_ARPHRD		0x0800
-
-void
-set_option(unsigned int *options, unsigned int option, uint16_t *invflg,
-	   bool invert);
 
 /**
  * xtables_afinfo - protocol family dependent information
@@ -164,10 +156,6 @@ enum {
 	XT_OPTION_OFFSET_SCALE = 256,
 };
 
-extern void print_extension_helps(const struct xtables_target *,
-	const struct xtables_rule_match *);
-extern int command_default(struct iptables_command_state *,
-	struct xtables_globals *, bool invert);
 extern int subcmd_main(int, char **, const struct subcommand *);
 extern void xs_init_target(struct xtables_target *);
 extern void xs_init_match(struct xtables_match *);
@@ -239,18 +227,9 @@ void save_iface(char letter, const char *iface,
 void print_fragment(unsigned int flags, unsigned int invflags,
 		    unsigned int format, bool fake);
 
-void command_match(struct iptables_command_state *cs, bool invert);
-const char *xt_parse_target(const char *targetname);
 void command_jump(struct iptables_command_state *cs, const char *jumpto);
 
-char cmd2char(int option);
-void add_command(unsigned int *cmd, const int newcmd,
-		 const int othercmds, int invert);
-int parse_rulenumber(const char *rule);
 void assert_valid_chain_name(const char *chainname);
-
-void generic_opt_check(int command, int options);
-char opt2char(int option);
 
 void print_rule_details(unsigned int linenum, const struct xt_counters *ctrs,
 			const char *targname, uint8_t proto, uint8_t flags,
