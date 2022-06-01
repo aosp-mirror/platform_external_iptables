@@ -585,27 +585,6 @@ static inline void xtables_print_mark_mask(unsigned int mark,
 	xtables_print_val_mask(mark, mask, NULL);
 }
 
-#if defined(ALL_INCLUSIVE) || defined(NO_SHARED_LIBS)
-#	ifdef _INIT
-#		undef _init
-#		define _init _INIT
-#	endif
-	extern void init_extensions(void);
-	extern void init_extensions4(void);
-	extern void init_extensions6(void);
-	extern void init_extensionsa(void);
-	extern void init_extensionsb(void);
-#else
-#	define _init __attribute__((constructor)) _INIT
-#	define EMPTY_FUNC_DEF(x) static inline void x(void) {}
-	EMPTY_FUNC_DEF(init_extensions)
-	EMPTY_FUNC_DEF(init_extensions4)
-	EMPTY_FUNC_DEF(init_extensions6)
-	EMPTY_FUNC_DEF(init_extensionsa)
-	EMPTY_FUNC_DEF(init_extensionsb)
-#	undef EMPTY_FUNC_DEF
-#endif
-
 extern const struct xtables_pprot xtables_chain_protos[];
 extern uint16_t xtables_parse_protocol(const char *s);
 
@@ -663,9 +642,30 @@ void xtables_announce_chain(const char *name);
 #		define ARRAY_SIZE(x) (sizeof(x) / sizeof(*(x)))
 #	endif
 
+#if defined(ALL_INCLUSIVE) || defined(NO_SHARED_LIBS)
+#	ifdef _INIT
+#		undef _init
+#		define _init _INIT
+#	endif
+	extern void init_extensions(void);
+	extern void init_extensions4(void);
+	extern void init_extensions6(void);
+	extern void init_extensionsa(void);
+	extern void init_extensionsb(void);
+#else
+#	define _init __attribute__((constructor)) _INIT
+#	define EMPTY_FUNC_DEF(x) static inline void x(void) {}
+	EMPTY_FUNC_DEF(init_extensions)
+	EMPTY_FUNC_DEF(init_extensions4)
+	EMPTY_FUNC_DEF(init_extensions6)
+	EMPTY_FUNC_DEF(init_extensionsa)
+	EMPTY_FUNC_DEF(init_extensionsb)
+#	undef EMPTY_FUNC_DEF
+#endif
+
 extern void _init(void);
 
-#endif
+#endif /* XTABLES_INTERNAL */
 
 #ifdef __cplusplus
 } /* extern "C" */
