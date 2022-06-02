@@ -665,6 +665,28 @@ void xtables_announce_chain(const char *name);
 
 extern void _init(void);
 
+/**
+ * xtables_afinfo - protocol family dependent information
+ * @kmod:		kernel module basename (e.g. "ip_tables")
+ * @proc_exists:	file which exists in procfs when module already loaded
+ * @libprefix:		prefix of .so library name (e.g. "libipt_")
+ * @family:		nfproto family
+ * @ipproto:		used by setsockopt (e.g. IPPROTO_IP)
+ * @so_rev_match:	optname to check revision support of match
+ * @so_rev_target:	optname to check revision support of target
+ */
+struct xtables_afinfo {
+	const char *kmod;
+	const char *proc_exists;
+	const char *libprefix;
+	uint8_t family;
+	uint8_t ipproto;
+	int so_rev_match;
+	int so_rev_target;
+};
+
+extern const struct xtables_afinfo *afinfo;
+
 #endif /* XTABLES_INTERNAL */
 
 #ifdef __cplusplus

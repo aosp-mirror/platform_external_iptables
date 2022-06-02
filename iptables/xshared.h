@@ -75,26 +75,6 @@ struct xtables_target;
 #define IPT_INV_ARPOP		0x0400
 #define IPT_INV_ARPHRD		0x0800
 
-/**
- * xtables_afinfo - protocol family dependent information
- * @kmod:		kernel module basename (e.g. "ip_tables")
- * @proc_exists:	file which exists in procfs when module already loaded
- * @libprefix:		prefix of .so library name (e.g. "libipt_")
- * @family:		nfproto family
- * @ipproto:		used by setsockopt (e.g. IPPROTO_IP)
- * @so_rev_match:	optname to check revision support of match
- * @so_rev_target:	optname to check revision support of target
- */
-struct xtables_afinfo {
-	const char *kmod;
-	const char *proc_exists;
-	const char *libprefix;
-	uint8_t family;
-	uint8_t ipproto;
-	int so_rev_match;
-	int so_rev_target;
-};
-
 /* trick for ebtables-compat, since watchers are targets */
 struct ebt_match {
 	struct ebt_match			*next;
@@ -186,8 +166,6 @@ void parse_wait_interval(int argc, char *argv[]);
 int parse_counters(const char *string, struct xt_counters *ctr);
 bool tokenize_rule_counters(char **bufferp, char **pcnt, char **bcnt, int line);
 bool xs_has_arg(int argc, char *argv[]);
-
-extern const struct xtables_afinfo *afinfo;
 
 #define MAX_ARGC	255
 struct argv_store {
