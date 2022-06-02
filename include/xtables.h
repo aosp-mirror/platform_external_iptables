@@ -687,6 +687,9 @@ struct xtables_afinfo {
 
 extern const struct xtables_afinfo *afinfo;
 
+/* base offset of merged extensions' consecutive options */
+#define XT_OPTION_OFFSET_SCALE	256
+
 #endif /* XTABLES_INTERNAL */
 
 #ifdef __cplusplus

@@ -132,10 +132,6 @@ struct subcommand {
 	mainfunc_t main;
 };
 
-enum {
-	XT_OPTION_OFFSET_SCALE = 256,
-};
-
 extern int subcmd_main(int, char **, const struct subcommand *);
 extern void xs_init_target(struct xtables_target *);
 extern void xs_init_match(struct xtables_match *);

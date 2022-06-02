@@ -21,7 +21,6 @@
 #include <arpa/inet.h>
 #include <netinet/ip.h>
 #include "xtables.h"
-#include "xshared.h"
 #ifndef IPTOS_NORMALSVC
 #	define IPTOS_NORMALSVC 0
 #endif
