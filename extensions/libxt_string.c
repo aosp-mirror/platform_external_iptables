@@ -269,7 +269,7 @@ string_print(const void *ip, const struct xt_entry_match *match, int numeric)
 	printf(" ALGO name %s", info->algo);
 	if (info->from_offset != 0)
 		printf(" FROM %u", info->from_offset);
-	if (info->to_offset != 0)
+	if (info->to_offset != UINT16_MAX)
 		printf(" TO %u", info->to_offset);
 	if (revision > 0 && info->u.v1.flags & XT_STRING_FLAG_IGNORECASE)
 		printf(" ICASE");
@@ -293,7 +293,7 @@ static void string_save(const void *ip, const struct xt_entry_match *match)
 	printf(" --algo %s", info->algo);
 	if (info->from_offset != 0)
 		printf(" --from %u", info->from_offset);
-	if (info->to_offset != 0)
+	if (info->to_offset != UINT16_MAX)
 		printf(" --to %u", info->to_offset);
 	if (revision > 0 && info->u.v1.flags & XT_STRING_FLAG_IGNORECASE)
 		printf(" --icase");
