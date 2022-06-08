@@ -78,14 +78,13 @@ static void string_init(struct xt_entry_match *m)
 
 static void
 parse_string(const char *s, struct xt_string_info *info)
-{	
+{
 	/* xt_string does not need \0 at the end of the pattern */
-	if (strlen(s) <= XT_STRING_MAX_PATTERN_SIZE) {
-		memcpy(info->pattern, s, XT_STRING_MAX_PATTERN_SIZE);
-		info->patlen = strnlen(s, XT_STRING_MAX_PATTERN_SIZE);
-		return;
-	}
-	xtables_error(PARAMETER_PROBLEM, "STRING too long \"%s\"", s);
+	if (strlen(s) > sizeof(info->pattern))
+		xtables_error(PARAMETER_PROBLEM, "STRING too long \"%s\"", s);
+
+	info->patlen = strnlen(s, sizeof(info->pattern));
+	memcpy(info->pattern, s, info->patlen);
 }
 
 static void
