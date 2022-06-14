@@ -40,15 +40,24 @@ extern struct nft_family_ops nft_family_ops_ipv6;
 extern struct nft_family_ops nft_family_ops_arp;
 extern struct nft_family_ops nft_family_ops_bridge;
 
+static struct nftnl_expr *xt_nftnl_expr_alloc(const char *name)
+{
+	struct nftnl_expr *expr = nftnl_expr_alloc(name);
+
+	if (expr)
+		return expr;
+
+	xtables_error(RESOURCE_PROBLEM,
+		      "Failed to allocate nftnl expression '%s'", name);
+}
+
 void add_meta(struct nft_handle *h, struct nftnl_rule *r, uint32_t key,
 	      uint8_t *dreg)
 {
 	struct nftnl_expr *expr;
 	uint8_t reg;
 
-	expr = nftnl_expr_alloc("meta");
-	if (expr == NULL)
-		return;
+	expr = xt_nftnl_expr_alloc("meta");
 
 	reg = NFT_REG_1;
 	nftnl_expr_set_u32(expr, NFTNL_EXPR_META_KEY, key);
@@ -64,9 +73,7 @@ void add_payload(struct nft_handle *h, struct nftnl_rule *r,
 	struct nftnl_expr *expr;
 	uint8_t reg;
 
-	expr = nftnl_expr_alloc("payload");
-	if (expr == NULL)
-		return;
+	expr = xt_nftnl_expr_alloc("payload");
 
 	reg = NFT_REG_1;
 	nftnl_expr_set_u32(expr, NFTNL_EXPR_PAYLOAD_BASE, base);
@@ -85,9 +92,7 @@ void add_bitwise_u16(struct nft_handle *h, struct nftnl_rule *r,
 	struct nftnl_expr *expr;
 	uint8_t reg;
 
-	expr = nftnl_expr_alloc("bitwise");
-	if (expr == NULL)
-		return;
+	expr = xt_nftnl_expr_alloc("bitwise");
 
 	reg = NFT_REG_1;
 	nftnl_expr_set_u32(expr, NFTNL_EXPR_BITWISE_SREG, sreg);
@@ -107,9 +112,7 @@ void add_bitwise(struct nft_handle *h, struct nftnl_rule *r,
 	uint32_t xor[4] = { 0 };
 	uint8_t reg = *dreg;
 
-	expr = nftnl_expr_alloc("bitwise");
-	if (expr == NULL)
-		return;
+	expr = xt_nftnl_expr_alloc("bitwise");
 
 	nftnl_expr_set_u32(expr, NFTNL_EXPR_BITWISE_SREG, sreg);
 	nftnl_expr_set_u32(expr, NFTNL_EXPR_BITWISE_DREG, reg);
@@ -126,9 +129,7 @@ void add_cmp_ptr(struct nftnl_rule *r, uint32_t op, void *data, size_t len,
 {
 	struct nftnl_expr *expr;
 
-	expr = nftnl_expr_alloc("cmp");
-	if (expr == NULL)
-		return;
+	expr = xt_nftnl_expr_alloc("cmp");
 
 	nftnl_expr_set_u32(expr, NFTNL_EXPR_CMP_SREG, sreg);
 	nftnl_expr_set_u32(expr, NFTNL_EXPR_CMP_OP, op);
