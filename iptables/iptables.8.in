@@ -417,6 +417,11 @@ other errors cause an exit code of 1.
 .SH BUGS
 Bugs?  What's this? ;-)
 Well, you might want to have a look at http://bugzilla.netfilter.org/
+\fBiptables\fP will exit immediately with an error code of 111 if it finds
+that it was called as a setuid-to-root program.
+iptables cannot be used safely in this manner because it trusts
+the shared libraries (matches, targets) loaded at run time, the search
+path can be set using environment variables.
 .SH COMPATIBILITY WITH IPCHAINS
 This \fBiptables\fP
 is very similar to ipchains by Rusty Russell.  The main difference is
