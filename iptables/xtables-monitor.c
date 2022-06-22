@@ -339,7 +339,7 @@ static void trace_print_packet(const struct nftnl_trace *nlt, struct cb_arg *arg
 			inet_ntop(AF_INET, &iph->daddr, addrbuf, sizeof(addrbuf));
 			printf("DST=%s ", addrbuf);
 
-			printf("LEN=%d TOS=0x%x TTL=%d ID=%d", ntohs(iph->tot_len), iph->tos, iph->ttl, ntohs(iph->id));
+			printf("LEN=%d TOS=0x%x TTL=%d ID=%d ", ntohs(iph->tot_len), iph->tos, iph->ttl, ntohs(iph->id));
 			if (iph->frag_off & htons(0x8000))
 				printf("CE ");
 			if (iph->frag_off & htons(IP_DF))
@@ -362,7 +362,7 @@ static void trace_print_packet(const struct nftnl_trace *nlt, struct cb_arg *arg
 				printf("OPT (");
 				for (i = 0; i < optsize; i++)
 					printf("%02X", op[i]);
-				printf(")");
+				printf(") ");
 			}
 			break;
 		}
