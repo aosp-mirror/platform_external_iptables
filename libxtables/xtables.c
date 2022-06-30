@@ -776,6 +776,7 @@ xtables_find_match(const char *name, enum xtables_tryload tryload,
 	struct xtables_match *ptr;
 	const char *icmp6 = "icmp6";
 	bool found = false;
+	bool seen = false;
 
 	if (strlen(name) >= XT_EXTENSION_MAXNAMELEN)
 		xtables_error(PARAMETER_PROBLEM,
@@ -794,6 +795,7 @@ xtables_find_match(const char *name, enum xtables_tryload tryload,
 		if (extension_cmp(name, (*dptr)->name, (*dptr)->family)) {
 			ptr = *dptr;
 			*dptr = (*dptr)->next;
+			seen = true;
 			if (!found &&
 			    xtables_fully_register_pending_match(ptr, prev)) {
 				found = true;
@@ -806,6 +808,11 @@ xtables_find_match(const char *name, enum xtables_tryload tryload,
 		}
 		dptr = &((*dptr)->next);
 	}
+
+	if (seen && !found)
+		fprintf(stderr,
+			"Warning: Extension %s is not supported, missing kernel module?\n",
+			name);
 
 	for (ptr = xtables_matches; ptr; ptr = ptr->next) {
 		if (extension_cmp(name, ptr->name, ptr->family)) {
@@ -899,6 +906,7 @@ xtables_find_target(const char *name, enum xtables_tryload tryload)
 	struct xtables_target **dptr;
 	struct xtables_target *ptr;
 	bool found = false;
+	bool seen = false;
 
 	/* Standard target? */
 	if (strcmp(name, "") == 0
@@ -917,6 +925,7 @@ xtables_find_target(const char *name, enum xtables_tryload tryload)
 		if (extension_cmp(name, (*dptr)->name, (*dptr)->family)) {
 			ptr = *dptr;
 			*dptr = (*dptr)->next;
+			seen = true;
 			if (!found &&
 			    xtables_fully_register_pending_target(ptr, prev)) {
 				found = true;
@@ -929,6 +938,11 @@ xtables_find_target(const char *name, enum xtables_tryload tryload)
 		}
 		dptr = &((*dptr)->next);
 	}
+
+	if (seen && !found)
+		fprintf(stderr,
+			"Warning: Extension %s is not supported, missing kernel module?\n",
+			name);
 
 	for (ptr = xtables_targets; ptr; ptr = ptr->next) {
 		if (extension_cmp(name, ptr->name, ptr->family)) {
