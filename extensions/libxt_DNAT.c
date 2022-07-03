@@ -197,7 +197,7 @@ parse_to(const char *orig_arg, bool portok,
 
 	if (!inet_pton(family, start, &range->min_addr))
 		xtables_error(PARAMETER_PROBLEM,
-			      "Bad IP address \"%s\"", arg);
+			      "Bad IP address \"%s\"", start);
 	if (dash) {
 		if (!inet_pton(family, dash + 1, &range->max_addr))
 			xtables_error(PARAMETER_PROBLEM,
