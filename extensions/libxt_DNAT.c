@@ -338,7 +338,8 @@ static void DNAT_save(const void *ip, const struct xt_entry_target *target)
 }
 
 static int
-__DNAT_xlate(struct xt_xlate *xl, const struct nf_nat_range2 *r, int family)
+__NAT_xlate(struct xt_xlate *xl, const struct nf_nat_range2 *r,
+	     int family, const char *tgt)
 {
 	char *range_str = sprint_range(r, family);
 	const char *sep = " ";
@@ -347,7 +348,7 @@ __DNAT_xlate(struct xt_xlate *xl, const struct nf_nat_range2 *r, int family)
 	if (r->flags & NF_NAT_RANGE_PROTO_OFFSET)
 		return 0;
 
-	xt_xlate_add(xl, "dnat");
+	xt_xlate_add(xl, tgt);
 	if (strlen(range_str))
 		xt_xlate_add(xl, " to %s", range_str);
 	if (r->flags & NF_NAT_RANGE_PROTO_RANDOM) {
@@ -367,7 +368,7 @@ static int DNAT_xlate(struct xt_xlate *xl,
 	struct nf_nat_range2 range =
 		RANGE2_INIT_FROM_IPV4_MRC(params->target->data);
 
-	return __DNAT_xlate(xl, &range, AF_INET);
+	return __NAT_xlate(xl, &range, AF_INET, "dnat");
 }
 
 static void DNAT_parse_v2(struct xt_option_call *cb)
@@ -391,7 +392,8 @@ static void DNAT_save_v2(const void *ip, const struct xt_entry_target *target)
 static int DNAT_xlate_v2(struct xt_xlate *xl,
 			  const struct xt_xlate_tg_params *params)
 {
-	return __DNAT_xlate(xl, (const void *)params->target->data, AF_INET);
+	return __NAT_xlate(xl, (const void *)params->target->data,
+			   AF_INET, "dnat");
 }
 
 static void DNAT_parse6(struct xt_option_call *cb)
@@ -438,7 +440,7 @@ static int DNAT_xlate6(struct xt_xlate *xl,
 
 	memcpy(&range, (const void *)params->target->data,
 	       sizeof(struct nf_nat_range));
-	return __DNAT_xlate(xl, &range, AF_INET6);
+	return __NAT_xlate(xl, &range, AF_INET6, "dnat");
 }
 
 static void DNAT_parse6_v2(struct xt_option_call *cb)
@@ -462,21 +464,8 @@ static void DNAT_save6_v2(const void *ip, const struct xt_entry_target *target)
 static int DNAT_xlate6_v2(struct xt_xlate *xl,
 			  const struct xt_xlate_tg_params *params)
 {
-	return __DNAT_xlate(xl, (const void *)params->target->data, AF_INET6);
-}
-
-static int __REDIRECT_xlate(struct xt_xlate *xl,
-			    const struct nf_nat_range2 *range)
-{
-	char *range_str = sprint_range(range, AF_INET);
-
-	xt_xlate_add(xl, "redirect");
-	if (strlen(range_str))
-		xt_xlate_add(xl, " to %s", range_str);
-	if (range->flags & NF_NAT_RANGE_PROTO_RANDOM)
-		xt_xlate_add(xl, " random");
-
-	return 1;
+	return __NAT_xlate(xl, (const void *)params->target->data,
+			   AF_INET6, "dnat");
 }
 
 static void REDIRECT_print(const void *ip, const struct xt_entry_target *target,
@@ -500,7 +489,7 @@ static int REDIRECT_xlate(struct xt_xlate *xl,
 	struct nf_nat_range2 range =
 		RANGE2_INIT_FROM_IPV4_MRC(params->target->data);
 
-	return __REDIRECT_xlate(xl, &range);
+	return __NAT_xlate(xl, &range, AF_INET, "redirect");
 }
 
 static void REDIRECT_print6(const void *ip, const struct xt_entry_target *target,
@@ -527,7 +516,7 @@ static int REDIRECT_xlate6(struct xt_xlate *xl,
 
 	memcpy(&range, (const void *)params->target->data,
 	       sizeof(struct nf_nat_range));
-	return __REDIRECT_xlate(xl, &range);
+	return __NAT_xlate(xl, &range, AF_INET6, "redirect");
 }
 
 static struct xtables_target dnat_tg_reg[] = {
