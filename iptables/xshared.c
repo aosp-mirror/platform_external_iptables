@@ -731,7 +731,7 @@ void print_fragment(unsigned int flags, unsigned int invflags,
 		fputs("opt ", stdout);
 
 	if (fake) {
-		fputs("  ", stdout);
+		fputs("--", stdout);
 	} else {
 		fputc(invflags & IPT_INV_FRAG ? '!' : '-', stdout);
 		fputc(flags & IPT_F_FRAG ? 'f' : '-', stdout);
