@@ -1289,9 +1289,6 @@ static int _conntrack3_mt_xlate(struct xt_xlate *xl,
 	}
 
 	if (sinfo->match_flags & XT_CONNTRACK_ORIGSRC) {
-		if (&sinfo->origsrc_addr == 0L)
-			return 0;
-
 		xt_xlate_add(xl, "%sct original saddr %s", space,
 			     sinfo->invert_flags & XT_CONNTRACK_ORIGSRC ?
 			     "!= " : "");
@@ -1301,9 +1298,6 @@ static int _conntrack3_mt_xlate(struct xt_xlate *xl,
 	}
 
 	if (sinfo->match_flags & XT_CONNTRACK_ORIGDST) {
-		if (&sinfo->origdst_addr == 0L)
-			return 0;
-
 		xt_xlate_add(xl, "%sct original daddr %s", space,
 			     sinfo->invert_flags & XT_CONNTRACK_ORIGDST ?
 			     "!= " : "");
@@ -1313,9 +1307,6 @@ static int _conntrack3_mt_xlate(struct xt_xlate *xl,
 	}
 
 	if (sinfo->match_flags & XT_CONNTRACK_REPLSRC) {
-		if (&sinfo->replsrc_addr == 0L)
-			return 0;
-
 		xt_xlate_add(xl, "%sct reply saddr %s", space,
 			     sinfo->invert_flags & XT_CONNTRACK_REPLSRC ?
 			     "!= " : "");
@@ -1325,9 +1316,6 @@ static int _conntrack3_mt_xlate(struct xt_xlate *xl,
 	}
 
 	if (sinfo->match_flags & XT_CONNTRACK_REPLDST) {
-		if (&sinfo->repldst_addr == 0L)
-			return 0;
-
 		xt_xlate_add(xl, "%sct reply daddr %s", space,
 			     sinfo->invert_flags & XT_CONNTRACK_REPLDST ?
 			     "!= " : "");
