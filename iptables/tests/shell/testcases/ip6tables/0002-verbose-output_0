@@ -35,7 +35,7 @@ Chain FORWARD (policy ACCEPT 0 packets, 0 bytes)
  pkts bytes target     prot opt in     out     source               destination
     0     0 ACCEPT     all  --  eth2   eth3    feed:babe::1         feed:babe::2
     0     0 ACCEPT     all  --  eth2   eth3    feed:babe::4         feed:babe::5
-    0     0            ipv6-icmp--  *      *       ::/0                 ::/0                 ipv6-icmptype 1 code 0
+    0     0            ipv6-icmp --  *      *       ::/0                 ::/0                 ipv6-icmptype 1 code 0
     0     0            all  --  *      *       ::/0                 ::/0                 dst length:42  rt type:23
     0     0 LOG        all  --  *      *       ::/0                 ::/0                 frag id:1337 LOG flags 0 level 4
 
