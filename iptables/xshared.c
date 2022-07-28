@@ -1092,10 +1092,10 @@ void print_rule_details(unsigned int linenum, const struct xt_counters *ctrs,
 
 	fputc(invflags & XT_INV_PROTO ? '!' : ' ', stdout);
 
-	if (pname)
-		printf(FMT("%-4s ", "%s "), pname);
-	else
+	if (((format & (FMT_NUMERIC | FMT_NOTABLE)) == FMT_NUMERIC) || !pname)
 		printf(FMT("%-4hu ", "%hu "), proto);
+	else
+		printf(FMT("%-4s ", "%s "), pname);
 }
 
 void save_rule_details(const char *iniface, unsigned const char *iniface_mask,
