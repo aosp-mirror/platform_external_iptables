@@ -1133,9 +1133,6 @@ gen_lookup(uint32_t sreg, const char *set_name, uint32_t set_id, uint32_t flags)
 	return e;
 }
 
-/* simplified nftables:include/netlink.h, netlink_padded_len() */
-#define NETLINK_ALIGN		4
-
 /* from nftables:include/datatype.h, TYPE_BITS */
 #define CONCAT_TYPE_BITS	6
 
@@ -1208,8 +1205,9 @@ static int __add_nft_among(struct nft_handle *h, const char *table,
 	nftnl_rule_add_expr(r, e);
 
 	if (ip) {
+		reg = nft_get_next_reg(reg, ETH_ALEN);
 		e = __gen_payload(NFT_PAYLOAD_NETWORK_HEADER, ip_addr_off[dst],
-				sizeof(struct in_addr), NFT_REG32_02);
+				  sizeof(struct in_addr), reg);
 		if (!e)
 			return -ENOMEM;
 		nftnl_rule_add_expr(r, e);

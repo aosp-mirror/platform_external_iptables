@@ -10,6 +10,7 @@
  * This code has been sponsored by Sophos Astaro <http://www.sophos.com>
  */
 
+#include <assert.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -1602,4 +1603,19 @@ int nft_parse_hl(struct nft_xt_ctx *ctx,
 	info->mode = mode;
 
 	return 0;
+}
+
+enum nft_registers nft_get_next_reg(enum nft_registers reg, size_t size)
+{
+	/* convert size to NETLINK_ALIGN-sized chunks */
+	size = (size + NETLINK_ALIGN - 1) / NETLINK_ALIGN;
+
+	/* map 16byte reg to 4byte one */
+	if (reg < __NFT_REG_MAX)
+		reg = NFT_REG32_00 + (reg - 1) * NFT_REG_SIZE / NFT_REG32_SIZE;
+
+	reg += size;
+	assert(reg <= NFT_REG32_15);
+
+	return reg;
 }

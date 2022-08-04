@@ -276,4 +276,9 @@ int nft_parse_hl(struct nft_xt_ctx *ctx, struct nftnl_expr *e, struct iptables_c
 #define min(x, y) ((x) < (y) ? (x) : (y))
 #define max(x, y) ((x) > (y) ? (x) : (y))
 
+/* simplified nftables:include/netlink.h, netlink_padded_len() */
+#define NETLINK_ALIGN		4
+
+enum nft_registers nft_get_next_reg(enum nft_registers reg, size_t size);
+
 #endif

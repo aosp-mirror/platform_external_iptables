@@ -349,7 +349,7 @@ static int lookup_analyze_payloads(struct nft_xt_ctx *ctx,
 			return -1;
 		}
 
-		sreg_count += 2;
+		sreg_count = nft_get_next_reg(sreg_count, ETH_ALEN);
 
 		reg = nft_xt_ctx_get_sreg(ctx, sreg_count);
 		if (!reg) {
@@ -375,7 +375,7 @@ static int lookup_analyze_payloads(struct nft_xt_ctx *ctx,
 			return -1;
 		}
 		break;
-	case 4: /* ipv4addr */
+	case 6: /* ether */
 		val = lookup_check_ether_payload(reg->payload.base,
 						 reg->payload.offset,
 						 reg->payload.len);
