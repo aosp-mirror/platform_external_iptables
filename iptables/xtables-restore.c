@@ -249,8 +249,11 @@ static void xtables_restore_parse_line(struct nft_handle *h,
 	    (strcmp(p->tablename, state->curtable->name) != 0))
 		return;
 	if (!ret) {
-		fprintf(stderr, "%s: line %u failed\n",
+		fprintf(stderr, "%s: line %u failed",
 				xt_params->program_name, line);
+		if (errno)
+			fprintf(stderr,	": %s.", nft_strerror(errno));
+		fprintf(stderr, "\n");
 		exit(1);
 	}
 }
