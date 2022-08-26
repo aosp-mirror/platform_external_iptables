@@ -250,7 +250,7 @@ static void xtables_restore_parse_line(struct nft_handle *h,
 		return;
 	if (!ret) {
 		fprintf(stderr, "%s: line %u failed",
-				xt_params->program_name, line);
+				xt_params->program_name, h->error.lineno);
 		if (errno)
 			fprintf(stderr,	": %s.", nft_strerror(errno));
 		fprintf(stderr, "\n");

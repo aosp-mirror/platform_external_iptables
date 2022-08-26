@@ -3360,6 +3360,8 @@ static int nft_prepare(struct nft_handle *h)
 	nft_cache_build(h);
 
 	list_for_each_entry_safe(cmd, next, &h->cmd_list, head) {
+		h->error.lineno = cmd->error.lineno;
+
 		switch (cmd->command) {
 		case NFT_COMPAT_TABLE_FLUSH:
 			ret = nft_table_flush(h, cmd->table);
