@@ -25,6 +25,7 @@
 #include <linux/netfilter/xt_limit.h>
 #include <linux/netfilter/xt_NFLOG.h>
 #include <linux/netfilter/xt_mark.h>
+#include <linux/netfilter/xt_pkttype.h>
 
 #include <libmnl/libmnl.h>
 #include <libnftnl/rule.h>
@@ -323,6 +324,27 @@ static int parse_meta_mark(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 	return 0;
 }
 
+static int parse_meta_pkttype(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
+{
+	struct xt_pkttype_info *pkttype;
+	struct xtables_match *match;
+	uint8_t value;
+
+	match = nft_create_match(ctx, ctx->cs, "pkttype");
+	if (!match)
+		return -1;
+
+	pkttype = (void*)match->m->data;
+
+	if (nftnl_expr_get_u32(e, NFTNL_EXPR_CMP_OP) == NFT_CMP_NEQ)
+		pkttype->invert = 1;
+
+	value = nftnl_expr_get_u8(e, NFTNL_EXPR_CMP_DATA);
+	pkttype->pkttype = value;
+
+	return 0;
+}
+
 int parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e, uint8_t key,
 	       char *iniface, unsigned char *iniface_mask,
 	       char *outiface, unsigned char *outiface_mask, uint8_t *invflags)
@@ -368,6 +390,9 @@ int parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e, uint8_t key,
 		break;
 	case NFT_META_MARK:
 		parse_meta_mark(ctx, e);
+		break;
+	case NFT_META_PKTTYPE:
+		parse_meta_pkttype(ctx, e);
 		break;
 	default:
 		return -1;
