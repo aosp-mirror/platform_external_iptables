@@ -41,6 +41,7 @@
 #include <linux/netfilter/xt_limit.h>
 #include <linux/netfilter/xt_NFLOG.h>
 #include <linux/netfilter/xt_mark.h>
+#include <linux/netfilter/xt_pkttype.h>
 
 #include <libmnl/libmnl.h>
 #include <libnftnl/gen.h>
@@ -1445,6 +1446,25 @@ static int add_nft_mark(struct nft_handle *h, struct nftnl_rule *r,
 	return 0;
 }
 
+static int add_nft_pkttype(struct nft_handle *h, struct nftnl_rule *r,
+			   struct xt_entry_match *m)
+{
+	struct xt_pkttype_info *pkti = (void *)m->data;
+	uint8_t reg;
+	int op;
+
+	add_meta(h, r, NFT_META_PKTTYPE, &reg);
+
+	if (pkti->invert)
+		op = NFT_CMP_NEQ;
+	else
+		op = NFT_CMP_EQ;
+
+	add_cmp_u8(r, pkti->pkttype, op, reg);
+
+	return 0;
+}
+
 int add_match(struct nft_handle *h,
 	      struct nftnl_rule *r, struct xt_entry_match *m)
 {
@@ -1461,6 +1481,8 @@ int add_match(struct nft_handle *h,
 		return add_nft_tcp(h, r, m);
 	else if (!strcmp(m->u.user.name, "mark"))
 		return add_nft_mark(h, r, m);
+	else if (!strcmp(m->u.user.name, "pkttype"))
+		return add_nft_pkttype(h, r, m);
 
 	expr = nftnl_expr_alloc("match");
 	if (expr == NULL)
