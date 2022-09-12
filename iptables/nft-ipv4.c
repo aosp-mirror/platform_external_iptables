@@ -206,6 +206,9 @@ static void nft_ipv4_parse_payload(struct nft_xt_ctx *ctx,
 		if (inv)
 			cs->fw.ip.invflags |= IPT_INV_FRAG;
 		break;
+	case offsetof(struct iphdr, ttl):
+		nft_parse_hl(ctx, e, cs);
+		break;
 	default:
 		DEBUGP("unknown payload offset %d\n", ctx->payload.offset);
 		break;

@@ -169,6 +169,9 @@ static void nft_ipv6_parse_payload(struct nft_xt_ctx *ctx,
 		cs->fw6.ipv6.proto = proto;
 		if (inv)
 			cs->fw6.ipv6.invflags |= IP6T_INV_PROTO;
+	case offsetof(struct ip6_hdr, ip6_hlim):
+		nft_parse_hl(ctx, e, cs);
+		break;
 	default:
 		DEBUGP("unknown payload offset %d\n", ctx->payload.offset);
 		break;

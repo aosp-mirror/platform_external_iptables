@@ -27,6 +27,8 @@
 #include <linux/netfilter/xt_mark.h>
 #include <linux/netfilter/xt_pkttype.h>
 
+#include <linux/netfilter_ipv6/ip6t_hl.h>
+
 #include <libmnl/libmnl.h>
 #include <libnftnl/rule.h>
 #include <libnftnl/expr.h>
@@ -1448,4 +1450,70 @@ void nft_check_xt_legacy(int family, bool is_ipt_save)
 		fprintf(stderr, "# Warning: %stables-legacy tables present, use %stables-legacy%s to see them\n",
 			prefix, prefix, is_ipt_save ? "-save" : "");
 	fclose(fp);
+}
+
+int nft_parse_hl(struct nft_xt_ctx *ctx,
+		 struct nftnl_expr *e,
+		 struct iptables_command_state *cs)
+{
+	struct xtables_match *match;
+	struct ip6t_hl_info *info;
+	uint8_t hl, mode;
+	int op;
+
+	hl = nftnl_expr_get_u8(e, NFTNL_EXPR_CMP_DATA);
+	op = nftnl_expr_get_u32(e, NFTNL_EXPR_CMP_OP);
+
+	switch (op) {
+	case NFT_CMP_NEQ:
+		mode = IP6T_HL_NE;
+		break;
+	case NFT_CMP_EQ:
+		mode = IP6T_HL_EQ;
+		break;
+	case NFT_CMP_LT:
+		mode = IP6T_HL_LT;
+		break;
+	case NFT_CMP_GT:
+		mode = IP6T_HL_GT;
+		break;
+	case NFT_CMP_LTE:
+		mode = IP6T_HL_LT;
+		if (hl == 255)
+			return -1;
+		hl++;
+		break;
+	case NFT_CMP_GTE:
+		mode = IP6T_HL_GT;
+		if (hl == 0)
+			return -1;
+		hl--;
+		break;
+	default:
+		return -1;
+	}
+
+	/* ipt_ttl_info and ip6t_hl_info have same layout,
+	 * IPT_TTL_x and IP6T_HL_x are aliases as well, so
+	 * just use HL for both ipv4 and ipv6.
+	 */
+	switch (ctx->h->family) {
+	case NFPROTO_IPV4:
+		match = nft_create_match(ctx, ctx->cs, "ttl");
+		break;
+	case NFPROTO_IPV6:
+		match = nft_create_match(ctx, ctx->cs, "hl");
+		break;
+	default:
+		return -1;
+	}
+
+	if (!match)
+		return -1;
+
+	info = (void*)match->m->data;
+	info->hop_limit = hl;
+	info->mode = mode;
+
+	return 0;
 }

@@ -212,6 +212,8 @@ void xtables_restore_parse(struct nft_handle *h,
 
 void nft_check_xt_legacy(int family, bool is_ipt_save);
 
+int nft_parse_hl(struct nft_xt_ctx *ctx, struct nftnl_expr *e, struct iptables_command_state *cs);
+
 #define min(x, y) ((x) < (y) ? (x) : (y))
 #define max(x, y) ((x) > (y) ? (x) : (y))
 
