@@ -1170,7 +1170,7 @@ static int __add_nft_among(struct nft_handle *h, const char *table,
 		type = type << CONCAT_TYPE_BITS | NFT_DATATYPE_IPADDR;
 		len += sizeof(struct in_addr) + NETLINK_ALIGN - 1;
 		len &= ~(NETLINK_ALIGN - 1);
-		flags = NFT_SET_INTERVAL;
+		flags = NFT_SET_INTERVAL | NFT_SET_CONCAT;
 	}
 
 	s = add_anon_set(h, table, flags, type, len, cnt);
