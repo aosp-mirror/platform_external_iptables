@@ -41,9 +41,6 @@
 #include <linux/netfilter/xt_limit.h>
 #include <linux/netfilter/xt_NFLOG.h>
 #include <linux/netfilter/xt_mark.h>
-#include <linux/netfilter/xt_pkttype.h>
-
-#include <linux/netfilter_ipv6/ip6t_hl.h>
 
 #include <libmnl/libmnl.h>
 #include <libnftnl/gen.h>
@@ -1448,60 +1445,6 @@ static int add_nft_mark(struct nft_handle *h, struct nftnl_rule *r,
 	return 0;
 }
 
-static int add_nft_pkttype(struct nft_handle *h, struct nftnl_rule *r,
-			   struct xt_entry_match *m)
-{
-	struct xt_pkttype_info *pkti = (void *)m->data;
-	uint8_t reg;
-	int op;
-
-	add_meta(h, r, NFT_META_PKTTYPE, &reg);
-
-	if (pkti->invert)
-		op = NFT_CMP_NEQ;
-	else
-		op = NFT_CMP_EQ;
-
-	add_cmp_u8(r, pkti->pkttype, op, reg);
-
-	return 0;
-}
-
-static int add_nft_hl(struct nft_handle *h, struct nftnl_rule *r,
-		      struct xt_entry_match *m, uint8_t offset)
-{
-	struct ip6t_hl_info *info = (void *)m->data;
-	struct nftnl_expr *expr;
-	uint8_t reg;
-	uint8_t op;
-
-	switch (info->mode) {
-	case IP6T_HL_NE:
-		op = NFT_CMP_NEQ;
-		break;
-	case IP6T_HL_EQ:
-		op = NFT_CMP_EQ;
-		break;
-	case IP6T_HL_LT:
-		op = NFT_CMP_LT;
-		break;
-	case IP6T_HL_GT:
-		op = NFT_CMP_GT;
-		break;
-	default:
-		return -EINVAL;
-	}
-
-	expr = gen_payload(h, NFT_PAYLOAD_NETWORK_HEADER, offset, 1, &reg);
-	if (!expr)
-		return -ENOMEM;
-
-	nftnl_rule_add_expr(r, expr);
-	add_cmp_u8(r, info->hop_limit, op, reg);
-
-	return 0;
-}
-
 int add_match(struct nft_handle *h,
 	      struct nftnl_rule *r, struct xt_entry_match *m)
 {
@@ -1518,14 +1461,6 @@ int add_match(struct nft_handle *h,
 		return add_nft_tcp(h, r, m);
 	else if (!strcmp(m->u.user.name, "mark"))
 		return add_nft_mark(h, r, m);
-	else if (!strcmp(m->u.user.name, "pkttype"))
-		return add_nft_pkttype(h, r, m);
-	else if (!strcmp(m->u.user.name, "hl"))
-		return add_nft_hl(h, r, m,
-				  offsetof(struct ip6_hdr, ip6_hlim));
-	else if (!strcmp(m->u.user.name, "ttl"))
-		return add_nft_hl(h, r, m,
-				  offsetof(struct iphdr, ttl));
 
 	expr = nftnl_expr_alloc("match");
 	if (expr == NULL)
