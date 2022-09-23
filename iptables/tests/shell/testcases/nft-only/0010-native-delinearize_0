@@ -5,22 +5,5 @@ nft -v >/dev/null || exit 0
 
 set -e
 
-nft -f - <<EOF
-table ip filter {
-	chain FORWARD {
-		type filter hook forward priority filter;
-		limit rate 10/day counter
-		udp dport 42 counter
-	}
-}
-EOF
-
-EXPECT="*filter
-:INPUT ACCEPT [0:0]
-:FORWARD ACCEPT [0:0]
-:OUTPUT ACCEPT [0:0]
--A FORWARD -m limit --limit 10/day
--A FORWARD -p udp -m udp --dport 42
-COMMIT"
-
-diff -u -Z <(echo -e "$EXPECT") <($XT_MULTI iptables-save | grep -v '^#')
+unshare -n bash -c "nft -f $(dirname $0)/0010-nft-native.txt;
+  diff -u -Z $(dirname $0)/0010-iptables-nft-save.txt <($XT_MULTI iptables-save | grep -v '^#')"
