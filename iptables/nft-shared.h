@@ -38,13 +38,41 @@ struct xtables_args;
 struct nft_handle;
 struct xt_xlate;
 
-enum {
-	NFT_XT_CTX_PAYLOAD	= (1 << 0),
-	NFT_XT_CTX_META		= (1 << 1),
-	NFT_XT_CTX_BITWISE	= (1 << 2),
-	NFT_XT_CTX_IMMEDIATE	= (1 << 3),
-	NFT_XT_CTX_PREV_PAYLOAD	= (1 << 4),
-	NFT_XT_CTX_RANGE	= (1 << 5),
+enum nft_ctx_reg_type {
+	NFT_XT_REG_UNDEF,
+	NFT_XT_REG_PAYLOAD,
+	NFT_XT_REG_IMMEDIATE,
+	NFT_XT_REG_META_DREG,
+};
+
+struct nft_xt_ctx_reg {
+	enum nft_ctx_reg_type type:8;
+
+	union {
+		struct {
+			uint32_t base;
+			uint32_t offset;
+			uint32_t len;
+		} payload;
+		struct {
+			uint32_t data[4];
+			uint8_t len;
+		} immediate;
+		struct {
+			uint32_t key;
+		} meta_dreg;
+	};
+
+	struct {
+		uint32_t mask[4];
+		uint32_t xor[4];
+		bool set;
+	} bitwise;
+
+	struct {
+		uint32_t key;
+		bool set;
+	} meta_sreg;
 };
 
 struct nft_xt_ctx {
@@ -58,24 +86,50 @@ struct nft_xt_ctx {
 		struct xt_udp *udp;
 	} tcpudp;
 
-	uint32_t reg;
-	struct {
-		uint32_t base;
-		uint32_t offset;
-		uint32_t len;
-	} payload, prev_payload;
-	struct {
-		uint32_t key;
-	} meta;
-	struct {
-		uint32_t data[4];
-		uint32_t len, reg;
-	} immediate;
-	struct {
-		uint32_t mask[4];
-		uint32_t xor[4];
-	} bitwise;
+	struct nft_xt_ctx_reg regs[1 + 16];
+
+	const char *errmsg;
 };
+
+static inline struct nft_xt_ctx_reg *nft_xt_ctx_get_sreg(struct nft_xt_ctx *ctx, enum nft_registers reg)
+{
+	switch (reg) {
+	case NFT_REG_VERDICT:
+		return &ctx->regs[0];
+	case NFT_REG_1:
+		return &ctx->regs[1];
+	case NFT_REG_2:
+		return &ctx->regs[5];
+	case NFT_REG_3:
+		return &ctx->regs[9];
+	case NFT_REG_4:
+		return &ctx->regs[13];
+	case NFT_REG32_00...NFT_REG32_15:
+		return &ctx->regs[reg - NFT_REG32_00];
+	default:
+		ctx->errmsg = "Unknown register requested";
+		break;
+	}
+
+	return NULL;
+}
+
+static inline void nft_xt_reg_clear(struct nft_xt_ctx_reg *r)
+{
+	r->type = 0;
+	r->bitwise.set = false;
+	r->meta_sreg.set = false;
+}
+
+static inline struct nft_xt_ctx_reg *nft_xt_ctx_get_dreg(struct nft_xt_ctx *ctx, enum nft_registers reg)
+{
+	struct nft_xt_ctx_reg *r = nft_xt_ctx_get_sreg(ctx, reg);
+
+	if (r)
+		nft_xt_reg_clear(r);
+
+	return r;
+}
 
 struct nft_family_ops {
 	int (*add)(struct nft_handle *h, struct nftnl_rule *r,
@@ -84,9 +138,13 @@ struct nft_family_ops {
 			const struct iptables_command_state *cs_b);
 	void (*print_payload)(struct nftnl_expr *e,
 			      struct nftnl_expr_iter *iter);
-	void (*parse_meta)(struct nft_xt_ctx *ctx, struct nftnl_expr *e,
+	void (*parse_meta)(struct nft_xt_ctx *ctx,
+			   const struct nft_xt_ctx_reg *sreg,
+			   struct nftnl_expr *e,
 			   struct iptables_command_state *cs);
-	void (*parse_payload)(struct nft_xt_ctx *ctx, struct nftnl_expr *e,
+	void (*parse_payload)(struct nft_xt_ctx *ctx,
+			      const struct nft_xt_ctx_reg *sreg,
+			      struct nftnl_expr *e,
 			      struct iptables_command_state *cs);
 	void (*parse_lookup)(struct nft_xt_ctx *ctx, struct nftnl_expr *e);
 	void (*set_goto_flag)(struct iptables_command_state *cs);

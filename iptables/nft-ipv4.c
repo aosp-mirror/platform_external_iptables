@@ -115,28 +115,28 @@ static bool nft_ipv4_is_same(const struct iptables_command_state *a,
 				  b->fw.ip.iniface_mask, b->fw.ip.outiface_mask);
 }
 
-static void get_frag(struct nft_xt_ctx *ctx, struct nftnl_expr *e, bool *inv)
+static bool get_frag(const struct nft_xt_ctx_reg *reg, struct nftnl_expr *e)
 {
 	uint8_t op;
 
 	/* we assume correct mask and xor */
-	if (!(ctx->flags & NFT_XT_CTX_BITWISE))
-		return;
+	if (!reg->bitwise.set)
+		return false;
 
 	/* we assume correct data */
 	op = nftnl_expr_get_u32(e, NFTNL_EXPR_CMP_OP);
 	if (op == NFT_CMP_EQ)
-		*inv = true;
-	else
-		*inv = false;
+		return true;
 
-	ctx->flags &= ~NFT_XT_CTX_BITWISE;
+	return false;
 }
 
-static void nft_ipv4_parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e,
+static void nft_ipv4_parse_meta(struct nft_xt_ctx *ctx,
+				const struct nft_xt_ctx_reg *reg,
+				struct nftnl_expr *e,
 				struct iptables_command_state *cs)
 {
-	switch (ctx->meta.key) {
+	switch (reg->meta_dreg.key) {
 	case NFT_META_L4PROTO:
 		cs->fw.ip.proto = nftnl_expr_get_u8(e, NFTNL_EXPR_CMP_DATA);
 		if (nftnl_expr_get_u32(e, NFTNL_EXPR_CMP_OP) == NFT_CMP_NEQ)
@@ -146,17 +146,18 @@ static void nft_ipv4_parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e,
 		break;
 	}
 
-	parse_meta(ctx, e, ctx->meta.key, cs->fw.ip.iniface, cs->fw.ip.iniface_mask,
+	parse_meta(ctx, e, reg->meta_dreg.key, cs->fw.ip.iniface, cs->fw.ip.iniface_mask,
 		   cs->fw.ip.outiface, cs->fw.ip.outiface_mask,
 		   &cs->fw.ip.invflags);
 }
 
-static void parse_mask_ipv4(struct nft_xt_ctx *ctx, struct in_addr *mask)
+static void parse_mask_ipv4(const struct nft_xt_ctx_reg *sreg, struct in_addr *mask)
 {
-	mask->s_addr = ctx->bitwise.mask[0];
+	mask->s_addr = sreg->bitwise.mask[0];
 }
 
 static void nft_ipv4_parse_payload(struct nft_xt_ctx *ctx,
+				   const struct nft_xt_ctx_reg *sreg,
 				   struct nftnl_expr *e,
 				   struct iptables_command_state *cs)
 {
@@ -164,16 +165,15 @@ static void nft_ipv4_parse_payload(struct nft_xt_ctx *ctx,
 	uint8_t proto;
 	bool inv;
 
-	switch(ctx->payload.offset) {
+	switch (sreg->payload.offset) {
 	case offsetof(struct iphdr, saddr):
 		get_cmp_data(e, &addr, sizeof(addr), &inv);
 		cs->fw.ip.src.s_addr = addr.s_addr;
-		if (ctx->flags & NFT_XT_CTX_BITWISE) {
-			parse_mask_ipv4(ctx, &cs->fw.ip.smsk);
-			ctx->flags &= ~NFT_XT_CTX_BITWISE;
+		if (sreg->bitwise.set) {
+			parse_mask_ipv4(sreg, &cs->fw.ip.smsk);
 		} else {
 			memset(&cs->fw.ip.smsk, 0xff,
-			       min(ctx->payload.len, sizeof(struct in_addr)));
+			       min(sreg->payload.len, sizeof(struct in_addr)));
 		}
 
 		if (inv)
@@ -182,13 +182,11 @@ static void nft_ipv4_parse_payload(struct nft_xt_ctx *ctx,
 	case offsetof(struct iphdr, daddr):
 		get_cmp_data(e, &addr, sizeof(addr), &inv);
 		cs->fw.ip.dst.s_addr = addr.s_addr;
-		if (ctx->flags & NFT_XT_CTX_BITWISE) {
-			parse_mask_ipv4(ctx, &cs->fw.ip.dmsk);
-			ctx->flags &= ~NFT_XT_CTX_BITWISE;
-		} else {
+		if (sreg->bitwise.set)
+			parse_mask_ipv4(sreg, &cs->fw.ip.dmsk);
+		else
 			memset(&cs->fw.ip.dmsk, 0xff,
-			       min(ctx->payload.len, sizeof(struct in_addr)));
-		}
+			       min(sreg->payload.len, sizeof(struct in_addr)));
 
 		if (inv)
 			cs->fw.ip.invflags |= IPT_INV_DSTIP;
@@ -201,8 +199,7 @@ static void nft_ipv4_parse_payload(struct nft_xt_ctx *ctx,
 		break;
 	case offsetof(struct iphdr, frag_off):
 		cs->fw.ip.flags |= IPT_F_FRAG;
-		inv = false;
-		get_frag(ctx, e, &inv);
+		inv = get_frag(sreg, e);
 		if (inv)
 			cs->fw.ip.invflags |= IPT_INV_FRAG;
 		break;
@@ -210,7 +207,7 @@ static void nft_ipv4_parse_payload(struct nft_xt_ctx *ctx,
 		nft_parse_hl(ctx, e, cs);
 		break;
 	default:
-		DEBUGP("unknown payload offset %d\n", ctx->payload.offset);
+		DEBUGP("unknown payload offset %d\n", sreg->payload.offset);
 		break;
 	}
 }

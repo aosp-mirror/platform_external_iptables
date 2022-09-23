@@ -299,6 +299,16 @@ nft_create_match(struct nft_xt_ctx *ctx,
 		 struct iptables_command_state *cs,
 		 const char *name);
 
+static uint32_t get_meta_mask(struct nft_xt_ctx *ctx, enum nft_registers sreg)
+{
+	struct nft_xt_ctx_reg *reg = nft_xt_ctx_get_sreg(ctx, sreg);
+
+	if (reg->bitwise.set)
+		return reg->bitwise.mask[0];
+
+	return ~0u;
+}
+
 static int parse_meta_mark(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 {
 	struct xt_mark_mtinfo1 *mark;
@@ -316,12 +326,7 @@ static int parse_meta_mark(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 
 	value = nftnl_expr_get_u32(e, NFTNL_EXPR_CMP_DATA);
 	mark->mark = value;
-	if (ctx->flags & NFT_XT_CTX_BITWISE) {
-		memcpy(&mark->mask, &ctx->bitwise.mask, sizeof(mark->mask));
-		ctx->flags &= ~NFT_XT_CTX_BITWISE;
-	} else {
-		mark->mask = 0xffffffff;
-	}
+	mark->mask = get_meta_mask(ctx, nftnl_expr_get_u32(e, NFTNL_EXPR_CMP_SREG));
 
 	return 0;
 }
@@ -479,20 +484,40 @@ void get_cmp_data(struct nftnl_expr *e, void *data, size_t dlen, bool *inv)
 		*inv = false;
 }
 
-static void nft_meta_set_to_target(struct nft_xt_ctx *ctx)
+static void nft_meta_set_to_target(struct nft_xt_ctx *ctx,
+				   struct nftnl_expr *e)
 {
 	struct xtables_target *target;
+	struct nft_xt_ctx_reg *sreg;
+	enum nft_registers sregnum;
 	struct xt_entry_target *t;
 	unsigned int size;
 	const char *targname;
 
-	switch (ctx->meta.key) {
+	sregnum = nftnl_expr_get_u32(e, NFTNL_EXPR_META_SREG);
+	sreg = nft_xt_ctx_get_sreg(ctx, sregnum);
+	if (!sreg)
+		return;
+
+	if (sreg->meta_sreg.set == 0)
+		return;
+
+	switch (sreg->meta_sreg.key) {
 	case NFT_META_NFTRACE:
-		if (ctx->immediate.data[0] == 0)
+		if ((sreg->type != NFT_XT_REG_IMMEDIATE)) {
+			ctx->errmsg = "meta nftrace but reg not immediate";
 			return;
+		}
+
+		if (sreg->immediate.data[0] == 0) {
+			ctx->errmsg = "trace is cleared";
+			return;
+		}
+
 		targname = "TRACE";
 		break;
 	default:
+		ctx->errmsg = "meta sreg key not supported";
 		return;
 	}
 
@@ -514,51 +539,74 @@ static void nft_meta_set_to_target(struct nft_xt_ctx *ctx)
 
 static void nft_parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 {
-	ctx->meta.key = nftnl_expr_get_u32(e, NFTNL_EXPR_META_KEY);
+        struct nft_xt_ctx_reg *reg;
 
-	if (nftnl_expr_is_set(e, NFTNL_EXPR_META_SREG) &&
-	    (ctx->flags & NFT_XT_CTX_IMMEDIATE) &&
-	     nftnl_expr_get_u32(e, NFTNL_EXPR_META_SREG) == ctx->immediate.reg) {
-		ctx->flags &= ~NFT_XT_CTX_IMMEDIATE;
-		nft_meta_set_to_target(ctx);
+	if (nftnl_expr_is_set(e, NFTNL_EXPR_META_SREG)) {
+		nft_meta_set_to_target(ctx, e);
 		return;
 	}
 
-	ctx->reg = nftnl_expr_get_u32(e, NFTNL_EXPR_META_DREG);
-	ctx->flags |= NFT_XT_CTX_META;
+	reg = nft_xt_ctx_get_dreg(ctx, nftnl_expr_get_u32(e, NFTNL_EXPR_META_DREG));
+	if (!reg)
+		return;
+
+	reg->meta_dreg.key = nftnl_expr_get_u32(e, NFTNL_EXPR_META_KEY);
+	reg->type = NFT_XT_REG_META_DREG;
 }
 
 static void nft_parse_payload(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 {
-	if (ctx->flags & NFT_XT_CTX_PAYLOAD) {
-		memcpy(&ctx->prev_payload, &ctx->payload,
-		       sizeof(ctx->prev_payload));
-		ctx->flags |= NFT_XT_CTX_PREV_PAYLOAD;
-	}
+	enum nft_registers regnum = nftnl_expr_get_u32(e, NFTNL_EXPR_PAYLOAD_DREG);
+	struct nft_xt_ctx_reg *reg = nft_xt_ctx_get_dreg(ctx, regnum);
 
-	ctx->reg = nftnl_expr_get_u32(e, NFTNL_EXPR_PAYLOAD_DREG);
-	ctx->payload.base = nftnl_expr_get_u32(e, NFTNL_EXPR_PAYLOAD_BASE);
-	ctx->payload.offset = nftnl_expr_get_u32(e, NFTNL_EXPR_PAYLOAD_OFFSET);
-	ctx->payload.len = nftnl_expr_get_u32(e, NFTNL_EXPR_PAYLOAD_LEN);
-	ctx->flags |= NFT_XT_CTX_PAYLOAD;
+	if (!reg)
+		return;
+
+	reg->type = NFT_XT_REG_PAYLOAD;
+	reg->payload.base = nftnl_expr_get_u32(e, NFTNL_EXPR_PAYLOAD_BASE);
+	reg->payload.offset = nftnl_expr_get_u32(e, NFTNL_EXPR_PAYLOAD_OFFSET);
+	reg->payload.len = nftnl_expr_get_u32(e, NFTNL_EXPR_PAYLOAD_LEN);
 }
 
 static void nft_parse_bitwise(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 {
-	uint32_t reg, len;
+	enum nft_registers sregnum = nftnl_expr_get_u32(e, NFTNL_EXPR_BITWISE_SREG);
+	enum nft_registers dregnum = nftnl_expr_get_u32(e, NFTNL_EXPR_BITWISE_DREG);
+	struct nft_xt_ctx_reg *sreg = nft_xt_ctx_get_sreg(ctx, sregnum);
+	struct nft_xt_ctx_reg *dreg = sreg;
 	const void *data;
+	uint32_t len;
 
-	reg = nftnl_expr_get_u32(e, NFTNL_EXPR_BITWISE_SREG);
-	if (ctx->reg && reg != ctx->reg)
+	if (!sreg)
 		return;
 
-	reg = nftnl_expr_get_u32(e, NFTNL_EXPR_BITWISE_DREG);
-	ctx->reg = reg;
+	if (sregnum != dregnum) {
+		dreg = nft_xt_ctx_get_sreg(ctx, dregnum); /* sreg, do NOT clear ... */
+		if (!dreg)
+			return;
+
+		*dreg = *sreg;  /* .. and copy content instead */
+	}
+
 	data = nftnl_expr_get(e, NFTNL_EXPR_BITWISE_XOR, &len);
-	memcpy(ctx->bitwise.xor, data, len);
+
+	if (len > sizeof(dreg->bitwise.xor)) {
+		ctx->errmsg = "bitwise xor too large";
+		return;
+	}
+
+	memcpy(dreg->bitwise.xor, data, len);
+
 	data = nftnl_expr_get(e, NFTNL_EXPR_BITWISE_MASK, &len);
-	memcpy(ctx->bitwise.mask, data, len);
-	ctx->flags |= NFT_XT_CTX_BITWISE;
+
+	if (len > sizeof(dreg->bitwise.mask)) {
+		ctx->errmsg = "bitwise mask too large";
+		return;
+	}
+
+	memcpy(dreg->bitwise.mask, data, len);
+
+	dreg->bitwise.set = true;
 }
 
 static struct xtables_match *
@@ -863,6 +911,8 @@ static void nft_parse_transport(struct nft_xt_ctx *ctx,
 				struct nftnl_expr *e,
 				struct iptables_command_state *cs)
 {
+	struct nft_xt_ctx_reg *sreg;
+	enum nft_registers reg;
 	uint32_t sdport;
 	uint16_t port;
 	uint8_t proto, op;
@@ -883,7 +933,17 @@ static void nft_parse_transport(struct nft_xt_ctx *ctx,
 	nftnl_expr_get(e, NFTNL_EXPR_CMP_DATA, &len);
 	op = nftnl_expr_get_u32(e, NFTNL_EXPR_CMP_OP);
 
-	switch(ctx->payload.offset) {
+	reg = nftnl_expr_get_u32(e, NFTNL_EXPR_CMP_SREG);
+	sreg = nft_xt_ctx_get_sreg(ctx, reg);
+	if (!sreg)
+		return;
+
+	if (sreg->type != NFT_XT_REG_PAYLOAD) {
+		ctx->errmsg = "sgreg not payload";
+		return;
+	}
+
+	switch(sreg->payload.offset) {
 	case 0: /* th->sport */
 		switch (len) {
 		case 2: /* load sport only */
@@ -909,10 +969,9 @@ static void nft_parse_transport(struct nft_xt_ctx *ctx,
 			uint8_t flags = nftnl_expr_get_u8(e, NFTNL_EXPR_CMP_DATA);
 			uint8_t mask = ~0;
 
-			if (ctx->flags & NFT_XT_CTX_BITWISE) {
-				memcpy(&mask, &ctx->bitwise.mask, sizeof(mask));
-				ctx->flags &= ~NFT_XT_CTX_BITWISE;
-			}
+			if (sreg->bitwise.set)
+				memcpy(&mask, &sreg->bitwise.mask, sizeof(mask));
+
 			nft_parse_tcp_flags(ctx, cs, op, flags, mask);
 		}
 		return;
@@ -920,6 +979,7 @@ static void nft_parse_transport(struct nft_xt_ctx *ctx,
 }
 
 static void nft_parse_transport_range(struct nft_xt_ctx *ctx,
+				      const struct nft_xt_ctx_reg *sreg,
 				      struct nftnl_expr *e,
 				      struct iptables_command_state *cs)
 {
@@ -949,7 +1009,7 @@ static void nft_parse_transport_range(struct nft_xt_ctx *ctx,
 	from = ntohs(nftnl_expr_get_u16(e, NFTNL_EXPR_RANGE_FROM_DATA));
 	to = ntohs(nftnl_expr_get_u16(e, NFTNL_EXPR_RANGE_TO_DATA));
 
-	switch(ctx->payload.offset) {
+	switch (sreg->payload.offset) {
 	case 0:
 		nft_parse_th_port_range(ctx, cs, proto, from, to, -1, -1, op);
 		return;
@@ -962,30 +1022,40 @@ static void nft_parse_transport_range(struct nft_xt_ctx *ctx,
 
 static void nft_parse_cmp(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 {
+	struct nft_xt_ctx_reg *sreg;
 	uint32_t reg;
 
 	reg = nftnl_expr_get_u32(e, NFTNL_EXPR_CMP_SREG);
-	if (ctx->reg && reg != ctx->reg)
+
+	sreg = nft_xt_ctx_get_sreg(ctx, reg);
+	if (!sreg)
 		return;
 
-	if (ctx->flags & NFT_XT_CTX_META) {
-		ctx->h->ops->parse_meta(ctx, e, ctx->cs);
-		ctx->flags &= ~NFT_XT_CTX_META;
-	}
-	/* bitwise context is interpreted from payload */
-	if (ctx->flags & NFT_XT_CTX_PAYLOAD) {
-		switch (ctx->payload.base) {
+	switch (sreg->type) {
+	case NFT_XT_REG_UNDEF:
+		ctx->errmsg = "cmp sreg undef";
+		break;
+	case NFT_XT_REG_META_DREG:
+		ctx->h->ops->parse_meta(ctx, sreg, e, ctx->cs);
+		break;
+	case NFT_XT_REG_PAYLOAD:
+		switch (sreg->payload.base) {
 		case NFT_PAYLOAD_LL_HEADER:
 			if (ctx->h->family == NFPROTO_BRIDGE)
-				ctx->h->ops->parse_payload(ctx, e, ctx->cs);
+				ctx->h->ops->parse_payload(ctx, sreg, e, ctx->cs);
 			break;
 		case NFT_PAYLOAD_NETWORK_HEADER:
-			ctx->h->ops->parse_payload(ctx, e, ctx->cs);
+			ctx->h->ops->parse_payload(ctx, sreg, e, ctx->cs);
 			break;
 		case NFT_PAYLOAD_TRANSPORT_HEADER:
 			nft_parse_transport(ctx, e, ctx->cs);
 			break;
 		}
+
+		break;
+	default:
+		ctx->errmsg = "cmp sreg has unknown type";
+		break;
 	}
 }
 
@@ -1004,18 +1074,22 @@ static void nft_parse_immediate(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 	int verdict;
 
 	if (nftnl_expr_is_set(e, NFTNL_EXPR_IMM_DATA)) {
+		struct nft_xt_ctx_reg *dreg;
 		const void *imm_data;
 		uint32_t len;
 
 		imm_data = nftnl_expr_get_data(e, NFTNL_EXPR_IMM_DATA, &len);
-
-		if (len > sizeof(ctx->immediate.data))
+		dreg = nft_xt_ctx_get_dreg(ctx, nftnl_expr_get_u32(e, NFTNL_EXPR_IMM_DREG));
+		if (!dreg)
 			return;
 
-		memcpy(ctx->immediate.data, imm_data, len);
-		ctx->immediate.len = len;
-		ctx->immediate.reg = nftnl_expr_get_u32(e, NFTNL_EXPR_IMM_DREG);
-		ctx->flags |= NFT_XT_CTX_IMMEDIATE;
+		if (len > sizeof(dreg->immediate.data))
+			return;
+
+		memcpy(dreg->immediate.data, imm_data, len);
+		dreg->immediate.len = len;
+		dreg->type = NFT_XT_REG_IMMEDIATE;
+
 		return;
 	}
 
@@ -1152,20 +1226,29 @@ static void nft_parse_lookup(struct nft_xt_ctx *ctx, struct nft_handle *h,
 
 static void nft_parse_range(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 {
+	struct nft_xt_ctx_reg *sreg;
 	uint32_t reg;
 
 	reg = nftnl_expr_get_u32(e, NFTNL_EXPR_RANGE_SREG);
-	if (reg != ctx->reg)
-		return;
+	sreg = nft_xt_ctx_get_sreg(ctx, reg);
 
-	if (ctx->flags & NFT_XT_CTX_PAYLOAD) {
-		switch (ctx->payload.base) {
+	switch (sreg->type) {
+	case NFT_XT_REG_UNDEF:
+		ctx->errmsg = "range sreg undef";
+		break;
+	case NFT_XT_REG_PAYLOAD:
+		switch (sreg->payload.base) {
 		case NFT_PAYLOAD_TRANSPORT_HEADER:
-			nft_parse_transport_range(ctx, e, ctx->cs);
+			nft_parse_transport_range(ctx, sreg, e, ctx->cs);
 			break;
 		default:
+			ctx->errmsg = "range with unknown payload base";
 			break;
 		}
+		break;
+	default:
+		ctx->errmsg = "range sreg type unsupported";
+		break;
 	}
 }
 
