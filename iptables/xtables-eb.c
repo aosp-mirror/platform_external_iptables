@@ -158,7 +158,6 @@ int ebt_get_current_chain(const char *chain)
 #define OPT_COMMANDS (flags & OPT_COMMAND || flags & OPT_ZERO)
 
 #define OPT_COMMAND	0x01
-#define OPT_TABLE	0x02
 #define OPT_IN		0x04
 #define OPT_OUT		0x08
 #define OPT_JUMP	0x10
@@ -894,11 +893,13 @@ print_zero:
 			}
 			break;
 		case 't': /* Table */
-			ebt_check_option2(&flags, OPT_TABLE);
 			if (restore && table_set)
 				xtables_error(PARAMETER_PROBLEM,
 					      "The -t option cannot be used in %s.\n",
 					      xt_params->program_name);
+			else if (table_set)
+				xtables_error(PARAMETER_PROBLEM,
+					      "Multiple use of same option not allowed");
 			if (!nft_table_builtin_find(h, optarg))
 				xtables_error(VERSION_PROBLEM,
 					      "table '%s' does not exist",
