@@ -168,10 +168,7 @@ int ebt_get_current_chain(const char *chain)
 #define OPT_ZERO	0x100
 #define OPT_LOGICALIN	0x200
 #define OPT_LOGICALOUT	0x400
-#define OPT_KERNELDATA	0x800 /* This value is also defined in ebtablesd.c */
 #define OPT_COUNT	0x1000 /* This value is also defined in libebtc.c */
-#define OPT_CNT_INCR	0x2000 /* This value is also defined in libebtc.c */
-#define OPT_CNT_DECR	0x4000 /* This value is also defined in libebtc.c */
 
 /* Default command line options. Do not mess around with the already
  * assigned numbers unless you know what you are doing */
