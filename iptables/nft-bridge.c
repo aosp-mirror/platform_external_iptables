@@ -100,6 +100,18 @@ static int _add_action(struct nftnl_rule *r, struct iptables_command_state *cs)
 	return add_action(r, cs, false);
 }
 
+static int
+nft_bridge_add_match(struct nft_handle *h, const struct ebt_entry *fw,
+		     struct nftnl_rule *r, struct xt_entry_match *m)
+{
+	if (!strcmp(m->u.user.name, "802_3") &&
+	    !(fw->bitmask & EBT_802_3))
+		xtables_error(PARAMETER_PROBLEM,
+			      "For 802.3 DSAP/SSAP filtering the protocol must be LENGTH");
+
+	return add_match(h, r, m);
+}
+
 static int nft_bridge_add(struct nft_handle *h,
 			  struct nftnl_rule *r,
 			  struct iptables_command_state *cs)
@@ -143,19 +155,26 @@ static int nft_bridge_add(struct nft_handle *h,
 	}
 
 	if ((fw->bitmask & EBT_NOPROTO) == 0) {
+		uint16_t ethproto = fw->ethproto;
 		uint8_t reg;
 
 		op = nft_invflags2cmp(fw->invflags, EBT_IPROTO);
 		add_payload(h, r, offsetof(struct ethhdr, h_proto), 2,
 			    NFT_PAYLOAD_LL_HEADER, &reg);
-		add_cmp_u16(r, fw->ethproto, op, reg);
+
+		if (fw->bitmask & EBT_802_3) {
+			op = (op == NFT_CMP_EQ ? NFT_CMP_LT : NFT_CMP_GTE);
+			ethproto = htons(0x0600);
+		}
+
+		add_cmp_u16(r, ethproto, op, reg);
 	}
 
 	add_compat(r, fw->ethproto, fw->invflags & EBT_IPROTO);
 
 	for (iter = cs->match_list; iter; iter = iter->next) {
 		if (iter->ismatch) {
-			if (add_match(h, r, iter->u.match->m))
+			if (nft_bridge_add_match(h, fw, r, iter->u.match->m))
 				break;
 		} else {
 			if (add_target(r, iter->u.watcher->t))
@@ -214,6 +233,7 @@ static void nft_bridge_parse_payload(struct nft_xt_ctx *ctx,
 	struct ebt_entry *fw = &cs->eb;
 	unsigned char addr[ETH_ALEN];
 	unsigned short int ethproto;
+	uint8_t op;
 	bool inv;
 	int i;
 
@@ -246,8 +266,14 @@ static void nft_bridge_parse_payload(struct nft_xt_ctx *ctx,
 		fw->bitmask |= EBT_ISOURCE;
 		break;
 	case offsetof(struct ethhdr, h_proto):
-		get_cmp_data(e, &ethproto, sizeof(ethproto), &inv);
-		fw->ethproto = ethproto;
+		__get_cmp_data(e, &ethproto, sizeof(ethproto), &op);
+		if (ethproto == htons(0x0600)) {
+			fw->bitmask |= EBT_802_3;
+			inv = (op == NFT_CMP_GTE);
+		} else {
+			fw->ethproto = ethproto;
+			inv = (op == NFT_CMP_NEQ);
+		}
 		if (inv)
 			fw->invflags |= EBT_IPROTO;
 		fw->bitmask &= ~EBT_NOPROTO;
@@ -613,7 +639,7 @@ static void print_protocol(uint16_t ethproto, bool invert, unsigned int bitmask)
 		printf("! ");
 
 	if (bitmask & EBT_802_3) {
-		printf("length ");
+		printf("Length ");
 		return;
 	}
 
@@ -627,7 +653,7 @@ static void print_protocol(uint16_t ethproto, bool invert, unsigned int bitmask)
 static void __nft_bridge_save_rule(const struct iptables_command_state *cs,
 				   unsigned int format)
 {
-	if (cs->eb.ethproto)
+	if (!(cs->eb.bitmask & EBT_NOPROTO))
 		print_protocol(cs->eb.ethproto, cs->eb.invflags & EBT_IPROTO,
 			       cs->eb.bitmask);
 	if (cs->eb.bitmask & EBT_ISOURCE)
@@ -866,7 +892,10 @@ static int nft_bridge_xlate(const struct iptables_command_state *cs,
 	xlate_ifname(xl, "meta obrname", cs->eb.logical_out,
 		     cs->eb.invflags & EBT_ILOGICALOUT);
 
-	if ((cs->eb.bitmask & EBT_NOPROTO) == 0) {
+	if (cs->eb.bitmask & EBT_802_3) {
+		xt_xlate_add(xl, "ether type %s 0x0600 ",
+			     cs->eb.invflags & EBT_IPROTO ? ">=" : "<");
+	} else if ((cs->eb.bitmask & EBT_NOPROTO) == 0) {
 		const char *implicit = NULL;
 
 		switch (ntohs(cs->eb.ethproto)) {
@@ -888,9 +917,6 @@ static int nft_bridge_xlate(const struct iptables_command_state *cs,
 				     cs->eb.invflags & EBT_IPROTO ? "!= " : "",
 				     ntohs(cs->eb.ethproto));
 	}
-
-	if (cs->eb.bitmask & EBT_802_3)
-		return 0;
 
 	if (cs->eb.bitmask & EBT_ISOURCE)
 		nft_bridge_xlate_mac(xl, "saddr", cs->eb.invflags & EBT_ISOURCE,
