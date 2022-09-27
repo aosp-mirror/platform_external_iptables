@@ -471,17 +471,20 @@ static void nft_parse_match(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 		ctx->h->ops->parse_match(match, ctx->cs);
 }
 
-void get_cmp_data(struct nftnl_expr *e, void *data, size_t dlen, bool *inv)
+void __get_cmp_data(struct nftnl_expr *e, void *data, size_t dlen, uint8_t *op)
 {
 	uint32_t len;
-	uint8_t op;
 
 	memcpy(data, nftnl_expr_get(e, NFTNL_EXPR_CMP_DATA, &len), dlen);
-	op = nftnl_expr_get_u32(e, NFTNL_EXPR_CMP_OP);
-	if (op == NFT_CMP_NEQ)
-		*inv = true;
-	else
-		*inv = false;
+	*op = nftnl_expr_get_u32(e, NFTNL_EXPR_CMP_OP);
+}
+
+void get_cmp_data(struct nftnl_expr *e, void *data, size_t dlen, bool *inv)
+{
+	uint8_t op;
+
+	__get_cmp_data(e, data, dlen, &op);
+	*inv = (op == NFT_CMP_NEQ);
 }
 
 static void nft_meta_set_to_target(struct nft_xt_ctx *ctx,
