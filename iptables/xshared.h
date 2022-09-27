@@ -37,6 +37,11 @@ enum {
 	OPT_OPCODE	= 1 << 15,
 	OPT_H_TYPE	= 1 << 16,
 	OPT_P_TYPE	= 1 << 17,
+	/* below are for ebtables only */
+	OPT_LOGICALIN	= 1 << 18,
+	OPT_LOGICALOUT	= 1 << 19,
+	OPT_COMMAND	= 1 << 20,
+	OPT_ZERO	= 1 << 21,
 };
 
 enum {
