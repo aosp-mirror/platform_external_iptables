@@ -503,10 +503,7 @@ static void nft_meta_set_to_target(struct nft_xt_ctx *ctx,
 	if (!sreg)
 		return;
 
-	if (sreg->meta_sreg.set == 0)
-		return;
-
-	switch (sreg->meta_sreg.key) {
+	switch (nftnl_expr_get_u32(e, NFTNL_EXPR_META_KEY)) {
 	case NFT_META_NFTRACE:
 		if ((sreg->type != NFT_XT_REG_IMMEDIATE)) {
 			ctx->errmsg = "meta nftrace but reg not immediate";
@@ -526,8 +523,10 @@ static void nft_meta_set_to_target(struct nft_xt_ctx *ctx,
 	}
 
 	target = xtables_find_target(targname, XTF_TRY_LOAD);
-	if (target == NULL)
+	if (target == NULL) {
+		ctx->errmsg = "target TRACE not found";
 		return;
+	}
 
 	size = XT_ALIGN(sizeof(struct xt_entry_target)) + target->size;
 
@@ -1302,6 +1301,11 @@ void nft_rule_to_iptables_command_state(struct nft_handle *h,
 			nft_parse_log(&ctx, expr);
 		else if (strcmp(name, "range") == 0)
 			nft_parse_range(&ctx, expr);
+
+		if (ctx.errmsg) {
+			fprintf(stderr, "%s", ctx.errmsg);
+			ctx.errmsg = NULL;
+		}
 
 		expr = nftnl_expr_iter_next(iter);
 	}

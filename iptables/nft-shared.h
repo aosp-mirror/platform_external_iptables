@@ -68,11 +68,6 @@ struct nft_xt_ctx_reg {
 		uint32_t xor[4];
 		bool set;
 	} bitwise;
-
-	struct {
-		uint32_t key;
-		bool set;
-	} meta_sreg;
 };
 
 struct nft_xt_ctx {
@@ -118,7 +113,6 @@ static inline void nft_xt_reg_clear(struct nft_xt_ctx_reg *r)
 {
 	r->type = 0;
 	r->bitwise.set = false;
-	r->meta_sreg.set = false;
 }
 
 static inline struct nft_xt_ctx_reg *nft_xt_ctx_get_dreg(struct nft_xt_ctx *ctx, enum nft_registers reg)
