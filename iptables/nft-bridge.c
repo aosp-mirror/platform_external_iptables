@@ -324,7 +324,6 @@ static int lookup_analyze_payloads(struct nft_xt_ctx *ctx,
 				   bool *dst, bool *ip)
 {
 	const struct nft_xt_ctx_reg *reg;
-	uint32_t sreg_count;
 	int val, val2 = -1;
 
 	reg = nft_xt_ctx_get_sreg(ctx, sreg);
@@ -336,7 +335,6 @@ static int lookup_analyze_payloads(struct nft_xt_ctx *ctx,
 		return -1;
 	}
 
-	sreg_count = sreg;
 	switch (key_len) {
 	case 12: /* ether + ipv4addr */
 		val = lookup_check_ether_payload(reg->payload.base,
@@ -349,9 +347,9 @@ static int lookup_analyze_payloads(struct nft_xt_ctx *ctx,
 			return -1;
 		}
 
-		sreg_count = nft_get_next_reg(sreg_count, ETH_ALEN);
+		sreg = nft_get_next_reg(sreg, ETH_ALEN);
 
-		reg = nft_xt_ctx_get_sreg(ctx, sreg_count);
+		reg = nft_xt_ctx_get_sreg(ctx, sreg);
 		if (!reg) {
 			ctx->errmsg = "next lookup register is invalid";
 			return -1;
