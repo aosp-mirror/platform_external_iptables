@@ -54,12 +54,12 @@ def print_error(reason, filename=None, lineno=None):
         ": line %d (%s)" % (lineno, reason), file=sys.stderr)
 
 
-def delete_rule(iptables, rule, filename, lineno):
+def delete_rule(iptables, rule, filename, lineno, netns = None):
     '''
     Removes an iptables rule
     '''
     cmd = iptables + " -D " + rule
-    ret = execute_cmd(cmd, filename, lineno)
+    ret = execute_cmd(cmd, filename, lineno, netns)
     if ret == 1:
         reason = "cannot delete: " + iptables + " -I " + rule
         print_error(reason, filename, lineno)
@@ -84,10 +84,7 @@ def run_test(iptables, rule, rule_save, res, filename, lineno, netns):
     ret = 0
 
     cmd = iptables + " -A " + rule
-    if netns:
-            cmd = "ip netns exec " + netns + " " + EXECUTABLE + " " + cmd
-
-    ret = execute_cmd(cmd, filename, lineno)
+    ret = execute_cmd(cmd, filename, lineno, netns)
 
     #
     # report failed test
@@ -104,7 +101,7 @@ def run_test(iptables, rule, rule_save, res, filename, lineno, netns):
         if res == "FAIL":
             reason = "should fail: " + cmd
             print_error(reason, filename, lineno)
-            delete_rule(iptables, rule, filename, lineno)
+            delete_rule(iptables, rule, filename, lineno, netns)
             return -1
 
     matching = 0
@@ -141,7 +138,7 @@ def run_test(iptables, rule, rule_save, res, filename, lineno, netns):
     if proc.returncode == -11:
         reason = "iptables-save segfaults: " + cmd
         print_error(reason, filename, lineno)
-        delete_rule(iptables, rule, filename, lineno)
+        delete_rule(iptables, rule, filename, lineno, netns)
         return -1
 
     # find the rule
@@ -150,7 +147,7 @@ def run_test(iptables, rule, rule_save, res, filename, lineno, netns):
         if res == "OK":
             reason = "cannot find: " + iptables + " -I " + rule
             print_error(reason, filename, lineno)
-            delete_rule(iptables, rule, filename, lineno)
+            delete_rule(iptables, rule, filename, lineno, netns)
             return -1
         else:
             # do not report this error
@@ -159,7 +156,7 @@ def run_test(iptables, rule, rule_save, res, filename, lineno, netns):
         if res != "OK":
             reason = "should not match: " + cmd
             print_error(reason, filename, lineno)
-            delete_rule(iptables, rule, filename, lineno)
+            delete_rule(iptables, rule, filename, lineno, netns)
             return -1
 
     # Test "ip netns del NETNS" path with rules in place
@@ -168,7 +165,7 @@ def run_test(iptables, rule, rule_save, res, filename, lineno, netns):
 
     return delete_rule(iptables, rule, filename, lineno)
 
-def execute_cmd(cmd, filename, lineno = 0):
+def execute_cmd(cmd, filename, lineno = 0, netns = None):
     '''
     Executes a command, checking for segfaults and returning the command exit
     code.
@@ -176,10 +173,14 @@ def execute_cmd(cmd, filename, lineno = 0):
     :param cmd: string with the command to be executed
     :param filename: name of the file tested (used for print_error purposes)
     :param lineno: line number being tested (used for print_error purposes)
+    :param netns: network namespace to run command in
     '''
     global log_file
     if cmd.startswith('iptables ') or cmd.startswith('ip6tables ') or cmd.startswith('ebtables ') or cmd.startswith('arptables '):
         cmd = EXECUTABLE + " " + cmd
+
+    if netns:
+        cmd = "ip netns exec " + netns + " " + cmd
 
     print("command: {}".format(cmd), file=log_file)
     ret = subprocess.call(cmd, shell=True, universal_newlines=True,
@@ -274,20 +275,11 @@ def run_test_file(filename, netns):
             chain_array = line.rstrip()[1:].split(",")
             continue
 
-        # external non-iptables invocation, executed as is.
-        if line[0] == "@":
+        # external command invocation, executed as is.
+        # detects iptables commands to prefix with EXECUTABLE automatically
+        if line[0] in ["@", "%"]:
             external_cmd = line.rstrip()[1:]
-            if netns:
-                external_cmd = "ip netns exec " + netns + " " + external_cmd
-            execute_cmd(external_cmd, filename, lineno)
-            continue
-
-        # external iptables invocation, executed as is.
-        if line[0] == "%":
-            external_cmd = line.rstrip()[1:]
-            if netns:
-                external_cmd = "ip netns exec " + netns + " " + EXECUTABLE + " " + external_cmd
-            execute_cmd(external_cmd, filename, lineno)
+            execute_cmd(external_cmd, filename, lineno, netns)
             continue
 
         if line[0] == "*":
