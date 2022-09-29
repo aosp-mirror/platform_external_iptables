@@ -79,12 +79,13 @@ def run_test(iptables, rule, rule_save, res, filename, lineno, netns):
     :param res: expected result of the rule. Valid values: "OK", "FAIL"
     :param filename: name of the file tested (used for print_error purposes)
     :param lineno: line number being tested (used for print_error purposes)
+    :param netns: network namespace to call commands in (or None)
     '''
     ret = 0
 
     cmd = iptables + " -A " + rule
     if netns:
-            cmd = "ip netns exec ____iptables-container-test " + EXECUTABLE + " " + cmd
+            cmd = "ip netns exec " + netns + " " + EXECUTABLE + " " + cmd
 
     ret = execute_cmd(cmd, filename, lineno)
 
@@ -126,7 +127,7 @@ def run_test(iptables, rule, rule_save, res, filename, lineno, netns):
     command = EXECUTABLE + " " + command
 
     if netns:
-            command = "ip netns exec ____iptables-container-test " + command
+            command = "ip netns exec " + netns + " " + command
 
     args = tokens[1:]
     proc = subprocess.Popen(command, shell=True,
@@ -226,6 +227,7 @@ def run_test_file(filename, netns):
     Runs a test file
 
     :param filename: name of the file with the test rules
+    :param netns: network namespace to perform test run in
     '''
     #
     # if this is not a test file, skip.
@@ -262,7 +264,7 @@ def run_test_file(filename, netns):
     total_test_passed = True
 
     if netns:
-        execute_cmd("ip netns add ____iptables-container-test", filename, 0)
+        execute_cmd("ip netns add " + netns, filename, 0)
 
     for lineno, line in enumerate(f):
         if line[0] == "#" or len(line.strip()) == 0:
@@ -276,7 +278,7 @@ def run_test_file(filename, netns):
         if line[0] == "@":
             external_cmd = line.rstrip()[1:]
             if netns:
-                external_cmd = "ip netns exec ____iptables-container-test " + external_cmd
+                external_cmd = "ip netns exec " + netns + " " + external_cmd
             execute_cmd(external_cmd, filename, lineno)
             continue
 
@@ -284,7 +286,7 @@ def run_test_file(filename, netns):
         if line[0] == "%":
             external_cmd = line.rstrip()[1:]
             if netns:
-                external_cmd = "ip netns exec ____iptables-container-test " + EXECUTABLE + " " + external_cmd
+                external_cmd = "ip netns exec " + netns + " " + EXECUTABLE + " " + external_cmd
             execute_cmd(external_cmd, filename, lineno)
             continue
 
@@ -334,7 +336,7 @@ def run_test_file(filename, netns):
             passed += 1
 
     if netns:
-        execute_cmd("ip netns del ____iptables-container-test", filename, 0)
+        execute_cmd("ip netns del " + netns, filename, 0)
     if total_test_passed:
         print(filename + ": " + maybe_colored('green', "OK", STDOUT_IS_TTY))
 
@@ -400,7 +402,8 @@ def main():
                         help='Check for missing tests')
     parser.add_argument('-n', '--nftables', action='store_true',
                         help='Test iptables-over-nftables')
-    parser.add_argument('-N', '--netns', action='store_true',
+    parser.add_argument('-N', '--netns', action='store_const',
+                        const='____iptables-container-test',
                         help='Test netnamespace path')
     parser.add_argument('--no-netns', action='store_true',
                         help='Do not run testsuite in own network namespace')
