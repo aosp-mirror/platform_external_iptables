@@ -168,7 +168,7 @@ def run_test(iptables, rule, rule_save, res, filename, lineno, netns):
 
     return delete_rule(iptables, rule, filename, lineno)
 
-def execute_cmd(cmd, filename, lineno):
+def execute_cmd(cmd, filename, lineno = 0):
     '''
     Executes a command, checking for segfaults and returning the command exit
     code.
@@ -264,7 +264,7 @@ def run_test_file(filename, netns):
     total_test_passed = True
 
     if netns:
-        execute_cmd("ip netns add " + netns, filename, 0)
+        execute_cmd("ip netns add " + netns, filename)
 
     for lineno, line in enumerate(f):
         if line[0] == "#" or len(line.strip()) == 0:
@@ -336,7 +336,7 @@ def run_test_file(filename, netns):
             passed += 1
 
     if netns:
-        execute_cmd("ip netns del " + netns, filename, 0)
+        execute_cmd("ip netns del " + netns, filename)
     if total_test_passed:
         print(filename + ": " + maybe_colored('green', "OK", STDOUT_IS_TTY))
 
