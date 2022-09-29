@@ -152,10 +152,9 @@ static int bramong_parse(int c, char **argv, int invert,
 			xtables_error(PARAMETER_PROBLEM,
 				      "File should only contain one line");
 		optarg[flen-1] = '\0';
-		/* fall through */
+		break;
 	case AMONG_DST:
-		if (c == AMONG_DST)
-			dst = true;
+		dst = true;
 		/* fall through */
 	case AMONG_SRC:
 		break;
