@@ -161,9 +161,10 @@ static void brlog_print(const void *ip, const struct xt_entry_target *target,
 {
 	struct ebt_log_info *loginfo = (struct ebt_log_info *)target->data;
 
-	printf("--log-level %s --log-prefix \"%s\"",
-		eight_priority[loginfo->loglevel].c_name,
-		loginfo->prefix);
+	printf("--log-level %s", eight_priority[loginfo->loglevel].c_name);
+
+	if (loginfo->prefix[0])
+		printf(" --log-prefix \"%s\"", loginfo->prefix);
 
 	if (loginfo->bitmask & EBT_LOG_IP)
 		printf(" --log-ip");
