@@ -1,5 +1,5 @@
 :INPUT,FORWARD,OUTPUT
--j NFQUEUE;=;OK
+-j NFQUEUE;-j NFQUEUE --queue-num 0;OK
 -j NFQUEUE --queue-num 0;=;OK
 -j NFQUEUE --queue-num 65535;=;OK
 -j NFQUEUE --queue-num 65536;;FAIL

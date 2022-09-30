@@ -1,5 +1,5 @@
 :INPUT,FORWARD,OUTPUT
---log;=;OK
+--log;--log-level notice;OK
 --log-level crit;=;OK
 --log-level 1;--log-level alert;OK
 --log-level emerg --log-ip --log-arp --log-ip6;=;OK
