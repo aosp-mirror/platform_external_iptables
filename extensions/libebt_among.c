@@ -119,7 +119,6 @@ static int bramong_parse(int c, char **argv, int invert,
 		 struct xt_entry_match **match)
 {
 	struct nft_among_data *data = (struct nft_among_data *)(*match)->data;
-	struct xt_entry_match *new_match;
 	bool have_ip, dst = false;
 	size_t new_size, cnt;
 	struct stat stats;
@@ -170,17 +169,16 @@ static int bramong_parse(int c, char **argv, int invert,
 	new_size *= sizeof(struct nft_among_pair);
 	new_size += XT_ALIGN(sizeof(struct xt_entry_match)) +
 			sizeof(struct nft_among_data);
-	new_match = xtables_calloc(1, new_size);
-	memcpy(new_match, *match, (*match)->u.match_size);
-	new_match->u.match_size = new_size;
 
-	data = (struct nft_among_data *)new_match->data;
+	if (new_size > (*match)->u.match_size) {
+		*match = xtables_realloc(*match, new_size);
+		(*match)->u.match_size = new_size;
+		data = (struct nft_among_data *)(*match)->data;
+	}
+
 	have_ip = nft_among_pairs_have_ip(optarg);
 	poff = nft_among_prepare_data(data, dst, cnt, invert, have_ip);
 	parse_nft_among_pairs(data->pairs + poff, optarg, cnt, have_ip);
-
-	free(*match);
-	*match = new_match;
 
 	if (c == AMONG_DST_F || c == AMONG_SRC_F) {
 		munmap(argv, flen);
