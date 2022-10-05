@@ -287,6 +287,9 @@ def run_test_file_fast(iptables, filename, netns):
             else:
                 rule_save = chain + " " + item[1]
 
+            if iptables == EBTABLES and rule_save.find('-j') < 0:
+                rule_save += " -j CONTINUE"
+
             res = item[2].rstrip()
             if res != "OK":
                 rule = chain + " -t " + table + " " + item[0]
