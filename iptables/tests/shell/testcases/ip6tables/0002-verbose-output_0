@@ -12,7 +12,7 @@ VOUT2='ACCEPT  all opt -- in eth2 out eth3  feed:babe::4  -> feed:babe::5'
 RULE3='-p icmpv6 -m icmp6 --icmpv6-type no-route'
 VOUT3='  ipv6-icmp opt -- in * out *  ::/0  -> ::/0   ipv6-icmptype 1 code 0'
 RULE4='-m dst --dst-len 42 -m rt --rt-type 23'
-VOUT4='  all opt -- in * out *  ::/0  -> ::/0   dst length:42  rt type:23'
+VOUT4='  all opt -- in * out *  ::/0  -> ::/0   dst length:42 rt type:23'
 RULE5='-m frag --fragid 1337 -j LOG'
 VOUT5='LOG  all opt -- in * out *  ::/0  -> ::/0   frag id:1337 LOG flags 0 level 4'
 
@@ -36,7 +36,7 @@ Chain FORWARD (policy ACCEPT 0 packets, 0 bytes)
     0     0 ACCEPT     0    --  eth2   eth3    feed:babe::1         feed:babe::2
     0     0 ACCEPT     0    --  eth2   eth3    feed:babe::4         feed:babe::5
     0     0            58   --  *      *       ::/0                 ::/0                 ipv6-icmptype 1 code 0
-    0     0            0    --  *      *       ::/0                 ::/0                 dst length:42  rt type:23
+    0     0            0    --  *      *       ::/0                 ::/0                 dst length:42 rt type:23
     0     0 LOG        0    --  *      *       ::/0                 ::/0                 frag id:1337 LOG flags 0 level 4
 
 Chain OUTPUT (policy ACCEPT 0 packets, 0 bytes)
