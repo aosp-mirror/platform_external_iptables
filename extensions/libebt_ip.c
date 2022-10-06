@@ -164,80 +164,6 @@ parse_port_range(const char *protocol, const char *portstring, uint16_t *ports)
 }
 
 /* original code from ebtables: useful_functions.c */
-static int undot_ip(char *ip, unsigned char *ip2)
-{
-	char *p, *q, *end;
-	long int onebyte;
-	int i;
-	char buf[20];
-
-	strncpy(buf, ip, sizeof(buf) - 1);
-
-	p = buf;
-	for (i = 0; i < 3; i++) {
-		if ((q = strchr(p, '.')) == NULL)
-			return -1;
-		*q = '\0';
-		onebyte = strtol(p, &end, 10);
-		if (*end != '\0' || onebyte > 255 || onebyte < 0)
-			return -1;
-		ip2[i] = (unsigned char)onebyte;
-		p = q + 1;
-	}
-
-	onebyte = strtol(p, &end, 10);
-	if (*end != '\0' || onebyte > 255 || onebyte < 0)
-		return -1;
-	ip2[3] = (unsigned char)onebyte;
-
-	return 0;
-}
-
-static int ip_mask(char *mask, unsigned char *mask2)
-{
-	char *end;
-	long int bits;
-	uint32_t mask22;
-
-	if (undot_ip(mask, mask2)) {
-		/* not the /a.b.c.e format, maybe the /x format */
-		bits = strtol(mask, &end, 10);
-		if (*end != '\0' || bits > 32 || bits < 0)
-			return -1;
-		if (bits != 0) {
-			mask22 = htonl(0xFFFFFFFF << (32 - bits));
-			memcpy(mask2, &mask22, 4);
-		} else {
-			mask22 = 0xFFFFFFFF;
-			memcpy(mask2, &mask22, 4);
-		}
-	}
-	return 0;
-}
-
-static void ebt_parse_ip_address(char *address, uint32_t *addr, uint32_t *msk)
-{
-	char *p;
-
-	/* first the mask */
-	if ((p = strrchr(address, '/')) != NULL) {
-		*p = '\0';
-		if (ip_mask(p + 1, (unsigned char *)msk)) {
-			xtables_error(PARAMETER_PROBLEM,
-				      "Problem with the IP mask '%s'", p + 1);
-			return;
-		}
-	} else
-		*msk = 0xFFFFFFFF;
-
-	if (undot_ip(address, (unsigned char *)addr)) {
-		xtables_error(PARAMETER_PROBLEM,
-			      "Problem with the IP address '%s'", address);
-		return;
-	}
-	*addr = *addr & *msk;
-}
-
 static char *parse_range(const char *str, unsigned int res[])
 {
 	char *next;
@@ -355,18 +281,26 @@ brip_parse(int c, char **argv, int invert, unsigned int *flags,
 	   const void *entry, struct xt_entry_match **match)
 {
 	struct ebt_ip_info *info = (struct ebt_ip_info *)(*match)->data;
+	struct in_addr *ipaddr, ipmask;
+	unsigned int ipnr;
 
 	switch (c) {
 	case IP_SOURCE:
 		if (invert)
 			info->invflags |= EBT_IP_SOURCE;
-		ebt_parse_ip_address(optarg, &info->saddr, &info->smsk);
+		xtables_ipparse_any(optarg, &ipaddr, &ipmask, &ipnr);
+		info->saddr = ipaddr->s_addr;
+		info->smsk = ipmask.s_addr;
+		free(ipaddr);
 		info->bitmask |= EBT_IP_SOURCE;
 		break;
 	case IP_DEST:
 		if (invert)
 			info->invflags |= EBT_IP_DEST;
-		ebt_parse_ip_address(optarg, &info->daddr, &info->dmsk);
+		xtables_ipparse_any(optarg, &ipaddr, &ipmask, &ipnr);
+		info->daddr = ipaddr->s_addr;
+		info->dmsk = ipmask.s_addr;
+		free(ipaddr);
 		info->bitmask |= EBT_IP_DEST;
 		break;
 	case IP_SPORT:
