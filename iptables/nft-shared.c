@@ -747,6 +747,35 @@ static void nft_parse_tcp_range(struct nft_xt_ctx *ctx,
 	}
 }
 
+static void port_match_single_to_range(__u16 *ports, __u8 *invflags,
+				       uint8_t op, int port, __u8 invflag)
+{
+	if (port < 0)
+		return;
+
+	switch (op) {
+	case NFT_CMP_NEQ:
+		*invflags |= invflag;
+		/* fallthrough */
+	case NFT_CMP_EQ:
+		ports[0] = port;
+		ports[1] = port;
+		break;
+	case NFT_CMP_LT:
+		ports[1] = max(port - 1, 1);
+		break;
+	case NFT_CMP_LTE:
+		ports[1] = port;
+		break;
+	case NFT_CMP_GT:
+		ports[0] = min(port + 1, UINT16_MAX);
+		break;
+	case NFT_CMP_GTE:
+		ports[0] = port;
+		break;
+	}
+}
+
 static void nft_parse_udp(struct nft_xt_ctx *ctx,
 			  struct iptables_command_state *cs,
 			  int sport, int dport,
@@ -757,52 +786,10 @@ static void nft_parse_udp(struct nft_xt_ctx *ctx,
 	if (!udp)
 		return;
 
-	if (sport >= 0) {
-		switch (op) {
-		case NFT_CMP_NEQ:
-			udp->invflags |= XT_UDP_INV_SRCPT;
-			/* fallthrough */
-		case NFT_CMP_EQ:
-			udp->spts[0] = sport;
-			udp->spts[1] = sport;
-			break;
-		case NFT_CMP_LT:
-			udp->spts[1] = sport > 1 ? sport - 1 : 1;
-			break;
-		case NFT_CMP_LTE:
-			udp->spts[1] = sport;
-			break;
-		case NFT_CMP_GT:
-			udp->spts[0] = sport < 0xffff ? sport + 1 : 0xffff;
-			break;
-		case NFT_CMP_GTE:
-			udp->spts[0] = sport;
-			break;
-		}
-	}
-	if (dport >= 0) {
-		switch (op) {
-		case NFT_CMP_NEQ:
-			udp->invflags |= XT_UDP_INV_DSTPT;
-			/* fallthrough */
-		case NFT_CMP_EQ:
-			udp->dpts[0] = dport;
-			udp->dpts[1] = dport;
-			break;
-		case NFT_CMP_LT:
-			udp->dpts[1] = dport > 1 ? dport - 1 : 1;
-			break;
-		case NFT_CMP_LTE:
-			udp->dpts[1] = dport;
-			break;
-		case NFT_CMP_GT:
-			udp->dpts[0] = dport < 0xffff ? dport + 1 : 0xffff;
-			break;
-		case NFT_CMP_GTE:
-			udp->dpts[0] = dport;
-			break;
-		}
-	}
+	port_match_single_to_range(udp->spts, &udp->invflags,
+				   op, sport, XT_UDP_INV_SRCPT);
+	port_match_single_to_range(udp->dpts, &udp->invflags,
+				   op, dport, XT_UDP_INV_DSTPT);
 }
 
 static void nft_parse_tcp(struct nft_xt_ctx *ctx,
@@ -815,53 +802,10 @@ static void nft_parse_tcp(struct nft_xt_ctx *ctx,
 	if (!tcp)
 		return;
 
-	if (sport >= 0) {
-		switch (op) {
-		case NFT_CMP_NEQ:
-			tcp->invflags |= XT_TCP_INV_SRCPT;
-			/* fallthrough */
-		case NFT_CMP_EQ:
-			tcp->spts[0] = sport;
-			tcp->spts[1] = sport;
-			break;
-		case NFT_CMP_LT:
-			tcp->spts[1] = sport > 1 ? sport - 1 : 1;
-			break;
-		case NFT_CMP_LTE:
-			tcp->spts[1] = sport;
-			break;
-		case NFT_CMP_GT:
-			tcp->spts[0] = sport < 0xffff ? sport + 1 : 0xffff;
-			break;
-		case NFT_CMP_GTE:
-			tcp->spts[0] = sport;
-			break;
-		}
-	}
-
-	if (dport >= 0) {
-		switch (op) {
-		case NFT_CMP_NEQ:
-			tcp->invflags |= XT_TCP_INV_DSTPT;
-			/* fallthrough */
-		case NFT_CMP_EQ:
-			tcp->dpts[0] = dport;
-			tcp->dpts[1] = dport;
-			break;
-		case NFT_CMP_LT:
-			tcp->dpts[1] = dport > 1 ? dport - 1 : 1;
-			break;
-		case NFT_CMP_LTE:
-			tcp->dpts[1] = dport;
-			break;
-		case NFT_CMP_GT:
-			tcp->dpts[0] = dport < 0xffff ? dport + 1 : 0xffff;
-			break;
-		case NFT_CMP_GTE:
-			tcp->dpts[0] = dport;
-			break;
-		}
-	}
+	port_match_single_to_range(tcp->spts, &tcp->invflags,
+				   op, sport, XT_TCP_INV_SRCPT);
+	port_match_single_to_range(tcp->dpts, &tcp->invflags,
+				   op, dport, XT_TCP_INV_DSTPT);
 }
 
 static void nft_parse_th_port(struct nft_xt_ctx *ctx,
