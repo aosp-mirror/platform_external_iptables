@@ -91,13 +91,13 @@ DUMP='*filter
 -A foo -p IPv6 --ip6-dst feed:babe::/64 -j ACCEPT
 -A foo -p IPv6 --ip6-proto tcp -j ACCEPT
 -A foo --limit 100/sec --limit-burst 42 -j ACCEPT
--A foo --log-level notice --log-prefix "" -j CONTINUE
+-A foo --log-level notice -j CONTINUE
 -A foo -j mark --mark-set 0x23 --mark-target ACCEPT
 -A foo --nflog-group 1 -j CONTINUE
 -A foo --pkttype-type multicast -j ACCEPT
 -A foo --stp-type config -j ACCEPT
 -A foo -p Length --802_3-sap 0x23 --limit 100/sec --limit-burst 5 -j ACCEPT
--A foo --pkttype-type multicast --log-level notice --log-prefix "" -j CONTINUE
+-A foo --pkttype-type multicast --log-level notice -j CONTINUE
 -A foo --pkttype-type multicast --limit 100/sec --limit-burst 5 -j ACCEPT
 *nat
 :PREROUTING ACCEPT
