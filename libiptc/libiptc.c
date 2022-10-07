@@ -606,6 +606,15 @@ static int iptcc_chain_index_delete_chain(struct chain_head *c, struct xtc_handl
 
 	if (index_ptr == &c->list) { /* Chain used as index ptr */
 
+		/* If this is the last chain in the list, its index bucket just
+		 * became empty. Adjust the size to avoid a NULL-pointer deref
+		 * later.
+		 */
+		if (next == &h->chains) {
+			h->chain_index_sz--;
+			return 0;
+		}
+
 		/* See if its possible to avoid a rebuild, by shifting
 		 * to next pointer.  Its possible if the next pointer
 		 * is located in the same index bucket.
