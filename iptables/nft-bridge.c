@@ -365,8 +365,8 @@ static int lookup_analyze_payloads(struct nft_xt_ctx *ctx,
 						  reg->payload.len);
 		if (val2 < 0) {
 			DEBUGP("unknown payload base/offset/len %d/%d/%d\n",
-			       ctx->payload.base, ctx->payload.offset,
-			       ctx->payload.len);
+			       reg->payload.base, reg->payload.offset,
+			       reg->payload.len);
 			return -1;
 		} else if (val != val2) {
 			DEBUGP("mismatching payload match offsets\n");
@@ -379,8 +379,8 @@ static int lookup_analyze_payloads(struct nft_xt_ctx *ctx,
 						 reg->payload.len);
 		if (val < 0) {
 			DEBUGP("unknown payload base/offset/len %d/%d/%d\n",
-			       ctx->payload.base, ctx->payload.offset,
-			       ctx->payload.len);
+			       reg->payload.base, reg->payload.offset,
+			       reg->payload.len);
 			return -1;
 		}
 		break;

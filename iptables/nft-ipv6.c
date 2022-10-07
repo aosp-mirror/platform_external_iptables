@@ -173,7 +173,7 @@ static void nft_ipv6_parse_payload(struct nft_xt_ctx *ctx,
 		nft_parse_hl(ctx, e, cs);
 		break;
 	default:
-		DEBUGP("unknown payload offset %d\n", ctx->payload.offset);
+		DEBUGP("unknown payload offset %d\n", reg->payload.offset);
 		break;
 	}
 }
