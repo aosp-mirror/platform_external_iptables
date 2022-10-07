@@ -170,36 +170,6 @@ static void ebt_list_extensions(const struct xtables_target *t,
 	}*/
 }
 
-#define OPTION_OFFSET 256
-static struct option *merge_options(struct option *oldopts,
-				    const struct option *newopts,
-				    unsigned int *options_offset)
-{
-	unsigned int num_old, num_new, i;
-	struct option *merge;
-
-	if (!newopts || !oldopts || !options_offset)
-		return oldopts;
-	for (num_old = 0; oldopts[num_old].name; num_old++);
-	for (num_new = 0; newopts[num_new].name; num_new++);
-
-	ebtables_globals.option_offset += OPTION_OFFSET;
-	*options_offset = ebtables_globals.option_offset;
-
-	merge = xtables_malloc(sizeof(struct option) * (num_new + num_old + 1));
-	memcpy(merge, oldopts, num_old * sizeof(struct option));
-	for (i = 0; i < num_new; i++) {
-		merge[num_old + i] = newopts[i];
-		merge[num_old + i].val += *options_offset;
-	}
-	memset(merge + num_old + num_new, 0, sizeof(struct option));
-	/* Only free dynamically allocated stuff */
-	if (oldopts != ebt_original_options)
-		free(oldopts);
-
-	return merge;
-}
-
 void nft_bridge_print_help(struct iptables_command_state *cs)
 {
 	const struct xtables_rule_match *m = cs->matches;
@@ -327,7 +297,12 @@ static void ebt_load_match(const char *name)
 	m->m->u.user.revision = m->revision;
 	xs_init_match(m);
 
-	opts = merge_options(opts, m->extra_opts, &m->option_offset);
+	if (m->x6_options != NULL)
+		opts = xtables_options_xfrm(opts, NULL,
+					    m->x6_options, &m->option_offset);
+	else if (m->extra_opts != NULL)
+		opts = xtables_merge_options(opts, NULL,
+					     m->extra_opts, &m->option_offset);
 	if (opts == NULL)
 		xtables_error(OTHER_PROBLEM, "Can't alloc memory");
 }
@@ -354,8 +329,12 @@ static void ebt_load_watcher(const char *name)
 
 	xs_init_target(watcher);
 
-	opts = merge_options(opts, watcher->extra_opts,
-			     &watcher->option_offset);
+	if (watcher->x6_options != NULL)
+		opts = xtables_options_xfrm(opts, NULL, watcher->x6_options,
+					    &watcher->option_offset);
+	else if (watcher->extra_opts != NULL)
+		opts = xtables_merge_options(opts, NULL, watcher->extra_opts,
+					     &watcher->option_offset);
 	if (opts == NULL)
 		xtables_error(OTHER_PROBLEM, "Can't alloc memory");
 }
@@ -450,37 +429,50 @@ int ebt_command_default(struct iptables_command_state *cs,
 	struct ebt_match *matchp;
 
 	/* Is it a target option? */
-	if (t && t->parse) {
-		if (t->parse(cs->c - t->option_offset, cs->argv,
-			     ebt_invert, &t->tflags, NULL, &t->t))
-			return 0;
+	if (cs->target != NULL &&
+	    (cs->target->parse != NULL || cs->target->x6_parse != NULL) &&
+	    cs->c >= cs->target->option_offset &&
+	    cs->c < cs->target->option_offset + XT_OPTION_OFFSET_SCALE) {
+		xtables_option_tpcall(cs->c, cs->argv, ebt_invert,
+				      cs->target, &cs->eb);
+		return 0;
 	}
 
 	/* check previously added matches/watchers to this rule first */
 	for (matchp = cs->match_list; matchp; matchp = matchp->next) {
 		if (matchp->ismatch) {
 			m = matchp->u.match;
-			if (m->parse &&
-			    m->parse(cs->c - m->option_offset, cs->argv,
-				     ebt_invert, &m->mflags, NULL, &m->m))
-				return 0;
+			if (!m->parse && !m->x6_parse)
+				continue;
+			if (cs->c < m->option_offset ||
+			    cs->c >= m->option_offset + XT_OPTION_OFFSET_SCALE)
+				continue;
+			xtables_option_mpcall(cs->c, cs->argv, ebt_invert,
+					      m, &cs->eb);
+			return 0;
 		} else {
 			t = matchp->u.watcher;
-			if (t->parse &&
-			    t->parse(cs->c - t->option_offset, cs->argv,
-				     ebt_invert, &t->tflags, NULL, &t->t))
-				return 0;
+			if (!t->parse && !t->x6_parse)
+				continue;
+			if (cs->c < t->option_offset ||
+			    cs->c >= t->option_offset + XT_OPTION_OFFSET_SCALE)
+				continue;
+			xtables_option_tpcall(cs->c, cs->argv, ebt_invert,
+					      t, &cs->eb);
+			return 0;
 		}
 	}
 
 	/* Is it a match_option? */
 	for (m = xtables_matches; m; m = m->next) {
-		if (m->parse &&
-		    m->parse(cs->c - m->option_offset, cs->argv,
-			     ebt_invert, &m->mflags, NULL, &m->m)) {
-			ebt_add_match(m, cs);
-			return 0;
-		}
+		if (!m->parse && !m->x6_parse)
+			continue;
+		if (cs->c < m->option_offset ||
+		    cs->c >= m->option_offset + XT_OPTION_OFFSET_SCALE)
+			continue;
+		xtables_option_mpcall(cs->c, cs->argv, ebt_invert, m, &cs->eb);
+		ebt_add_match(m, cs);
+		return 0;
 	}
 
 	/* Is it a watcher option? */
@@ -488,12 +480,14 @@ int ebt_command_default(struct iptables_command_state *cs,
 		if (!(t->ext_flags & XTABLES_EXT_WATCHER))
 			continue;
 
-		if (t->parse &&
-		    t->parse(cs->c - t->option_offset, cs->argv,
-			     ebt_invert, &t->tflags, NULL, &t->t)) {
-			ebt_add_watcher(t, cs);
-			return 0;
-		}
+		if (!t->parse && !t->x6_parse)
+			continue;
+		if (cs->c < t->option_offset ||
+		    cs->c >= t->option_offset + XT_OPTION_OFFSET_SCALE)
+			continue;
+		xtables_option_tpcall(cs->c, cs->argv, ebt_invert, t, &cs->eb);
+		ebt_add_watcher(t, cs);
+		return 0;
 	}
 	if (cs->c == ':')
 		xtables_error(PARAMETER_PROBLEM, "option \"%s\" "
