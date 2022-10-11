@@ -49,44 +49,6 @@ static const struct option brip6_opts[] = {
 	XT_GETOPT_TABLEEND,
 };
 
-static const struct xt_icmp_names icmpv6_codes[] = {
-	{ "destination-unreachable", 1, 0, 0xFF },
-	{ "no-route", 1, 0, 0 },
-	{ "communication-prohibited", 1, 1, 1 },
-	{ "address-unreachable", 1, 3, 3 },
-	{ "port-unreachable", 1, 4, 4 },
-
-	{ "packet-too-big", 2, 0, 0xFF },
-
-	{ "time-exceeded", 3, 0, 0xFF },
-	/* Alias */ { "ttl-exceeded", 3, 0, 0xFF },
-	{ "ttl-zero-during-transit", 3, 0, 0 },
-	{ "ttl-zero-during-reassembly", 3, 1, 1 },
-
-	{ "parameter-problem", 4, 0, 0xFF },
-	{ "bad-header", 4, 0, 0 },
-	{ "unknown-header-type", 4, 1, 1 },
-	{ "unknown-option", 4, 2, 2 },
-
-	{ "echo-request", 128, 0, 0xFF },
-	/* Alias */ { "ping", 128, 0, 0xFF },
-
-	{ "echo-reply", 129, 0, 0xFF },
-	/* Alias */ { "pong", 129, 0, 0xFF },
-
-	{ "router-solicitation", 133, 0, 0xFF },
-
-	{ "router-advertisement", 134, 0, 0xFF },
-
-	{ "neighbour-solicitation", 135, 0, 0xFF },
-	/* Alias */ { "neighbor-solicitation", 135, 0, 0xFF },
-
-	{ "neighbour-advertisement", 136, 0, 0xFF },
-	/* Alias */ { "neighbor-advertisement", 136, 0, 0xFF },
-
-	{ "redirect", 137, 0, 0xFF },
-};
-
 static void
 parse_port_range(const char *protocol, const char *portstring, uint16_t *ports)
 {
