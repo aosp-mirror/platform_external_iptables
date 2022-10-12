@@ -102,82 +102,6 @@ parse_port_range(const char *protocol, const char *portstring, uint16_t *ports)
 }
 
 /* original code from ebtables: useful_functions.c */
-static char *parse_range(const char *str, unsigned int res[])
-{
-	char *next;
-
-	if (!xtables_strtoui(str, &next, &res[0], 0, 255))
-		return NULL;
-
-	res[1] = res[0];
-	if (*next == ':') {
-		str = next + 1;
-		if (!xtables_strtoui(str, &next, &res[1], 0, 255))
-			return NULL;
-	}
-
-	return next;
-}
-
-static int ebt_parse_icmp(const struct xt_icmp_names *codes, size_t n_codes,
-			  const char *icmptype, uint8_t type[], uint8_t code[])
-{
-	unsigned int match = n_codes;
-	unsigned int i, number[2];
-
-	for (i = 0; i < n_codes; i++) {
-		if (strncasecmp(codes[i].name, icmptype, strlen(icmptype)))
-			continue;
-		if (match != n_codes)
-			xtables_error(PARAMETER_PROBLEM, "Ambiguous ICMP type `%s':"
-					" `%s' or `%s'?",
-					icmptype, codes[match].name,
-					codes[i].name);
-		match = i;
-	}
-
-	if (match < n_codes) {
-		type[0] = type[1] = codes[match].type;
-		if (code) {
-			code[0] = codes[match].code_min;
-			code[1] = codes[match].code_max;
-		}
-	} else {
-		char *next = parse_range(icmptype, number);
-		if (!next) {
-			xtables_error(PARAMETER_PROBLEM, "Unknown ICMP type `%s'",
-							icmptype);
-			return -1;
-		}
-
-		type[0] = (uint8_t) number[0];
-		type[1] = (uint8_t) number[1];
-		switch (*next) {
-		case 0:
-			if (code) {
-				code[0] = 0;
-				code[1] = 255;
-			}
-			return 0;
-		case '/':
-			if (code) {
-				next = parse_range(next+1, number);
-				code[0] = (uint8_t) number[0];
-				code[1] = (uint8_t) number[1];
-				if (next == NULL)
-					return -1;
-				if (next && *next == 0)
-					return 0;
-			}
-		/* fallthrough */
-		default:
-			xtables_error(PARAMETER_PROBLEM, "unknown character %c", *next);
-			return -1;
-		}
-	}
-	return 0;
-}
-
 static void print_icmp_code(uint8_t *code)
 {
 	if (!code)
@@ -256,15 +180,13 @@ brip_parse(int c, char **argv, int invert, unsigned int *flags,
 	case IP_EBT_ICMP:
 		if (invert)
 			info->invflags |= EBT_IP_ICMP;
-		ebt_parse_icmp(icmp_codes, ARRAY_SIZE(icmp_codes), optarg,
-			      info->icmp_type, info->icmp_code);
+		ebt_parse_icmp(optarg, info->icmp_type, info->icmp_code);
 		info->bitmask |= EBT_IP_ICMP;
 		break;
 	case IP_EBT_IGMP:
 		if (invert)
 			info->invflags |= EBT_IP_IGMP;
-		ebt_parse_icmp(igmp_types, ARRAY_SIZE(igmp_types), optarg,
-			       info->igmp_type, NULL);
+		ebt_parse_igmp(optarg, info->igmp_type);
 		info->bitmask |= EBT_IP_IGMP;
 		break;
 	case IP_EBT_TOS: {

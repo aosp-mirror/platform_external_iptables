@@ -72,76 +72,6 @@ parse_port_range(const char *protocol, const char *portstring, uint16_t *ports)
 	free(buffer);
 }
 
-static char *parse_range(const char *str, unsigned int res[])
-{
-	char *next;
-
-	if (!xtables_strtoui(str, &next, &res[0], 0, 255))
-		return NULL;
-
-	res[1] = res[0];
-	if (*next == ':') {
-		str = next + 1;
-		if (!xtables_strtoui(str, &next, &res[1], 0, 255))
-			return NULL;
-	}
-
-	return next;
-}
-
-static int
-parse_icmpv6(const char *icmpv6type, uint8_t type[], uint8_t code[])
-{
-	static const unsigned int limit = ARRAY_SIZE(icmpv6_codes);
-	unsigned int match = limit;
-	unsigned int i, number[2];
-
-	for (i = 0; i < limit; i++) {
-		if (strncasecmp(icmpv6_codes[i].name, icmpv6type, strlen(icmpv6type)))
-			continue;
-		if (match != limit)
-			xtables_error(PARAMETER_PROBLEM, "Ambiguous ICMPv6 type `%s':"
-					" `%s' or `%s'?",
-					icmpv6type, icmpv6_codes[match].name,
-					icmpv6_codes[i].name);
-		match = i;
-	}
-
-	if (match < limit) {
-		type[0] = type[1] = icmpv6_codes[match].type;
-		code[0] = icmpv6_codes[match].code_min;
-		code[1] = icmpv6_codes[match].code_max;
-	} else {
-		char *next = parse_range(icmpv6type, number);
-		if (!next) {
-			xtables_error(PARAMETER_PROBLEM, "Unknown ICMPv6 type `%s'",
-							icmpv6type);
-			return -1;
-		}
-		type[0] = (uint8_t) number[0];
-		type[1] = (uint8_t) number[1];
-		switch (*next) {
-		case 0:
-			code[0] = 0;
-			code[1] = 255;
-			return 0;
-		case '/':
-			next = parse_range(next+1, number);
-			code[0] = (uint8_t) number[0];
-			code[1] = (uint8_t) number[1];
-			if (next == NULL)
-				return -1;
-			if (next && *next == 0)
-				return 0;
-		/* fallthrough */
-		default:
-			xtables_error(PARAMETER_PROBLEM, "unknown character %c", *next);
-			return -1;
-		}
-	}
-	return 0;
-}
-
 static void print_port_range(uint16_t *ports)
 {
 	if (ports[0] == ports[1])
@@ -266,8 +196,7 @@ brip6_parse(int c, char **argv, int invert, unsigned int *flags,
 	case IP_ICMP6:
 		if (invert)
 			info->invflags |= EBT_IP6_ICMP6;
-		if (parse_icmpv6(optarg, info->icmpv6_type, info->icmpv6_code))
-			return 0;
+		ebt_parse_icmpv6(optarg, info->icmpv6_type, info->icmpv6_code);
 		info->bitmask |= EBT_IP6_ICMP6;
 		break;
 	case IP_TCLASS:

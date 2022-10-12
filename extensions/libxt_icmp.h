@@ -102,6 +102,132 @@ static const struct xt_icmp_names {
 	{ "membership-report-v3", 0x22 },
 };
 
+static inline char *parse_range(const char *str, unsigned int res[])
+{
+	char *next;
+
+	if (!xtables_strtoui(str, &next, &res[0], 0, 255))
+		return NULL;
+
+	res[1] = res[0];
+	if (*next == ':') {
+		str = next + 1;
+		if (!xtables_strtoui(str, &next, &res[1], 0, 255))
+			return NULL;
+	}
+
+	return next;
+}
+
+static void
+__parse_icmp(const struct xt_icmp_names codes[], size_t n_codes,
+	     const char *codes_name, const char *fmtstring,
+	     uint8_t type[], uint8_t code[])
+{
+	unsigned int match = n_codes;
+	unsigned int i, number[2];
+
+	for (i = 0; i < n_codes; i++) {
+		if (strncasecmp(codes[i].name, fmtstring, strlen(fmtstring)))
+			continue;
+		if (match != n_codes)
+			xtables_error(PARAMETER_PROBLEM,
+				      "Ambiguous %s type `%s': `%s' or `%s'?",
+				      codes_name, fmtstring, codes[match].name,
+				      codes[i].name);
+		match = i;
+	}
+
+	if (match < n_codes) {
+		type[0] = type[1] = codes[match].type;
+		if (code) {
+			code[0] = codes[match].code_min;
+			code[1] = codes[match].code_max;
+		}
+	} else {
+		char *next = parse_range(fmtstring, number);
+		if (!next)
+			xtables_error(PARAMETER_PROBLEM, "Unknown %s type `%s'",
+				      codes_name, fmtstring);
+		type[0] = (uint8_t) number[0];
+		type[1] = (uint8_t) number[1];
+		switch (*next) {
+		case 0:
+			if (code) {
+				code[0] = 0;
+				code[1] = 255;
+			}
+			return;
+		case '/':
+			if (!code)
+				break;
+
+			next = parse_range(next + 1, number);
+			if (!next)
+				xtables_error(PARAMETER_PROBLEM,
+					      "Unknown %s code `%s'",
+					      codes_name, fmtstring);
+			code[0] = (uint8_t) number[0];
+			code[1] = (uint8_t) number[1];
+			if (!*next)
+				break;
+		/* fallthrough */
+		default:
+			xtables_error(PARAMETER_PROBLEM,
+				      "unknown character %c", *next);
+		}
+	}
+}
+
+static inline void
+__ipt_parse_icmp(const struct xt_icmp_names *codes, size_t n_codes,
+		 const char *codes_name, const char *fmtstr,
+		 uint8_t *type, uint8_t code[])
+{
+	uint8_t types[2];
+
+	__parse_icmp(codes, n_codes, codes_name, fmtstr, types, code);
+	if (types[1] != types[0])
+		xtables_error(PARAMETER_PROBLEM,
+			      "%s type range not supported", codes_name);
+	*type = types[0];
+}
+
+static inline void
+ipt_parse_icmp(const char *str, uint8_t *type, uint8_t code[])
+{
+	__ipt_parse_icmp(icmp_codes, ARRAY_SIZE(icmp_codes),
+			 "ICMP", str, type, code);
+}
+
+static inline void
+ipt_parse_icmpv6(const char *str, uint8_t *type, uint8_t code[])
+{
+	__ipt_parse_icmp(icmpv6_codes, ARRAY_SIZE(icmpv6_codes),
+			 "ICMPv6", str, type, code);
+}
+
+static inline void
+ebt_parse_icmp(const char *str, uint8_t type[], uint8_t code[])
+{
+	__parse_icmp(icmp_codes, ARRAY_SIZE(icmp_codes),
+		     "ICMP", str, type, code);
+}
+
+static inline void
+ebt_parse_icmpv6(const char *str, uint8_t type[], uint8_t code[])
+{
+	__parse_icmp(icmpv6_codes, ARRAY_SIZE(icmpv6_codes),
+		     "ICMPv6", str, type, code);
+}
+
+static inline void
+ebt_parse_igmp(const char *str, uint8_t type[])
+{
+	__parse_icmp(igmp_types, ARRAY_SIZE(igmp_types),
+		     "IGMP", str, type, NULL);
+}
+
 static void xt_print_icmp_types(const struct xt_icmp_names *_icmp_codes,
 				unsigned int n_codes)
 {

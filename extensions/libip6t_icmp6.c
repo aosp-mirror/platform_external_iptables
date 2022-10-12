@@ -28,59 +28,6 @@ static const struct xt_option_entry icmp6_opts[] = {
 	XTOPT_TABLEEND,
 };
 
-static void
-parse_icmpv6(const char *icmpv6type, uint8_t *type, uint8_t code[])
-{
-	static const unsigned int limit = ARRAY_SIZE(icmpv6_codes);
-	unsigned int match = limit;
-	unsigned int i;
-
-	for (i = 0; i < limit; i++) {
-		if (strncasecmp(icmpv6_codes[i].name, icmpv6type, strlen(icmpv6type))
-		    == 0) {
-			if (match != limit)
-				xtables_error(PARAMETER_PROBLEM,
-					   "Ambiguous ICMPv6 type `%s':"
-					   " `%s' or `%s'?",
-					   icmpv6type,
-					   icmpv6_codes[match].name,
-					   icmpv6_codes[i].name);
-			match = i;
-		}
-	}
-
-	if (match != limit) {
-		*type = icmpv6_codes[match].type;
-		code[0] = icmpv6_codes[match].code_min;
-		code[1] = icmpv6_codes[match].code_max;
-	} else {
-		char *slash;
-		char buffer[strlen(icmpv6type) + 1];
-		unsigned int number;
-
-		strcpy(buffer, icmpv6type);
-		slash = strchr(buffer, '/');
-
-		if (slash)
-			*slash = '\0';
-
-		if (!xtables_strtoui(buffer, NULL, &number, 0, UINT8_MAX))
-			xtables_error(PARAMETER_PROBLEM,
-				   "Invalid ICMPv6 type `%s'\n", buffer);
-		*type = number;
-		if (slash) {
-			if (!xtables_strtoui(slash+1, NULL, &number, 0, UINT8_MAX))
-				xtables_error(PARAMETER_PROBLEM,
-					   "Invalid ICMPv6 code `%s'\n",
-					   slash+1);
-			code[0] = code[1] = number;
-		} else {
-			code[0] = 0;
-			code[1] = 0xFF;
-		}
-	}
-}
-
 static void icmp6_init(struct xt_entry_match *m)
 {
 	struct ip6t_icmp *icmpv6info = (struct ip6t_icmp *)m->data;
@@ -93,7 +40,7 @@ static void icmp6_parse(struct xt_option_call *cb)
 	struct ip6t_icmp *icmpv6info = cb->data;
 
 	xtables_option_parse(cb);
-	parse_icmpv6(cb->arg, &icmpv6info->type, icmpv6info->code);
+	ipt_parse_icmpv6(cb->arg, &icmpv6info->type, icmpv6info->code);
 	if (cb->invert)
 		icmpv6info->invflags |= IP6T_ICMP_INV;
 }
