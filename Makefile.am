@@ -33,3 +33,5 @@ tarball:
 
 config.status: extensions/GNUmakefile.in \
 	include/xtables-version.h.in
+
+TESTS = xlate-test.py iptables-test.py iptables/tests/shell/run-tests.sh
