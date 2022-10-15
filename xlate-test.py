@@ -250,7 +250,7 @@ def main():
                 tests, passed, failed, errors = run_test(args.test, payload)
         except IOError:
             print(red("Error: ") + "test file does not exist", file=sys.stderr)
-            return -1
+            return 99
     else:
         files, tests, passed, failed, errors = load_test_files()
 
