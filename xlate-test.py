@@ -33,6 +33,24 @@ def green(string):
     return colors["green"] + string + colors["end"]
 
 
+def test_one_xlate(name, sourceline, expected, result):
+    process = Popen([ xtables_nft_multi ] + shlex.split(sourceline), stdout=PIPE, stderr=PIPE)
+    (output, error) = process.communicate()
+    if process.returncode != 0:
+        result.append(name + ": " + red("Error: ") + "iptables-translate failure")
+        result.append(error.decode("utf-8"))
+        return False
+
+    translation = output.decode("utf-8").rstrip(" \n")
+    if translation != expected:
+        result.append(name + ": " + red("Fail"))
+        result.append(magenta("src: ") + sourceline.rstrip(" \n"))
+        result.append(magenta("exp: ") + expected)
+        result.append(magenta("res: ") + translation + "\n")
+        return False
+
+    return True
+
 def run_test(name, payload):
     global xtables_nft_multi
     test_passed = True
@@ -41,37 +59,26 @@ def run_test(name, payload):
 
     line = payload.readline()
     while line:
-        if line.startswith(keywords):
-            sourceline = line
-            tests += 1
-            process = Popen([ xtables_nft_multi ] + shlex.split(line), stdout=PIPE, stderr=PIPE)
-            (output, error) = process.communicate()
-            if process.returncode == 0:
-                translation = output.decode("utf-8").rstrip(" \n")
-                expected = payload.readline().rstrip(" \n")
-                next_expected = payload.readline()
-                if next_expected.startswith("nft"):
-                    expected += "\n" + next_expected.rstrip(" \n")
-                    line = payload.readline()
-                else:
-                    line = next_expected
-                if translation != expected:
-                    test_passed = False
-                    failed += 1
-                    result.append(name + ": " + red("Fail"))
-                    result.append(magenta("src: ") + sourceline.rstrip(" \n"))
-                    result.append(magenta("exp: ") + expected)
-                    result.append(magenta("res: ") + translation + "\n")
-                else:
-                    passed += 1
-            else:
-                test_passed = False
-                errors += 1
-                result.append(name + ": " + red("Error: ") + "iptables-translate failure")
-                result.append(error.decode("utf-8"))
-                line = payload.readline()
+        if not line.startswith(keywords):
+            line = payload.readline()
+            continue
+
+        sourceline = line
+        expected = payload.readline().rstrip(" \n")
+        next_expected = payload.readline()
+        if next_expected.startswith("nft"):
+            expected += "\n" + next_expected.rstrip(" \n")
+            line = payload.readline()
         else:
-                line = payload.readline()
+            line = next_expected
+
+        tests += 1
+        if test_one_xlate(name, sourceline, expected, result):
+            passed += 1
+        else:
+            errors += 1
+            test_passed = False
+
     if (passed == tests) and not args.test:
         print(name + ": " + green("OK"))
     if not test_passed:
