@@ -359,6 +359,21 @@ static int parse_meta_pkttype(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 	return 0;
 }
 
+static void parse_invalid_iface(char *iface, unsigned char *mask,
+				uint8_t *invflags, uint8_t invbit)
+{
+	if (*invflags & invbit || strcmp(iface, "INVAL/D"))
+		return;
+
+	/* nft's poor "! -o +" excuse */
+	*invflags |= invbit;
+	iface[0] = '+';
+	iface[1] = '\0';
+	mask[0] = 0xff;
+	mask[1] = 0xff;
+	memset(mask + 2, 0, IFNAMSIZ - 2);
+}
+
 int parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e, uint8_t key,
 	       char *iniface, unsigned char *iniface_mask,
 	       char *outiface, unsigned char *outiface_mask, uint8_t *invflags)
@@ -393,6 +408,8 @@ int parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e, uint8_t key,
 			*invflags |= IPT_INV_VIA_IN;
 
 		parse_ifname(ifname, len, iniface, iniface_mask);
+		parse_invalid_iface(iniface, iniface_mask,
+				    invflags, IPT_INV_VIA_IN);
 		break;
 	case NFT_META_BRI_OIFNAME:
 	case NFT_META_OIFNAME:
@@ -401,6 +418,8 @@ int parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e, uint8_t key,
 			*invflags |= IPT_INV_VIA_OUT;
 
 		parse_ifname(ifname, len, outiface, outiface_mask);
+		parse_invalid_iface(outiface, outiface_mask,
+				    invflags, IPT_INV_VIA_OUT);
 		break;
 	case NFT_META_MARK:
 		parse_meta_mark(ctx, e);
