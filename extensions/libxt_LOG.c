@@ -1,25 +1,22 @@
 #include <stdio.h>
 #include <string.h>
+#define SYSLOG_NAMES
 #include <syslog.h>
 #include <xtables.h>
-#include <linux/netfilter_ipv6/ip6t_LOG.h>
-
-#ifndef IP6T_LOG_UID	/* Old kernel */
-#define IP6T_LOG_UID	0x08
-#undef  IP6T_LOG_MASK
-#define IP6T_LOG_MASK	0x0f
-#endif
+#include <linux/netfilter/xt_LOG.h>
 
 #define LOG_DEFAULT_LEVEL LOG_WARNING
 
 enum {
-	O_LOG_LEVEL = 0,
-	O_LOG_PREFIX,
-	O_LOG_TCPSEQ,
+	/* make sure the values correspond with XT_LOG_* bit positions */
+	O_LOG_TCPSEQ = 0,
 	O_LOG_TCPOPTS,
 	O_LOG_IPOPTS,
 	O_LOG_UID,
+	__O_LOG_NFLOG,
 	O_LOG_MAC,
+	O_LOG_LEVEL,
+	O_LOG_PREFIX,
 };
 
 static void LOG_help(void)
@@ -35,7 +32,7 @@ static void LOG_help(void)
 " --log-macdecode		Decode MAC addresses and protocol.\n");
 }
 
-#define s struct ip6t_log_info
+#define s struct xt_log_info
 static const struct xt_option_entry LOG_opts[] = {
 	{.name = "log-level", .id = O_LOG_LEVEL, .type = XTTYPE_SYSLOGLEVEL,
 	 .flags = XTOPT_PUT, XTOPT_POINTER(s, level)},
@@ -52,37 +49,14 @@ static const struct xt_option_entry LOG_opts[] = {
 
 static void LOG_init(struct xt_entry_target *t)
 {
-	struct ip6t_log_info *loginfo = (struct ip6t_log_info *)t->data;
+	struct xt_log_info *loginfo = (void *)t->data;
 
 	loginfo->level = LOG_DEFAULT_LEVEL;
-
 }
-
-struct ip6t_log_names {
-	const char *name;
-	unsigned int level;
-};
-
-struct ip6t_log_xlate {
-	const char *name;
-	unsigned int level;
-};
-
-static const struct ip6t_log_names ip6t_log_names[]
-= { { .name = "alert",   .level = LOG_ALERT },
-    { .name = "crit",    .level = LOG_CRIT },
-    { .name = "debug",   .level = LOG_DEBUG },
-    { .name = "emerg",   .level = LOG_EMERG },
-    { .name = "error",   .level = LOG_ERR },		/* DEPRECATED */
-    { .name = "info",    .level = LOG_INFO },
-    { .name = "notice",  .level = LOG_NOTICE },
-    { .name = "panic",   .level = LOG_EMERG },		/* DEPRECATED */
-    { .name = "warning", .level = LOG_WARNING }
-};
 
 static void LOG_parse(struct xt_option_call *cb)
 {
-	struct ip6t_log_info *info = cb->data;
+	struct xt_log_info *info = cb->data;
 
 	xtables_option_parse(cb);
 	switch (cb->entry->id) {
@@ -92,53 +66,53 @@ static void LOG_parse(struct xt_option_call *cb)
 				   "Newlines not allowed in --log-prefix");
 		break;
 	case O_LOG_TCPSEQ:
-		info->logflags |= IP6T_LOG_TCPSEQ;
-		break;
 	case O_LOG_TCPOPTS:
-		info->logflags |= IP6T_LOG_TCPOPT;
-		break;
 	case O_LOG_IPOPTS:
-		info->logflags |= IP6T_LOG_IPOPT;
-		break;
 	case O_LOG_UID:
-		info->logflags |= IP6T_LOG_UID;
-		break;
 	case O_LOG_MAC:
-		info->logflags |= IP6T_LOG_MACDECODE;
+		info->logflags |= 1 << cb->entry->id;
 		break;
 	}
+}
+
+static const char *priority2name(unsigned char level)
+{
+	int i;
+
+	for (i = 0; prioritynames[i].c_name; ++i) {
+		if (level == prioritynames[i].c_val)
+			return prioritynames[i].c_name;
+	}
+	return NULL;
 }
 
 static void LOG_print(const void *ip, const struct xt_entry_target *target,
                       int numeric)
 {
-	const struct ip6t_log_info *loginfo
-		= (const struct ip6t_log_info *)target->data;
-	unsigned int i = 0;
+	const struct xt_log_info *loginfo = (const void *)target->data;
 
 	printf(" LOG");
 	if (numeric)
 		printf(" flags %u level %u",
 		       loginfo->logflags, loginfo->level);
 	else {
-		for (i = 0; i < ARRAY_SIZE(ip6t_log_names); ++i)
-			if (loginfo->level == ip6t_log_names[i].level) {
-				printf(" level %s", ip6t_log_names[i].name);
-				break;
-			}
-		if (i == ARRAY_SIZE(ip6t_log_names))
+		const char *pname = priority2name(loginfo->level);
+
+		if (pname)
+			printf(" level %s", pname);
+		else
 			printf(" UNKNOWN level %u", loginfo->level);
-		if (loginfo->logflags & IP6T_LOG_TCPSEQ)
+		if (loginfo->logflags & XT_LOG_TCPSEQ)
 			printf(" tcp-sequence");
-		if (loginfo->logflags & IP6T_LOG_TCPOPT)
+		if (loginfo->logflags & XT_LOG_TCPOPT)
 			printf(" tcp-options");
-		if (loginfo->logflags & IP6T_LOG_IPOPT)
+		if (loginfo->logflags & XT_LOG_IPOPT)
 			printf(" ip-options");
-		if (loginfo->logflags & IP6T_LOG_UID)
+		if (loginfo->logflags & XT_LOG_UID)
 			printf(" uid");
-		if (loginfo->logflags & IP6T_LOG_MACDECODE)
+		if (loginfo->logflags & XT_LOG_MACDECODE)
 			printf(" macdecode");
-		if (loginfo->logflags & ~(IP6T_LOG_MASK))
+		if (loginfo->logflags & ~(XT_LOG_MASK))
 			printf(" unknown-flags");
 	}
 
@@ -148,8 +122,7 @@ static void LOG_print(const void *ip, const struct xt_entry_target *target,
 
 static void LOG_save(const void *ip, const struct xt_entry_target *target)
 {
-	const struct ip6t_log_info *loginfo
-		= (const struct ip6t_log_info *)target->data;
+	const struct xt_log_info *loginfo = (const void *)target->data;
 
 	if (strcmp(loginfo->prefix, "") != 0) {
 		printf(" --log-prefix");
@@ -159,35 +132,23 @@ static void LOG_save(const void *ip, const struct xt_entry_target *target)
 	if (loginfo->level != LOG_DEFAULT_LEVEL)
 		printf(" --log-level %d", loginfo->level);
 
-	if (loginfo->logflags & IP6T_LOG_TCPSEQ)
+	if (loginfo->logflags & XT_LOG_TCPSEQ)
 		printf(" --log-tcp-sequence");
-	if (loginfo->logflags & IP6T_LOG_TCPOPT)
+	if (loginfo->logflags & XT_LOG_TCPOPT)
 		printf(" --log-tcp-options");
-	if (loginfo->logflags & IP6T_LOG_IPOPT)
+	if (loginfo->logflags & XT_LOG_IPOPT)
 		printf(" --log-ip-options");
-	if (loginfo->logflags & IP6T_LOG_UID)
+	if (loginfo->logflags & XT_LOG_UID)
 		printf(" --log-uid");
-	if (loginfo->logflags & IP6T_LOG_MACDECODE)
+	if (loginfo->logflags & XT_LOG_MACDECODE)
 		printf(" --log-macdecode");
 }
-
-static const struct ip6t_log_xlate ip6t_log_xlate_names[] = {
-	{"alert",       LOG_ALERT },
-	{"crit",        LOG_CRIT },
-	{"debug",       LOG_DEBUG },
-	{"emerg",       LOG_EMERG },
-	{"err",         LOG_ERR },
-	{"info",        LOG_INFO },
-	{"notice",      LOG_NOTICE },
-	{"warn",        LOG_WARNING }
-};
 
 static int LOG_xlate(struct xt_xlate *xl,
 		     const struct xt_xlate_tg_params *params)
 {
-	const struct ip6t_log_info *loginfo =
-		(const struct ip6t_log_info *)params->target->data;
-	unsigned int i = 0;
+	const struct xt_log_info *loginfo = (const void *)params->target->data;
+	const char *pname = priority2name(loginfo->level);
 
 	xt_xlate_add(xl, "log");
 	if (strcmp(loginfo->prefix, "") != 0) {
@@ -197,44 +158,41 @@ static int LOG_xlate(struct xt_xlate *xl,
 			xt_xlate_add(xl, " prefix \"%s\"", loginfo->prefix);
 	}
 
-	for (i = 0; i < ARRAY_SIZE(ip6t_log_xlate_names); ++i)
-		if (loginfo->level == ip6t_log_xlate_names[i].level &&
-		    loginfo->level != LOG_DEFAULT_LEVEL) {
-			xt_xlate_add(xl, " level %s",
-				   ip6t_log_xlate_names[i].name);
-			break;
-		}
+	if (loginfo->level != LOG_DEFAULT_LEVEL && pname)
+		xt_xlate_add(xl, " level %s", pname);
+	else if (!pname)
+		return 0;
 
-	if ((loginfo->logflags & IP6T_LOG_MASK) == IP6T_LOG_MASK) {
+	if ((loginfo->logflags & XT_LOG_MASK) == XT_LOG_MASK) {
 		xt_xlate_add(xl, " flags all");
 	} else {
-		if (loginfo->logflags & (IP6T_LOG_TCPSEQ | IP6T_LOG_TCPOPT)) {
+		if (loginfo->logflags & (XT_LOG_TCPSEQ | XT_LOG_TCPOPT)) {
 			const char *delim = " ";
 
 			xt_xlate_add(xl, " flags tcp");
-			if (loginfo->logflags & IP6T_LOG_TCPSEQ) {
+			if (loginfo->logflags & XT_LOG_TCPSEQ) {
 				xt_xlate_add(xl, " sequence");
 				delim = ",";
 			}
-			if (loginfo->logflags & IP6T_LOG_TCPOPT)
+			if (loginfo->logflags & XT_LOG_TCPOPT)
 				xt_xlate_add(xl, "%soptions", delim);
 		}
-		if (loginfo->logflags & IP6T_LOG_IPOPT)
+		if (loginfo->logflags & XT_LOG_IPOPT)
 			xt_xlate_add(xl, " flags ip options");
-		if (loginfo->logflags & IP6T_LOG_UID)
+		if (loginfo->logflags & XT_LOG_UID)
 			xt_xlate_add(xl, " flags skuid");
-		if (loginfo->logflags & IP6T_LOG_MACDECODE)
+		if (loginfo->logflags & XT_LOG_MACDECODE)
 			xt_xlate_add(xl, " flags ether");
 	}
 
 	return 1;
 }
-static struct xtables_target log_tg6_reg = {
+static struct xtables_target log_tg_reg = {
 	.name          = "LOG",
 	.version       = XTABLES_VERSION,
-	.family        = NFPROTO_IPV6,
-	.size          = XT_ALIGN(sizeof(struct ip6t_log_info)),
-	.userspacesize = XT_ALIGN(sizeof(struct ip6t_log_info)),
+	.family        = NFPROTO_UNSPEC,
+	.size          = XT_ALIGN(sizeof(struct xt_log_info)),
+	.userspacesize = XT_ALIGN(sizeof(struct xt_log_info)),
 	.help          = LOG_help,
 	.init          = LOG_init,
 	.print         = LOG_print,
@@ -246,5 +204,5 @@ static struct xtables_target log_tg6_reg = {
 
 void _init(void)
 {
-	xtables_register_target(&log_tg6_reg);
+	xtables_register_target(&log_tg_reg);
 }
