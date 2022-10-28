@@ -7,6 +7,13 @@ import shlex
 import argparse
 from subprocess import Popen, PIPE
 
+def run_proc(args, shell = False):
+    """A simple wrapper around Popen, returning (rc, stdout, stderr)"""
+    process = Popen(args, text = True, shell = shell,
+                    stdout = PIPE, stderr = PIPE)
+    output, error = process.communicate()
+    return (process.returncode, output, error)
+
 keywords = ("iptables-translate", "ip6tables-translate", "ebtables-translate")
 xtables_nft_multi = 'xtables-nft-multi'
 
@@ -34,14 +41,13 @@ def green(string):
 
 
 def test_one_xlate(name, sourceline, expected, result):
-    process = Popen([ xtables_nft_multi ] + shlex.split(sourceline), stdout=PIPE, stderr=PIPE)
-    (output, error) = process.communicate()
-    if process.returncode != 0:
+    rc, output, error = run_proc([xtables_nft_multi] + shlex.split(sourceline))
+    if rc != 0:
         result.append(name + ": " + red("Error: ") + "iptables-translate failure")
-        result.append(error.decode("utf-8"))
+        result.append(error)
         return False
 
-    translation = output.decode("utf-8").rstrip(" \n")
+    translation = output.rstrip(" \n")
     if translation != expected:
         result.append(name + ": " + red("Fail"))
         result.append(magenta("src: ") + sourceline.rstrip(" \n"))
