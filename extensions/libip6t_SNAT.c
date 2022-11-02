@@ -20,9 +20,6 @@ enum {
 	O_RANDOM,
 	O_RANDOM_FULLY,
 	O_PERSISTENT,
-	F_TO_SRC       = 1 << O_TO_SRC,
-	F_RANDOM       = 1 << O_RANDOM,
-	F_RANDOM_FULLY = 1 << O_RANDOM_FULLY,
 };
 
 static void SNAT_help(void)
@@ -166,19 +163,13 @@ static void SNAT_parse(struct xt_option_call *cb)
 	case O_PERSISTENT:
 		range->flags |= NF_NAT_RANGE_PERSISTENT;
 		break;
-	}
-}
-
-static void SNAT_fcheck(struct xt_fcheck_call *cb)
-{
-	static const unsigned int f = F_TO_SRC | F_RANDOM;
-	static const unsigned int r = F_TO_SRC | F_RANDOM_FULLY;
-	struct nf_nat_range *range = cb->data;
-
-	if ((cb->xflags & f) == f)
+	case O_RANDOM:
 		range->flags |= NF_NAT_RANGE_PROTO_RANDOM;
-	if ((cb->xflags & r) == r)
+		break;
+	case O_RANDOM_FULLY:
 		range->flags |= NF_NAT_RANGE_PROTO_RANDOM_FULLY;
+		break;
+	}
 }
 
 static void print_range(const struct nf_nat_range *range)
@@ -295,7 +286,6 @@ static struct xtables_target snat_tg_reg = {
 	.userspacesize	= XT_ALIGN(sizeof(struct nf_nat_range)),
 	.help		= SNAT_help,
 	.x6_parse	= SNAT_parse,
-	.x6_fcheck	= SNAT_fcheck,
 	.print		= SNAT_print,
 	.save		= SNAT_save,
 	.x6_options	= SNAT_opts,

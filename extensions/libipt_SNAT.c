@@ -13,9 +13,6 @@ enum {
 	O_RANDOM,
 	O_RANDOM_FULLY,
 	O_PERSISTENT,
-	F_TO_SRC       = 1 << O_TO_SRC,
-	F_RANDOM       = 1 << O_RANDOM,
-	F_RANDOM_FULLY = 1 << O_RANDOM_FULLY,
 };
 
 static void SNAT_help(void)
@@ -141,19 +138,18 @@ static void SNAT_parse(struct xt_option_call *cb)
 	case O_PERSISTENT:
 		mr->range->flags |= NF_NAT_RANGE_PERSISTENT;
 		break;
+	case O_RANDOM:
+		mr->range->flags |= NF_NAT_RANGE_PROTO_RANDOM;
+		break;
+	case O_RANDOM_FULLY:
+		mr->range->flags |= NF_NAT_RANGE_PROTO_RANDOM_FULLY;
+		break;
 	}
 }
 
 static void SNAT_fcheck(struct xt_fcheck_call *cb)
 {
-	static const unsigned int f = F_TO_SRC | F_RANDOM;
-	static const unsigned int r = F_TO_SRC | F_RANDOM_FULLY;
 	struct nf_nat_ipv4_multi_range_compat *mr = cb->data;
-
-	if ((cb->xflags & f) == f)
-		mr->range->flags |= NF_NAT_RANGE_PROTO_RANDOM;
-	if ((cb->xflags & r) == r)
-		mr->range->flags |= NF_NAT_RANGE_PROTO_RANDOM_FULLY;
 
 	mr->rangesize = 1;
 }

@@ -31,9 +31,6 @@ enum {
 	O_TO_PORTS,
 	O_RANDOM,
 	O_PERSISTENT,
-	F_TO_DEST  = 1 << O_TO_DEST,
-	F_TO_PORTS = 1 << O_TO_PORTS,
-	F_RANDOM   = 1 << O_RANDOM,
 };
 
 static void DNAT_help(void)
@@ -229,6 +226,9 @@ static void __DNAT_parse(struct xt_option_call *cb, __u16 proto,
 	case O_PERSISTENT:
 		range->flags |= NF_NAT_RANGE_PERSISTENT;
 		break;
+	case O_RANDOM:
+		range->flags |= NF_NAT_RANGE_PROTO_RANDOM;
+		break;
 	}
 }
 
@@ -250,19 +250,10 @@ static void DNAT_parse(struct xt_option_call *cb)
 		mr->range->max = range.max_proto;
 		/* fall through */
 	case O_PERSISTENT:
+	case O_RANDOM:
 		mr->range->flags |= range.flags;
 		break;
 	}
-}
-
-static void __DNAT_fcheck(struct xt_fcheck_call *cb, unsigned int *flags)
-{
-	static const unsigned int redir_f = F_TO_PORTS | F_RANDOM;
-	static const unsigned int dnat_f = F_TO_DEST | F_RANDOM;
-
-	if ((cb->xflags & redir_f) == redir_f ||
-	    (cb->xflags & dnat_f) == dnat_f)
-		*flags |= NF_NAT_RANGE_PROTO_RANDOM;
 }
 
 static void DNAT_fcheck(struct xt_fcheck_call *cb)
@@ -274,8 +265,6 @@ static void DNAT_fcheck(struct xt_fcheck_call *cb)
 	if (mr->range[0].flags & NF_NAT_RANGE_PROTO_OFFSET)
 		xtables_error(PARAMETER_PROBLEM,
 			      "Shifted portmap ranges not supported with this kernel");
-
-	__DNAT_fcheck(cb, &mr->range[0].flags);
 }
 
 static char *sprint_range(const struct nf_nat_range2 *r, int family)
@@ -388,11 +377,6 @@ static void DNAT_parse_v2(struct xt_option_call *cb)
 	__DNAT_parse(cb, entry->ip.proto, cb->data, AF_INET);
 }
 
-static void DNAT_fcheck_v2(struct xt_fcheck_call *cb)
-{
-	__DNAT_fcheck(cb, &((struct nf_nat_range2 *)cb->data)->flags);
-}
-
 static void DNAT_print_v2(const void *ip, const struct xt_entry_target *target,
                        int numeric)
 {
@@ -428,8 +412,6 @@ static void DNAT_fcheck6(struct xt_fcheck_call *cb)
 	if (range->flags & NF_NAT_RANGE_PROTO_OFFSET)
 		xtables_error(PARAMETER_PROBLEM,
 			      "Shifted portmap ranges not supported with this kernel");
-
-	__DNAT_fcheck(cb, &range->flags);
 }
 
 static void DNAT_print6(const void *ip, const struct xt_entry_target *target,
@@ -619,7 +601,6 @@ static struct xtables_target dnat_tg_reg[] = {
 		.print		= DNAT_print_v2,
 		.save		= DNAT_save_v2,
 		.x6_parse	= DNAT_parse_v2,
-		.x6_fcheck	= DNAT_fcheck_v2,
 		.x6_options	= DNAT_opts,
 		.xlate		= DNAT_xlate_v2,
 	},
@@ -634,7 +615,6 @@ static struct xtables_target dnat_tg_reg[] = {
 		.print		= DNAT_print6_v2,
 		.save		= DNAT_save6_v2,
 		.x6_parse	= DNAT_parse6_v2,
-		.x6_fcheck	= DNAT_fcheck_v2,
 		.x6_options	= DNAT_opts,
 		.xlate		= DNAT_xlate6_v2,
 	},
