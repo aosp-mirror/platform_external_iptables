@@ -214,8 +214,8 @@ parse_to(const char *orig_arg, bool portok,
 	return;
 }
 
-static void __DNAT_parse(struct xt_option_call *cb, __u16 proto,
-			 struct nf_nat_range2 *range, int family)
+static void __NAT_parse(struct xt_option_call *cb, __u16 proto,
+			struct nf_nat_range2 *range, int family)
 {
 	bool portok = proto == IPPROTO_TCP ||
 		      proto == IPPROTO_UDP ||
@@ -240,13 +240,13 @@ static void __DNAT_parse(struct xt_option_call *cb, __u16 proto,
 	}
 }
 
-static void DNAT_parse(struct xt_option_call *cb)
+static void NAT_parse(struct xt_option_call *cb)
 {
 	struct nf_nat_ipv4_multi_range_compat *mr = (void *)cb->data;
 	const struct ipt_entry *entry = cb->xt_entry;
 	struct nf_nat_range2 range = {};
 
-	__DNAT_parse(cb, entry->ip.proto, &range, AF_INET);
+	__NAT_parse(cb, entry->ip.proto, &range, AF_INET);
 
 	switch (cb->entry->id) {
 	case O_TO_DEST:
@@ -264,13 +264,13 @@ static void DNAT_parse(struct xt_option_call *cb)
 	}
 }
 
-static void DNAT_parse6(struct xt_option_call *cb)
+static void NAT_parse6(struct xt_option_call *cb)
 {
 	struct nf_nat_range2 range = RANGE2_INIT_FROM_RANGE(cb->data);
 	struct nf_nat_range *range_v1 = (void *)cb->data;
 	const struct ip6t_entry *entry = cb->xt_entry;
 
-	__DNAT_parse(cb, entry->ipv6.proto, &range, AF_INET6);
+	__NAT_parse(cb, entry->ipv6.proto, &range, AF_INET6);
 	memcpy(range_v1, &range, sizeof(*range_v1));
 }
 
@@ -278,14 +278,14 @@ static void DNAT_parse_v2(struct xt_option_call *cb)
 {
 	const struct ipt_entry *entry = cb->xt_entry;
 
-	__DNAT_parse(cb, entry->ip.proto, cb->data, AF_INET);
+	__NAT_parse(cb, entry->ip.proto, cb->data, AF_INET);
 }
 
 static void DNAT_parse6_v2(struct xt_option_call *cb)
 {
 	const struct ip6t_entry *entry = cb->xt_entry;
 
-	__DNAT_parse(cb, entry->ipv6.proto, cb->data, AF_INET6);
+	__NAT_parse(cb, entry->ipv6.proto, cb->data, AF_INET6);
 }
 
 static void DNAT_fcheck(struct xt_fcheck_call *cb)
@@ -425,7 +425,7 @@ PSX_GEN(REDIRECT, RANGE2_INIT_FROM_IPV4_MRC, \
 PSX_GEN(REDIRECT6, RANGE2_INIT_FROM_RANGE, \
 	AF_INET6, "redir ports ", "--to-ports ", true, "redirect")
 
-static struct xtables_target dnat_tg_reg[] = {
+static struct xtables_target nat_tg_reg[] = {
 	{
 		.name		= "DNAT",
 		.version	= XTABLES_VERSION,
@@ -436,7 +436,7 @@ static struct xtables_target dnat_tg_reg[] = {
 		.help		= DNAT_help,
 		.print		= DNAT_print,
 		.save		= DNAT_save,
-		.x6_parse	= DNAT_parse,
+		.x6_parse	= NAT_parse,
 		.x6_fcheck	= DNAT_fcheck,
 		.x6_options	= DNAT_opts,
 		.xlate		= DNAT_xlate,
@@ -451,7 +451,7 @@ static struct xtables_target dnat_tg_reg[] = {
 		.help		= REDIRECT_help,
 		.print		= REDIRECT_print,
 		.save		= REDIRECT_save,
-		.x6_parse	= DNAT_parse,
+		.x6_parse	= NAT_parse,
 		.x6_fcheck	= DNAT_fcheck,
 		.x6_options	= REDIRECT_opts,
 		.xlate		= REDIRECT_xlate,
@@ -466,7 +466,7 @@ static struct xtables_target dnat_tg_reg[] = {
 		.help		= DNAT_help,
 		.print		= DNAT6_print,
 		.save		= DNAT6_save,
-		.x6_parse	= DNAT_parse6,
+		.x6_parse	= NAT_parse6,
 		.x6_fcheck	= DNAT_fcheck6,
 		.x6_options	= DNAT_opts,
 		.xlate		= DNAT6_xlate,
@@ -480,7 +480,7 @@ static struct xtables_target dnat_tg_reg[] = {
 		.help		= REDIRECT_help,
 		.print		= REDIRECT6_print,
 		.save		= REDIRECT6_save,
-		.x6_parse	= DNAT_parse6,
+		.x6_parse	= NAT_parse6,
 		.x6_fcheck	= DNAT_fcheck6,
 		.x6_options	= REDIRECT_opts,
 		.xlate		= REDIRECT6_xlate,
@@ -517,5 +517,5 @@ static struct xtables_target dnat_tg_reg[] = {
 
 void _init(void)
 {
-	xtables_register_targets(dnat_tg_reg, ARRAY_SIZE(dnat_tg_reg));
+	xtables_register_targets(nat_tg_reg, ARRAY_SIZE(nat_tg_reg));
 }
