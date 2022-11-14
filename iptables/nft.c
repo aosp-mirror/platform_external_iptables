@@ -2891,8 +2891,8 @@ static void nft_compat_table_batch_add(struct nft_handle *h, uint16_t type,
 {
 	struct nlmsghdr *nlh;
 
-	nlh = nftnl_table_nlmsg_build_hdr(nftnl_batch_buffer(h->batch),
-					type, h->family, flags, seq);
+	nlh = nftnl_nlmsg_build_hdr(nftnl_batch_buffer(h->batch),
+				    type, h->family, flags, seq);
 	nftnl_table_nlmsg_build_payload(nlh, table);
 	nft_table_print_debug(h, table, nlh);
 }
@@ -2936,8 +2936,8 @@ static void nft_compat_chain_batch_add(struct nft_handle *h, uint16_t type,
 {
 	struct nlmsghdr *nlh;
 
-	nlh = nftnl_chain_nlmsg_build_hdr(nftnl_batch_buffer(h->batch),
-					type, h->family, flags, seq);
+	nlh = nftnl_nlmsg_build_hdr(nftnl_batch_buffer(h->batch),
+				    type, h->family, flags, seq);
 	nftnl_chain_nlmsg_build_payload(nlh, chain);
 	nft_chain_print_debug(h, chain, nlh);
 }
@@ -2948,8 +2948,8 @@ static void nft_compat_rule_batch_add(struct nft_handle *h, uint16_t type,
 {
 	struct nlmsghdr *nlh;
 
-	nlh = nftnl_rule_nlmsg_build_hdr(nftnl_batch_buffer(h->batch),
-				       type, h->family, flags, seq);
+	nlh = nftnl_nlmsg_build_hdr(nftnl_batch_buffer(h->batch),
+				    type, h->family, flags, seq);
 	nftnl_rule_nlmsg_build_payload(nlh, rule);
 	nft_rule_print_debug(h, rule, nlh);
 }
