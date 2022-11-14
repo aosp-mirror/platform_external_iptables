@@ -1025,7 +1025,7 @@ static void nft_parse_immediate(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 		const void *imm_data;
 		uint32_t len;
 
-		imm_data = nftnl_expr_get_data(e, NFTNL_EXPR_IMM_DATA, &len);
+		imm_data = nftnl_expr_get(e, NFTNL_EXPR_IMM_DATA, &len);
 		dreg = nft_xt_ctx_get_dreg(ctx, nftnl_expr_get_u32(e, NFTNL_EXPR_IMM_DREG));
 		if (!dreg)
 			return;
