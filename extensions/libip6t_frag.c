@@ -193,6 +193,8 @@ static int frag_xlate(struct xt_xlate *xl,
 		space = " ";
 	}
 
+	/* ignore ineffective IP6T_FRAG_LEN bit */
+
 	if (fraginfo->flags & IP6T_FRAG_RES) {
 		xt_xlate_add(xl, "%sfrag reserved 1", space);
 		space = " ";
