@@ -191,6 +191,8 @@ static int brlog_xlate(struct xt_xlate *xl,
 	if (loginfo->loglevel != LOG_DEFAULT_LEVEL)
 		xt_xlate_add(xl, " level %s", eight_priority[loginfo->loglevel].c_name);
 
+	/* ebt_log always decodes MAC header, nft_log always decodes upper header -
+	 * so set flags ether and ignore EBT_LOG_IP, EBT_LOG_ARP and EBT_LOG_IP6 */
 	xt_xlate_add(xl, " flags ether ");
 
 	return 1;
