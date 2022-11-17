@@ -24,3 +24,9 @@ nft add rule ip filter INPUT ip frag-off & 0x1fff != 0 ip protocol tcp counter
 
 iptables-translate -A INPUT ! -f -p tcp --dport 22
 nft add rule ip filter INPUT ip frag-off & 0x1fff 0 tcp dport 22 counter
+
+iptables-translate -A INPUT -p tcp --tcp-option 23
+nft add rule ip filter INPUT tcp option 23 exists counter
+
+iptables-translate -A INPUT -p tcp ! --tcp-option 23
+nft add rule ip filter INPUT tcp option 23 missing counter

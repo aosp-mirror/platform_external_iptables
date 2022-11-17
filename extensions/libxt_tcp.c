@@ -430,9 +430,12 @@ static int tcp_xlate(struct xt_xlate *xl,
 		space = " ";
 	}
 
-	/* XXX not yet implemented */
-	if (tcpinfo->option || (tcpinfo->invflags & XT_TCP_INV_OPTION))
-		return 0;
+	if (tcpinfo->option) {
+		xt_xlate_add(xl, "%stcp option %u %s", space, tcpinfo->option,
+			     tcpinfo->invflags & XT_TCP_INV_OPTION ?
+			     "missing" : "exists");
+		space = " ";
+	}
 
 	if (tcpinfo->flg_mask || (tcpinfo->invflags & XT_TCP_INV_FLAGS)) {
 		xt_xlate_add(xl, "%stcp flags %s", space,
