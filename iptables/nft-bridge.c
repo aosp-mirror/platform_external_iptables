@@ -197,7 +197,10 @@ static void nft_bridge_parse_meta(struct nft_xt_ctx *ctx,
 	uint8_t invflags = 0;
 	char iifname[IFNAMSIZ] = {}, oifname[IFNAMSIZ] = {};
 
-	parse_meta(ctx, e, reg->meta_dreg.key, iifname, NULL, oifname, NULL, &invflags);
+	if (parse_meta(ctx, e, reg->meta_dreg.key, iifname, NULL, oifname, NULL, &invflags) < 0) {
+		ctx->errmsg = "unknown meta key";
+		return;
+	}
 
 	switch (reg->meta_dreg.key) {
 	case NFT_META_BRI_IIFNAME:
@@ -221,6 +224,7 @@ static void nft_bridge_parse_meta(struct nft_xt_ctx *ctx,
 		snprintf(fw->out, sizeof(fw->out), "%s", oifname);
 		break;
 	default:
+		ctx->errmsg = "unknown bridge meta key";
 		break;
 	}
 }

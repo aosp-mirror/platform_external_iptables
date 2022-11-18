@@ -119,9 +119,12 @@ static void nft_ipv6_parse_meta(struct nft_xt_ctx *ctx,
 		break;
 	}
 
-	parse_meta(ctx, e, reg->meta_dreg.key, cs->fw6.ipv6.iniface,
+	if (parse_meta(ctx, e, reg->meta_dreg.key, cs->fw6.ipv6.iniface,
 		   cs->fw6.ipv6.iniface_mask, cs->fw6.ipv6.outiface,
-		   cs->fw6.ipv6.outiface_mask, &cs->fw6.ipv6.invflags);
+		   cs->fw6.ipv6.outiface_mask, &cs->fw6.ipv6.invflags) == 0)
+		return;
+
+	ctx->errmsg = "unknown ipv6 meta key";
 }
 
 static void parse_mask_ipv6(const struct nft_xt_ctx_reg *reg,
