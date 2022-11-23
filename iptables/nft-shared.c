@@ -1199,7 +1199,7 @@ static void nft_parse_range(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 	}
 }
 
-void nft_rule_to_iptables_command_state(struct nft_handle *h,
+bool nft_rule_to_iptables_command_state(struct nft_handle *h,
 					const struct nftnl_rule *r,
 					struct iptables_command_state *cs)
 {
@@ -1210,10 +1210,11 @@ void nft_rule_to_iptables_command_state(struct nft_handle *h,
 		.h = h,
 		.table = nftnl_rule_get_str(r, NFTNL_RULE_TABLE),
 	};
+	bool ret = true;
 
 	iter = nftnl_expr_iter_create(r);
 	if (iter == NULL)
-		return;
+		return false;
 
 	ctx.iter = iter;
 	expr = nftnl_expr_iter_next(iter);
@@ -1249,6 +1250,7 @@ void nft_rule_to_iptables_command_state(struct nft_handle *h,
 		if (ctx.errmsg) {
 			fprintf(stderr, "%s", ctx.errmsg);
 			ctx.errmsg = NULL;
+			ret = false;
 		}
 
 		expr = nftnl_expr_iter_next(iter);
@@ -1270,7 +1272,7 @@ void nft_rule_to_iptables_command_state(struct nft_handle *h,
 			match = xtables_find_match("comment", XTF_TRY_LOAD,
 						   &cs->matches);
 			if (match == NULL)
-				return;
+				return false;
 
 			size = XT_ALIGN(sizeof(struct xt_entry_match))
 				+ match->size;
@@ -1287,6 +1289,8 @@ void nft_rule_to_iptables_command_state(struct nft_handle *h,
 
 	if (!cs->jumpto)
 		cs->jumpto = "";
+
+	return ret;
 }
 
 void nft_clear_iptables_command_state(struct iptables_command_state *cs)

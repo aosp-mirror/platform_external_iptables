@@ -563,12 +563,12 @@ static void nft_bridge_parse_target(struct xtables_target *t,
 	cs->jumpto = t->name;
 }
 
-static void nft_rule_to_ebtables_command_state(struct nft_handle *h,
+static bool nft_rule_to_ebtables_command_state(struct nft_handle *h,
 					       const struct nftnl_rule *r,
 					       struct iptables_command_state *cs)
 {
 	cs->eb.bitmask = EBT_NOPROTO;
-	nft_rule_to_iptables_command_state(h, r, cs);
+	return nft_rule_to_iptables_command_state(h, r, cs);
 }
 
 static void print_iface(const char *option, const char *name, bool invert)

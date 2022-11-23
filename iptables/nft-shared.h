@@ -159,7 +159,7 @@ struct nft_family_ops {
 	void (*parse_target)(struct xtables_target *t,
 			     struct iptables_command_state *cs);
 	void (*init_cs)(struct iptables_command_state *cs);
-	void (*rule_to_cs)(struct nft_handle *h, const struct nftnl_rule *r,
+	bool (*rule_to_cs)(struct nft_handle *h, const struct nftnl_rule *r,
 			   struct iptables_command_state *cs);
 	void (*clear_cs)(struct iptables_command_state *cs);
 	int (*xlate)(const struct iptables_command_state *cs,
@@ -213,7 +213,7 @@ int parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e, uint8_t key,
 	       unsigned char *outiface_mask, uint8_t *invflags);
 void __get_cmp_data(struct nftnl_expr *e, void *data, size_t dlen, uint8_t *op);
 void get_cmp_data(struct nftnl_expr *e, void *data, size_t dlen, bool *inv);
-void nft_rule_to_iptables_command_state(struct nft_handle *h,
+bool nft_rule_to_iptables_command_state(struct nft_handle *h,
 					const struct nftnl_rule *r,
 					struct iptables_command_state *cs);
 void nft_clear_iptables_command_state(struct iptables_command_state *cs);

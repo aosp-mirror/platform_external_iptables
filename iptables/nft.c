@@ -1748,15 +1748,16 @@ nft_rule_append(struct nft_handle *h, const char *chain, const char *table,
 	return 1;
 }
 
-void
+bool
 nft_rule_print_save(struct nft_handle *h, const struct nftnl_rule *r,
 		    enum nft_rule_print type, unsigned int format)
 {
 	const char *chain = nftnl_rule_get_str(r, NFTNL_RULE_CHAIN);
 	struct iptables_command_state cs = {};
 	struct nft_family_ops *ops = h->ops;
+	bool ret;
 
-	ops->rule_to_cs(h, r, &cs);
+	ret = ops->rule_to_cs(h, r, &cs);
 
 	if (!(format & (FMT_NOCOUNTS | FMT_C_COUNTS)))
 		printf("[%llu:%llu] ", (unsigned long long)cs.counters.pcnt,
@@ -1777,6 +1778,8 @@ nft_rule_print_save(struct nft_handle *h, const struct nftnl_rule *r,
 
 	if (ops->clear_cs)
 		ops->clear_cs(&cs);
+
+	return ret;
 }
 
 static bool nft_rule_is_policy_rule(struct nftnl_rule *r)
@@ -1887,6 +1890,7 @@ int nft_chain_save(struct nft_chain *nc, void *data)
 struct nft_rule_save_data {
 	struct nft_handle *h;
 	unsigned int format;
+	unsigned int errors;
 };
 
 static int nft_rule_save_cb(struct nft_chain *c, void *data)
@@ -1901,7 +1905,11 @@ static int nft_rule_save_cb(struct nft_chain *c, void *data)
 
 	r = nftnl_rule_iter_next(iter);
 	while (r != NULL) {
-		nft_rule_print_save(d->h, r, NFT_RULE_APPEND, d->format);
+		bool ret = nft_rule_print_save(d->h, r, NFT_RULE_APPEND, d->format);
+
+		if (!ret)
+			d->errors++;
+
 		r = nftnl_rule_iter_next(iter);
 	}
 
@@ -1918,6 +1926,9 @@ int nft_rule_save(struct nft_handle *h, const char *table, unsigned int format)
 	int ret;
 
 	ret = nft_chain_foreach(h, table, nft_rule_save_cb, &d);
+
+	if (ret == 0 && d.errors)
+		xtables_error(VERSION_PROBLEM, "Cannot decode all rules provided by kernel");
 
 	/* the core expects 1 for success and 0 for error */
 	return ret == 0 ? 1 : 0;
@@ -2341,15 +2352,18 @@ static bool nft_rule_cmp(struct nft_handle *h, struct nftnl_rule *r,
 			 struct nftnl_rule *rule)
 {
 	struct iptables_command_state _cs = {}, this = {}, *cs = &_cs;
-	bool ret = false;
+	bool ret = false, ret_this, ret_that;
 
-	h->ops->rule_to_cs(h, r, &this);
-	h->ops->rule_to_cs(h, rule, cs);
+	ret_this = h->ops->rule_to_cs(h, r, &this);
+	ret_that = h->ops->rule_to_cs(h, rule, cs);
 
 	DEBUGP("comparing with... ");
 #ifdef DEBUG_DEL
 	nft_rule_print_save(h, r, NFT_RULE_APPEND, 0);
 #endif
+	if (!ret_this || !ret_that)
+		DEBUGP("Cannot convert rules: %d %d\n", ret_this, ret_that);
+
 	if (!h->ops->is_same(cs, &this))
 		goto out;
 
