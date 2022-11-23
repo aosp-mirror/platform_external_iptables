@@ -201,7 +201,7 @@ static int brmark_xlate(struct xt_xlate *xl,
 		return 0;
 	}
 
-	tmp = info->target & EBT_VERDICT_BITS;
+	tmp = info->target | ~EBT_VERDICT_BITS;
 	xt_xlate_add(xl, "0x%lx %s ", info->mark, brmark_verdict(tmp));
 	return 1;
 }
