@@ -1186,7 +1186,6 @@ static int state_xlate(struct xt_xlate *xl,
 	xt_xlate_add(xl, "ct state ");
 	state_xlate_print(xl, sinfo->state_mask,
 			  sinfo->invert_flags & XT_CONNTRACK_STATE);
-	xt_xlate_add(xl, " ");
 	return 1;
 }
 
