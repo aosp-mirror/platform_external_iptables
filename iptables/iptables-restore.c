@@ -185,12 +185,12 @@ ip46tables_restore_main(const struct iptables_restore_cb *cb,
 			if (!testing) {
 				DEBUGP("Calling commit\n");
 				ret = cb->ops->commit(handle);
-				cb->ops->free(handle);
-				handle = NULL;
 			} else {
 				DEBUGP("Not calling commit, testing\n");
 				ret = 1;
 			}
+			cb->ops->free(handle);
+			handle = NULL;
 
 			/* Done with the current table, release the lock. */
 			if (lock >= 0) {
