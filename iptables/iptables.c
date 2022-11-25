@@ -773,7 +773,6 @@ int do_command4(int argc, char *argv[], char **table,
 			xtables_find_target(cs.jumpto, XTF_LOAD_MUST_SUCCEED);
 		} else {
 			e = generate_entry(&cs.fw, cs.matches, cs.target->t);
-			free(cs.target->t);
 		}
 	}
 
@@ -875,7 +874,7 @@ int do_command4(int argc, char *argv[], char **table,
 	if (verbose > 1)
 		dump_entries(*handle);
 
-	xtables_rule_matches_free(&cs.matches);
+	xtables_clear_iptables_command_state(&cs);
 
 	if (e != NULL) {
 		free(e);
