@@ -830,7 +830,6 @@ static int xlate_ebaction(const struct iptables_command_state *cs, struct xt_xla
 		else if (strcmp(cs->jumpto, XTC_LABEL_RETURN) == 0)
 			xt_xlate_add(xl, " return");
 		else if (cs->target->xlate) {
-			xt_xlate_add(xl, " ");
 			struct xt_xlate_tg_params params = {
 				.ip		= (const void *)&cs->eb,
 				.target		= cs->target->t,
@@ -876,8 +875,6 @@ static void nft_bridge_xlate_mac(struct xt_xlate *xl, const char *type, bool inv
 		for (i=1; i < ETH_ALEN; i++)
 			xt_xlate_add(xl, ":%02x", mac[i] & mask[i]);
 	}
-
-	xt_xlate_add(xl, " ");
 }
 
 static int nft_bridge_xlate(const struct iptables_command_state *cs,

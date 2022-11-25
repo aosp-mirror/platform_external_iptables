@@ -397,7 +397,6 @@ static int tcp_xlate(struct xt_xlate *xl,
 {
 	const struct xt_tcp *tcpinfo =
 		(const struct xt_tcp *)params->match->data;
-	char *space= "";
 
 	if (tcpinfo->spts[0] != 0 || tcpinfo->spts[1] != 0xffff) {
 		if (tcpinfo->spts[0] != tcpinfo->spts[1]) {
@@ -411,33 +410,29 @@ static int tcp_xlate(struct xt_xlate *xl,
 					"!= " : "",
 				   tcpinfo->spts[0]);
 		}
-		space = " ";
 	}
 
 	if (tcpinfo->dpts[0] != 0 || tcpinfo->dpts[1] != 0xffff) {
 		if (tcpinfo->dpts[0] != tcpinfo->dpts[1]) {
-			xt_xlate_add(xl, "%stcp dport %s%u-%u", space,
+			xt_xlate_add(xl, "tcp dport %s%u-%u",
 				   tcpinfo->invflags & XT_TCP_INV_DSTPT ?
 					"!= " : "",
 				   tcpinfo->dpts[0], tcpinfo->dpts[1]);
 		} else {
-			xt_xlate_add(xl, "%stcp dport %s%u", space,
+			xt_xlate_add(xl, "tcp dport %s%u",
 				   tcpinfo->invflags & XT_TCP_INV_DSTPT ?
 					"!= " : "",
 				   tcpinfo->dpts[0]);
 		}
-		space = " ";
 	}
 
-	if (tcpinfo->option) {
-		xt_xlate_add(xl, "%stcp option %u %s", space, tcpinfo->option,
+	if (tcpinfo->option)
+		xt_xlate_add(xl, "tcp option %u %s", tcpinfo->option,
 			     tcpinfo->invflags & XT_TCP_INV_OPTION ?
 			     "missing" : "exists");
-		space = " ";
-	}
 
 	if (tcpinfo->flg_mask || (tcpinfo->invflags & XT_TCP_INV_FLAGS)) {
-		xt_xlate_add(xl, "%stcp flags %s", space,
+		xt_xlate_add(xl, "tcp flags %s",
 			     tcpinfo->invflags & XT_TCP_INV_FLAGS ? "!= ": "");
 		print_tcp_xlate(xl, tcpinfo->flg_cmp);
 		xt_xlate_add(xl, " / ");

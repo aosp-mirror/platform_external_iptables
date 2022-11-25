@@ -83,7 +83,6 @@ int xlate_action(const struct iptables_command_state *cs, bool goto_set,
 		else if (strcmp(cs->jumpto, XTC_LABEL_RETURN) == 0)
 			xt_xlate_add(xl, " return");
 		else if (cs->target->xlate) {
-			xt_xlate_add(xl, " ");
 			struct xt_xlate_tg_params params = {
 				.ip		= (const void *)&cs->fw,
 				.target		= cs->target->t,
@@ -122,10 +121,6 @@ int xlate_matches(const struct iptables_command_state *cs, struct xt_xlate *xl)
 			return 0;
 
 		ret = matchp->match->xlate(xl, &params);
-
-		if (strcmp(matchp->match->name, "comment") != 0)
-			xt_xlate_add(xl, " ");
-
 		if (!ret)
 			break;
 	}
