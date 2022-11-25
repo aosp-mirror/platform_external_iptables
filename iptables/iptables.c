@@ -122,6 +122,9 @@ print_match(const struct xt_entry_match *m,
 			printf("%s%s ", match->name, unsupported_rev);
 		else
 			printf("%s ", match->name);
+
+		if (match->next == match)
+			free(match);
 	} else {
 		if (name[0])
 			printf("UNKNOWN match `%s' ", name);
@@ -178,6 +181,9 @@ print_firewall(const struct ipt_entry *fw,
 			tg->print(&fw->ip, t, format & FMT_NUMERIC);
 		else if (target->print)
 			printf(" %s%s", target->name, unsupported_rev);
+
+		if (target->next == target)
+			free(target);
 	} else if (t->u.target_size != sizeof(*t))
 		printf("[%u bytes of unknown target data] ",
 		       (unsigned int)(t->u.target_size - sizeof(*t)));
