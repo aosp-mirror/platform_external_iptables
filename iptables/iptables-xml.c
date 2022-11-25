@@ -225,13 +225,13 @@ finishChains(void)
 {
 	int c;
 
-	for (c = 0; c < nextChain; c++)
-		if (!chains[c].created) {
+	for (c = 0; c < nextChain; c++) {
+		if (!chains[c].created)
 			openChain(chains[c].chain, chains[c].policy,
 				  &(chains[c].count), '/');
-			free(chains[c].chain);
-			free(chains[c].policy);
-		}
+		free(chains[c].chain);
+		free(chains[c].policy);
+	}
 	nextChain = 0;
 }
 
