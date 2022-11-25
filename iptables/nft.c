@@ -2874,10 +2874,11 @@ int nft_rule_zero_counters(struct nft_handle *h, const char *chain,
 		goto error;
 	}
 
-	nft_rule_to_iptables_command_state(h, r, &cs);
-
+	h->ops->rule_to_cs(h, r, &cs);
 	cs.counters.pcnt = cs.counters.bcnt = 0;
 	new_rule = nft_rule_new(h, chain, table, &cs);
+	h->ops->clear_cs(&cs);
+
 	if (!new_rule)
 		return 1;
 
