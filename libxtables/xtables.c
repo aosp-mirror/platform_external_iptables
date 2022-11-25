@@ -2490,16 +2490,39 @@ void xt_xlate_free(struct xt_xlate *xl)
 	free(xl);
 }
 
+static bool isbrace(char c)
+{
+	switch (c) {
+	case '(':
+	case ')':
+	case '{':
+	case '}':
+	case '[':
+	case ']':
+		return true;
+	}
+	return false;
+}
+
 static void __xt_xlate_add(struct xt_xlate *xl, enum xt_xlate_type type,
-			   const char *fmt, va_list ap)
+			   bool space, const char *fmt, va_list ap)
 {
 	struct xt_xlate_buf *buf = &xl->buf[type];
+	char tmpbuf[1024] = "";
 	int len;
 
-	len = vsnprintf(buf->data + buf->off, buf->rem, fmt, ap);
-	if (len < 0 || len >= buf->rem)
+	len = vsnprintf(tmpbuf, 1024, fmt, ap);
+	if (len < 0 || len >= buf->rem - 1)
 		xtables_error(RESOURCE_PROBLEM, "OOM");
 
+	if (space && buf->off &&
+	    !isspace(buf->data[buf->off - 1]) &&
+	    (isalnum(tmpbuf[0]) || isbrace(tmpbuf[0]))) {
+		buf->data[buf->off] = ' ';
+		buf->off++;
+		buf->rem--;
+	}
+	sprintf(buf->data + buf->off, "%s", tmpbuf);
 	buf->rem -= len;
 	buf->off += len;
 }
@@ -2509,7 +2532,16 @@ void xt_xlate_rule_add(struct xt_xlate *xl, const char *fmt, ...)
 	va_list ap;
 
 	va_start(ap, fmt);
-	__xt_xlate_add(xl, XT_XLATE_RULE, fmt, ap);
+	__xt_xlate_add(xl, XT_XLATE_RULE, true, fmt, ap);
+	va_end(ap);
+}
+
+void xt_xlate_rule_add_nospc(struct xt_xlate *xl, const char *fmt, ...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	__xt_xlate_add(xl, XT_XLATE_RULE, false, fmt, ap);
 	va_end(ap);
 }
 
@@ -2518,7 +2550,16 @@ void xt_xlate_set_add(struct xt_xlate *xl, const char *fmt, ...)
 	va_list ap;
 
 	va_start(ap, fmt);
-	__xt_xlate_add(xl, XT_XLATE_SET, fmt, ap);
+	__xt_xlate_add(xl, XT_XLATE_SET, true, fmt, ap);
+	va_end(ap);
+}
+
+void xt_xlate_set_add_nospc(struct xt_xlate *xl, const char *fmt, ...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	__xt_xlate_add(xl, XT_XLATE_SET, false, fmt, ap);
 	va_end(ap);
 }
 
@@ -2545,7 +2586,12 @@ uint8_t xt_xlate_get_family(struct xt_xlate *xl)
 
 const char *xt_xlate_get(struct xt_xlate *xl)
 {
-	return xl->buf[XT_XLATE_RULE].data;
+	struct xt_xlate_buf *buf = &xl->buf[XT_XLATE_RULE];
+
+	while (buf->off && isspace(buf->data[buf->off - 1]))
+		buf->data[--buf->off] = '\0';
+
+	return buf->data;
 }
 
 const char *xt_xlate_set_get(struct xt_xlate *xl)

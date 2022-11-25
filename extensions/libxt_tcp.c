@@ -380,10 +380,9 @@ static void print_tcp_xlate(struct xt_xlate *xl, uint8_t flags)
 
 		for (i = 0; (flags & tcp_flag_names_xlate[i].flag) == 0; i++);
 
-		if (have_flag)
-			xt_xlate_add(xl, ",");
-
-		xt_xlate_add(xl, "%s", tcp_flag_names_xlate[i].name);
+		xt_xlate_add(xl, "%s%s",
+			     have_flag ? "," : "",
+			     tcp_flag_names_xlate[i].name);
 		have_flag = 1;
 
 		flags &= ~tcp_flag_names_xlate[i].flag;

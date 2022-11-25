@@ -1270,7 +1270,7 @@ static void hashlimit_print_subnet_xlate(struct xt_xlate *xl,
 			}
 		}
 
-		xt_xlate_add(xl, fmt, acm);
+		xt_xlate_add_nospc(xl, fmt, acm);
 		if (nblocks > 0)
 			xt_xlate_add(xl, "%c", sep);
 	}

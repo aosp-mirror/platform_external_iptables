@@ -1,5 +1,5 @@
 iptables-translate -t filter -A INPUT -p tcp -m multiport --dports 80,81 -j ACCEPT
-nft add rule ip filter INPUT ip protocol tcp tcp dport { 80,81} counter accept
+nft add rule ip filter INPUT ip protocol tcp tcp dport { 80,81 } counter accept
 
 iptables-translate -t filter -A INPUT -p tcp -m multiport --dports 80:88 -j ACCEPT
 nft add rule ip filter INPUT ip protocol tcp tcp dport 80-88 counter accept
