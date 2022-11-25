@@ -490,7 +490,7 @@ nft_arp_print_rule(struct nft_handle *h, struct nftnl_rule *r,
 	if (!(format & FMT_NONEWLINE))
 		fputc('\n', stdout);
 
-	nft_clear_iptables_command_state(&cs);
+	xtables_clear_iptables_command_state(&cs);
 }
 
 static bool nft_arp_is_same(const struct iptables_command_state *cs_a,
@@ -787,7 +787,7 @@ struct nft_family_ops nft_family_ops_arp = {
 	},
 	.rule_to_cs		= nft_rule_to_iptables_command_state,
 	.init_cs		= nft_arp_init_cs,
-	.clear_cs		= nft_clear_iptables_command_state,
+	.clear_cs		= xtables_clear_iptables_command_state,
 	.parse_target		= nft_ipv46_parse_target,
 	.add_entry		= nft_arp_add_entry,
 	.delete_entry		= nft_arp_delete_entry,

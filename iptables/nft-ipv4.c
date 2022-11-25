@@ -247,7 +247,7 @@ static void nft_ipv4_print_rule(struct nft_handle *h, struct nftnl_rule *r,
 	if (!(format & FMT_NONEWLINE))
 		fputc('\n', stdout);
 
-	nft_clear_iptables_command_state(&cs);
+	xtables_clear_iptables_command_state(&cs);
 }
 
 static void nft_ipv4_save_rule(const struct iptables_command_state *cs,
@@ -454,7 +454,7 @@ struct nft_family_ops nft_family_ops_ipv4 = {
 	},
 	.parse_target		= nft_ipv46_parse_target,
 	.rule_to_cs		= nft_rule_to_iptables_command_state,
-	.clear_cs		= nft_clear_iptables_command_state,
+	.clear_cs		= xtables_clear_iptables_command_state,
 	.xlate			= nft_ipv4_xlate,
 	.add_entry		= nft_ipv4_add_entry,
 	.delete_entry		= nft_ipv4_delete_entry,

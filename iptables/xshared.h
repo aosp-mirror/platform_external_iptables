@@ -130,6 +130,8 @@ struct iptables_command_state {
 	bool restore;
 };
 
+void xtables_clear_iptables_command_state(struct iptables_command_state *cs);
+
 typedef int (*mainfunc_t)(int, char **);
 
 struct subcommand {

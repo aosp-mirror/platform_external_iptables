@@ -334,7 +334,7 @@ static int do_command_xlate(struct nft_handle *h, int argc, char *argv[],
 		exit(1);
 	}
 
-	nft_clear_iptables_command_state(&cs);
+	h->ops->clear_cs(&cs);
 
 	if (h->family == AF_INET) {
 		free(args.s.addr.v4);

@@ -216,7 +216,6 @@ void get_cmp_data(struct nftnl_expr *e, void *data, size_t dlen, bool *inv);
 bool nft_rule_to_iptables_command_state(struct nft_handle *h,
 					const struct nftnl_rule *r,
 					struct iptables_command_state *cs);
-void nft_clear_iptables_command_state(struct iptables_command_state *cs);
 void print_matches_and_target(struct iptables_command_state *cs,
 			      unsigned int format);
 void nft_ipv46_save_chain(const struct nftnl_chain *c, const char *policy);

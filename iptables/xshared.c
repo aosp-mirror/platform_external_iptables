@@ -1356,6 +1356,23 @@ static const char *optstring_lookup(int family)
 	return "";
 }
 
+void xtables_clear_iptables_command_state(struct iptables_command_state *cs)
+{
+	xtables_rule_matches_free(&cs->matches);
+	if (cs->target) {
+		free(cs->target->t);
+		cs->target->t = NULL;
+
+		free(cs->target->udata);
+		cs->target->udata = NULL;
+
+		if (cs->target == cs->target->next) {
+			free(cs->target);
+			cs->target = NULL;
+		}
+	}
+}
+
 void do_parse(int argc, char *argv[],
 	      struct xt_cmd_parse *p, struct iptables_command_state *cs,
 	      struct xtables_args *args)

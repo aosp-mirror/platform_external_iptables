@@ -1293,20 +1293,6 @@ bool nft_rule_to_iptables_command_state(struct nft_handle *h,
 	return ret;
 }
 
-void nft_clear_iptables_command_state(struct iptables_command_state *cs)
-{
-	xtables_rule_matches_free(&cs->matches);
-	if (cs->target) {
-		free(cs->target->t);
-		cs->target->t = NULL;
-
-		if (cs->target == cs->target->next) {
-			free(cs->target);
-			cs->target = NULL;
-		}
-	}
-}
-
 void nft_ipv46_save_chain(const struct nftnl_chain *c, const char *policy)
 {
 	const char *chain = nftnl_chain_get_str(c, NFTNL_CHAIN_NAME);
