@@ -1543,6 +1543,9 @@ void do_parse(int argc, char *argv[],
 					XTF_TRY_LOAD, &cs->matches);
 
 			xtables_printhelp(cs->matches);
+			xtables_clear_iptables_command_state(cs);
+			xtables_free_opts(1);
+			xtables_fini();
 			exit(0);
 
 			/*
