@@ -122,7 +122,8 @@ EOF
 if [ "$VALGRIND" == "y" ]; then
 	tmpd=$(mktemp -d)
 	msg_info "writing valgrind logs to $tmpd"
-	chmod a+rx $tmpd
+	# let nobody write logs, too (././testcases/iptables/0008-unprivileged_0)
+	chmod 777 $tmpd
 	printscript "$XTABLES_NFT_MULTI" "$tmpd" >${tmpd}/xtables-nft-multi
 	printscript "$XTABLES_LEGACY_MULTI" "$tmpd" >${tmpd}/xtables-legacy-multi
 	trap "rm ${tmpd}/xtables-*-multi" EXIT
