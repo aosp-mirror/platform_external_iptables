@@ -7,11 +7,11 @@ import shlex
 import argparse
 from subprocess import Popen, PIPE
 
-def run_proc(args, shell = False):
+def run_proc(args, shell = False, input = None):
     """A simple wrapper around Popen, returning (rc, stdout, stderr)"""
     process = Popen(args, text = True, shell = shell,
-                    stdout = PIPE, stderr = PIPE)
-    output, error = process.communicate()
+                    stdin = PIPE, stdout = PIPE, stderr = PIPE)
+    output, error = process.communicate(input)
     return (process.returncode, output, error)
 
 keywords = ("iptables-translate", "ip6tables-translate", "ebtables-translate")
@@ -100,15 +100,15 @@ def test_one_replay(name, sourceline, expected, result):
         fam = "ip6 "
     elif srccmd.startswith("ebt"):
         fam = "bridge "
+
+    expected = [ l.removeprefix("nft ").strip(" '") for l in expected.split("\n") ]
     nft_input = [
             "flush ruleset",
             "add table " + fam + table_name,
-            "add chain " + fam + table_name + " " + chain_name
-    ] + [ l.removeprefix("nft ") for l in expected.split("\n") ]
+            "add chain " + fam + table_name + " " + chain_name,
+    ] + expected
 
-    # feed input via the pipe to make sure the shell "does its thing"
-    cmd = "echo \"" + "\n".join(nft_input) + "\" | " + args.nft + " -f -"
-    rc, output, error = run_proc(cmd, shell = True)
+    rc, output, error = run_proc([args.nft, "-f", "-"], shell = False, input = "\n".join(nft_input))
     if rc != 0:
         result.append(name + ": " + red("Fail"))
         result.append(args.nft + " call failed: " + error.rstrip('\n'))
@@ -130,7 +130,7 @@ def test_one_replay(name, sourceline, expected, result):
                 output = l
                 break
         result.append(name + ": " + red("Replay fail"))
-        result.append(magenta("src: '") + expected + "'")
+        result.append(magenta("src: '") + str(expected) + "'")
         result.append(magenta("exp: '") + searchline + "'")
         for l in output.split('\n'):
             result.append(magenta("res: ") + l)
