@@ -181,12 +181,8 @@ static int brlog_xlate(struct xt_xlate *xl,
 	const struct ebt_log_info *loginfo = (const void *)params->target->data;
 
 	xt_xlate_add(xl, "log");
-	if (loginfo->prefix[0]) {
-		if (params->escape_quotes)
-			xt_xlate_add(xl, " prefix \\\"%s\\\"", loginfo->prefix);
-		else
-			xt_xlate_add(xl, " prefix \"%s\"", loginfo->prefix);
-	}
+	if (loginfo->prefix[0])
+		xt_xlate_add(xl, " prefix \"%s\"", loginfo->prefix);
 
 	if (loginfo->loglevel != LOG_DEFAULT_LEVEL)
 		xt_xlate_add(xl, " level %s", eight_priority[loginfo->loglevel].c_name);

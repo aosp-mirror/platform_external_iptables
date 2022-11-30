@@ -786,7 +786,6 @@ static int xlate_ebmatches(const struct iptables_command_state *cs, struct xt_xl
 			struct xt_xlate_mt_params mt_params = {
 				.ip		= (const void *)&cs->eb,
 				.numeric	= numeric,
-				.escape_quotes	= false,
 				.match		= matchp->m,
 			};
 
@@ -799,7 +798,6 @@ static int xlate_ebmatches(const struct iptables_command_state *cs, struct xt_xl
 			struct xt_xlate_tg_params wt_params = {
 				.ip		= (const void *)&cs->eb,
 				.numeric	= numeric,
-				.escape_quotes	= false,
 				.target		= watcherp->t,
 			};
 

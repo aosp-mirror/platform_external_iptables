@@ -211,14 +211,14 @@ struct xt_xlate_mt_params {
 	const void			*ip;
 	const struct xt_entry_match	*match;
 	int				numeric;
-	bool				escape_quotes;
+	bool				escape_quotes;	/* not used anymore, retained for ABI */
 };
 
 struct xt_xlate_tg_params {
 	const void			*ip;
 	const struct xt_entry_target	*target;
 	int				numeric;
-	bool				escape_quotes;
+	bool				escape_quotes; /* not used anymore, retained for ABI */
 };
 
 /* Include file for additions: new matches and targets. */

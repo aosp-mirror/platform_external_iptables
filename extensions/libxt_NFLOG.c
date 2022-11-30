@@ -112,16 +112,12 @@ static void NFLOG_save(const void *ip, const struct xt_entry_target *target)
 }
 
 static void nflog_print_xlate(const struct xt_nflog_info *info,
-			      struct xt_xlate *xl, bool escape_quotes)
+			      struct xt_xlate *xl)
 {
 	xt_xlate_add(xl, "log ");
-	if (info->prefix[0] != '\0') {
-		if (escape_quotes)
-			xt_xlate_add(xl, "prefix \\\"%s\\\" ", info->prefix);
-		else
-			xt_xlate_add(xl, "prefix \"%s\" ", info->prefix);
+	if (info->prefix[0] != '\0')
+		xt_xlate_add(xl, "prefix \"%s\" ", info->prefix);
 
-	}
 	if (info->flags & XT_NFLOG_F_COPY_LEN)
 		xt_xlate_add(xl, "snaplen %u ", info->len);
 	if (info->threshold != XT_NFLOG_DEFAULT_THRESHOLD)
@@ -135,7 +131,7 @@ static int NFLOG_xlate(struct xt_xlate *xl,
 	const struct xt_nflog_info *info =
 		(struct xt_nflog_info *)params->target->data;
 
-	nflog_print_xlate(info, xl, params->escape_quotes);
+	nflog_print_xlate(info, xl);
 
 	return 1;
 }

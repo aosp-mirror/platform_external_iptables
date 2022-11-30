@@ -151,12 +151,8 @@ static int LOG_xlate(struct xt_xlate *xl,
 	const char *pname = priority2name(loginfo->level);
 
 	xt_xlate_add(xl, "log");
-	if (strcmp(loginfo->prefix, "") != 0) {
-		if (params->escape_quotes)
-			xt_xlate_add(xl, " prefix \\\"%s\\\"", loginfo->prefix);
-		else
-			xt_xlate_add(xl, " prefix \"%s\"", loginfo->prefix);
-	}
+	if (strcmp(loginfo->prefix, "") != 0)
+		xt_xlate_add(xl, " prefix \"%s\"", loginfo->prefix);
 
 	if (loginfo->level != LOG_DEFAULT_LEVEL && pname)
 		xt_xlate_add(xl, " level %s", pname);
