@@ -2554,8 +2554,8 @@ TC_COMMIT(struct xtc_handle *handle)
 			+ sizeof(STRUCT_COUNTERS) * new_number;
 
 	/* These are the old counters we will get from kernel */
-	repl->counters = malloc(sizeof(STRUCT_COUNTERS)
-				* handle->info.num_entries);
+	repl->counters = calloc(handle->info.num_entries,
+				sizeof(STRUCT_COUNTERS));
 	if (!repl->counters) {
 		errno = ENOMEM;
 		goto out_free_repl;
