@@ -198,6 +198,7 @@ struct option ebt_original_options[] =
 	{ "delete-chain"   , optional_argument, 0, 'X' },
 	{ "init-table"     , no_argument      , 0, 11  },
 	{ "concurrent"     , no_argument      , 0, 13  },
+	{ "check"          , required_argument, 0, 14  },
 	{ 0 }
 };
 
@@ -730,6 +731,7 @@ int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table,
 		case 'N': /* Make a user defined chain */
 		case 'E': /* Rename chain */
 		case 'X': /* Delete chain */
+		case 14:  /* check a rule */
 			/* We allow -N chainname -P policy */
 			if (command == 'N' && c == 'P') {
 				command = c;
@@ -907,7 +909,8 @@ print_zero:
 			if (!OPT_COMMANDS)
 				xtables_error(PARAMETER_PROBLEM,
 					      "No command specified");
-			if (command != 'A' && command != 'D' && command != 'I' && command != 'C')
+			if (command != 'A' && command != 'D' &&
+			    command != 'I' && command != 'C' && command != 14)
 				xtables_error(PARAMETER_PROBLEM,
 					      "Command and option do not match");
 			if (c == 'i') {
@@ -1088,7 +1091,7 @@ print_zero:
 					      argv[optind]);
 
 			if (command != 'A' && command != 'I' &&
-			    command != 'D' && command != 'C')
+			    command != 'D' && command != 'C' && command != 14)
 				xtables_error(PARAMETER_PROBLEM,
 					      "Extensions only for -A, -I, -D and -C");
 		}
@@ -1109,7 +1112,7 @@ print_zero:
 
 	/* Do the final checks */
 	if (command == 'A' || command == 'I' ||
-	    command == 'D' || command == 'C') {
+	    command == 'D' || command == 'C' || command == 14) {
 		for (xtrm_i = cs.matches; xtrm_i; xtrm_i = xtrm_i->next)
 			xtables_option_mfcall(xtrm_i->match);
 
@@ -1161,6 +1164,9 @@ print_zero:
 	} else if (command == 'D') {
 		ret = delete_entry(h, chain, *table, &cs, rule_nr - 1,
 				   rule_nr_end, flags & OPT_VERBOSE);
+	} else if (command == 14) {
+		ret = nft_cmd_rule_check(h, chain, *table,
+					 &cs, flags & OPT_VERBOSE);
 	} /*else if (replace->command == 'C') {
 		ebt_change_counters(replace, new_entry, rule_nr, rule_nr_end, &(new_entry->cnt_surplus), chcounter);
 		if (ebt_errormsg[0] != '\0')
