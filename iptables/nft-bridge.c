@@ -866,17 +866,17 @@ static void nft_bridge_xlate_mac(struct xt_xlate *xl, const char *type, bool inv
 
 	xt_xlate_add(xl, "ether %s %s", type, invert ? "!= " : "");
 
-	xlate_mac(xl, mac);
-
 	if (memcmp(mask, one_msk, ETH_ALEN)) {
 		int i;
-		xt_xlate_add(xl, " and ");
+		xt_xlate_add(xl, "and");
 
 		xlate_mac(xl, mask);
 
 		xt_xlate_add(xl, " == %02x", mac[0] & mask[0]);
 		for (i=1; i < ETH_ALEN; i++)
 			xt_xlate_add(xl, ":%02x", mac[i] & mask[i]);
+	} else {
+		xlate_mac(xl, mac);
 	}
 }
 
