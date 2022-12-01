@@ -67,6 +67,7 @@ def test_one_replay(name, sourceline, expected, result):
     srcwords = sourceline.split()
 
     srccmd = srcwords[0]
+    ipt = srccmd.split('-')[0]
     table_idx = -1
     chain_idx = -1
     table_name = "filter"
@@ -84,16 +85,12 @@ def test_one_replay(name, sourceline, expected, result):
 
     if searchline is None:
         # adjust sourceline as required
-        srcwords[chain_idx] = "-A"
-        if table_idx >= 0:
-            srcwords.pop(table_idx)
-            srcwords.pop(table_idx)
-        searchline = " ".join(srcwords[1:])
-    elif not searchline.startswith("-A"):
-        tmp = ["-A", chain_name]
-        if len(searchline) > 0:
-            tmp.extend(searchline)
-        searchline = " ".join(tmp)
+        checkcmd = srcwords[:]
+        checkcmd[0] = ipt
+        checkcmd[chain_idx] = "--check"
+    else:
+        checkcmd = [ipt, "-t", table_name]
+        checkcmd += ["--check", chain_name, searchline]
 
     fam = ""
     if srccmd.startswith("ip6"):
@@ -110,30 +107,23 @@ def test_one_replay(name, sourceline, expected, result):
 
     rc, output, error = run_proc([args.nft, "-f", "-"], shell = False, input = "\n".join(nft_input))
     if rc != 0:
-        result.append(name + ": " + red("Fail"))
+        result.append(name + ": " + red("Replay Fail"))
         result.append(args.nft + " call failed: " + error.rstrip('\n'))
         for line in nft_input:
             result.append(magenta("input: ") + line)
         return False
 
-    ipt = srccmd.split('-')[0]
-    rc, output, error = run_proc([xtables_nft_multi, ipt + "-save"])
+    rc, output, error = run_proc([xtables_nft_multi] + checkcmd)
     if rc != 0:
-        result.append(name + ": " + red("Fail"))
-        result.append(ipt + "-save call failed: " + error)
-        return False
-
-    if output.find(searchline) < 0:
-        outline = None
-        for l in output.split('\n'):
-            if l.startswith('-A '):
-                output = l
-                break
-        result.append(name + ": " + red("Replay fail"))
-        result.append(magenta("src: '") + str(expected) + "'")
-        result.append(magenta("exp: '") + searchline + "'")
-        for l in output.split('\n'):
-            result.append(magenta("res: ") + l)
+        result.append(name + ": " + red("Check Fail"))
+        result.append(magenta("check: ") + " ".join(checkcmd))
+        result.append(magenta("error: ") + error)
+        rc, output, error = run_proc([xtables_nft_multi, ipt + "-save"])
+        for l in output.split("\n"):
+            result.append(magenta("ipt: ") + l)
+        rc, output, error = run_proc([args.nft, "list", "ruleset"])
+        for l in output.split("\n"):
+            result.append(magenta("nft: ") + l)
         return False
 
     return True
