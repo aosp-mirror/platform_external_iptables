@@ -168,6 +168,9 @@ void add_iniface(struct nft_handle *h, struct nftnl_rule *r,
 	if (iface[iface_len - 1] == '+') {
 		if (iface_len > 1)
 			add_cmp_ptr(r, op, iface, iface_len - 1, reg);
+		else if (op != NFT_CMP_EQ)
+			add_cmp_ptr(r, NFT_CMP_EQ, "INVAL/D",
+				    strlen("INVAL/D") + 1, reg);
 	} else {
 		add_cmp_ptr(r, op, iface, iface_len + 1, reg);
 	}
@@ -185,6 +188,9 @@ void add_outiface(struct nft_handle *h, struct nftnl_rule *r,
 	if (iface[iface_len - 1] == '+') {
 		if (iface_len > 1)
 			add_cmp_ptr(r, op, iface, iface_len - 1, reg);
+		else if (op != NFT_CMP_EQ)
+			add_cmp_ptr(r, NFT_CMP_EQ, "INVAL/D",
+				    strlen("INVAL/D") + 1, reg);
 	} else {
 		add_cmp_ptr(r, op, iface, iface_len + 1, reg);
 	}
