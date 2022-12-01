@@ -279,7 +279,7 @@ static void parse_ifname(const char *name, unsigned int len, char *dst, unsigned
 	memcpy(dst, name, len);
 	if (name[len - 1] == '\0') {
 		if (mask)
-			memset(mask, 0xff, len);
+			memset(mask, 0xff, strlen(name) + 1);
 		return;
 	}
 
