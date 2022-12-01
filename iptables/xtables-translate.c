@@ -41,7 +41,9 @@ void xlate_ifname(struct xt_xlate *xl, const char *nftmeta, const char *ifname,
 	for (i = 0, j = 0; i < ifaclen + 1; i++, j++) {
 		switch (ifname[i]) {
 		case '*':
-			iface[j++] = '\\';
+			/* asterisk is non-special mid-string */
+			if (i == ifaclen - 1)
+				iface[j++] = '\\';
 			/* fall through */
 		default:
 			iface[j] = ifname[i];
