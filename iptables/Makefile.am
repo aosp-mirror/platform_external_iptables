@@ -105,6 +105,9 @@ iptables-extensions.8: iptables-extensions.8.tmpl ../extensions/matches.man ../e
 iptables-translate.8 ip6tables-translate.8 iptables-restore-translate.8 ip6tables-restore-translate.8:
 	${AM_VERBOSE_GEN} echo '.so man8/xtables-translate.8' >$@
 
+ip6tables.8 ip6tables-apply.8 ip6tables-restore.8 ip6tables-save.8:
+	${AM_VERBOSE_GEN} echo "$@" | sed 's|^ip6|.so man8/ip|' >$@
+
 pkgconfig_DATA = xtables.pc
 
 # Using if..fi avoids an ugly "error (ignored)" message :)
