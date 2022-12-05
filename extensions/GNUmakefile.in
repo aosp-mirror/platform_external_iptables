@@ -175,107 +175,29 @@ initexta_func := $(addprefix arpt_,${pfa_build_mod})
 initext4_func := $(addprefix ipt_,${pf4_build_mod})
 initext6_func := $(addprefix ip6t_,${pf6_build_mod})
 
-.initext.dd: FORCE
-	@echo "${initext_func}" >$@.tmp; \
+initexts := ext exta extb ext4 ext6
+initext_depfiles = $(patsubst %,.init%.dd,${initexts})
+initext_sources = $(patsubst %,init%.c,${initexts})
+
+${initext_depfiles}: FORCE
+	@echo "$(value $(patsubst .%.dd,%,$@)_func)" >$@.tmp; \
 	cmp -s $@ $@.tmp || mv $@.tmp $@; \
 	rm -f $@.tmp;
 
-.initextb.dd: FORCE
-	@echo "${initextb_func}" >$@.tmp; \
-	cmp -s $@ $@.tmp || mv $@.tmp $@; \
-	rm -f $@.tmp;
-
-.initexta.dd: FORCE
-	@echo "${initexta_func}" >$@.tmp; \
-	cmp -s $@ $@.tmp || mv $@.tmp $@; \
-	rm -f $@.tmp;
-
-.initext4.dd: FORCE
-	@echo "${initext4_func}" >$@.tmp; \
-	cmp -s $@ $@.tmp || mv $@.tmp $@; \
-	rm -f $@.tmp;
-
-.initext6.dd: FORCE
-	@echo "${initext6_func}" >$@.tmp; \
-	cmp -s $@ $@.tmp || mv $@.tmp $@; \
-	rm -f $@.tmp;
-
-initext.c: .initext.dd
+${initext_sources}: %.c: .%.dd
 	${AM_VERBOSE_GEN}
 	@( \
+	initext_func="$(value $(basename $@)_func)"; \
+	funcname="init_extensions$(patsubst initext%.c,%,$@)"; \
 	echo "" >$@; \
-	for i in ${initext_func}; do \
+	for i in $${initext_func}; do \
 		echo "extern void lib$${i}_init(void);" >>$@; \
 	done; \
-	echo "void init_extensions(void);" >>$@; \
-	echo "void init_extensions(void)" >>$@; \
+	echo "void $${funcname}(void);" >>$@; \
+	echo "void $${funcname}(void)" >>$@; \
 	echo "{" >>$@; \
-	for i in ${initext_func}; do \
+	for i in $${initext_func}; do \
 		echo  " ""lib$${i}_init();" >>$@; \
-	done; \
-	echo "}" >>$@; \
-	);
-
-initextb.c: .initextb.dd
-	${AM_VERBOSE_GEN}
-	@( \
-	echo "" >$@; \
-	for i in ${initextb_func}; do \
-		echo "extern void lib$${i}_init(void);" >>$@; \
-	done; \
-	echo "void init_extensionsb(void);" >>$@; \
-	echo "void init_extensionsb(void)" >>$@; \
-	echo "{" >>$@; \
-	for i in ${initextb_func}; do \
-		echo  " ""lib$${i}_init();" >>$@; \
-	done; \
-	echo "}" >>$@; \
-	);
-
-initexta.c: .initexta.dd
-	${AM_VERBOSE_GEN}
-	@( \
-	echo "" >$@; \
-	for i in ${initexta_func}; do \
-		echo "extern void lib$${i}_init(void);" >>$@; \
-	done; \
-	echo "void init_extensionsa(void);" >>$@; \
-	echo "void init_extensionsa(void)" >>$@; \
-	echo "{" >>$@; \
-	for i in ${initexta_func}; do \
-		echo  " ""lib$${i}_init();" >>$@; \
-	done; \
-	echo "}" >>$@; \
-	);
-
-initext4.c: .initext4.dd
-	${AM_VERBOSE_GEN}
-	@( \
-	echo "" >$@; \
-	for i in ${initext4_func}; do \
-		echo "extern void lib$${i}_init(void);" >>$@; \
-	done; \
-	echo "void init_extensions4(void);" >>$@; \
-	echo "void init_extensions4(void)" >>$@; \
-	echo "{" >>$@; \
-	for i in ${initext4_func}; do \
-		echo  " ""lib$${i}_init();" >>$@; \
-	done; \
-	echo "}" >>$@; \
-	);
-
-initext6.c: .initext6.dd
-	${AM_VERBOSE_GEN}
-	@( \
-	echo "" >$@; \
-	for i in ${initext6_func}; do \
-		echo "extern void lib$${i}_init(void);" >>$@; \
-	done; \
-	echo "void init_extensions6(void);" >>$@; \
-	echo "void init_extensions6(void)" >>$@; \
-	echo "{" >>$@; \
-	for i in ${initext6_func}; do \
-		echo " ""lib$${i}_init();" >>$@; \
 	done; \
 	echo "}" >>$@; \
 	);
@@ -308,8 +230,8 @@ man_run    = \
 		fi; \
 	done >$@;
 
-matches.man: .initext.dd .initextb.dd .initexta.dd .initext4.dd .initext6.dd $(wildcard ${srcdir}/lib*.man)
+matches.man: ${initext_depfiles} $(wildcard ${srcdir}/lib*.man)
 	$(call man_run,$(call ex_matches,${pfx_build_mod} ${pfb_build_mod} ${pfa_build_mod} ${pf4_build_mod} ${pf6_build_mod} ${pfx_symlinks}))
 
-targets.man: .initext.dd .initextb.dd .initexta.dd .initext4.dd .initext6.dd $(wildcard ${srcdir}/lib*.man)
+targets.man: ${initext_depfiles} $(wildcard ${srcdir}/lib*.man)
 	$(call man_run,$(call ex_targets,${pfx_build_mod} ${pfb_build_mod} ${pfa_build_mod} ${pf4_build_mod} ${pf6_build_mod} ${pfx_symlinks}))
