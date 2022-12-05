@@ -66,19 +66,15 @@ man_MANS         = iptables.8 iptables-restore.8 iptables-save.8 \
 sbin_SCRIPTS     = iptables-apply
 
 if ENABLE_NFTABLES
-man_MANS	+= xtables-nft.8 xtables-translate.8 xtables-legacy.8 \
-                   iptables-translate.8 ip6tables-translate.8 \
+man_MANS	+= iptables-translate.8 ip6tables-translate.8 \
 		   iptables-restore-translate.8 ip6tables-restore-translate.8 \
-                   xtables-monitor.8 \
-                   arptables-nft.8 arptables-nft-restore.8 arptables-nft-save.8 \
-                   ebtables-nft.8
+		   xtables-monitor.8
+
+dist_man_MANS	 = xtables-nft.8 xtables-translate.8 xtables-legacy.8 \
+		   arptables-nft.8 arptables-nft-restore.8 arptables-nft-save.8 \
+		   ebtables-nft.8
 endif
-CLEANFILES       = iptables.8 xtables-monitor.8 \
-		   iptables-xml.1 iptables-apply.8 \
-		   iptables-extensions.8 iptables-extensions.8.tmpl \
-		   iptables-restore.8 iptables-save.8 \
-		   iptables-restore-translate.8 ip6tables-restore-translate.8 \
-		   iptables-translate.8 ip6tables-translate.8
+CLEANFILES       = ${man_MANS} iptables-extensions.8.tmpl
 
 vx_bin_links   = iptables-xml
 if ENABLE_IPV4
