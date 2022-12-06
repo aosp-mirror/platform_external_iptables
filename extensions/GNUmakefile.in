@@ -79,7 +79,7 @@ targets_install :=
 
 .SECONDARY:
 
-.PHONY: all install uninstall clean distclean FORCE
+.PHONY: all install uninstall clean distclean FORCE dvi check installcheck
 
 all: ${targets}
 
@@ -235,3 +235,16 @@ matches.man: ${initext_depfiles} $(wildcard ${srcdir}/lib*.man)
 
 targets.man: ${initext_depfiles} $(wildcard ${srcdir}/lib*.man)
 	$(call man_run,$(call ex_targets,${pfx_build_mod} ${pfb_build_mod} ${pfa_build_mod} ${pf4_build_mod} ${pf6_build_mod} ${pfx_symlinks}))
+
+dist_initext_src = $(addprefix $(srcdir)/,${initext_sources})
+dist_sources = $(filter-out ${dist_initext_src},$(wildcard $(srcdir)/*.[ch]))
+
+distdir:
+	mkdir -p $(distdir)
+	cp -p ${dist_sources} $(distdir)/
+	cp -p $(wildcard ${srcdir}/lib*.man) $(distdir)/
+	cp -p $(srcdir)/*.{t,txlate} $(distdir)/
+
+dvi:
+check: all
+installcheck:

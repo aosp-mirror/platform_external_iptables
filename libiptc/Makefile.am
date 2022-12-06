@@ -11,3 +11,5 @@ libip4tc_la_SOURCES = libip4tc.c
 libip4tc_la_LDFLAGS = -version-info 2:0:0
 libip6tc_la_SOURCES = libip6tc.c
 libip6tc_la_LDFLAGS = -version-info 2:0:0
+
+EXTRA_DIST = libiptc.c linux_list.h

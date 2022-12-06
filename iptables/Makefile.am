@@ -63,7 +63,8 @@ man_MANS         = iptables.8 iptables-restore.8 iptables-save.8 \
                    ip6tables-save.8 iptables-extensions.8 \
                    iptables-apply.8 ip6tables-apply.8
 
-sbin_SCRIPTS     = iptables-apply
+dist_sbin_SCRIPTS = iptables-apply
+dist_pkgdata_DATA = iptables.xslt
 
 if ENABLE_NFTABLES
 man_MANS	+= iptables-translate.8 ip6tables-translate.8 \
@@ -144,3 +145,5 @@ uninstall-hook:
 		); \
 		( cd "$$dir" && rm -f ip6tables-apply ); \
 	}
+
+EXTRA_DIST = tests
