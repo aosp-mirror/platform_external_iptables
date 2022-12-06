@@ -1,7 +1,7 @@
 # -*- Makefile -*-
 
 ACLOCAL_AMFLAGS  = -I m4
-AUTOMAKE_OPTIONS = foreign subdir-objects
+AUTOMAKE_OPTIONS = foreign subdir-objects dist-xz no-dist-gzip
 
 SUBDIRS          = libiptc libxtables
 if ENABLE_DEVEL
