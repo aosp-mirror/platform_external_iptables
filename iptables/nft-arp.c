@@ -214,7 +214,7 @@ static void nft_arp_parse_payload(struct nft_xt_ctx *ctx,
 	struct arpt_entry *fw = &cs->arp;
 	struct in_addr addr;
 	uint16_t ar_hrd, ar_pro, ar_op;
-	uint8_t ar_hln;
+	uint8_t ar_hln, ar_pln;
 	bool inv;
 
 	switch (reg->payload.offset) {
@@ -245,6 +245,11 @@ static void nft_arp_parse_payload(struct nft_xt_ctx *ctx,
 		fw->arp.arhln_mask = 0xff;
 		if (inv)
 			fw->arp.invflags |= IPT_INV_ARPOP;
+		break;
+	case offsetof(struct arphdr, ar_pln):
+		get_cmp_data(e, &ar_pln, sizeof(ar_pln), &inv);
+		if (ar_pln != 4 || inv)
+			ctx->errmsg = "unexpected ARP protocol length match";
 		break;
 	default:
 		if (reg->payload.offset == sizeof(struct arphdr)) {
