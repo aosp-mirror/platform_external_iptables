@@ -1362,7 +1362,7 @@ bool nft_rule_to_iptables_command_state(struct nft_handle *h,
 			nft_parse_range(&ctx, expr);
 
 		if (ctx.errmsg) {
-			fprintf(stderr, "%s", ctx.errmsg);
+			fprintf(stderr, "Error: %s\n", ctx.errmsg);
 			ctx.errmsg = NULL;
 			ret = false;
 		}
@@ -1404,6 +1404,8 @@ bool nft_rule_to_iptables_command_state(struct nft_handle *h,
 	if (!cs->jumpto)
 		cs->jumpto = "";
 
+	if (!ret)
+		xtables_error(VERSION_PROBLEM, "Parsing nftables rule failed");
 	return ret;
 }
 
