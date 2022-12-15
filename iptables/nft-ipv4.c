@@ -207,10 +207,12 @@ static void nft_ipv4_parse_payload(struct nft_xt_ctx *ctx,
 			cs->fw.ip.invflags |= IPT_INV_FRAG;
 		break;
 	case offsetof(struct iphdr, ttl):
-		nft_parse_hl(ctx, e, cs);
+		if (nft_parse_hl(ctx, e, cs) < 0)
+			ctx->errmsg = "invalid ttl field match";
 		break;
 	default:
 		DEBUGP("unknown payload offset %d\n", sreg->payload.offset);
+		ctx->errmsg = "unknown payload offset";
 		break;
 	}
 }

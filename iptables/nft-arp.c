@@ -288,6 +288,8 @@ static void nft_arp_parse_payload(struct nft_xt_ctx *ctx,
 
 			if (inv)
 				fw->arp.invflags |= IPT_INV_DSTIP;
+		} else {
+			ctx->errmsg = "unknown payload offset";
 		}
 		break;
 	}

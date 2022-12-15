@@ -287,6 +287,10 @@ static void nft_bridge_parse_payload(struct nft_xt_ctx *ctx,
 			fw->invflags |= EBT_IPROTO;
 		fw->bitmask &= ~EBT_NOPROTO;
 		break;
+	default:
+		DEBUGP("unknown payload offset %d\n", reg->payload.offset);
+		ctx->errmsg = "unknown payload offset";
+		break;
 	}
 }
 

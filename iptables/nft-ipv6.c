@@ -173,10 +173,12 @@ static void nft_ipv6_parse_payload(struct nft_xt_ctx *ctx,
 		if (inv)
 			cs->fw6.ipv6.invflags |= IP6T_INV_PROTO;
 	case offsetof(struct ip6_hdr, ip6_hlim):
-		nft_parse_hl(ctx, e, cs);
+		if (nft_parse_hl(ctx, e, cs) < 0)
+			ctx->errmsg = "invalid ttl field match";
 		break;
 	default:
 		DEBUGP("unknown payload offset %d\n", reg->payload.offset);
+		ctx->errmsg = "unknown payload offset";
 		break;
 	}
 }

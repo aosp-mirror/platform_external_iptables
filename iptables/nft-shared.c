@@ -444,8 +444,10 @@ static void nft_parse_target(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 	size_t size;
 
 	target = xtables_find_target(targname, XTF_TRY_LOAD);
-	if (target == NULL)
+	if (target == NULL) {
+		ctx->errmsg = "target extension not found";
 		return;
+	}
 
 	size = XT_ALIGN(sizeof(struct xt_entry_target)) + tg_len;
 
@@ -482,8 +484,10 @@ static void nft_parse_match(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 	}
 
 	match = xtables_find_match(mt_name, XTF_TRY_LOAD, matches);
-	if (match == NULL)
+	if (match == NULL) {
+		ctx->errmsg = "match extension not found";
 		return;
+	}
 
 	m = xtables_calloc(1, sizeof(struct xt_entry_match) + mt_len);
 	memcpy(&m->data, mt_info, mt_len);
@@ -690,9 +694,10 @@ static struct xt_tcp *nft_tcp_match(struct nft_xt_ctx *ctx,
 
 	if (!tcp) {
 		match = nft_create_match(ctx, cs, "tcp");
-		if (!match)
+		if (!match) {
+			ctx->errmsg = "tcp match extension not found";
 			return NULL;
-
+		}
 		tcp = (void*)match->m->data;
 		ctx->tcpudp.tcp = tcp;
 	}
@@ -904,6 +909,8 @@ static void nft_parse_th_port(struct nft_xt_ctx *ctx,
 	case IPPROTO_TCP:
 		nft_parse_tcp(ctx, cs, sport, dport, op);
 		break;
+	default:
+		ctx->errmsg = "unknown layer 4 protocol for TH match";
 	}
 }
 
@@ -957,8 +964,8 @@ static void nft_parse_transport(struct nft_xt_ctx *ctx,
 		proto = ctx->cs->fw6.ipv6.proto;
 		break;
 	default:
-		proto = 0;
-		break;
+		ctx->errmsg = "invalid family for TH match";
+		return;
 	}
 
 	nftnl_expr_get(e, NFTNL_EXPR_CMP_DATA, &len);
@@ -1129,8 +1136,10 @@ static void nft_parse_immediate(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 		if (!dreg)
 			return;
 
-		if (len > sizeof(dreg->immediate.data))
+		if (len > sizeof(dreg->immediate.data)) {
+			ctx->errmsg = "oversized immediate data";
 			return;
+		}
 
 		memcpy(dreg->immediate.data, imm_data, len);
 		dreg->immediate.len = len;
@@ -1163,8 +1172,10 @@ static void nft_parse_immediate(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 	}
 
 	cs->target = xtables_find_target(cs->jumpto, XTF_TRY_LOAD);
-	if (!cs->target)
+	if (!cs->target) {
+		ctx->errmsg = "verdict extension not found";
 		return;
+	}
 
 	size = XT_ALIGN(sizeof(struct xt_entry_target)) + cs->target->size;
 	t = xtables_calloc(1, size);
@@ -1197,8 +1208,10 @@ static void nft_parse_limit(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 	}
 
 	match = xtables_find_match("limit", XTF_TRY_LOAD, matches);
-	if (match == NULL)
+	if (match == NULL) {
+		ctx->errmsg = "limit match extension not found";
 		return;
+	}
 
 	size = XT_ALIGN(sizeof(struct xt_entry_match)) + match->size;
 	match->m = xtables_calloc(1, size);
@@ -1245,8 +1258,10 @@ static void nft_parse_log(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 			 nftnl_expr_get_str(e, NFTNL_EXPR_LOG_PREFIX));
 
 	target = xtables_find_target("NFLOG", XTF_TRY_LOAD);
-	if (target == NULL)
+	if (target == NULL) {
+		ctx->errmsg = "NFLOG target extension not found";
 		return;
+	}
 
 	target_size = XT_ALIGN(sizeof(struct xt_entry_target)) +
 		      XT_ALIGN(sizeof(struct xt_nflog_info_nft));
