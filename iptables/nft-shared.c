@@ -833,6 +833,65 @@ static void nft_parse_tcp(struct nft_xt_ctx *ctx,
 				   op, dport, XT_TCP_INV_DSTPT);
 }
 
+static void nft_parse_icmp(struct nft_xt_ctx *ctx,
+			   struct iptables_command_state *cs,
+			   struct nft_xt_ctx_reg *sreg,
+			   uint8_t op, const char *data, size_t dlen)
+{
+	struct xtables_match *match;
+	struct ipt_icmp icmp = {
+		.type = UINT8_MAX,
+		.code = { 0, UINT8_MAX },
+	};
+
+	if (dlen < 1)
+		goto out_err_len;
+
+	switch (sreg->payload.offset) {
+	case 0:
+		icmp.type = data[0];
+		if (dlen == 1)
+			break;
+		dlen--;
+		data++;
+		/* fall through */
+	case 1:
+		if (dlen > 1)
+			goto out_err_len;
+		icmp.code[0] = icmp.code[1] = data[0];
+		break;
+	default:
+		ctx->errmsg = "unexpected payload offset";
+		return;
+	}
+
+	switch (ctx->h->family) {
+	case NFPROTO_IPV4:
+		match = nft_create_match(ctx, cs, "icmp");
+		break;
+	case NFPROTO_IPV6:
+		if (icmp.type == UINT8_MAX) {
+			ctx->errmsg = "icmp6 code with any type match not supported";
+			return;
+		}
+		match = nft_create_match(ctx, cs, "icmp6");
+		break;
+	default:
+		ctx->errmsg = "unexpected family for icmp match";
+		return;
+	}
+
+	if (!match) {
+		ctx->errmsg = "icmp match extension not found";
+		return;
+	}
+	memcpy(match->m->data, &icmp, sizeof(icmp));
+	return;
+
+out_err_len:
+	ctx->errmsg = "unexpected RHS data length";
+}
+
 static void nft_parse_th_port(struct nft_xt_ctx *ctx,
 			      struct iptables_command_state *cs,
 			      uint8_t proto,
@@ -912,6 +971,21 @@ static void nft_parse_transport(struct nft_xt_ctx *ctx,
 
 	if (sreg->type != NFT_XT_REG_PAYLOAD) {
 		ctx->errmsg = "sgreg not payload";
+		return;
+	}
+
+	switch (proto) {
+	case IPPROTO_UDP:
+	case IPPROTO_TCP:
+		break;
+	case IPPROTO_ICMP:
+	case IPPROTO_ICMPV6:
+		nft_parse_icmp(ctx, cs, sreg, op,
+			       nftnl_expr_get(e, NFTNL_EXPR_CMP_DATA, &len),
+			       len);
+		return;
+	default:
+		ctx->errmsg = "unsupported layer 4 protocol value";
 		return;
 	}
 

@@ -13,9 +13,9 @@
 -A INPUT -d 0.0.0.0/2 -m ttl --ttl-gt 2 -j ACCEPT
 -A INPUT -d 0.0.0.0/3 -m ttl --ttl-lt 254 -j ACCEPT
 -A INPUT -d 0.0.0.0/4 -m ttl ! --ttl-eq 255 -j DROP
--A INPUT -d 8.0.0.0/5 -p icmp -j ACCEPT
--A INPUT -d 8.0.0.0/6 -p icmp -j ACCEPT
--A INPUT -d 10.0.0.0/7 -p icmp -j ACCEPT
+-A INPUT -d 8.0.0.0/5 -p icmp -m icmp --icmp-type 1 -j ACCEPT
+-A INPUT -d 8.0.0.0/6 -p icmp -m icmp --icmp-type 2/3 -j ACCEPT
+-A INPUT -d 10.0.0.0/7 -p icmp -m icmp --icmp-type 8 -j ACCEPT
 -A INPUT -m pkttype --pkt-type broadcast -j ACCEPT
 -A INPUT -m pkttype ! --pkt-type unicast -j DROP
 -A INPUT -p tcp
