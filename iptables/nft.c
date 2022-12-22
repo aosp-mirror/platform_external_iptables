@@ -1360,6 +1360,9 @@ static int add_nft_udp(struct nft_handle *h, struct nftnl_rule *r,
 		return ret;
 	}
 
+	if (nftnl_rule_get_u32(r, NFTNL_RULE_COMPAT_PROTO) != IPPROTO_UDP)
+		xtables_error(PARAMETER_PROBLEM, "UDP match requires '-p udp'");
+
 	return add_nft_tcpudp(h, r, udp->spts, udp->invflags & XT_UDP_INV_SRCPT,
 			      udp->dpts, udp->invflags & XT_UDP_INV_DSTPT);
 }
@@ -1409,6 +1412,9 @@ static int add_nft_tcp(struct nft_handle *h, struct nftnl_rule *r,
 		nftnl_rule_add_expr(r, expr);
 		return ret;
 	}
+
+	if (nftnl_rule_get_u32(r, NFTNL_RULE_COMPAT_PROTO) != IPPROTO_TCP)
+		xtables_error(PARAMETER_PROBLEM, "TCP match requires '-p tcp'");
 
 	if (tcp->flg_mask) {
 		int ret = add_nft_tcpflags(h, r, tcp->flg_cmp, tcp->flg_mask,

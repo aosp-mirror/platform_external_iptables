@@ -18,5 +18,8 @@
 # -p udp -m udp --sport 65536;;FAIL
 -p udp -m udp --sport -1;;FAIL
 -p udp -m udp --dport -1;;FAIL
+-m udp --dport 1;;FAIL
+-m udp --dport 1 -p udp;-p udp -m udp --dport 1;OK
+-m udp --dport 1 -p 17;-p udp -m udp --dport 1;OK
 # should we accept this below?
 -p udp -m udp;=;OK
