@@ -28,9 +28,12 @@
 iptables-translate \(em translation tool to migrate from iptables to nftables
 .P
 ip6tables-translate \(em translation tool to migrate from ip6tables to nftables
+.P
+ebtables-translate \(em translation tool to migrate from ebtables to nftables
 .SH DESCRIPTION
 There is a set of tools to help the system administrator translate a given
-ruleset from \fBiptables(8)\fP and \fBip6tables(8)\fP to \fBnftables(8)\fP.
+ruleset from \fBiptables(8)\fP, \fBip6tables(8)\fP and \fBebtables(8)\fP to
+\fBnftables(8)\fP.
 
 The available commands are:
 
@@ -42,9 +45,12 @@ iptables-restore-translate
 ip6tables-translate
 .IP \[bu]
 ip6tables-restore-translate
+.IP \[bu] 2
+ebtables-translate
 
 .SH USAGE
-They take as input the original \fBiptables(8)\fP/\fBip6tables(8)\fP syntax and
+They take as input the original
+\fBiptables(8)\fP/\fBip6tables(8)\fP/\fBebtables(8)\fP syntax and
 output the native \fBnftables(8)\fP syntax.
 
 The \fBiptables-restore-translate\fP tool reads a ruleset in the syntax
@@ -117,8 +123,7 @@ Some (few) extensions may be not supported (or fully-supported) for whatever
 reason (for example, they were considered obsolete, or we didn't have the time
 to work on them).
 
-There are no translations available for \fBebtables(8)\fP and
-\fBarptables(8)\fP.
+There is no translation available for \fBarptables(8)\fP.
 
 To get up-to-date information about this, please head to
 \fBhttps://wiki.nftables.org/\fP.

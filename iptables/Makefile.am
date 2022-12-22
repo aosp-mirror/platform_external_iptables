@@ -69,7 +69,7 @@ dist_pkgdata_DATA = iptables.xslt
 if ENABLE_NFTABLES
 man_MANS	+= iptables-translate.8 ip6tables-translate.8 \
 		   iptables-restore-translate.8 ip6tables-restore-translate.8 \
-		   xtables-monitor.8
+		   xtables-monitor.8 ebtables-translate.8
 
 dist_man_MANS	 = xtables-nft.8 xtables-translate.8 xtables-legacy.8 \
 		   arptables-nft.8 arptables-nft-restore.8 arptables-nft-save.8 \
@@ -89,7 +89,7 @@ endif
 if ENABLE_NFTABLES
 x_sbin_links  = iptables-nft iptables-nft-restore iptables-nft-save \
 		ip6tables-nft ip6tables-nft-restore ip6tables-nft-save \
-		iptables-translate ip6tables-translate \
+		iptables-translate ip6tables-translate ebtables-translate \
 		iptables-restore-translate ip6tables-restore-translate \
 		arptables-nft arptables \
 		arptables-nft-restore arptables-restore \
@@ -105,7 +105,7 @@ iptables-extensions.8: iptables-extensions.8.tmpl ../extensions/matches.man ../e
 		-e '/@MATCH@/ r ../extensions/matches.man' \
 		-e '/@TARGET@/ r ../extensions/targets.man' $< >$@;
 
-iptables-translate.8 ip6tables-translate.8 iptables-restore-translate.8 ip6tables-restore-translate.8:
+iptables-translate.8 ip6tables-translate.8 iptables-restore-translate.8 ip6tables-restore-translate.8 ebtables-translate.8:
 	${AM_VERBOSE_GEN} echo '.so man8/xtables-translate.8' >$@
 
 ip6tables.8 ip6tables-apply.8 ip6tables-restore.8 ip6tables-save.8:
