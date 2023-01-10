@@ -106,7 +106,8 @@ uninstall:
 	}
 
 clean:
-	rm -f *.o *.oo *.so *.a {matches,targets}.man initext.c initext4.c initext6.c initextb.c initexta.c;
+	rm -f *.o *.oo *.so *.a matches.man targets.man
+	rm -f initext.c initext4.c initext6.c initextb.c initexta.c
 	rm -f .*.d .*.dd;
 
 distclean: clean
@@ -243,7 +244,7 @@ distdir:
 	mkdir -p $(distdir)
 	cp -p ${dist_sources} $(distdir)/
 	cp -p $(wildcard ${srcdir}/lib*.man) $(distdir)/
-	cp -p $(srcdir)/*.{t,txlate} $(distdir)/
+	cp -p $(wildcard ${srcdir}/*.t ${srcdir}/*.txlate) $(distdir)/
 
 dvi:
 check: all
