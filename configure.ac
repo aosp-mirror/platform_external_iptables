@@ -1,9 +1,9 @@
 
-AC_INIT([iptables], [1.8.8])
+AC_INIT([iptables], [1.8.9])
 
 # See libtool.info "Libtool's versioning system"
-libxtables_vcurrent=18
-libxtables_vage=6
+libxtables_vcurrent=19
+libxtables_vage=7
 
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
