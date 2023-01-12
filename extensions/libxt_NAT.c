@@ -424,7 +424,7 @@ __NAT_xlate(struct xt_xlate *xl, const struct nf_nat_range2 *r,
 	if (r->flags & NF_NAT_RANGE_PROTO_OFFSET)
 		return 0;
 
-	xt_xlate_add(xl, tgt);
+	xt_xlate_add(xl, "%s", tgt);
 	if (strlen(range_str))
 		xt_xlate_add(xl, " to %s", range_str);
 	if (r->flags & NF_NAT_RANGE_PROTO_RANDOM) {
