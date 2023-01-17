@@ -20,7 +20,7 @@ EXTRA_DIST	= autogen.sh iptables-test.py xlate-test.py
 
 if ENABLE_NFTABLES
 confdir		= $(sysconfdir)
-dist_conf_DATA	= etc/ethertypes etc/xtables.conf
+dist_conf_DATA	= etc/ethertypes
 endif
 
 .PHONY: tarball
