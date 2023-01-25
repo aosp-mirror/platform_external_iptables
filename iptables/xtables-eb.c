@@ -468,14 +468,14 @@ static void ebt_load_match(const char *name)
 		xtables_error(OTHER_PROBLEM, "Can't alloc memory");
 }
 
-static void __ebt_load_watcher(const char *name, const char *typename)
+static void ebt_load_watcher(const char *name)
 {
 	struct xtables_target *watcher;
 	size_t size;
 
 	watcher = xtables_find_target(name, XTF_TRY_LOAD);
 	if (!watcher) {
-		fprintf(stderr, "Unable to load %s %s\n", name, typename);
+		fprintf(stderr, "Unable to load %s watcher\n", name);
 		return;
 	}
 
@@ -496,16 +496,6 @@ static void __ebt_load_watcher(const char *name, const char *typename)
 		xtables_error(OTHER_PROBLEM, "Can't alloc memory");
 }
 
-static void ebt_load_watcher(const char *name)
-{
-	return __ebt_load_watcher(name, "watcher");
-}
-
-static void ebt_load_target(const char *name)
-{
-	return __ebt_load_watcher(name, "target");
-}
-
 void ebt_load_match_extensions(void)
 {
 	opts = ebt_original_options;
@@ -522,13 +512,6 @@ void ebt_load_match_extensions(void)
 
 	ebt_load_watcher("log");
 	ebt_load_watcher("nflog");
-
-	ebt_load_target("mark");
-	ebt_load_target("dnat");
-	ebt_load_target("snat");
-	ebt_load_target("arpreply");
-	ebt_load_target("redirect");
-	ebt_load_target("standard");
 }
 
 void ebt_add_match(struct xtables_match *m,
@@ -633,6 +616,9 @@ int ebt_command_default(struct iptables_command_state *cs)
 
 	/* Is it a watcher option? */
 	for (t = xtables_targets; t; t = t->next) {
+		if (!(t->ext_flags & XTABLES_EXT_WATCHER))
+			continue;
+
 		if (t->parse &&
 		    t->parse(cs->c - t->option_offset, cs->argv,
 			     ebt_invert, &t->tflags, NULL, &t->t)) {
@@ -725,6 +711,11 @@ int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table,
 	/* prevent getopt to spoil our error reporting */
 	optind = 0;
 	opterr = false;
+
+	for (t = xtables_targets; t; t = t->next) {
+		t->tflags = 0;
+		t->used = 0;
+	}
 
 	/* Getopt saves the day */
 	while ((c = getopt_long(argc, argv, EBT_OPTSTRING,
