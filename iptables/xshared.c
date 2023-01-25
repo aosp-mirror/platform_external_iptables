@@ -192,9 +192,12 @@ static int command_default(struct iptables_command_state *cs,
 	if (cs->c == ':')
 		xtables_error(PARAMETER_PROBLEM, "option \"%s\" "
 		              "requires an argument", cs->argv[optind-1]);
-	if (cs->c == '?')
-		xtables_error(PARAMETER_PROBLEM, "unknown option "
-			      "\"%s\"", cs->argv[optind-1]);
+	if (cs->c == '?') {
+		char optoptstr[3] = {'-', optopt, '\0'};
+
+		xtables_error(PARAMETER_PROBLEM, "unknown option \"%s\"",
+			      optopt ? optoptstr : cs->argv[optind - 1]);
+	}
 	xtables_error(PARAMETER_PROBLEM, "Unknown arg \"%s\"", optarg);
 }
 

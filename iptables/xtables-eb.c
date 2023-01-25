@@ -640,7 +640,16 @@ int ebt_command_default(struct iptables_command_state *cs)
 			return 0;
 		}
 	}
-	return 1;
+	if (cs->c == ':')
+		xtables_error(PARAMETER_PROBLEM, "option \"%s\" "
+		              "requires an argument", cs->argv[optind - 1]);
+	if (cs->c == '?') {
+		char optoptstr[3] = {'-', optopt, '\0'};
+
+		xtables_error(PARAMETER_PROBLEM, "unknown option \"%s\"",
+			      optopt ? optoptstr : cs->argv[optind - 1]);
+	}
+	xtables_error(PARAMETER_PROBLEM, "Unknown arg \"%s\"", optarg);
 }
 
 int nft_init_eb(struct nft_handle *h, const char *pname)
@@ -1084,11 +1093,7 @@ print_zero:
 			continue;
 		default:
 			ebt_check_inverse2(optarg, argc, argv);
-
-			if (ebt_command_default(&cs))
-				xtables_error(PARAMETER_PROBLEM,
-					      "Unknown argument: '%s'",
-					      argv[optind]);
+			ebt_command_default(&cs);
 
 			if (command != 'A' && command != 'I' &&
 			    command != 'D' && command != 'C' && command != 14)

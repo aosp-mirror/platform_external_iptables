@@ -201,7 +201,7 @@ static int do_commandeb_xlate(struct nft_handle *h, int argc, char *argv[], char
 	printf("nft ");
 	/* Getopt saves the day */
 	while ((c = getopt_long(argc, argv,
-	   "-A:D:I:N:E:X::L::Z::F::P:Vhi:o:j:c:p:s:d:t:M:", opts, NULL)) != -1) {
+	   "-:A:D:I:N:E:X::L::Z::F::P:Vhi:o:j:c:p:s:d:t:M:", opts, NULL)) != -1) {
 		cs.c = c;
 		switch (c) {
 		case 'A': /* Add a rule */
@@ -491,11 +491,7 @@ print_zero:
 			continue;
 		default:
 			ebt_check_inverse2(optarg, argc, argv);
-
-			if (ebt_command_default(&cs))
-				xtables_error(PARAMETER_PROBLEM,
-					      "Unknown argument: '%s'",
-					      argv[optind - 1]);
+			ebt_command_default(&cs);
 
 			if (command != 'A' && command != 'I' &&
 			    command != 'D')
