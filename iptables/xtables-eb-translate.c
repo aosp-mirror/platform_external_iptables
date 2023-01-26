@@ -68,19 +68,6 @@ static int parse_rule_number(const char *rule)
 /* Checks whether a command has already been specified */
 #define OPT_COMMANDS (flags & OPT_COMMAND || flags & OPT_ZERO)
 
-#define OPT_COMMAND	0x01
-#define OPT_TABLE	0x02
-#define OPT_IN		0x04
-#define OPT_OUT		0x08
-#define OPT_JUMP	0x10
-#define OPT_PROTOCOL	0x20
-#define OPT_SOURCE	0x40
-#define OPT_DEST	0x80
-#define OPT_ZERO	0x100
-#define OPT_LOGICALIN	0x200
-#define OPT_LOGICALOUT	0x400
-#define OPT_COUNT	0x1000 /* This value is also defined in libebtc.c */
-
 /* Default command line options. Do not mess around with the already
  * assigned numbers unless you know what you are doing */
 extern struct option ebt_original_options[];
@@ -189,6 +176,7 @@ static int do_commandeb_xlate(struct nft_handle *h, int argc, char *argv[], char
 	struct xt_cmd_parse p = {
 		.table          = *table,
         };
+	bool table_set = false;
 
 	/* prevent getopt to spoil our error reporting */
 	opterr = false;
@@ -299,13 +287,16 @@ print_zero:
 			if (OPT_COMMANDS)
 				xtables_error(PARAMETER_PROBLEM,
 					      "Please put the -t option first");
-			ebt_check_option2(&flags, OPT_TABLE);
+			if (table_set)
+				xtables_error(PARAMETER_PROBLEM,
+					      "Multiple use of same option not allowed");
 			if (strlen(optarg) > EBT_TABLE_MAXNAMELEN - 1)
 				xtables_error(PARAMETER_PROBLEM,
 					      "Table name length cannot exceed %d characters",
 					      EBT_TABLE_MAXNAMELEN - 1);
 			*table = optarg;
 			p.table = optarg;
+			table_set = true;
 			break;
 		case 'i': /* Input interface */
 		case 2  : /* Logical input interface */
@@ -323,7 +314,7 @@ print_zero:
 				xtables_error(PARAMETER_PROBLEM,
 					      "Command and option do not match");
 			if (c == 'i') {
-				ebt_check_option2(&flags, OPT_IN);
+				ebt_check_option2(&flags, OPT_VIANAMEIN);
 				if (selected_chain > 2 && selected_chain < NF_BR_BROUTING)
 					xtables_error(PARAMETER_PROBLEM,
 						      "Use -i only in INPUT, FORWARD, PREROUTING and BROUTING chains");
@@ -343,7 +334,7 @@ print_zero:
 				ebtables_parse_interface(optarg, cs.eb.logical_in);
 				break;
 			} else if (c == 'o') {
-				ebt_check_option2(&flags, OPT_OUT);
+				ebt_check_option2(&flags, OPT_VIANAMEOUT);
 				if (selected_chain < 2 || selected_chain == NF_BR_BROUTING)
 					xtables_error(PARAMETER_PROBLEM,
 						      "Use -o only in OUTPUT, FORWARD and POSTROUTING chains");
@@ -378,7 +369,7 @@ print_zero:
 				cs.eb.bitmask |= EBT_SOURCEMAC;
 				break;
 			} else if (c == 'd') {
-				ebt_check_option2(&flags, OPT_DEST);
+				ebt_check_option2(&flags, OPT_DESTINATION);
 				if (ebt_check_inverse2(optarg, argc, argv))
 					cs.eb.invflags |= EBT_IDEST;
 
@@ -389,7 +380,7 @@ print_zero:
 				cs.eb.bitmask |= EBT_DESTMAC;
 				break;
 			} else if (c == 'c') {
-				ebt_check_option2(&flags, OPT_COUNT);
+				ebt_check_option2(&flags, OPT_COUNTERS);
 				if (ebt_check_inverse2(optarg, argc, argv))
 					xtables_error(PARAMETER_PROBLEM,
 						      "Unexpected '!' after -c");
