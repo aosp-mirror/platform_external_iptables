@@ -247,13 +247,6 @@ static int do_commandeb_xlate(struct nft_handle *h, int argc, char *argv[], char
 			ret = 1;
 			break;
 		case 'F': /* Flush */
-			if (p.chain) {
-				printf("flush chain bridge %s %s\n", p.table, p.chain);
-			} else {
-				printf("flush table bridge %s\n", p.table);
-			}
-			ret = 1;
-			break;
 		case 'Z': /* Zero counters */
 			if (c == 'Z') {
 				if ((flags & OPT_ZERO) || (flags & OPT_COMMAND && command != 'L'))
@@ -506,6 +499,13 @@ print_zero:
 
 	if (command == 'P') {
 		return 0;
+	} else if (command == 'F') {
+			if (p.chain) {
+				printf("flush chain bridge %s %s\n", p.table, p.chain);
+			} else {
+				printf("flush table bridge %s\n", p.table);
+			}
+			ret = 1;
 	} else if (command == 'A') {
 		ret = nft_rule_eb_xlate_add(h, &p, &cs, true);
 		if (!ret)
