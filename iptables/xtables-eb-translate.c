@@ -24,9 +24,6 @@
 /*
  * From include/ebtables_u.h
  */
-#define EXEC_STYLE_PRG    0
-#define EXEC_STYLE_DAEMON 1
-
 #define ebt_check_option2(flags, mask) EBT_CHECK_OPTION(flags, mask)
 
 extern int ebt_invert;
@@ -172,7 +169,6 @@ static int nft_rule_eb_xlate_add(struct nft_handle *h, const struct xt_cmd_parse
 	return ret;
 }
 
-/* We use exec_style instead of #ifdef's because ebtables.so is a shared object. */
 static int do_commandeb_xlate(struct nft_handle *h, int argc, char *argv[], char **table)
 {
 	char *buffer;
@@ -187,7 +183,6 @@ static int do_commandeb_xlate(struct nft_handle *h, int argc, char *argv[], char
 	};
 	char command = 'h';
 	const char *chain = NULL;
-	int exec_style = EXEC_STYLE_PRG;
 	int selected_chain = -1;
 	struct xtables_rule_match *xtrm_i;
 	struct ebt_match *match;
@@ -292,9 +287,6 @@ print_zero:
 			if (OPT_COMMANDS)
 				xtables_error(PARAMETER_PROBLEM,
 					      "Multiple commands are not allowed");
-			if (exec_style == EXEC_STYLE_DAEMON)
-				xtables_error(PARAMETER_PROBLEM,
-					      "%s %s", prog_name, prog_vers);
 			printf("%s %s\n", prog_name, prog_vers);
 			exit(0);
 		case 'h':
