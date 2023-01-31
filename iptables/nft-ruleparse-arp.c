@@ -164,5 +164,4 @@ static void nft_arp_parse_payload(struct nft_xt_ctx *ctx,
 struct nft_ruleparse_ops nft_ruleparse_ops_arp = {
 	.meta		= nft_arp_parse_meta,
 	.payload	= nft_arp_parse_payload,
-	.target		= nft_ipv46_parse_target,
 };

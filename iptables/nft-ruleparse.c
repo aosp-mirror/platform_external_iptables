@@ -84,6 +84,40 @@ nft_create_match(struct nft_xt_ctx *ctx,
 	return match->m->data;
 }
 
+static void *
+__nft_create_target(struct nft_xt_ctx *ctx, const char *name, size_t tgsize)
+{
+	struct xtables_target *target;
+	size_t size;
+
+	target = xtables_find_target(name, XTF_TRY_LOAD);
+	if (!target)
+		return NULL;
+
+	size = XT_ALIGN(sizeof(*target->t)) + tgsize ?: target->size;
+
+	target->t = xtables_calloc(1, size);
+	target->t->u.target_size = size;
+	target->t->u.user.revision = target->revision;
+	strcpy(target->t->u.user.name, name);
+
+	xs_init_target(target);
+
+	ctx->cs->jumpto = name;
+	ctx->cs->target = target;
+
+	if (ctx->h->ops->rule_parse->target)
+		ctx->h->ops->rule_parse->target(target, ctx->cs);
+
+	return target->t->data;
+}
+
+void *
+nft_create_target(struct nft_xt_ctx *ctx, const char *name)
+{
+	return __nft_create_target(ctx, name, 0);
+}
+
 static void nft_parse_counter(struct nftnl_expr *e, struct xt_counters *counters)
 {
 	counters->pcnt = nftnl_expr_get_u64(e, NFTNL_EXPR_CTR_PACKETS);
@@ -123,11 +157,8 @@ static bool nft_parse_meta_set_common(struct nft_xt_ctx* ctx,
 static void nft_parse_meta_set(struct nft_xt_ctx *ctx,
 			       struct nftnl_expr *e)
 {
-	struct xtables_target *target;
 	struct nft_xt_ctx_reg *sreg;
 	enum nft_registers sregnum;
-	struct xt_entry_target *t;
-	unsigned int size;
 	const char *targname;
 
 	sregnum = nftnl_expr_get_u32(e, NFTNL_EXPR_META_SREG);
@@ -153,22 +184,8 @@ static void nft_parse_meta_set(struct nft_xt_ctx *ctx,
 		return;
 	}
 
-	target = xtables_find_target(targname, XTF_TRY_LOAD);
-	if (target == NULL) {
+	if (!nft_create_target(ctx, targname))
 		ctx->errmsg = "target TRACE not found";
-		return;
-	}
-
-	size = XT_ALIGN(sizeof(struct xt_entry_target)) + target->size;
-
-	t = xtables_calloc(1, size);
-	t->u.target_size = size;
-	t->u.user.revision = target->revision;
-	strcpy(t->u.user.name, targname);
-
-	target->t = t;
-
-	ctx->h->ops->rule_parse->target(target, ctx->cs);
 }
 
 static void nft_parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
@@ -515,8 +532,6 @@ static void nft_parse_immediate(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 {
 	const char *chain = nftnl_expr_get_str(e, NFTNL_EXPR_IMM_CHAIN);
 	struct iptables_command_state *cs = ctx->cs;
-	struct xt_entry_target *t;
-	uint32_t size;
 	int verdict;
 
 	if (nftnl_expr_is_set(e, NFTNL_EXPR_IMM_DATA)) {
@@ -566,18 +581,8 @@ static void nft_parse_immediate(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 		return;
 	}
 
-	cs->target = xtables_find_target(cs->jumpto, XTF_TRY_LOAD);
-	if (!cs->target) {
+	if (!nft_create_target(ctx, cs->jumpto))
 		ctx->errmsg = "verdict extension not found";
-		return;
-	}
-
-	size = XT_ALIGN(sizeof(struct xt_entry_target)) + cs->target->size;
-	t = xtables_calloc(1, size);
-	t->u.target_size = size;
-	t->u.user.revision = cs->target->revision;
-	strcpy(t->u.user.name, cs->jumpto);
-	cs->target->t = t;
 }
 
 static void nft_parse_match(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
@@ -624,27 +629,13 @@ static void nft_parse_target(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 	uint32_t tg_len;
 	const char *targname = nftnl_expr_get_str(e, NFTNL_EXPR_TG_NAME);
 	const void *targinfo = nftnl_expr_get(e, NFTNL_EXPR_TG_INFO, &tg_len);
-	struct xtables_target *target;
-	struct xt_entry_target *t;
-	size_t size;
+	void *data;
 
-	target = xtables_find_target(targname, XTF_TRY_LOAD);
-	if (target == NULL) {
+	data = __nft_create_target(ctx, targname, tg_len);
+	if (!data)
 		ctx->errmsg = "target extension not found";
-		return;
-	}
-
-	size = XT_ALIGN(sizeof(struct xt_entry_target)) + tg_len;
-
-	t = xtables_calloc(1, size);
-	memcpy(&t->data, targinfo, tg_len);
-	t->u.target_size = size;
-	t->u.user.revision = nftnl_expr_get_u32(e, NFTNL_EXPR_TG_REV);
-	strcpy(t->u.user.name, target->name);
-
-	target->t = t;
-
-	ctx->h->ops->rule_parse->target(target, ctx->cs);
+	else
+		memcpy(data, targinfo, tg_len);
 }
 
 static void nft_parse_limit(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
@@ -684,9 +675,6 @@ static void nft_parse_lookup(struct nft_xt_ctx *ctx, struct nft_handle *h,
 
 static void nft_parse_log(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 {
-	struct xtables_target *target;
-	struct xt_entry_target *t;
-	size_t target_size;
 	/*
 	 * In order to handle the longer log-prefix supported by nft, instead of
 	 * using struct xt_nflog_info, we use a struct with a compatible layout, but
@@ -703,6 +691,8 @@ static void nft_parse_log(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 		.group     = nftnl_expr_get_u16(e, NFTNL_EXPR_LOG_GROUP),
 		.threshold = nftnl_expr_get_u16(e, NFTNL_EXPR_LOG_QTHRESHOLD),
 	};
+	void *data;
+
 	if (nftnl_expr_is_set(e, NFTNL_EXPR_LOG_SNAPLEN)) {
 		info.len = nftnl_expr_get_u32(e, NFTNL_EXPR_LOG_SNAPLEN);
 		info.flags = XT_NFLOG_F_COPY_LEN;
@@ -711,25 +701,12 @@ static void nft_parse_log(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 		snprintf(info.prefix, sizeof(info.prefix), "%s",
 			 nftnl_expr_get_str(e, NFTNL_EXPR_LOG_PREFIX));
 
-	target = xtables_find_target("NFLOG", XTF_TRY_LOAD);
-	if (target == NULL) {
+	data = __nft_create_target(ctx, "NFLOG",
+				   XT_ALIGN(sizeof(struct xt_nflog_info_nft)));
+	if (!data)
 		ctx->errmsg = "NFLOG target extension not found";
-		return;
-	}
-
-	target_size = XT_ALIGN(sizeof(struct xt_entry_target)) +
-		      XT_ALIGN(sizeof(struct xt_nflog_info_nft));
-
-	t = xtables_calloc(1, target_size);
-	t->u.target_size = target_size;
-	strcpy(t->u.user.name, target->name);
-	t->u.user.revision = target->revision;
-
-	target->t = t;
-
-	memcpy(&target->t->data, &info, sizeof(info));
-
-	ctx->h->ops->rule_parse->target(target, ctx->cs);
+	else
+		memcpy(data, &info, sizeof(info));
 }
 
 static void nft_parse_udp_range(struct nft_xt_ctx *ctx,
@@ -1135,13 +1112,6 @@ int parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e, uint8_t key,
 	}
 
 	return 0;
-}
-
-void nft_ipv46_parse_target(struct xtables_target *t,
-			    struct iptables_command_state *cs)
-{
-	cs->target = t;
-	cs->jumpto = t->name;
 }
 
 int nft_parse_hl(struct nft_xt_ctx *ctx, struct nftnl_expr *e,

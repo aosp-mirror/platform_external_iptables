@@ -406,11 +406,10 @@ static void nft_bridge_parse_target(struct xtables_target *t,
 	if (strcmp(t->name, "log") == 0 ||
 	    strcmp(t->name, "nflog") == 0) {
 		parse_watcher(t, &cs->match_list, false);
+		cs->jumpto = NULL;
+		cs->target = NULL;
 		return;
 	}
-
-	cs->target = t;
-	cs->jumpto = t->name;
 }
 
 struct nft_ruleparse_ops nft_ruleparse_ops_bridge = {

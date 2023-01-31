@@ -117,6 +117,8 @@ extern struct nft_ruleparse_ops nft_ruleparse_ops_ipv6;
 void *nft_create_match(struct nft_xt_ctx *ctx,
 		       struct iptables_command_state *cs,
 		       const char *name, bool reuse);
+void *nft_create_target(struct nft_xt_ctx *ctx, const char *name);
+
 
 bool nft_rule_to_iptables_command_state(struct nft_handle *h,
 					const struct nftnl_rule *r,
@@ -128,9 +130,6 @@ bool nft_rule_to_iptables_command_state(struct nft_handle *h,
 int parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e, uint8_t key,
 	       char *iniface, unsigned char *iniface_mask, char *outiface,
 	       unsigned char *outiface_mask, uint8_t *invflags);
-
-void nft_ipv46_parse_target(struct xtables_target *t,
-			    struct iptables_command_state *cs);
 
 int nft_parse_hl(struct nft_xt_ctx *ctx, struct nftnl_expr *e,
 		 struct iptables_command_state *cs);
