@@ -176,7 +176,7 @@ def run_test(name, payload):
                 result.append(name + ": " + red("Fail"))
                 result.append("nft flush ruleset call failed: " + error)
 
-    if (passed == tests) and not args.test:
+    if (passed == tests):
         print(name + ": " + green("OK"))
     if not test_passed:
         print("\n".join(result), file=sys.stderr)
