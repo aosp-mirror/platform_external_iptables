@@ -173,6 +173,8 @@ static int nft_rule_xlate_add(struct nft_handle *h,
 	       tick,
 	       append ? "add" : "insert",
 	       family2str[h->family], p->table, p->chain);
+	if (!append && p->rulenum > 1)
+		printf("index %d ", p->rulenum);
 
 	printf("%s%s\n", xt_xlate_rule_get(xl), tick);
 
