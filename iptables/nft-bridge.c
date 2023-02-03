@@ -104,10 +104,17 @@ static int
 nft_bridge_add_match(struct nft_handle *h, const struct ebt_entry *fw,
 		     struct nftnl_rule *r, struct xt_entry_match *m)
 {
-	if (!strcmp(m->u.user.name, "802_3") &&
-	    !(fw->bitmask & EBT_802_3))
+	if (!strcmp(m->u.user.name, "802_3") && !(fw->bitmask & EBT_802_3))
 		xtables_error(PARAMETER_PROBLEM,
 			      "For 802.3 DSAP/SSAP filtering the protocol must be LENGTH");
+
+	if (!strcmp(m->u.user.name, "ip") && fw->ethproto != htons(ETH_P_IP))
+		xtables_error(PARAMETER_PROBLEM,
+			      "For IP filtering the protocol must be specified as IPv4.");
+
+	if (!strcmp(m->u.user.name, "ip6") && fw->ethproto != htons(ETH_P_IPV6))
+		xtables_error(PARAMETER_PROBLEM,
+			      "For IPv6 filtering the protocol must be specified as IPv6.");
 
 	return add_match(h, r, m);
 }
