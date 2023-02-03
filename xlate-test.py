@@ -64,7 +64,7 @@ def test_one_replay(name, sourceline, expected, result):
     if sourceline.find(';') >= 0:
         sourceline, searchline = sourceline.split(';')
 
-    srcwords = sourceline.split()
+    srcwords = shlex.split(sourceline)
 
     srccmd = srcwords[0]
     ipt = srccmd.split('-')[0]
