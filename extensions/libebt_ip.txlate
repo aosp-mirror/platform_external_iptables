@@ -5,13 +5,13 @@ ebtables-translate -I FORWARD -p ip --ip-dst 10.0.0.1
 nft 'insert rule bridge filter FORWARD ip daddr 10.0.0.1 counter'
 
 ebtables-translate -I OUTPUT 3 -p ip -o eth0 --ip-tos 0xff
-nft 'insert rule bridge filter OUTPUT oifname "eth0" @nh,8,8 0xff counter'
+nft 'insert rule bridge filter OUTPUT oifname "eth0" ether type ip @nh,8,8 0xff counter'
 
 ebtables-translate -A FORWARD -p ip --ip-proto tcp --ip-dport 22
-nft 'add rule bridge filter FORWARD tcp dport 22 counter'
+nft 'add rule bridge filter FORWARD ether type ip tcp dport 22 counter'
 
 ebtables-translate -A FORWARD -p ip --ip-proto udp --ip-sport 1024:65535
-nft 'add rule bridge filter FORWARD udp sport 1024-65535 counter'
+nft 'add rule bridge filter FORWARD ether type ip udp sport 1024-65535 counter'
 
 ebtables-translate -A FORWARD -p ip --ip-proto 253
 nft 'add rule bridge filter FORWARD ip protocol 253 counter'
