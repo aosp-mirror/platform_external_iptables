@@ -5,7 +5,7 @@ ebtables-translate -I FORWARD -p ip --ip-dst 10.0.0.1
 nft 'insert rule bridge filter FORWARD ip daddr 10.0.0.1 counter'
 
 ebtables-translate -I OUTPUT 3 -p ip -o eth0 --ip-tos 0xff
-nft 'insert rule bridge filter OUTPUT oifname "eth0" ip dscp 0x3f counter'
+nft 'insert rule bridge filter OUTPUT oifname "eth0" @nh,8,8 0xff counter'
 
 ebtables-translate -A FORWARD -p ip --ip-proto tcp --ip-dport 22
 nft 'add rule bridge filter FORWARD tcp dport 22 counter'

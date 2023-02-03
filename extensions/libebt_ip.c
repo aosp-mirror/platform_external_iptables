@@ -442,10 +442,10 @@ static int brip_xlate(struct xt_xlate *xl,
 	brip_xlate_nh(xl, info, EBT_IP_DEST);
 
 	if (info->bitmask & EBT_IP_TOS) {
-		xt_xlate_add(xl, "ip dscp ");
+		xt_xlate_add(xl, "@nh,8,8 ");
 		if (info->invflags & EBT_IP_TOS)
 			xt_xlate_add(xl, "!= ");
-		xt_xlate_add(xl, "0x%02x ", info->tos & 0x3f); /* remove ECN bits */
+		xt_xlate_add(xl, "0x%02x ", info->tos);
 	}
 	if (info->bitmask & EBT_IP_PROTO) {
 		struct protoent *pe;
