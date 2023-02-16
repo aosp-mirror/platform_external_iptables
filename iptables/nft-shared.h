@@ -76,10 +76,6 @@ struct nft_xt_ctx {
 	struct nft_handle *h;
 	uint32_t flags;
 	const char *table;
-	union {
-		struct xt_tcp *tcp;
-		struct xt_udp *udp;
-	} tcpudp;
 
 	struct nft_xt_ctx_reg regs[1 + 16];
 
