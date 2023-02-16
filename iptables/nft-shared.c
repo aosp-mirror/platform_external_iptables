@@ -1202,16 +1202,13 @@ static void nft_parse_limit(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 	__u32 burst = nftnl_expr_get_u32(e, NFTNL_EXPR_LIMIT_BURST);
 	__u64 unit = nftnl_expr_get_u64(e, NFTNL_EXPR_LIMIT_UNIT);
 	__u64 rate = nftnl_expr_get_u64(e, NFTNL_EXPR_LIMIT_RATE);
-	struct xtables_rule_match **matches;
 	struct xtables_match *match;
 	struct xt_rateinfo *rinfo;
-	size_t size;
 
 	switch (ctx->h->family) {
 	case NFPROTO_IPV4:
 	case NFPROTO_IPV6:
 	case NFPROTO_BRIDGE:
-		matches = &ctx->cs->matches;
 		break;
 	default:
 		fprintf(stderr, "BUG: nft_parse_limit() unknown family %d\n",
@@ -1219,18 +1216,11 @@ static void nft_parse_limit(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 		exit(EXIT_FAILURE);
 	}
 
-	match = xtables_find_match("limit", XTF_TRY_LOAD, matches);
+	match = nft_create_match(ctx, ctx->cs, "limit", false);
 	if (match == NULL) {
 		ctx->errmsg = "limit match extension not found";
 		return;
 	}
-
-	size = XT_ALIGN(sizeof(struct xt_entry_match)) + match->size;
-	match->m = xtables_calloc(1, size);
-	match->m->u.match_size = size;
-	strcpy(match->m->u.user.name, match->name);
-	match->m->u.user.revision = match->revision;
-	xs_init_match(match);
 
 	rinfo = (void *)match->m->data;
 	rinfo->avg = XT_LIMIT_SCALE * unit / rate;
