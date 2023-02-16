@@ -301,7 +301,7 @@ static void parse_ifname(const char *name, unsigned int len, char *dst, unsigned
 		memset(mask, 0xff, len - 2);
 }
 
-static struct xtables_match *
+static void *
 nft_create_match(struct nft_xt_ctx *ctx,
 		 struct iptables_command_state *cs,
 		 const char *name, bool reuse);
@@ -319,14 +319,11 @@ static uint32_t get_meta_mask(struct nft_xt_ctx *ctx, enum nft_registers sreg)
 static int parse_meta_mark(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 {
 	struct xt_mark_mtinfo1 *mark;
-	struct xtables_match *match;
 	uint32_t value;
 
-	match = nft_create_match(ctx, ctx->cs, "mark", false);
-	if (!match)
+	mark = nft_create_match(ctx, ctx->cs, "mark", false);
+	if (!mark)
 		return -1;
-
-	mark = (void*)match->m->data;
 
 	if (nftnl_expr_get_u32(e, NFTNL_EXPR_CMP_OP) == NFT_CMP_NEQ)
 		mark->invert = 1;
@@ -341,14 +338,11 @@ static int parse_meta_mark(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 static int parse_meta_pkttype(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 {
 	struct xt_pkttype_info *pkttype;
-	struct xtables_match *match;
 	uint8_t value;
 
-	match = nft_create_match(ctx, ctx->cs, "pkttype", false);
-	if (!match)
+	pkttype = nft_create_match(ctx, ctx->cs, "pkttype", false);
+	if (!pkttype)
 		return -1;
-
-	pkttype = (void*)match->m->data;
 
 	if (nftnl_expr_get_u32(e, NFTNL_EXPR_CMP_OP) == NFT_CMP_NEQ)
 		pkttype->invert = 1;
@@ -659,7 +653,7 @@ nft_find_match_in_cs(struct iptables_command_state *cs, const char *name)
 	return NULL;
 }
 
-static struct xtables_match *
+static void *
 nft_create_match(struct nft_xt_ctx *ctx,
 		 struct iptables_command_state *cs,
 		 const char *name, bool reuse)
@@ -671,7 +665,7 @@ nft_create_match(struct nft_xt_ctx *ctx,
 	if (reuse) {
 		match = nft_find_match_in_cs(cs, name);
 		if (match)
-			return match;
+			return match->m->data;
 	}
 
 	match = xtables_find_match(name, XTF_TRY_LOAD,
@@ -689,32 +683,10 @@ nft_create_match(struct nft_xt_ctx *ctx,
 
 	xs_init_match(match);
 
-	return match;
-}
+	if (ctx->h->ops->parse_match)
+		ctx->h->ops->parse_match(match, cs);
 
-static struct xt_udp *nft_udp_match(struct nft_xt_ctx *ctx,
-			            struct iptables_command_state *cs)
-{
-	struct xtables_match *match;
-
-	match = nft_create_match(ctx, cs, "udp", true);
-	if (!match)
-		return NULL;
-
-	return (struct xt_udp *)match->m->data;
-}
-
-static struct xt_tcp *nft_tcp_match(struct nft_xt_ctx *ctx,
-			            struct iptables_command_state *cs)
-{
-	struct xtables_match *match;
-
-	match = nft_create_match(ctx, cs, "tcp", true);
-	if (!match) {
-		ctx->errmsg = "tcp match extension not found";
-		return NULL;
-	}
-	return (struct xt_tcp *)match->m->data;
+	return match->m->data;
 }
 
 static void nft_parse_udp_range(struct nft_xt_ctx *ctx,
@@ -723,10 +695,12 @@ static void nft_parse_udp_range(struct nft_xt_ctx *ctx,
 			        int dport_from, int dport_to,
 				uint8_t op)
 {
-	struct xt_udp *udp = nft_udp_match(ctx, cs);
+	struct xt_udp *udp = nft_create_match(ctx, cs, "udp", true);
 
-	if (!udp)
+	if (!udp) {
+		ctx->errmsg = "udp match extension not found";
 		return;
+	}
 
 	if (sport_from >= 0) {
 		switch (op) {
@@ -759,10 +733,12 @@ static void nft_parse_tcp_range(struct nft_xt_ctx *ctx,
 			        int dport_from, int dport_to,
 				uint8_t op)
 {
-	struct xt_tcp *tcp = nft_tcp_match(ctx, cs);
+	struct xt_tcp *tcp = nft_create_match(ctx, cs, "tcp", true);
 
-	if (!tcp)
+	if (!tcp) {
+		ctx->errmsg = "tcp match extension not found";
 		return;
+	}
 
 	if (sport_from >= 0) {
 		switch (op) {
@@ -823,10 +799,12 @@ static void nft_parse_udp(struct nft_xt_ctx *ctx,
 			  int sport, int dport,
 			  uint8_t op)
 {
-	struct xt_udp *udp = nft_udp_match(ctx, cs);
+	struct xt_udp *udp = nft_create_match(ctx, cs, "udp", true);
 
-	if (!udp)
+	if (!udp) {
+		ctx->errmsg = "udp match extension not found";
 		return;
+	}
 
 	port_match_single_to_range(udp->spts, &udp->invflags,
 				   op, sport, XT_UDP_INV_SRCPT);
@@ -839,10 +817,12 @@ static void nft_parse_tcp(struct nft_xt_ctx *ctx,
 			  int sport, int dport,
 			  uint8_t op)
 {
-	struct xt_tcp *tcp = nft_tcp_match(ctx, cs);
+	struct xt_tcp *tcp = nft_create_match(ctx, cs, "tcp", true);
 
-	if (!tcp)
+	if (!tcp) {
+		ctx->errmsg = "tcp match extension not found";
 		return;
+	}
 
 	port_match_single_to_range(tcp->spts, &tcp->invflags,
 				   op, sport, XT_TCP_INV_SRCPT);
@@ -855,11 +835,10 @@ static void nft_parse_icmp(struct nft_xt_ctx *ctx,
 			   struct nft_xt_ctx_reg *sreg,
 			   uint8_t op, const char *data, size_t dlen)
 {
-	struct xtables_match *match;
 	struct ipt_icmp icmp = {
 		.type = UINT8_MAX,
 		.code = { 0, UINT8_MAX },
-	};
+	}, *icmpp;
 
 	if (dlen < 1)
 		goto out_err_len;
@@ -884,25 +863,25 @@ static void nft_parse_icmp(struct nft_xt_ctx *ctx,
 
 	switch (ctx->h->family) {
 	case NFPROTO_IPV4:
-		match = nft_create_match(ctx, cs, "icmp", false);
+		icmpp = nft_create_match(ctx, cs, "icmp", false);
 		break;
 	case NFPROTO_IPV6:
 		if (icmp.type == UINT8_MAX) {
 			ctx->errmsg = "icmp6 code with any type match not supported";
 			return;
 		}
-		match = nft_create_match(ctx, cs, "icmp6", false);
+		icmpp = nft_create_match(ctx, cs, "icmp6", false);
 		break;
 	default:
 		ctx->errmsg = "unexpected family for icmp match";
 		return;
 	}
 
-	if (!match) {
+	if (!icmpp) {
 		ctx->errmsg = "icmp match extension not found";
 		return;
 	}
-	memcpy(match->m->data, &icmp, sizeof(icmp));
+	memcpy(icmpp, &icmp, sizeof(icmp));
 	return;
 
 out_err_len:
@@ -946,10 +925,12 @@ static void nft_parse_tcp_flags(struct nft_xt_ctx *ctx,
 				struct iptables_command_state *cs,
 				uint8_t op, uint8_t flags, uint8_t mask)
 {
-	struct xt_tcp *tcp = nft_tcp_match(ctx, cs);
+	struct xt_tcp *tcp = nft_create_match(ctx, cs, "tcp", true);
 
-	if (!tcp)
+	if (!tcp) {
+		ctx->errmsg = "tcp match extension not found";
 		return;
+	}
 
 	if (op == NFT_CMP_NEQ)
 		tcp->invflags |= XT_TCP_INV_FLAGS;
@@ -1202,7 +1183,6 @@ static void nft_parse_limit(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 	__u32 burst = nftnl_expr_get_u32(e, NFTNL_EXPR_LIMIT_BURST);
 	__u64 unit = nftnl_expr_get_u64(e, NFTNL_EXPR_LIMIT_UNIT);
 	__u64 rate = nftnl_expr_get_u64(e, NFTNL_EXPR_LIMIT_RATE);
-	struct xtables_match *match;
 	struct xt_rateinfo *rinfo;
 
 	switch (ctx->h->family) {
@@ -1216,18 +1196,14 @@ static void nft_parse_limit(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 		exit(EXIT_FAILURE);
 	}
 
-	match = nft_create_match(ctx, ctx->cs, "limit", false);
-	if (match == NULL) {
+	rinfo = nft_create_match(ctx, ctx->cs, "limit", false);
+	if (!rinfo) {
 		ctx->errmsg = "limit match extension not found";
 		return;
 	}
 
-	rinfo = (void *)match->m->data;
 	rinfo->avg = XT_LIMIT_SCALE * unit / rate;
 	rinfo->burst = burst;
-
-	if (ctx->h->ops->parse_match != NULL)
-		ctx->h->ops->parse_match(match, ctx->cs);
 }
 
 static void nft_parse_log(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
@@ -1599,7 +1575,6 @@ int nft_parse_hl(struct nft_xt_ctx *ctx,
 		 struct nftnl_expr *e,
 		 struct iptables_command_state *cs)
 {
-	struct xtables_match *match;
 	struct ip6t_hl_info *info;
 	uint8_t hl, mode;
 	int op;
@@ -1642,19 +1617,18 @@ int nft_parse_hl(struct nft_xt_ctx *ctx,
 	 */
 	switch (ctx->h->family) {
 	case NFPROTO_IPV4:
-		match = nft_create_match(ctx, ctx->cs, "ttl", false);
+		info = nft_create_match(ctx, ctx->cs, "ttl", false);
 		break;
 	case NFPROTO_IPV6:
-		match = nft_create_match(ctx, ctx->cs, "hl", false);
+		info = nft_create_match(ctx, ctx->cs, "hl", false);
 		break;
 	default:
 		return -1;
 	}
 
-	if (!match)
+	if (!info)
 		return -1;
 
-	info = (void*)match->m->data;
 	info->hop_limit = hl;
 	info->mode = mode;
 
