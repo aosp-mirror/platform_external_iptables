@@ -2343,7 +2343,8 @@ static int __nft_rule_del(struct nft_handle *h, struct nftnl_rule *r)
 
 	nftnl_rule_list_del(r);
 
-	if (!nftnl_rule_get_u64(r, NFTNL_RULE_HANDLE))
+	if (!nftnl_rule_get_u64(r, NFTNL_RULE_HANDLE) &&
+	    !nftnl_rule_get_u32(r, NFTNL_RULE_ID))
 		nftnl_rule_set_u32(r, NFTNL_RULE_ID, ++h->rule_id);
 
 	obj = batch_rule_add(h, NFT_COMPAT_RULE_DELETE, r);
