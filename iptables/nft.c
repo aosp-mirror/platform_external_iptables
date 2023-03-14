@@ -434,7 +434,7 @@ static void batch_chain_flush(struct nft_handle *h,
 	}
 }
 
-const struct builtin_table xtables_ipv4[NFT_TABLE_MAX] = {
+static const struct builtin_table xtables_ipv4[NFT_TABLE_MAX] = {
 	[NFT_TABLE_RAW] = {
 		.name	= "raw",
 		.type	= NFT_TABLE_RAW,
@@ -571,7 +571,7 @@ const struct builtin_table xtables_ipv4[NFT_TABLE_MAX] = {
 
 #include <linux/netfilter_arp.h>
 
-const struct builtin_table xtables_arp[NFT_TABLE_MAX] = {
+static const struct builtin_table xtables_arp[NFT_TABLE_MAX] = {
 	[NFT_TABLE_FILTER] = {
 	.name   = "filter",
 	.type	= NFT_TABLE_FILTER,
@@ -594,7 +594,7 @@ const struct builtin_table xtables_arp[NFT_TABLE_MAX] = {
 
 #include <linux/netfilter_bridge.h>
 
-const struct builtin_table xtables_bridge[NFT_TABLE_MAX] = {
+static const struct builtin_table xtables_bridge[NFT_TABLE_MAX] = {
 	[NFT_TABLE_FILTER] = {
 		.name = "filter",
 		.type	= NFT_TABLE_FILTER,

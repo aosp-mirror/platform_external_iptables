@@ -117,10 +117,6 @@ struct nft_handle {
 	} error;
 };
 
-extern const struct builtin_table xtables_ipv4[NFT_TABLE_MAX];
-extern const struct builtin_table xtables_arp[NFT_TABLE_MAX];
-extern const struct builtin_table xtables_bridge[NFT_TABLE_MAX];
-
 int mnl_talk(struct nft_handle *h, struct nlmsghdr *nlh,
 	     int (*cb)(const struct nlmsghdr *nlh, void *data),
 	     void *data);
