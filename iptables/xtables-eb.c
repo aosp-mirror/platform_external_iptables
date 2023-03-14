@@ -675,7 +675,8 @@ void nft_fini_eb(struct nft_handle *h)
 		free(target->t);
 	}
 
-	free(opts);
+	if (opts != ebt_original_options)
+		free(opts);
 
 	nft_fini(h);
 	xtables_fini();
