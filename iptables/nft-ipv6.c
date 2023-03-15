@@ -331,7 +331,7 @@ nft_ipv6_add_entry(struct nft_handle *h,
 			       &args->d.mask.v6[j], sizeof(struct in6_addr));
 			if (append) {
 				ret = nft_cmd_rule_append(h, chain, table,
-						      cs, NULL, verbose);
+						      cs, verbose);
 			} else {
 				ret = nft_cmd_rule_insert(h, chain, table,
 						      cs, rulenum, verbose);

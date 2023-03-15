@@ -708,7 +708,7 @@ nft_arp_add_entry(struct nft_handle *h,
 			cs->arp.arp.tgt.s_addr = args->d.addr.v4[j].s_addr;
 			cs->arp.arp.tmsk.s_addr = args->d.mask.v4[j].s_addr;
 			if (append) {
-				ret = nft_cmd_rule_append(h, chain, table, cs, NULL,
+				ret = nft_cmd_rule_append(h, chain, table, cs,
 						          verbose);
 			} else {
 				ret = nft_cmd_rule_insert(h, chain, table, cs,

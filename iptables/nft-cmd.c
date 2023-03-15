@@ -92,7 +92,7 @@ static void nft_cmd_rule_bridge(struct nft_handle *h, const struct nft_cmd *cmd)
 
 int nft_cmd_rule_append(struct nft_handle *h, const char *chain,
 			const char *table, struct iptables_command_state *state,
-			void *ref, bool verbose)
+			bool verbose)
 {
 	struct nft_cmd *cmd;
 

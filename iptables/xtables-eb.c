@@ -99,7 +99,7 @@ append_entry(struct nft_handle *h,
 	int ret = 1;
 
 	if (append)
-		ret = nft_cmd_rule_append(h, chain, table, cs, NULL, verbose);
+		ret = nft_cmd_rule_append(h, chain, table, cs, verbose);
 	else
 		ret = nft_cmd_rule_insert(h, chain, table, cs, rule_nr, verbose);
 
