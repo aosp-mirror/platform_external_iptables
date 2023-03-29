@@ -22,7 +22,6 @@
 #include <xtables.h>
 
 #include <linux/netfilter/nf_log.h>
-#include <linux/netfilter/xt_comment.h>
 #include <linux/netfilter/xt_limit.h>
 #include <linux/netfilter/xt_NFLOG.h>
 #include <linux/netfilter/xt_mark.h>
