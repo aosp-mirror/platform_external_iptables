@@ -781,23 +781,26 @@ nft_arp_replace_entry(struct nft_handle *h,
 	return nft_cmd_rule_replace(h, chain, table, cs, rulenum, verbose);
 }
 
+static struct nft_ruleparse_ops nft_ruleparse_ops_arp = {
+	.meta		= nft_arp_parse_meta,
+	.payload	= nft_arp_parse_payload,
+	.target		= nft_ipv46_parse_target,
+};
 struct nft_family_ops nft_family_ops_arp = {
 	.add			= nft_arp_add,
 	.is_same		= nft_arp_is_same,
 	.print_payload		= NULL,
-	.parse_meta		= nft_arp_parse_meta,
-	.parse_payload		= nft_arp_parse_payload,
 	.print_header		= nft_arp_print_header,
 	.print_rule		= nft_arp_print_rule,
 	.save_rule		= nft_arp_save_rule,
 	.save_chain		= nft_arp_save_chain,
+	.rule_parse		= &nft_ruleparse_ops_arp,
 	.cmd_parse		= {
 		.post_parse	= nft_arp_post_parse,
 	},
 	.rule_to_cs		= nft_rule_to_iptables_command_state,
 	.init_cs		= nft_arp_init_cs,
 	.clear_cs		= xtables_clear_iptables_command_state,
-	.parse_target		= nft_ipv46_parse_target,
 	.add_entry		= nft_arp_add_entry,
 	.delete_entry		= nft_arp_delete_entry,
 	.check_entry		= nft_arp_check_entry,

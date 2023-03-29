@@ -409,21 +409,25 @@ nft_ipv6_replace_entry(struct nft_handle *h,
 	return nft_cmd_rule_replace(h, chain, table, cs, rulenum, verbose);
 }
 
+static struct nft_ruleparse_ops nft_ruleparse_ops_ipv6 = {
+	.meta		= nft_ipv6_parse_meta,
+	.payload	= nft_ipv6_parse_payload,
+	.target		= nft_ipv46_parse_target,
+};
+
 struct nft_family_ops nft_family_ops_ipv6 = {
 	.add			= nft_ipv6_add,
 	.is_same		= nft_ipv6_is_same,
-	.parse_meta		= nft_ipv6_parse_meta,
-	.parse_payload		= nft_ipv6_parse_payload,
 	.set_goto_flag		= nft_ipv6_set_goto_flag,
 	.print_header		= print_header,
 	.print_rule		= nft_ipv6_print_rule,
 	.save_rule		= nft_ipv6_save_rule,
 	.save_chain		= nft_ipv46_save_chain,
+	.rule_parse		= &nft_ruleparse_ops_ipv6,
 	.cmd_parse		= {
 		.proto_parse	= ipv6_proto_parse,
 		.post_parse	= ipv6_post_parse,
 	},
-	.parse_target		= nft_ipv46_parse_target,
 	.rule_to_cs		= nft_rule_to_iptables_command_state,
 	.clear_cs		= xtables_clear_iptables_command_state,
 	.xlate			= nft_ipv6_xlate,

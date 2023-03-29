@@ -93,6 +93,22 @@ static inline struct nft_xt_ctx_reg *nft_xt_ctx_get_dreg(struct nft_xt_ctx *ctx,
 	return r;
 }
 
+struct nft_ruleparse_ops {
+	void (*meta)(struct nft_xt_ctx *ctx,
+		     const struct nft_xt_ctx_reg *sreg,
+		     struct nftnl_expr *e,
+		     struct iptables_command_state *cs);
+	void (*payload)(struct nft_xt_ctx *ctx,
+			const struct nft_xt_ctx_reg *sreg,
+			struct nftnl_expr *e,
+			struct iptables_command_state *cs);
+	void (*lookup)(struct nft_xt_ctx *ctx, struct nftnl_expr *e);
+	void (*match)(struct xtables_match *m,
+		      struct iptables_command_state *cs);
+	void (*target)(struct xtables_target *t,
+		       struct iptables_command_state *cs);
+};
+
 void *nft_create_match(struct nft_xt_ctx *ctx,
 		       struct iptables_command_state *cs,
 		       const char *name, bool reuse);

@@ -560,8 +560,8 @@ static void nft_bridge_parse_lookup(struct nft_xt_ctx *ctx,
 		match->m->u.user.revision = match->revision;
 		xs_init_match(match);
 
-		if (ctx->h->ops->parse_match != NULL)
-			ctx->h->ops->parse_match(match, ctx->cs);
+		if (ctx->h->ops->rule_parse->match != NULL)
+			ctx->h->ops->rule_parse->match(match, ctx->cs);
 	}
 	if (!match)
 		return;
@@ -984,15 +984,19 @@ static int nft_bridge_xlate(const struct iptables_command_state *cs,
 	return ret;
 }
 
+static struct nft_ruleparse_ops nft_ruleparse_ops_bridge = {
+	.meta		= nft_bridge_parse_meta,
+	.payload	= nft_bridge_parse_payload,
+	.lookup		= nft_bridge_parse_lookup,
+	.match		= nft_bridge_parse_match,
+	.target		= nft_bridge_parse_target,
+};
+
 struct nft_family_ops nft_family_ops_bridge = {
 	.add			= nft_bridge_add,
 	.is_same		= nft_bridge_is_same,
 	.print_payload		= NULL,
-	.parse_meta		= nft_bridge_parse_meta,
-	.parse_payload		= nft_bridge_parse_payload,
-	.parse_lookup		= nft_bridge_parse_lookup,
-	.parse_match		= nft_bridge_parse_match,
-	.parse_target		= nft_bridge_parse_target,
+	.rule_parse		= &nft_ruleparse_ops_bridge,
 	.print_table_header	= nft_bridge_print_table_header,
 	.print_header		= nft_bridge_print_header,
 	.print_rule		= nft_bridge_print_rule,

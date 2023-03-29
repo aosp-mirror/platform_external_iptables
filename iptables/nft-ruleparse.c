@@ -78,8 +78,8 @@ nft_create_match(struct nft_xt_ctx *ctx,
 
 	xs_init_match(match);
 
-	if (ctx->h->ops->parse_match)
-		ctx->h->ops->parse_match(match, cs);
+	if (ctx->h->ops->rule_parse->match)
+		ctx->h->ops->rule_parse->match(match, cs);
 
 	return match->m->data;
 }
@@ -168,7 +168,7 @@ static void nft_parse_meta_set(struct nft_xt_ctx *ctx,
 
 	target->t = t;
 
-	ctx->h->ops->parse_target(target, ctx->cs);
+	ctx->h->ops->rule_parse->target(target, ctx->cs);
 }
 
 static void nft_parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
@@ -488,16 +488,16 @@ static void nft_parse_cmp(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 		ctx->errmsg = "cmp sreg undef";
 		break;
 	case NFT_XT_REG_META_DREG:
-		ctx->h->ops->parse_meta(ctx, sreg, e, ctx->cs);
+		ctx->h->ops->rule_parse->meta(ctx, sreg, e, ctx->cs);
 		break;
 	case NFT_XT_REG_PAYLOAD:
 		switch (sreg->payload.base) {
 		case NFT_PAYLOAD_LL_HEADER:
 			if (ctx->h->family == NFPROTO_BRIDGE)
-				ctx->h->ops->parse_payload(ctx, sreg, e, ctx->cs);
+				ctx->h->ops->rule_parse->payload(ctx, sreg, e, ctx->cs);
 			break;
 		case NFT_PAYLOAD_NETWORK_HEADER:
-			ctx->h->ops->parse_payload(ctx, sreg, e, ctx->cs);
+			ctx->h->ops->rule_parse->payload(ctx, sreg, e, ctx->cs);
 			break;
 		case NFT_PAYLOAD_TRANSPORT_HEADER:
 			nft_parse_transport(ctx, e, ctx->cs);
@@ -615,8 +615,8 @@ static void nft_parse_match(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 
 	match->m = m;
 
-	if (ctx->h->ops->parse_match != NULL)
-		ctx->h->ops->parse_match(match, ctx->cs);
+	if (ctx->h->ops->rule_parse->match != NULL)
+		ctx->h->ops->rule_parse->match(match, ctx->cs);
 }
 
 static void nft_parse_target(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
@@ -644,7 +644,7 @@ static void nft_parse_target(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 
 	target->t = t;
 
-	ctx->h->ops->parse_target(target, ctx->cs);
+	ctx->h->ops->rule_parse->target(target, ctx->cs);
 }
 
 static void nft_parse_limit(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
@@ -678,8 +678,8 @@ static void nft_parse_limit(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 static void nft_parse_lookup(struct nft_xt_ctx *ctx, struct nft_handle *h,
 			     struct nftnl_expr *e)
 {
-	if (ctx->h->ops->parse_lookup)
-		ctx->h->ops->parse_lookup(ctx, e);
+	if (ctx->h->ops->rule_parse->lookup)
+		ctx->h->ops->rule_parse->lookup(ctx, e);
 }
 
 static void nft_parse_log(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
@@ -729,7 +729,7 @@ static void nft_parse_log(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 
 	memcpy(&target->t->data, &info, sizeof(info));
 
-	ctx->h->ops->parse_target(target, ctx->cs);
+	ctx->h->ops->rule_parse->target(target, ctx->cs);
 }
 
 static void nft_parse_udp_range(struct nft_xt_ctx *ctx,
