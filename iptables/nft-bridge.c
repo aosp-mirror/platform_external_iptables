@@ -95,8 +95,44 @@ static void add_logical_outiface(struct nft_handle *h, struct nftnl_rule *r,
 		add_cmp_ptr(r, op, iface, iface_len + 1, reg);
 }
 
+static int add_meta_broute(struct nftnl_rule *r)
+{
+	struct nftnl_expr *expr;
+
+	expr = nftnl_expr_alloc("immediate");
+	if (expr == NULL)
+		return -1;
+
+	nftnl_expr_set_u32(expr, NFTNL_EXPR_IMM_DREG, NFT_REG32_01);
+	nftnl_expr_set_u8(expr, NFTNL_EXPR_IMM_DATA, 1);
+	nftnl_rule_add_expr(r, expr);
+
+	expr = nftnl_expr_alloc("meta");
+	if (expr == NULL)
+		return -1;
+	nftnl_expr_set_u32(expr, NFTNL_EXPR_META_KEY, NFT_META_BRI_BROUTE);
+	nftnl_expr_set_u32(expr, NFTNL_EXPR_META_SREG, NFT_REG32_01);
+
+	nftnl_rule_add_expr(r, expr);
+	return 0;
+}
+
 static int _add_action(struct nftnl_rule *r, struct iptables_command_state *cs)
 {
+	const char *table = nftnl_rule_get_str(r, NFTNL_RULE_TABLE);
+
+	if (cs->target &&
+	    table && strcmp(table, "broute") == 0) {
+		if (strcmp(cs->jumpto, XTC_LABEL_DROP) == 0) {
+			int ret = add_meta_broute(r);
+
+			if (ret)
+				return ret;
+
+			cs->jumpto = "ACCEPT";
+		}
+	}
+
 	return add_action(r, cs, false);
 }
 

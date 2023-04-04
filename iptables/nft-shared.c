@@ -511,8 +511,24 @@ void get_cmp_data(struct nftnl_expr *e, void *data, size_t dlen, bool *inv)
 	*inv = (op == NFT_CMP_NEQ);
 }
 
-static void nft_meta_set_to_target(struct nft_xt_ctx *ctx,
-				   struct nftnl_expr *e)
+static bool nft_parse_meta_set_common(struct nft_xt_ctx* ctx,
+				      struct nft_xt_ctx_reg *sreg)
+{
+	if ((sreg->type != NFT_XT_REG_IMMEDIATE)) {
+		ctx->errmsg = "meta sreg is not an immediate";
+		return false;
+	}
+
+	if (sreg->immediate.data[0] == 0) {
+		ctx->errmsg = "meta sreg immediate is 0";
+		return false;
+	}
+
+	return true;
+}
+
+static void nft_parse_meta_set(struct nft_xt_ctx *ctx,
+			       struct nftnl_expr *e)
 {
 	struct xtables_target *target;
 	struct nft_xt_ctx_reg *sreg;
@@ -528,18 +544,17 @@ static void nft_meta_set_to_target(struct nft_xt_ctx *ctx,
 
 	switch (nftnl_expr_get_u32(e, NFTNL_EXPR_META_KEY)) {
 	case NFT_META_NFTRACE:
-		if ((sreg->type != NFT_XT_REG_IMMEDIATE)) {
-			ctx->errmsg = "meta nftrace but reg not immediate";
+		if (!nft_parse_meta_set_common(ctx, sreg))
 			return;
-		}
-
-		if (sreg->immediate.data[0] == 0) {
-			ctx->errmsg = "trace is cleared";
-			return;
-		}
 
 		targname = "TRACE";
 		break;
+	case NFT_META_BRI_BROUTE:
+		if (!nft_parse_meta_set_common(ctx, sreg))
+			return;
+
+		ctx->cs->jumpto = "DROP";
+		return;
 	default:
 		ctx->errmsg = "meta sreg key not supported";
 		return;
@@ -568,7 +583,7 @@ static void nft_parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
         struct nft_xt_ctx_reg *reg;
 
 	if (nftnl_expr_is_set(e, NFTNL_EXPR_META_SREG)) {
-		nft_meta_set_to_target(ctx, e);
+		nft_parse_meta_set(ctx, e);
 		return;
 	}
 
@@ -1145,6 +1160,8 @@ static void nft_parse_immediate(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 	/* Standard target? */
 	switch(verdict) {
 	case NF_ACCEPT:
+		if (cs->jumpto && strcmp(ctx->table, "broute") == 0)
+			break;
 		cs->jumpto = "ACCEPT";
 		break;
 	case NF_DROP:

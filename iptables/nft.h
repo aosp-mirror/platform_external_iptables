@@ -14,8 +14,9 @@ enum nft_table_type {
 	NFT_TABLE_RAW,
 	NFT_TABLE_FILTER,
 	NFT_TABLE_NAT,
+	NFT_TABLE_BROUTE,
 };
-#define NFT_TABLE_MAX	(NFT_TABLE_NAT + 1)
+#define NFT_TABLE_MAX	(NFT_TABLE_BROUTE + 1)
 
 struct builtin_chain {
 	const char *name;

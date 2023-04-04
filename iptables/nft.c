@@ -643,6 +643,19 @@ static const struct builtin_table xtables_bridge[NFT_TABLE_MAX] = {
 			},
 		},
 	},
+	[NFT_TABLE_BROUTE] = {
+		.name = "broute",
+		.type	= NFT_TABLE_BROUTE,
+		.chains = {
+			{
+				.name   = "BROUTING",
+				.type   = "filter",
+				.prio   = NF_BR_PRI_FIRST,
+				.hook   = NF_BR_PRE_ROUTING,
+			},
+		},
+	},
+
 };
 
 static int nft_table_builtin_add(struct nft_handle *h,

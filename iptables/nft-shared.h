@@ -61,6 +61,9 @@ struct nft_xt_ctx_reg {
 		struct {
 			uint32_t key;
 		} meta_dreg;
+		struct {
+			uint32_t key;
+		} meta_sreg;
 	};
 
 	struct {
