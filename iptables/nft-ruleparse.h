@@ -109,6 +109,11 @@ struct nft_ruleparse_ops {
 		       struct iptables_command_state *cs);
 };
 
+extern struct nft_ruleparse_ops nft_ruleparse_ops_arp;
+extern struct nft_ruleparse_ops nft_ruleparse_ops_bridge;
+extern struct nft_ruleparse_ops nft_ruleparse_ops_ipv4;
+extern struct nft_ruleparse_ops nft_ruleparse_ops_ipv6;
+
 void *nft_create_match(struct nft_xt_ctx *ctx,
 		       struct iptables_command_state *cs,
 		       const char *name, bool reuse);

@@ -104,85 +104,6 @@ static bool nft_ipv6_is_same(const struct iptables_command_state *a,
 				  b->fw6.ipv6.outiface_mask);
 }
 
-static void nft_ipv6_parse_meta(struct nft_xt_ctx *ctx,
-				const struct nft_xt_ctx_reg *reg,
-				struct nftnl_expr *e,
-				struct iptables_command_state *cs)
-{
-	switch (reg->meta_dreg.key) {
-	case NFT_META_L4PROTO:
-		cs->fw6.ipv6.proto = nftnl_expr_get_u8(e, NFTNL_EXPR_CMP_DATA);
-		if (nftnl_expr_get_u32(e, NFTNL_EXPR_CMP_OP) == NFT_CMP_NEQ)
-			cs->fw6.ipv6.invflags |= XT_INV_PROTO;
-		return;
-	default:
-		break;
-	}
-
-	if (parse_meta(ctx, e, reg->meta_dreg.key, cs->fw6.ipv6.iniface,
-		   cs->fw6.ipv6.iniface_mask, cs->fw6.ipv6.outiface,
-		   cs->fw6.ipv6.outiface_mask, &cs->fw6.ipv6.invflags) == 0)
-		return;
-
-	ctx->errmsg = "unknown ipv6 meta key";
-}
-
-static void parse_mask_ipv6(const struct nft_xt_ctx_reg *reg,
-			    struct in6_addr *mask)
-{
-	memcpy(mask, reg->bitwise.mask, sizeof(struct in6_addr));
-}
-
-static void nft_ipv6_parse_payload(struct nft_xt_ctx *ctx,
-				   const struct nft_xt_ctx_reg *reg,
-				   struct nftnl_expr *e,
-				   struct iptables_command_state *cs)
-{
-	struct in6_addr addr;
-	uint8_t proto;
-	bool inv;
-
-	switch (reg->payload.offset) {
-	case offsetof(struct ip6_hdr, ip6_src):
-		get_cmp_data(e, &addr, sizeof(addr), &inv);
-		memcpy(cs->fw6.ipv6.src.s6_addr, &addr, sizeof(addr));
-		if (reg->bitwise.set)
-			parse_mask_ipv6(reg, &cs->fw6.ipv6.smsk);
-		else
-			memset(&cs->fw6.ipv6.smsk, 0xff,
-			       min(reg->payload.len, sizeof(struct in6_addr)));
-
-		if (inv)
-			cs->fw6.ipv6.invflags |= IP6T_INV_SRCIP;
-		break;
-	case offsetof(struct ip6_hdr, ip6_dst):
-		get_cmp_data(e, &addr, sizeof(addr), &inv);
-		memcpy(cs->fw6.ipv6.dst.s6_addr, &addr, sizeof(addr));
-		if (reg->bitwise.set)
-			parse_mask_ipv6(reg, &cs->fw6.ipv6.dmsk);
-		else
-			memset(&cs->fw6.ipv6.dmsk, 0xff,
-			       min(reg->payload.len, sizeof(struct in6_addr)));
-
-		if (inv)
-			cs->fw6.ipv6.invflags |= IP6T_INV_DSTIP;
-		break;
-	case offsetof(struct ip6_hdr, ip6_nxt):
-		get_cmp_data(e, &proto, sizeof(proto), &inv);
-		cs->fw6.ipv6.proto = proto;
-		if (inv)
-			cs->fw6.ipv6.invflags |= IP6T_INV_PROTO;
-	case offsetof(struct ip6_hdr, ip6_hlim):
-		if (nft_parse_hl(ctx, e, cs) < 0)
-			ctx->errmsg = "invalid ttl field match";
-		break;
-	default:
-		DEBUGP("unknown payload offset %d\n", reg->payload.offset);
-		ctx->errmsg = "unknown payload offset";
-		break;
-	}
-}
-
 static void nft_ipv6_set_goto_flag(struct iptables_command_state *cs)
 {
 	cs->fw6.ipv6.flags |= IP6T_F_GOTO;
@@ -408,12 +329,6 @@ nft_ipv6_replace_entry(struct nft_handle *h,
 
 	return nft_cmd_rule_replace(h, chain, table, cs, rulenum, verbose);
 }
-
-static struct nft_ruleparse_ops nft_ruleparse_ops_ipv6 = {
-	.meta		= nft_ipv6_parse_meta,
-	.payload	= nft_ipv6_parse_payload,
-	.target		= nft_ipv46_parse_target,
-};
 
 struct nft_family_ops nft_family_ops_ipv6 = {
 	.add			= nft_ipv6_add,

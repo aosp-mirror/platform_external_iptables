@@ -1,6 +1,8 @@
 #ifndef _NFT_CACHE_H_
 #define _NFT_CACHE_H_
 
+#include <libnftnl/chain.h>
+
 struct nft_handle;
 struct nft_chain;
 struct nft_cmd;

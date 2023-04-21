@@ -47,6 +47,8 @@ xtables_nft_multi_SOURCES += nft.c nft.h \
 			     nft-chain.c nft-chain.h \
 			     nft-cmd.c nft-cmd.h \
 			     nft-ruleparse.c nft-ruleparse.h \
+			     nft-ruleparse-arp.c nft-ruleparse-bridge.c \
+			     nft-ruleparse-ipv4.c nft-ruleparse-ipv6.c \
 			     nft-shared.c nft-shared.h \
 			     xtables-monitor.c \
 			     xtables.c xtables-arp.c xtables-eb.c \
