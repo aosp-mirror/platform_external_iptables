@@ -244,7 +244,7 @@ static void nft_arp_parse_payload(struct nft_xt_ctx *ctx,
 		fw->arp.arhln = ar_hln;
 		fw->arp.arhln_mask = 0xff;
 		if (inv)
-			fw->arp.invflags |= IPT_INV_ARPOP;
+			fw->arp.invflags |= IPT_INV_ARPHLN;
 		break;
 	case offsetof(struct arphdr, ar_pln):
 		get_cmp_data(e, &ar_pln, sizeof(ar_pln), &inv);
