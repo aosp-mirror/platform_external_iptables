@@ -408,7 +408,8 @@ after_devsrc:
 
 after_devdst:
 
-	if (fw->arp.arhln_mask != 255 || fw->arp.arhln != 6) {
+	if (fw->arp.arhln_mask != 255 || fw->arp.arhln != 6 ||
+	    fw->arp.invflags & IPT_INV_ARPHLN) {
 		printf("%s%s", sep, fw->arp.invflags & IPT_INV_ARPHLN
 			? "! " : "");
 		printf("--h-length %d", fw->arp.arhln);
@@ -432,7 +433,8 @@ after_devdst:
 		sep = " ";
 	}
 
-	if (fw->arp.arhrd_mask != 65535 || fw->arp.arhrd != htons(1)) {
+	if (fw->arp.arhrd_mask != 65535 || fw->arp.arhrd != htons(1) ||
+	    fw->arp.invflags & IPT_INV_ARPHRD) {
 		uint16_t tmp = ntohs(fw->arp.arhrd);
 
 		printf("%s%s", sep, fw->arp.invflags & IPT_INV_ARPHRD
