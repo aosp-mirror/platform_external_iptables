@@ -21,3 +21,6 @@
 -s 10.11.12.13/255.128.0.0;-s 10.0.0.0/9;OK
 -s 10.11.12.13/255.0.255.0;-s 10.0.12.0/255.0.255.0;OK
 -s 10.11.12.13/255.0.12.0;-s 10.0.12.0/255.0.12.0;OK
+:FORWARD
+--protocol=tcp --source=1.2.3.4 --destination=5.6.7.8/32 --in-interface=eth0 --out-interface=eth1 --jump=ACCEPT;-s 1.2.3.4/32 -d 5.6.7.8/32 -i eth0 -o eth1 -p tcp -j ACCEPT;OK
+-ptcp -s1.2.3.4 -d5.6.7.8/32 -ieth0 -oeth1 -jACCEPT;-s 1.2.3.4/32 -d 5.6.7.8/32 -i eth0 -o eth1 -p tcp -j ACCEPT;OK
