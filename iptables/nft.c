@@ -1476,10 +1476,12 @@ int add_match(struct nft_handle *h, struct nft_rule_ctx *ctx,
 	case NFT_COMPAT_RULE_APPEND:
 	case NFT_COMPAT_RULE_INSERT:
 	case NFT_COMPAT_RULE_REPLACE:
-		if (!strcmp(m->u.user.name, "limit"))
-			return add_nft_limit(r, m);
-		else if (!strcmp(m->u.user.name, "among"))
+		if (!strcmp(m->u.user.name, "among"))
 			return add_nft_among(h, r, m);
+		else if (h->compat)
+			break;
+		else if (!strcmp(m->u.user.name, "limit"))
+			return add_nft_limit(r, m);
 		else if (!strcmp(m->u.user.name, "udp"))
 			return add_nft_udp(h, r, m);
 		else if (!strcmp(m->u.user.name, "tcp"))
@@ -1544,7 +1546,7 @@ int add_target(struct nft_handle *h, struct nftnl_rule *r,
 	struct nftnl_expr *expr;
 	int ret;
 
-	if (strcmp(t->u.user.name, "TRACE") == 0)
+	if (!h->compat && strcmp(t->u.user.name, "TRACE") == 0)
 		return add_meta_nftrace(r);
 
 	expr = nftnl_expr_alloc("target");

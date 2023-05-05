@@ -198,7 +198,7 @@ void add_addr(struct nft_handle *h, struct nftnl_rule *r,
 
 	for (i = 0; i < len; i++) {
 		if (m[i] != 0xff) {
-			bitwise = m[i] != 0;
+			bitwise = h->compat || m[i] != 0;
 			break;
 		}
 	}
