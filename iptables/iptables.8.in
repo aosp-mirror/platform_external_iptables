@@ -397,6 +397,13 @@ corresponding to that rule's position in the chain.
 \fB\-\-modprobe=\fP\fIcommand\fP
 When adding or inserting rules into a chain, use \fIcommand\fP
 to load any necessary modules (targets, match extensions, etc).
+.TP
+\fB\-\-compat\fP
+This flag is only relevant with \fBnft\fP-variants and ignored otherwise. If
+set, rules will be created in a mostly compatible way, enabling older versions
+of \fBiptables\-nft\fP to correctly parse the rules received from kernel. This
+mode is only useful in very specific situations and will likely impact packet
+filtering performance.
 
 .SH LOCK FILE
 iptables uses the \fI@XT_LOCK_NAME@\fP file to take an exclusive lock at

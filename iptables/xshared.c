@@ -1263,7 +1263,8 @@ xtables_printhelp(const struct xtables_rule_match *matches)
 	printf(
 "  --modprobe=<command>		try to insert modules using this command\n"
 "  --set-counters -c PKTS BYTES	set the counter during insert/append\n"
-"[!] --version	-V		print package version.\n");
+"[!] --version	-V		print package version\n"
+"  --compat			create rules compatible for parsing with old binaries\n");
 
 	if (afinfo->family == NFPROTO_ARP) {
 		int i;
@@ -1786,6 +1787,10 @@ void do_parse(int argc, char *argv[],
 				return;
 
 			exit_tryhelp(2, p->line);
+
+		case 15: /* --compat */
+			p->compat = true;
+			break;
 
 		case 1: /* non option */
 			if (optarg[0] == '!' && optarg[1] == '\0') {

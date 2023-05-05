@@ -283,6 +283,7 @@ struct xt_cmd_parse {
 	int				line;
 	int				verbose;
 	bool				xlate;
+	bool				compat;
 	struct xt_cmd_parse_ops		*ops;
 };
 

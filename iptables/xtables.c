@@ -82,6 +82,7 @@ static struct option original_opts[] = {
 	{.name = "goto",	  .has_arg = 1, .val = 'g'},
 	{.name = "ipv4",	  .has_arg = 0, .val = '4'},
 	{.name = "ipv6",	  .has_arg = 0, .val = '6'},
+	{.name = "compat",        .has_arg = 0, .val = 15 },
 	{NULL},
 };
 
@@ -161,6 +162,7 @@ int do_commandx(struct nft_handle *h, int argc, char *argv[], char **table,
 
 	do_parse(argc, argv, &p, &cs, &args);
 	h->verbose = p.verbose;
+	h->compat = p.compat;
 
 	if (!nft_table_builtin_find(h, p.table))
 		xtables_error(VERSION_PROBLEM,

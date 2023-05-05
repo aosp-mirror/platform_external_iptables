@@ -220,6 +220,14 @@ counters of a rule (during
 .B APPEND,
 .B REPLACE
 operations).
+.SS "OTHER OPTIONS"
+The following additional options can be specified:
+.TP
+\fB\-\-compat\fP
+Create rules in a mostly compatible way, enabling older versions of
+\fBarptables\-nft\fP to correctly parse the rules received from kernel. This
+mode is only useful in very specific situations and will likely impact packet
+filtering performance.
 
 .SS RULE-SPECIFICATIONS
 The following command line arguments make up a rule specification (as used 
