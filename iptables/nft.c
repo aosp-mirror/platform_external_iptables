@@ -1538,7 +1538,8 @@ static int add_meta_nftrace(struct nftnl_rule *r)
 	return 0;
 }
 
-int add_target(struct nftnl_rule *r, struct xt_entry_target *t)
+int add_target(struct nft_handle *h, struct nftnl_rule *r,
+	       struct xt_entry_target *t)
 {
 	struct nftnl_expr *expr;
 	int ret;
@@ -1587,8 +1588,8 @@ int add_verdict(struct nftnl_rule *r, int verdict)
 	return 0;
 }
 
-int add_action(struct nftnl_rule *r, struct iptables_command_state *cs,
-	       bool goto_set)
+int add_action(struct nft_handle *h, struct nftnl_rule *r,
+	       struct iptables_command_state *cs, bool goto_set)
 {
 	int ret = 0;
 
@@ -1604,7 +1605,7 @@ int add_action(struct nftnl_rule *r, struct iptables_command_state *cs,
 		else if (strcmp(cs->jumpto, "NFLOG") == 0)
 			ret = add_log(r, cs);
 		else
-			ret = add_target(r, cs->target->t);
+			ret = add_target(h, r, cs->target->t);
 	} else if (strlen(cs->jumpto) > 0) {
 		/* Not standard, then it's a go / jump to chain */
 		if (goto_set)
