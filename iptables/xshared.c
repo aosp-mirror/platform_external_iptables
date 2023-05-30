@@ -111,20 +111,13 @@ find_proto(const char *pname, enum xtables_tryload tryload,
  *   [think of ip6tables-restore!]
  * - the protocol extension can be successively loaded
  */
-static bool should_load_proto(struct iptables_command_state *cs)
-{
-	if (cs->protocol == NULL)
-		return false;
-	if (find_proto(cs->protocol, XTF_DONT_LOAD,
-	    cs->options & OPT_NUMERIC, NULL) == NULL)
-		return true;
-	return !cs->proto_used;
-}
-
 static struct xtables_match *load_proto(struct iptables_command_state *cs)
 {
-	if (!should_load_proto(cs))
+	if (cs->protocol == NULL)
 		return NULL;
+	if (cs->proto_used)
+		return NULL;
+	cs->proto_used = true;
 	return find_proto(cs->protocol, XTF_TRY_LOAD,
 			  cs->options & OPT_NUMERIC, &cs->matches);
 }
@@ -157,12 +150,9 @@ static int command_default(struct iptables_command_state *cs,
 		return 0;
 	}
 
-	/* Try loading protocol */
 	m = load_proto(cs);
 	if (m != NULL) {
 		size_t size;
-
-		cs->proto_used = 1;
 
 		size = XT_ALIGN(sizeof(struct xt_entry_match)) + m->size;
 
