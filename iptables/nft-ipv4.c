@@ -33,6 +33,22 @@ static int nft_ipv4_add(struct nft_handle *h, struct nftnl_rule *r,
 	uint32_t op;
 	int ret;
 
+	if (cs->fw.ip.src.s_addr || cs->fw.ip.smsk.s_addr || cs->fw.ip.invflags & IPT_INV_SRCIP) {
+		op = nft_invflags2cmp(cs->fw.ip.invflags, IPT_INV_SRCIP);
+		add_addr(h, r, NFT_PAYLOAD_NETWORK_HEADER,
+			 offsetof(struct iphdr, saddr),
+			 &cs->fw.ip.src.s_addr, &cs->fw.ip.smsk.s_addr,
+			 sizeof(struct in_addr), op);
+	}
+
+	if (cs->fw.ip.dst.s_addr || cs->fw.ip.dmsk.s_addr || cs->fw.ip.invflags & IPT_INV_DSTIP) {
+		op = nft_invflags2cmp(cs->fw.ip.invflags, IPT_INV_DSTIP);
+		add_addr(h, r, NFT_PAYLOAD_NETWORK_HEADER,
+			 offsetof(struct iphdr, daddr),
+			 &cs->fw.ip.dst.s_addr, &cs->fw.ip.dmsk.s_addr,
+			 sizeof(struct in_addr), op);
+	}
+
 	if (cs->fw.ip.iniface[0] != '\0') {
 		op = nft_invflags2cmp(cs->fw.ip.invflags, IPT_INV_VIA_IN);
 		add_iniface(h, r, cs->fw.ip.iniface, op);
@@ -48,20 +64,6 @@ static int nft_ipv4_add(struct nft_handle *h, struct nftnl_rule *r,
 		add_l4proto(h, r, cs->fw.ip.proto, op);
 	}
 
-	if (cs->fw.ip.src.s_addr || cs->fw.ip.smsk.s_addr || cs->fw.ip.invflags & IPT_INV_SRCIP) {
-		op = nft_invflags2cmp(cs->fw.ip.invflags, IPT_INV_SRCIP);
-		add_addr(h, r, NFT_PAYLOAD_NETWORK_HEADER,
-			 offsetof(struct iphdr, saddr),
-			 &cs->fw.ip.src.s_addr, &cs->fw.ip.smsk.s_addr,
-			 sizeof(struct in_addr), op);
-	}
-	if (cs->fw.ip.dst.s_addr || cs->fw.ip.dmsk.s_addr || cs->fw.ip.invflags & IPT_INV_DSTIP) {
-		op = nft_invflags2cmp(cs->fw.ip.invflags, IPT_INV_DSTIP);
-		add_addr(h, r, NFT_PAYLOAD_NETWORK_HEADER,
-			 offsetof(struct iphdr, daddr),
-			 &cs->fw.ip.dst.s_addr, &cs->fw.ip.dmsk.s_addr,
-			 sizeof(struct in_addr), op);
-	}
 	if (cs->fw.ip.flags & IPT_F_FRAG) {
 		uint8_t reg;
 

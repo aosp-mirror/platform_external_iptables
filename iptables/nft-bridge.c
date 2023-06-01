@@ -163,6 +163,20 @@ static int nft_bridge_add(struct nft_handle *h,
 	struct ebt_entry *fw = &cs->eb;
 	uint32_t op;
 
+	if (fw->bitmask & EBT_ISOURCE) {
+		op = nft_invflags2cmp(fw->invflags, EBT_ISOURCE);
+		add_addr(h, r, NFT_PAYLOAD_LL_HEADER,
+			 offsetof(struct ethhdr, h_source),
+			 fw->sourcemac, fw->sourcemsk, ETH_ALEN, op);
+	}
+
+	if (fw->bitmask & EBT_IDEST) {
+		op = nft_invflags2cmp(fw->invflags, EBT_IDEST);
+		add_addr(h, r, NFT_PAYLOAD_LL_HEADER,
+			 offsetof(struct ethhdr, h_dest),
+			 fw->destmac, fw->destmsk, ETH_ALEN, op);
+	}
+
 	if (fw->in[0] != '\0') {
 		op = nft_invflags2cmp(fw->invflags, EBT_IIN);
 		add_iniface(h, r, fw->in, op);
@@ -181,20 +195,6 @@ static int nft_bridge_add(struct nft_handle *h,
 	if (fw->logical_out[0] != '\0') {
 		op = nft_invflags2cmp(fw->invflags, EBT_ILOGICALOUT);
 		add_logical_outiface(h, r, fw->logical_out, op);
-	}
-
-	if (fw->bitmask & EBT_ISOURCE) {
-		op = nft_invflags2cmp(fw->invflags, EBT_ISOURCE);
-		add_addr(h, r, NFT_PAYLOAD_LL_HEADER,
-			 offsetof(struct ethhdr, h_source),
-			 fw->sourcemac, fw->sourcemsk, ETH_ALEN, op);
-	}
-
-	if (fw->bitmask & EBT_IDEST) {
-		op = nft_invflags2cmp(fw->invflags, EBT_IDEST);
-		add_addr(h, r, NFT_PAYLOAD_LL_HEADER,
-			 offsetof(struct ethhdr, h_dest),
-			 fw->destmac, fw->destmsk, ETH_ALEN, op);
 	}
 
 	if ((fw->bitmask & EBT_NOPROTO) == 0) {
