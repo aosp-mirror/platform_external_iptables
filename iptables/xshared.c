@@ -1982,6 +1982,9 @@ void ipv6_post_parse(int command, struct iptables_command_state *cs,
 	if (args->goto_set)
 		cs->fw6.ipv6.flags |= IP6T_F_GOTO;
 
+	/* nft-variants use cs->counters, legacy uses cs->fw6.counters */
+	cs->counters.pcnt = args->pcnt_cnt;
+	cs->counters.bcnt = args->bcnt_cnt;
 	cs->fw6.counters.pcnt = args->pcnt_cnt;
 	cs->fw6.counters.bcnt = args->bcnt_cnt;
 
