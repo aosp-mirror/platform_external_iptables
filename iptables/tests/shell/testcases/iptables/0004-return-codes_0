@@ -58,6 +58,7 @@ cmd 1 "$ENOENT" -Z bar
 cmd 0 -E foo bar
 cmd 1 "$EEXIST_F" -E foo bar
 cmd 1 "$ENOENT" -E foo bar2
+cmd 1 "$ENOENT" -L foo
 cmd 0 -N foo2
 cmd 1 "$EEXIST_F" -E foo2 bar
 

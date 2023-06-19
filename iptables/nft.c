@@ -3860,7 +3860,7 @@ bool nft_is_table_compatible(struct nft_handle *h,
 	if (chain) {
 		struct nft_chain *c = nft_chain_find(h, table, chain);
 
-		return c && !nft_is_chain_compatible(c, h);
+		return !c || !nft_is_chain_compatible(c, h);
 	}
 
 	return !nft_chain_foreach(h, table, nft_is_chain_compatible, h);
