@@ -35,13 +35,14 @@
 			| FMT_NUMERIC | FMT_NOTABLE)
 #define FMT(tab,notab) ((format) & FMT_NOTABLE ? (notab) : (tab))
 
+struct nft_rule_ctx;
 struct xtables_args;
 struct nft_handle;
 struct xt_xlate;
 
 struct nft_family_ops {
-	int (*add)(struct nft_handle *h, struct nftnl_rule *r,
-		   struct iptables_command_state *cs);
+	int (*add)(struct nft_handle *h, struct nft_rule_ctx *ctx,
+		   struct nftnl_rule *r, struct iptables_command_state *cs);
 	bool (*is_same)(const struct iptables_command_state *cs_a,
 			const struct iptables_command_state *cs_b);
 	void (*print_payload)(struct nftnl_expr *e,

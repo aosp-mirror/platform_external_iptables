@@ -25,8 +25,8 @@
 #include "nft.h"
 #include "nft-shared.h"
 
-static int nft_ipv6_add(struct nft_handle *h, struct nftnl_rule *r,
-			struct iptables_command_state *cs)
+static int nft_ipv6_add(struct nft_handle *h, struct nft_rule_ctx *ctx,
+			struct nftnl_rule *r, struct iptables_command_state *cs)
 {
 	struct xtables_rule_match *matchp;
 	uint32_t op;
@@ -70,7 +70,7 @@ static int nft_ipv6_add(struct nft_handle *h, struct nftnl_rule *r,
 	add_compat(r, cs->fw6.ipv6.proto, cs->fw6.ipv6.invflags & XT_INV_PROTO);
 
 	for (matchp = cs->matches; matchp; matchp = matchp->next) {
-		ret = add_match(h, r, matchp->match->m);
+		ret = add_match(h, ctx, r, matchp->match->m);
 		if (ret < 0)
 			return ret;
 	}

@@ -1154,7 +1154,8 @@ gen_lookup(uint32_t sreg, const char *set_name, uint32_t set_id, uint32_t flags)
 #define NFT_DATATYPE_ETHERADDR	9
 
 static int __add_nft_among(struct nft_handle *h, const char *table,
-			   struct nftnl_rule *r, struct nft_among_pair *pairs,
+			   struct nft_rule_ctx *ctx, struct nftnl_rule *r,
+			   struct nft_among_pair *pairs,
 			   int cnt, bool dst, bool inv, bool ip)
 {
 	uint32_t set_id, type = NFT_DATATYPE_ETHERADDR, len = ETH_ALEN;
@@ -1235,7 +1236,7 @@ static int __add_nft_among(struct nft_handle *h, const char *table,
 	return 0;
 }
 
-static int add_nft_among(struct nft_handle *h,
+static int add_nft_among(struct nft_handle *h, struct nft_rule_ctx *ctx,
 			 struct nftnl_rule *r, struct xt_entry_match *m)
 {
 	struct nft_among_data *data = (struct nft_among_data *)m->data;
@@ -1251,10 +1252,10 @@ static int add_nft_among(struct nft_handle *h,
 	}
 
 	if (data->src.cnt)
-		__add_nft_among(h, table, r, data->pairs, data->src.cnt,
+		__add_nft_among(h, table, ctx, r, data->pairs, data->src.cnt,
 				false, data->src.inv, data->src.ip);
 	if (data->dst.cnt)
-		__add_nft_among(h, table, r, data->pairs + data->src.cnt,
+		__add_nft_among(h, table, ctx, r, data->pairs + data->src.cnt,
 				data->dst.cnt, true, data->dst.inv,
 				data->dst.ip);
 	return 0;
@@ -1462,22 +1463,30 @@ static int add_nft_mark(struct nft_handle *h, struct nftnl_rule *r,
 	return 0;
 }
 
-int add_match(struct nft_handle *h,
+int add_match(struct nft_handle *h, struct nft_rule_ctx *ctx,
 	      struct nftnl_rule *r, struct xt_entry_match *m)
 {
 	struct nftnl_expr *expr;
 	int ret;
 
-	if (!strcmp(m->u.user.name, "limit"))
-		return add_nft_limit(r, m);
-	else if (!strcmp(m->u.user.name, "among"))
-		return add_nft_among(h, r, m);
-	else if (!strcmp(m->u.user.name, "udp"))
-		return add_nft_udp(h, r, m);
-	else if (!strcmp(m->u.user.name, "tcp"))
-		return add_nft_tcp(h, r, m);
-	else if (!strcmp(m->u.user.name, "mark"))
-		return add_nft_mark(h, r, m);
+	switch (ctx->command) {
+	case NFT_COMPAT_RULE_APPEND:
+	case NFT_COMPAT_RULE_INSERT:
+	case NFT_COMPAT_RULE_REPLACE:
+		if (!strcmp(m->u.user.name, "limit"))
+			return add_nft_limit(r, m);
+		else if (!strcmp(m->u.user.name, "among"))
+			return add_nft_among(h, ctx, r, m);
+		else if (!strcmp(m->u.user.name, "udp"))
+			return add_nft_udp(h, r, m);
+		else if (!strcmp(m->u.user.name, "tcp"))
+			return add_nft_tcp(h, r, m);
+		else if (!strcmp(m->u.user.name, "mark"))
+			return add_nft_mark(h, r, m);
+		break;
+	default:
+		break;
+	}
 
 	expr = nftnl_expr_alloc("match");
 	if (expr == NULL)
@@ -1705,7 +1714,8 @@ void add_compat(struct nftnl_rule *r, uint32_t proto, bool inv)
 }
 
 struct nftnl_rule *
-nft_rule_new(struct nft_handle *h, const char *chain, const char *table,
+nft_rule_new(struct nft_handle *h, struct nft_rule_ctx *ctx,
+	     const char *chain, const char *table,
 	     struct iptables_command_state *cs)
 {
 	struct nftnl_rule *r;
@@ -1718,7 +1728,7 @@ nft_rule_new(struct nft_handle *h, const char *chain, const char *table,
 	nftnl_rule_set_str(r, NFTNL_RULE_TABLE, table);
 	nftnl_rule_set_str(r, NFTNL_RULE_CHAIN, chain);
 
-	if (h->ops->add(h, r, cs) < 0)
+	if (h->ops->add(h, ctx, r, cs) < 0)
 		goto err;
 
 	return r;
@@ -2878,6 +2888,9 @@ int nft_rule_zero_counters(struct nft_handle *h, const char *chain,
 {
 	struct iptables_command_state cs = {};
 	struct nftnl_rule *r, *new_rule;
+	struct nft_rule_ctx ctx = {
+		.command = NFT_COMPAT_RULE_APPEND,
+	};
 	struct nft_chain *c;
 	int ret = 0;
 
@@ -2896,7 +2909,7 @@ int nft_rule_zero_counters(struct nft_handle *h, const char *chain,
 
 	h->ops->rule_to_cs(h, r, &cs);
 	cs.counters.pcnt = cs.counters.bcnt = 0;
-	new_rule = nft_rule_new(h, chain, table, &cs);
+	new_rule = nft_rule_new(h, &ctx, chain, table, &cs);
 	h->ops->clear_cs(&cs);
 
 	if (!new_rule)
@@ -3274,6 +3287,9 @@ static int ebt_add_policy_rule(struct nftnl_chain *c, void *data)
 		.eb.bitmask = EBT_NOPROTO,
 	};
 	struct nftnl_udata_buf *udata;
+	struct nft_rule_ctx ctx = {
+		.command	= NFT_COMPAT_RULE_APPEND,
+	};
 	struct nft_handle *h = data;
 	struct nftnl_rule *r;
 	const char *pname;
@@ -3301,7 +3317,7 @@ static int ebt_add_policy_rule(struct nftnl_chain *c, void *data)
 
 	command_jump(&cs, pname);
 
-	r = nft_rule_new(h, nftnl_chain_get_str(c, NFTNL_CHAIN_NAME),
+	r = nft_rule_new(h, &ctx, nftnl_chain_get_str(c, NFTNL_CHAIN_NAME),
 			 nftnl_chain_get_str(c, NFTNL_CHAIN_TABLE), &cs);
 	ebt_cs_clean(&cs);
 

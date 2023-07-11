@@ -168,9 +168,11 @@ struct nftnl_set *nft_set_batch_lookup_byid(struct nft_handle *h,
 /*
  * Operations with rule-set.
  */
-struct nftnl_rule;
+struct nft_rule_ctx {
+	int			command;
+};
 
-struct nftnl_rule *nft_rule_new(struct nft_handle *h, const char *chain, const char *table, struct iptables_command_state *cs);
+struct nftnl_rule *nft_rule_new(struct nft_handle *h, struct nft_rule_ctx *rule, const char *chain, const char *table, struct iptables_command_state *cs);
 int nft_rule_append(struct nft_handle *h, const char *chain, const char *table, struct nftnl_rule *r, struct nftnl_rule *ref, bool verbose);
 int nft_rule_insert(struct nft_handle *h, const char *chain, const char *table, struct nftnl_rule *r, int rulenum, bool verbose);
 int nft_rule_check(struct nft_handle *h, const char *chain, const char *table, struct nftnl_rule *r, bool verbose);
@@ -188,7 +190,8 @@ int nft_rule_zero_counters(struct nft_handle *h, const char *chain, const char *
  */
 int add_counters(struct nftnl_rule *r, uint64_t packets, uint64_t bytes);
 int add_verdict(struct nftnl_rule *r, int verdict);
-int add_match(struct nft_handle *h, struct nftnl_rule *r, struct xt_entry_match *m);
+int add_match(struct nft_handle *h, struct nft_rule_ctx *ctx,
+	      struct nftnl_rule *r, struct xt_entry_match *m);
 int add_target(struct nftnl_rule *r, struct xt_entry_target *t);
 int add_jumpto(struct nftnl_rule *r, const char *name, int verdict);
 int add_action(struct nftnl_rule *r, struct iptables_command_state *cs, bool goto_set);

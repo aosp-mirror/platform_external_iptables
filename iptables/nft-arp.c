@@ -40,8 +40,8 @@ static bool need_devaddr(struct arpt_devaddr_info *info)
 	return false;
 }
 
-static int nft_arp_add(struct nft_handle *h, struct nftnl_rule *r,
-		       struct iptables_command_state *cs)
+static int nft_arp_add(struct nft_handle *h, struct nft_rule_ctx *ctx,
+		       struct nftnl_rule *r, struct iptables_command_state *cs)
 {
 	struct arpt_entry *fw = &cs->arp;
 	uint32_t op;

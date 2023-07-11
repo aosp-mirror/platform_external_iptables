@@ -138,7 +138,8 @@ static int _add_action(struct nftnl_rule *r, struct iptables_command_state *cs)
 
 static int
 nft_bridge_add_match(struct nft_handle *h, const struct ebt_entry *fw,
-		     struct nftnl_rule *r, struct xt_entry_match *m)
+		     struct nft_rule_ctx *ctx, struct nftnl_rule *r,
+		     struct xt_entry_match *m)
 {
 	if (!strcmp(m->u.user.name, "802_3") && !(fw->bitmask & EBT_802_3))
 		xtables_error(PARAMETER_PROBLEM,
@@ -152,10 +153,10 @@ nft_bridge_add_match(struct nft_handle *h, const struct ebt_entry *fw,
 		xtables_error(PARAMETER_PROBLEM,
 			      "For IPv6 filtering the protocol must be specified as IPv6.");
 
-	return add_match(h, r, m);
+	return add_match(h, ctx, r, m);
 }
 
-static int nft_bridge_add(struct nft_handle *h,
+static int nft_bridge_add(struct nft_handle *h, struct nft_rule_ctx *ctx,
 			  struct nftnl_rule *r,
 			  struct iptables_command_state *cs)
 {
@@ -217,7 +218,7 @@ static int nft_bridge_add(struct nft_handle *h,
 
 	for (iter = cs->match_list; iter; iter = iter->next) {
 		if (iter->ismatch) {
-			if (nft_bridge_add_match(h, fw, r, iter->u.match->m))
+			if (nft_bridge_add_match(h, fw, ctx, r, iter->u.match->m))
 				break;
 		} else {
 			if (add_target(r, iter->u.watcher->t))
