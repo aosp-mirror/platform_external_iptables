@@ -223,8 +223,6 @@ ip46tables_restore_main(const struct iptables_restore_cb *cb,
 				}
 				continue;
 			}
-			if (handle)
-				cb->ops->free(handle);
 
 			handle = create_handle(cb, table);
 			if (noflush == 0) {
