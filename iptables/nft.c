@@ -1154,8 +1154,7 @@ gen_lookup(uint32_t sreg, const char *set_name, uint32_t set_id, uint32_t flags)
 #define NFT_DATATYPE_ETHERADDR	9
 
 static int __add_nft_among(struct nft_handle *h, const char *table,
-			   struct nft_rule_ctx *ctx, struct nftnl_rule *r,
-			   struct nft_among_pair *pairs,
+			   struct nftnl_rule *r, struct nft_among_pair *pairs,
 			   int cnt, bool dst, bool inv, bool ip)
 {
 	uint32_t set_id, type = NFT_DATATYPE_ETHERADDR, len = ETH_ALEN;
@@ -1236,7 +1235,7 @@ static int __add_nft_among(struct nft_handle *h, const char *table,
 	return 0;
 }
 
-static int add_nft_among(struct nft_handle *h, struct nft_rule_ctx *ctx,
+static int add_nft_among(struct nft_handle *h,
 			 struct nftnl_rule *r, struct xt_entry_match *m)
 {
 	struct nft_among_data *data = (struct nft_among_data *)m->data;
@@ -1252,10 +1251,10 @@ static int add_nft_among(struct nft_handle *h, struct nft_rule_ctx *ctx,
 	}
 
 	if (data->src.cnt)
-		__add_nft_among(h, table, ctx, r, data->pairs, data->src.cnt,
+		__add_nft_among(h, table, r, data->pairs, data->src.cnt,
 				false, data->src.inv, data->src.ip);
 	if (data->dst.cnt)
-		__add_nft_among(h, table, ctx, r, data->pairs + data->src.cnt,
+		__add_nft_among(h, table, r, data->pairs + data->src.cnt,
 				data->dst.cnt, true, data->dst.inv,
 				data->dst.ip);
 	return 0;
@@ -1476,7 +1475,7 @@ int add_match(struct nft_handle *h, struct nft_rule_ctx *ctx,
 		if (!strcmp(m->u.user.name, "limit"))
 			return add_nft_limit(r, m);
 		else if (!strcmp(m->u.user.name, "among"))
-			return add_nft_among(h, ctx, r, m);
+			return add_nft_among(h, r, m);
 		else if (!strcmp(m->u.user.name, "udp"))
 			return add_nft_udp(h, r, m);
 		else if (!strcmp(m->u.user.name, "tcp"))
