@@ -2975,6 +2975,12 @@ static void nft_compat_setelem_batch_add(struct nft_handle *h, uint16_t type,
 			break;
 	}
 	nftnl_set_elems_iter_destroy(iter);
+
+	if (h->verbose > 1) {
+		fprintf(stdout, "set ");
+		nftnl_set_fprintf(stdout, set, 0, 0);
+		fprintf(stdout, "\n");
+	}
 }
 
 static void nft_compat_chain_batch_add(struct nft_handle *h, uint16_t type,

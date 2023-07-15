@@ -417,6 +417,7 @@ static int set_fetch_elem_cb(struct nftnl_set *s, void *data)
 	char buf[MNL_SOCKET_BUFFER_SIZE];
 	struct nft_handle *h = data;
 	struct nlmsghdr *nlh;
+	int ret;
 
 	if (set_has_elements(s))
 		return 0;
@@ -425,7 +426,14 @@ static int set_fetch_elem_cb(struct nftnl_set *s, void *data)
 				    NLM_F_DUMP, h->seq);
 	nftnl_set_elems_nlmsg_build_payload(nlh, s);
 
-	return mnl_talk(h, nlh, set_elem_cb, s);
+	ret = mnl_talk(h, nlh, set_elem_cb, s);
+
+	if (!ret && h->verbose > 1) {
+		fprintf(stdout, "set ");
+		nftnl_set_fprintf(stdout, s, 0, 0);
+		fprintf(stdout, "\n");
+	}
+	return ret;
 }
 
 static int fetch_set_cache(struct nft_handle *h,
