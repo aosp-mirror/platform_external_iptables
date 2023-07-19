@@ -340,7 +340,7 @@ bridge filter OUTPUT 10 9
 # - lines with bytecode (starting with '  [')
 # - empty lines (so printed diff is not a complete mess)
 filter() {
-	awk '/^(  \[|$)/{print}'
+	awk '/^table /{exit} /^(  \[|$)/{print}'
 }
 
 diff -u -Z <(filter <<< "$EXPECT") <(nft --debug=netlink list ruleset | filter)
