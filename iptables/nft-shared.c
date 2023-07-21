@@ -381,6 +381,7 @@ bool compare_matches(struct xtables_rule_match *mt1,
 	for (mp1 = mt1, mp2 = mt2; mp1 && mp2; mp1 = mp1->next, mp2 = mp2->next) {
 		struct xt_entry_match *m1 = mp1->match->m;
 		struct xt_entry_match *m2 = mp2->match->m;
+		size_t cmplen = mp1->match->userspacesize;
 
 		if (strcmp(m1->u.user.name, m2->u.user.name) != 0) {
 			DEBUGP("mismatching match name\n");
@@ -392,8 +393,10 @@ bool compare_matches(struct xtables_rule_match *mt1,
 			return false;
 		}
 
-		if (memcmp(m1->data, m2->data,
-			   mp1->match->userspacesize) != 0) {
+		if (!strcmp(m1->u.user.name, "among"))
+			cmplen = m1->u.match_size - sizeof(*m1);
+
+		if (memcmp(m1->data, m2->data, cmplen) != 0) {
 			DEBUGP("mismatch match data\n");
 			return false;
 		}
