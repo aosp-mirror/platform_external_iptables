@@ -1511,6 +1511,7 @@ void do_parse(int argc, char *argv[],
 					   "-%c requires old-chain-name and "
 					   "new-chain-name",
 					    cmd2char(CMD_RENAME_CHAIN));
+			assert_valid_chain_name(p->newname);
 			break;
 
 		case 'P':
