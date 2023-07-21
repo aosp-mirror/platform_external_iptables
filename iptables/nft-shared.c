@@ -398,6 +398,8 @@ bool compare_matches(struct xtables_rule_match *mt1,
 
 		if (memcmp(m1->data, m2->data, cmplen) != 0) {
 			DEBUGP("mismatch match data\n");
+			DEBUG_HEXDUMP("m1->data", m1->data, cmplen);
+			DEBUG_HEXDUMP("m2->data", m2->data, cmplen);
 			return false;
 		}
 	}

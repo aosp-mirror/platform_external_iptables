@@ -12,8 +12,15 @@
 
 #ifdef DEBUG
 #define DEBUGP(x, args...) fprintf(stderr, x, ## args)
+#define DEBUG_HEXDUMP(pfx, data, len)					\
+	for (int __i = 0; __i < (len); __i++) {				\
+		if (__i % 16 == 0)					\
+			printf("%s%s: ", __i ? "\n" : "", (pfx));	\
+		printf("%02x ", ((const unsigned char *)data)[__i]);	\
+	} printf("\n")
 #else
 #define DEBUGP(x, args...)
+#define DEBUG_HEXDUMP(pfx, data, len)
 #endif
 
 enum {
