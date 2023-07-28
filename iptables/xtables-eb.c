@@ -42,6 +42,10 @@
 #include "nft.h"
 #include "nft-bridge.h"
 
+/* from linux/netfilter_bridge/ebtables.h */
+#define EBT_TABLE_MAXNAMELEN 32
+#define EBT_CHAIN_MAXNAMELEN EBT_TABLE_MAXNAMELEN
+
 /*
  * From include/ebtables_u.h
  */
@@ -72,6 +76,26 @@ static int ebt_check_inverse2(const char option[], int argc, char **argv)
 		return 1;
 	}
 	return ebt_invert;
+}
+
+/* XXX: merge with assert_valid_chain_name()? */
+static void ebt_assert_valid_chain_name(const char *chainname)
+{
+	if (strlen(chainname) >= EBT_CHAIN_MAXNAMELEN)
+		xtables_error(PARAMETER_PROBLEM,
+			      "Chain name length can't exceed %d",
+			      EBT_CHAIN_MAXNAMELEN - 1);
+
+	if (*chainname == '-' || *chainname == '!')
+		xtables_error(PARAMETER_PROBLEM, "No chain name specified");
+
+	if (xtables_find_target(chainname, XTF_TRY_LOAD))
+		xtables_error(PARAMETER_PROBLEM,
+			      "Target with name %s exists", chainname);
+
+	if (strchr(chainname, ' ') != NULL)
+		xtables_error(PARAMETER_PROBLEM,
+			      "Use of ' ' not allowed in chain names");
 }
 
 /*
@@ -751,6 +775,7 @@ int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table,
 			flags |= OPT_COMMAND;
 
 			if (c == 'N') {
+				ebt_assert_valid_chain_name(chain);
 				ret = nft_cmd_chain_user_add(h, chain, *table);
 				break;
 			} else if (c == 'X') {
@@ -764,14 +789,12 @@ int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table,
 			}
 
 			if (c == 'E') {
-				if (optind >= argc)
+				if (!xs_has_arg(argc, argv))
 					xtables_error(PARAMETER_PROBLEM, "No new chain name specified");
 				else if (optind < argc - 1)
 					xtables_error(PARAMETER_PROBLEM, "No extra options allowed with -E");
-				else if (strlen(argv[optind]) >= NFT_CHAIN_MAXNAMELEN)
-					xtables_error(PARAMETER_PROBLEM, "Chain name length can't exceed %d"" characters", NFT_CHAIN_MAXNAMELEN - 1);
-				else if (strchr(argv[optind], ' ') != NULL)
-					xtables_error(PARAMETER_PROBLEM, "Use of ' ' not allowed in chain names");
+
+				ebt_assert_valid_chain_name(argv[optind]);
 
 				errno = 0;
 				ret = nft_cmd_chain_user_rename(h, chain, *table,
