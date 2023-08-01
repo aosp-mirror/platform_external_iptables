@@ -307,8 +307,8 @@ false, evaluation will stop.
 This specifies the target of the rule; i.e., what to do if the packet
 matches it.  The target can be a user-defined chain (other than the
 one this rule is in), one of the special builtin targets which decide
-the fate of the packet immediately, or an extension (see \fBEXTENSIONS\fP
-below).  If this
+the fate of the packet immediately, or an extension (see \fBMATCH AND TARGET
+EXTENSIONS\fP below).  If this
 option is omitted in a rule (and \fB\-g\fP
 is not used), then matching the rule will have no
 effect on the packet's fate, but the counters on the rule will be
