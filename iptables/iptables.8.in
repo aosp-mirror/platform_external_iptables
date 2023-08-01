@@ -316,7 +316,7 @@ incremented.
 .TP
 \fB\-g\fP, \fB\-\-goto\fP \fIchain\fP
 This specifies that the processing should continue in a user
-specified chain. Unlike the \-\-jump option return will not continue
+specified chain. Unlike with the \-\-jump option, \fBRETURN\fP will not continue
 processing in this chain but instead in the chain that called us via
 \-\-jump.
 .TP
