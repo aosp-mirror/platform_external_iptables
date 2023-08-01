@@ -67,9 +67,10 @@ the program will exit if the lock cannot be obtained.  This option will
 make the program wait (indefinitely or for optional \fIseconds\fP) until
 the exclusive lock can be obtained.
 .TP
-\fB\-M\fP, \fB\-\-modprobe\fP \fImodprobe_program\fP
-Specify the path to the modprobe program. By default, iptables-restore will
-inspect /proc/sys/kernel/modprobe to determine the executable's path.
+\fB\-M\fP, \fB\-\-modprobe\fP \fImodprobe\fP
+Specify the path to the modprobe(8) program. By default,
+iptables-restore will inspect \fI/proc/sys/kernel/modprobe\fP to
+determine the executable's path.
 .TP
 \fB\-T\fP, \fB\-\-table\fP \fIname\fP
 Restore only the named table even if the input stream contains other ones.
