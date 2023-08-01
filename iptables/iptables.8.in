@@ -410,9 +410,12 @@ the default setting.
 iptables can use extended packet matching and target modules.
 A list of these is available in the \fBiptables\-extensions\fP(8) manpage.
 .SH DIAGNOSTICS
-Various error messages are printed to standard error.  The exit code
-is 0 for correct functioning.  Errors which appear to be caused by
-invalid or abused command line parameters cause an exit code of 2, and
+Various error messages are printed to standard error.  The exit code is 0 for
+correct functioning.  Errors which appear to be caused by invalid or abused
+command line parameters cause an exit code of 2. Errors which indicate an
+incompatibility between kernel and user space cause an exit code of 3. Errors
+which indicate a resource problem, such as a busy lock, failing memory
+allocation or error messages from kernel cause an exit code of 4. Finally,
 other errors cause an exit code of 1.
 .SH BUGS
 Bugs?  What's this? ;-)
