@@ -244,13 +244,13 @@ add, delete, insert, replace and append commands).
 \fB\-4\fP, \fB\-\-ipv4\fP
 This option has no effect in iptables and iptables-restore.
 If a rule using the \fB\-4\fP option is inserted with (and only with)
-ip6tables-restore, it will be silently ignored. Any other uses will throw an
+\fBip6tables\-restore\fP, it will be silently ignored. Any other uses will throw an
 error. This option allows IPv4 and IPv6 rules in a single rule file
 for use with both iptables-restore and ip6tables-restore.
 .TP
 \fB\-6\fP, \fB\-\-ipv6\fP
 If a rule using the \fB\-6\fP option is inserted with (and only with)
-iptables-restore, it will be silently ignored. Any other uses will throw an
+\fBiptables\-restore\fP, it will be silently ignored. Any other uses will throw an
 error. This option allows IPv4 and IPv6 rules in a single rule file
 for use with both iptables-restore and ip6tables-restore.
 This option has no effect in ip6tables and ip6tables-restore.
@@ -260,7 +260,7 @@ The protocol of the rule or of the packet to check.
 The specified protocol can be one of \fBtcp\fP, \fBudp\fP, \fBudplite\fP,
 \fBicmp\fP, \fBicmpv6\fP, \fBesp\fP, \fBah\fP, \fBsctp\fP, \fBmh\fP or the special keyword "\fBall\fP",
 or it can be a numeric value, representing one of these protocols or a
-different one.  A protocol name from /etc/protocols is also allowed.
+different one.  A protocol name from \fI/etc/protocols\fP is also allowed.
 A "!" argument before the protocol inverts the
 test.  The number zero is equivalent to \fBall\fP. "\fBall\fP"
 will match with all protocols and is taken as default when this
