@@ -419,7 +419,7 @@ allocation or error messages from kernel cause an exit code of 4. Finally,
 other errors cause an exit code of 1.
 .SH BUGS
 Bugs?  What's this? ;-)
-Well, you might want to have a look at http://bugzilla.netfilter.org/
+Well, you might want to have a look at https://bugzilla.netfilter.org/
 \fBiptables\fP will exit immediately with an error code of 111 if it finds
 that it was called as a setuid-to-root program.
 iptables cannot be used safely in this manner because it trusts
@@ -463,7 +463,7 @@ not in the standard distribution,
 and the netfilter-hacking-HOWTO details the netfilter internals.
 .br
 See
-.BR "http://www.netfilter.org/" .
+.BR "https://www.netfilter.org/" .
 .SH AUTHORS
 Rusty Russell originally wrote iptables, in early consultation with Michael
 Neuling.
