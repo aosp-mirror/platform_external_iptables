@@ -25,11 +25,11 @@ ip6tables-restore \(em Restore IPv6 Tables
 .SH SYNOPSIS
 \fBiptables\-restore\fP [\fB\-chntvV\fP] [\fB\-w\fP \fIseconds\fP]
 [\fB\-M\fP \fImodprobe\fP] [\fB\-T\fP \fIname\fP]
-[\fBfile\fP]
+[\fIfile\fP]
 .P
 \fBip6tables\-restore\fP [\fB\-chntvV\fP] [\fB\-w\fP \fIseconds\fP]
 [\fB\-M\fP \fImodprobe\fP] [\fB\-T\fP \fIname\fP]
-[\fBfile\fP]
+[\fIfile\fP]
 .SH DESCRIPTION
 .PP
 .B iptables-restore
