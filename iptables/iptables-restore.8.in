@@ -40,13 +40,13 @@ are used to restore IP and IPv6 Tables from data specified on STDIN or in
 specify \fIfile\fP as an argument.
 .TP
 \fB\-c\fR, \fB\-\-counters\fR
-restore the values of all packet and byte counters
+Restore the values of all packet and byte counters.
 .TP
 \fB\-h\fP, \fB\-\-help\fP
 Print a short option summary.
 .TP
 \fB\-n\fR, \fB\-\-noflush\fR
-don't flush the previous contents of the table. If not specified,
+Don't flush the previous contents of the table. If not specified,
 both commands flush (delete) all previous contents of the respective table.
 .TP
 \fB\-t\fP, \fB\-\-test\fP
