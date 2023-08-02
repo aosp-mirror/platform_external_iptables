@@ -36,9 +36,10 @@ and
 are used to dump the contents of IP or IPv6 Table in easily parseable format
 either to STDOUT or to a specified file.
 .TP
-\fB\-M\fR, \fB\-\-modprobe\fR \fImodprobe_program\fP
-Specify the path to the modprobe program. By default, iptables-save will
-inspect /proc/sys/kernel/modprobe to determine the executable's path.
+\fB\-M\fR, \fB\-\-modprobe\fR \fImodprobe\fP
+Specify the path to the modprobe(8) program. By default,
+iptables-save will inspect \fI/proc/sys/kernel/modprobe\fP to determine
+the executable's path.
 .TP
 \fB\-f\fR, \fB\-\-file\fR \fIfilename\fP
 Specify a filename to log the output to. If not specified, iptables-save
