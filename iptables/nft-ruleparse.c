@@ -146,11 +146,6 @@ static bool nft_parse_meta_set_common(struct nft_xt_ctx* ctx,
 		return false;
 	}
 
-	if (sreg->immediate.data[0] == 0) {
-		ctx->errmsg = "meta sreg immediate is 0";
-		return false;
-	}
-
 	return true;
 }
 
@@ -159,7 +154,6 @@ static void nft_parse_meta_set(struct nft_xt_ctx *ctx,
 {
 	struct nft_xt_ctx_reg *sreg;
 	enum nft_registers sregnum;
-	const char *targname;
 
 	sregnum = nftnl_expr_get_u32(e, NFTNL_EXPR_META_SREG);
 	sreg = nft_xt_ctx_get_sreg(ctx, sregnum);
@@ -171,21 +165,43 @@ static void nft_parse_meta_set(struct nft_xt_ctx *ctx,
 		if (!nft_parse_meta_set_common(ctx, sreg))
 			return;
 
-		targname = "TRACE";
+		if (sreg->immediate.data[0] == 0) {
+			ctx->errmsg = "meta sreg immediate is 0";
+			return;
+		}
+
+		if (!nft_create_target(ctx, "TRACE"))
+			ctx->errmsg = "target TRACE not found";
 		break;
 	case NFT_META_BRI_BROUTE:
 		if (!nft_parse_meta_set_common(ctx, sreg))
 			return;
 
 		ctx->cs->jumpto = "DROP";
-		return;
+		break;
+	case NFT_META_MARK: {
+		struct xt_mark_tginfo2 *mt;
+
+		if (!nft_parse_meta_set_common(ctx, sreg))
+			return;
+
+		mt = nft_create_target(ctx, "MARK");
+		if (!mt) {
+			ctx->errmsg = "target MARK not found";
+			return;
+		}
+
+		mt->mark = sreg->immediate.data[0];
+		if (sreg->bitwise.set)
+			mt->mask = sreg->bitwise.mask[0];
+		else
+			mt->mask = ~0u;
+		break;
+	}
 	default:
 		ctx->errmsg = "meta sreg key not supported";
-		return;
+		break;
 	}
-
-	if (!nft_create_target(ctx, targname))
-		ctx->errmsg = "target TRACE not found";
 }
 
 static void nft_parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
