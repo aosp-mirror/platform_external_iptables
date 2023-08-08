@@ -1318,15 +1318,9 @@ retry:
 		return NULL;
 	}
 
-	sockfd = socket(TC_AF, SOCK_RAW, IPPROTO_RAW);
+	sockfd = socket(TC_AF, SOCK_RAW | SOCK_CLOEXEC, IPPROTO_RAW);
 	if (sockfd < 0)
 		return NULL;
-
-	if (fcntl(sockfd, F_SETFD, FD_CLOEXEC) == -1) {
-		fprintf(stderr, "Could not set close on exec: %s\n",
-			strerror(errno));
-		abort();
-	}
 
 	s = sizeof(info);
 

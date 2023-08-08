@@ -481,14 +481,9 @@ static char *get_modprobe(void)
 	char *ret;
 	int count;
 
-	procfile = open(PROC_SYS_MODPROBE, O_RDONLY);
+	procfile = open(PROC_SYS_MODPROBE, O_RDONLY | O_CLOEXEC);
 	if (procfile < 0)
 		return NULL;
-	if (fcntl(procfile, F_SETFD, FD_CLOEXEC) == -1) {
-		fprintf(stderr, "Could not set close on exec: %s\n",
-			strerror(errno));
-		exit(1);
-	}
 
 	ret = malloc(PATH_MAX);
 	if (ret) {
@@ -1023,7 +1018,7 @@ int xtables_compatible_revision(const char *name, uint8_t revision, int opt)
 	socklen_t s = sizeof(rev);
 	int max_rev, sockfd;
 
-	sockfd = socket(afinfo->family, SOCK_RAW, IPPROTO_RAW);
+	sockfd = socket(afinfo->family, SOCK_RAW | SOCK_CLOEXEC, IPPROTO_RAW);
 	if (sockfd < 0) {
 		if (errno == EPERM) {
 			/* revision 0 is always supported. */
@@ -1035,12 +1030,6 @@ int xtables_compatible_revision(const char *name, uint8_t revision, int opt)
 			return 1;
 		}
 		fprintf(stderr, "Could not open socket to kernel: %s\n",
-			strerror(errno));
-		exit(1);
-	}
-
-	if (fcntl(sockfd, F_SETFD, FD_CLOEXEC) == -1) {
-		fprintf(stderr, "Could not set close on exec: %s\n",
 			strerror(errno));
 		exit(1);
 	}
