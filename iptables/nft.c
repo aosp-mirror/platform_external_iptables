@@ -701,6 +701,9 @@ nft_chain_builtin_alloc(int family, const char *tname,
 
 	nftnl_chain_set_str(c, NFTNL_CHAIN_TYPE, chain->type);
 
+	nftnl_chain_set_u64(c, NFTNL_CHAIN_PACKETS, 0);
+	nftnl_chain_set_u64(c, NFTNL_CHAIN_BYTES, 0);
+
 	return c;
 }
 
@@ -961,6 +964,7 @@ static struct nftnl_chain *nft_chain_new(struct nft_handle *h,
 				       int policy,
 				       const struct xt_counters *counters)
 {
+	static const struct xt_counters zero = {};
 	struct nftnl_chain *c;
 	const struct builtin_table *_t;
 	const struct builtin_chain *_c;
@@ -985,12 +989,10 @@ static struct nftnl_chain *nft_chain_new(struct nft_handle *h,
 		return NULL;
 	}
 
-	if (counters) {
-		nftnl_chain_set_u64(c, NFTNL_CHAIN_BYTES,
-					counters->bcnt);
-		nftnl_chain_set_u64(c, NFTNL_CHAIN_PACKETS,
-					counters->pcnt);
-	}
+	if (!counters)
+		counters = &zero;
+	nftnl_chain_set_u64(c, NFTNL_CHAIN_BYTES, counters->bcnt);
+	nftnl_chain_set_u64(c, NFTNL_CHAIN_PACKETS, counters->pcnt);
 
 	return c;
 }
