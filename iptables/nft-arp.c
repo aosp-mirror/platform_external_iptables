@@ -151,7 +151,7 @@ static int nft_arp_add(struct nft_handle *h, struct nft_rule_ctx *ctx,
 		else if (strcmp(cs->jumpto, XTC_LABEL_RETURN) == 0)
 			ret = add_verdict(r, NFT_RETURN);
 		else
-			ret = add_target(h, r, cs->target->t);
+			ret = add_target(r, cs->target->t);
 	} else if (strlen(cs->jumpto) > 0) {
 		/* No goto in arptables */
 		ret = add_jumpto(r, cs->jumpto, NFT_JUMP);

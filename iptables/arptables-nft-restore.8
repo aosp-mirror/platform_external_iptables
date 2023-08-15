@@ -22,23 +22,18 @@
 .SH NAME
 arptables-restore \- Restore ARP Tables (nft-based)
 .SH SYNOPSIS
-.BR arptables\-restore " [" --compat ]
+\fBarptables\-restore
 .SH DESCRIPTION
+.PP
 .B arptables-restore
 is used to restore ARP Tables from data specified on STDIN or
 via a file as first argument.
-Use I/O redirection provided by your shell to read from a file.
-.P
+Use I/O redirection provided by your shell to read from a file
+.TP
 .B arptables-restore
 flushes (deletes) all previous contents of the respective ARP Table.
-.TP
-.BR -C , " --compat"
-Create rules in a mostly compatible way, enabling older versions of
-\fBarptables\-nft\fP to correctly parse the rules received from kernel. This
-mode is only useful in very specific situations and will likely impact packet
-filtering performance.
-
 .SH AUTHOR
 Jesper Dangaard Brouer <brouer@redhat.com>
 .SH SEE ALSO
 \fBarptables\-save\fP(8), \fBarptables\fP(8)
+.PP

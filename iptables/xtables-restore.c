@@ -26,7 +26,6 @@ static int counters, verbose;
 /* Keeping track of external matches and targets.  */
 static const struct option options[] = {
 	{.name = "counters", .has_arg = false, .val = 'c'},
-	{.name = "compat",   .has_arg = false, .val = 'C'},
 	{.name = "verbose",  .has_arg = false, .val = 'v'},
 	{.name = "version",       .has_arg = 0, .val = 'V'},
 	{.name = "test",     .has_arg = false, .val = 't'},
@@ -46,9 +45,8 @@ static const struct option options[] = {
 
 static void print_usage(const char *name, const char *version)
 {
-	fprintf(stderr, "Usage: %s [-c] [-C] [-v] [-V] [-t] [-h] [-n] [-T table] [-M command] [-4] [-6] [file]\n"
+	fprintf(stderr, "Usage: %s [-c] [-v] [-V] [-t] [-h] [-n] [-T table] [-M command] [-4] [-6] [file]\n"
 			"	   [ --counters ]\n"
-			"	   [ --compat ]\n"
 			"	   [ --verbose ]\n"
 			"	   [ --version]\n"
 			"	   [ --test ]\n"
@@ -291,7 +289,6 @@ xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 		.cb = &restore_cb,
 	};
 	bool noflush = false;
-	bool compat = false;
 	struct nft_handle h;
 	int c;
 
@@ -306,16 +303,13 @@ xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 		exit(1);
 	}
 
-	while ((c = getopt_long(argc, argv, "bcCvVthnM:T:wW", options, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "bcvVthnM:T:wW", options, NULL)) != -1) {
 		switch (c) {
 			case 'b':
 				fprintf(stderr, "-b/--binary option is not implemented\n");
 				break;
 			case 'c':
 				counters = 1;
-				break;
-			case 'C':
-				compat = true;
 				break;
 			case 'v':
 				verbose++;
@@ -393,7 +387,6 @@ xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 	}
 	h.noflush = noflush;
 	h.restore = true;
-	h.compat = compat;
 
 	xtables_restore_parse(&h, &p);
 
@@ -424,7 +417,6 @@ static const struct nft_xt_restore_cb ebt_restore_cb = {
 };
 
 static const struct option ebt_restore_options[] = {
-	{.name = "compat",  .has_arg = 0, .val = 'C'},
 	{.name = "noflush", .has_arg = 0, .val = 'n'},
 	{.name = "verbose", .has_arg = 0, .val = 'v'},
 	{ 0 }
@@ -437,16 +429,12 @@ int xtables_eb_restore_main(int argc, char *argv[])
 		.cb = &ebt_restore_cb,
 	};
 	bool noflush = false;
-	bool compat = false;
 	struct nft_handle h;
 	int c;
 
-	while ((c = getopt_long(argc, argv, "Cnv",
+	while ((c = getopt_long(argc, argv, "nv",
 				ebt_restore_options, NULL)) != -1) {
 		switch(c) {
-		case 'C':
-			compat = true;
-			break;
 		case 'n':
 			noflush = 1;
 			break;
@@ -455,7 +443,7 @@ int xtables_eb_restore_main(int argc, char *argv[])
 			break;
 		default:
 			fprintf(stderr,
-				"Usage: ebtables-restore [ --compat ] [ --verbose ] [ --noflush ]\n");
+				"Usage: ebtables-restore [ --verbose ] [ --noflush ]\n");
 			exit(1);
 			break;
 		}
@@ -463,7 +451,6 @@ int xtables_eb_restore_main(int argc, char *argv[])
 
 	nft_init_eb(&h, "ebtables-restore");
 	h.noflush = noflush;
-	h.compat = compat;
 	xtables_restore_parse(&h, &p);
 	nft_fini_eb(&h);
 
@@ -478,37 +465,15 @@ static const struct nft_xt_restore_cb arp_restore_cb = {
 	.chain_restore  = nft_cmd_chain_restore,
 };
 
-static const struct option arp_restore_options[] = {
-	{.name = "compat",  .has_arg = 0, .val = 'C'},
-	{ 0 }
-};
-
 int xtables_arp_restore_main(int argc, char *argv[])
 {
 	struct nft_xt_restore_parse p = {
 		.in = stdin,
 		.cb = &arp_restore_cb,
 	};
-	bool compat = false;
 	struct nft_handle h;
-	int c;
-
-	while ((c = getopt_long(argc, argv, "C",
-				arp_restore_options, NULL)) != -1) {
-		switch(c) {
-		case 'C':
-			compat = true;
-			break;
-		default:
-			fprintf(stderr,
-				"Usage: arptables-restore [ --compat ]\n");
-			exit(1);
-			break;
-		}
-	}
 
 	nft_init_arp(&h, "arptables-restore");
-	h.compat = compat;
 	xtables_restore_parse(&h, &p);
 	nft_fini(&h);
 	xtables_fini();

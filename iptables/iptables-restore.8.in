@@ -23,11 +23,11 @@ iptables-restore \(em Restore IP Tables
 .P
 ip6tables-restore \(em Restore IPv6 Tables
 .SH SYNOPSIS
-\fBiptables\-restore\fP [\fB\-cChntvV\fP] [\fB\-w\fP \fIseconds\fP]
+\fBiptables\-restore\fP [\fB\-chntvV\fP] [\fB\-w\fP \fIseconds\fP]
 [\fB\-M\fP \fImodprobe\fP] [\fB\-T\fP \fIname\fP]
 [\fIfile\fP]
 .P
-\fBip6tables\-restore\fP [\fB\-cChntvV\fP] [\fB\-w\fP \fIseconds\fP]
+\fBip6tables\-restore\fP [\fB\-chntvV\fP] [\fB\-w\fP \fIseconds\fP]
 [\fB\-M\fP \fImodprobe\fP] [\fB\-T\fP \fIname\fP]
 [\fIfile\fP]
 .SH DESCRIPTION
@@ -74,13 +74,6 @@ determine the executable's path.
 .TP
 \fB\-T\fP, \fB\-\-table\fP \fIname\fP
 Restore only the named table even if the input stream contains other ones.
-.TP
-\fB\-C\fP, \fB\-\-compat\fP
-This flag is only relevant with \fBnft\fP-variants and ignored otherwise. If
-set, rules will be created in a mostly compatible way, enabling older versions
-of \fBiptables\-nft\fP to correctly parse the rules received from kernel. This
-mode is only useful in very specific situations and will likely impact packet
-filtering performance.
 .SH BUGS
 None known as of iptables-1.2.1 release
 .SH AUTHORS

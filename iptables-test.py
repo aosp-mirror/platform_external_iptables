@@ -28,8 +28,6 @@ EBTABLES_SAVE = "ebtables-save"
 #IPTABLES_SAVE = ['xtables-save','-4']
 #IP6TABLES_SAVE = ['xtables-save','-6']
 
-COMPAT_ARG = ""
-
 EXTENSIONS_PATH = "extensions"
 LOGFILE="/tmp/iptables-test.log"
 log_file = None
@@ -85,7 +83,7 @@ def run_test(iptables, rule, rule_save, res, filename, lineno, netns):
     '''
     ret = 0
 
-    cmd = iptables + COMPAT_ARG + " -A " + rule
+    cmd = iptables + " -A " + rule
     ret = execute_cmd(cmd, filename, lineno, netns)
 
     #
@@ -320,7 +318,7 @@ def run_test_file_fast(iptables, filename, netns):
 
     # load all rules via iptables_restore
 
-    command = EXECUTABLE + " " + iptables + "-restore" + COMPAT_ARG
+    command = EXECUTABLE + " " + iptables + "-restore"
     if netns:
         command = "ip netns exec " + netns + " " + command
 
@@ -560,8 +558,6 @@ def main():
                         help='Check for missing tests')
     parser.add_argument('-n', '--nftables', action='store_true',
                         help='Test iptables-over-nftables')
-    parser.add_argument('-c', '--nft-compat', action='store_true',
-                        help='Test iptables-over-nftables in compat mode')
     parser.add_argument('-N', '--netns', action='store_const',
                         const='____iptables-container-test',
                         help='Test netnamespace path')
@@ -581,10 +577,8 @@ def main():
         variants.append("legacy")
     if args.nftables:
         variants.append("nft")
-    if args.nft_compat:
-        variants.append("nft_compat")
     if len(variants) == 0:
-        variants = [ "legacy", "nft", "nft_compat" ]
+        variants = [ "legacy", "nft" ]
 
     if os.getuid() != 0:
         print("You need to be root to run this, sorry", file=sys.stderr)
@@ -604,12 +598,7 @@ def main():
     total_tests = 0
     for variant in variants:
         global EXECUTABLE
-        global COMPAT_ARG
-        if variant == "nft_compat":
-            EXECUTABLE = "xtables-nft-multi"
-            COMPAT_ARG = " --compat"
-        else:
-            EXECUTABLE = "xtables-" + variant + "-multi"
+        EXECUTABLE = "xtables-" + variant + "-multi"
 
         test_files = 0
         tests = 0

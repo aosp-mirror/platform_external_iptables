@@ -223,7 +223,6 @@ struct option ebt_original_options[] =
 	{ "init-table"     , no_argument      , 0, 11  },
 	{ "concurrent"     , no_argument      , 0, 13  },
 	{ "check"          , required_argument, 0, 14  },
-	{ "compat"         , no_argument      , 0, 15  },
 	{ 0 }
 };
 
@@ -336,8 +335,7 @@ static void print_help(const struct xtables_target *t,
 "--modprobe -M program         : try to insert modules using this program\n"
 "--concurrent                  : use a file lock to support concurrent scripts\n"
 "--verbose -v                  : verbose mode\n"
-"--version -V                  : print package version\n"
-"--compat                      : create rules compatible for parsing with old binaries\n\n"
+"--version -V                  : print package version\n\n"
 "Environment variable:\n"
 /*ATOMIC_ENV_VARIABLE "          : if set <FILE> (see above) will equal its value"*/
 "\n\n");
@@ -1098,9 +1096,6 @@ print_zero:
 			nft_cmd_table_flush(h, *table, false);
 			return 1;
 		case 13 :
-			break;
-		case 15:
-			h->compat = true;
 			break;
 		case 1 :
 			if (!strcmp(optarg, "!"))
