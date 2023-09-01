@@ -13,11 +13,11 @@ COMMIT
 :foo [0:0]
 EOF
 
-$XT_MULTI iptables-save | grep -q ':foo'
+sleep 1
+$XT_MULTI iptables-save | grep -q ':foo' || exit 1
 nft flush ruleset
 
 echo "COMMIT" >&"${COPROC[1]}"
-sleep 1
-
-[[ -n $COPROC_PID ]] && kill $COPROC_PID
-wait
+# close the pipe to make iptables-restore exit if it didn't error out yet
+eval "exec ${COPROC[1]}>&-"
+wait $COPROC_PID
