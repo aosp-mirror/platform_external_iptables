@@ -51,12 +51,12 @@ static int nft_ipv4_add(struct nft_handle *h, struct nft_rule_ctx *ctx,
 
 	if (cs->fw.ip.iniface[0] != '\0') {
 		op = nft_invflags2cmp(cs->fw.ip.invflags, IPT_INV_VIA_IN);
-		add_iniface(h, r, cs->fw.ip.iniface, op);
+		add_iface(h, r, cs->fw.ip.iniface, NFT_META_IIFNAME, op);
 	}
 
 	if (cs->fw.ip.outiface[0] != '\0') {
 		op = nft_invflags2cmp(cs->fw.ip.invflags, IPT_INV_VIA_OUT);
-		add_outiface(h, r, cs->fw.ip.outiface, op);
+		add_iface(h, r, cs->fw.ip.outiface, NFT_META_OIFNAME, op);
 	}
 
 	if (cs->fw.ip.proto != 0) {

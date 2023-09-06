@@ -49,12 +49,12 @@ static int nft_arp_add(struct nft_handle *h, struct nft_rule_ctx *ctx,
 
 	if (fw->arp.iniface[0] != '\0') {
 		op = nft_invflags2cmp(fw->arp.invflags, IPT_INV_VIA_IN);
-		add_iniface(h, r, fw->arp.iniface, op);
+		add_iface(h, r, fw->arp.iniface, NFT_META_IIFNAME, op);
 	}
 
 	if (fw->arp.outiface[0] != '\0') {
 		op = nft_invflags2cmp(fw->arp.invflags, IPT_INV_VIA_OUT);
-		add_outiface(h, r, fw->arp.outiface, op);
+		add_iface(h, r, fw->arp.outiface, NFT_META_OIFNAME, op);
 	}
 
 	if (fw->arp.arhrd != 0 ||

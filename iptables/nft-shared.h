@@ -95,8 +95,8 @@ void add_cmp_ptr(struct nftnl_rule *r, uint32_t op, void *data, size_t len, uint
 void add_cmp_u8(struct nftnl_rule *r, uint8_t val, uint32_t op, uint8_t sreg);
 void add_cmp_u16(struct nftnl_rule *r, uint16_t val, uint32_t op, uint8_t sreg);
 void add_cmp_u32(struct nftnl_rule *r, uint32_t val, uint32_t op, uint8_t sreg);
-void add_iniface(struct nft_handle *h, struct nftnl_rule *r, char *iface, uint32_t op);
-void add_outiface(struct nft_handle *h, struct nftnl_rule *r, char *iface, uint32_t op);
+void add_iface(struct nft_handle *h, struct nftnl_rule *r,
+	       char *iface, uint32_t key, uint32_t op);
 void add_addr(struct nft_handle *h, struct nftnl_rule *r, enum nft_payload_bases base, int offset,
 	      void *data, void *mask, size_t len, uint32_t op);
 void add_proto(struct nft_handle *h, struct nftnl_rule *r, int offset, size_t len,

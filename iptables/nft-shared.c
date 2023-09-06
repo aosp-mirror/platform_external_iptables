@@ -147,44 +147,29 @@ void add_cmp_u32(struct nftnl_rule *r, uint32_t val, uint32_t op, uint8_t sreg)
 	add_cmp_ptr(r, op, &val, sizeof(val), sreg);
 }
 
-void add_iniface(struct nft_handle *h, struct nftnl_rule *r,
-		 char *iface, uint32_t op)
+void add_iface(struct nft_handle *h, struct nftnl_rule *r,
+	       char *iface, uint32_t key, uint32_t op)
 {
-	int iface_len;
+	int iface_len = strlen(iface);
 	uint8_t reg;
 
-	iface_len = strlen(iface);
 
-	add_meta(h, r, NFT_META_IIFNAME, &reg);
 	if (iface[iface_len - 1] == '+') {
-		if (iface_len > 1)
-			add_cmp_ptr(r, op, iface, iface_len - 1, reg);
-		else if (op != NFT_CMP_EQ)
-			add_cmp_ptr(r, NFT_CMP_EQ, "INVAL/D",
-				    strlen("INVAL/D") + 1, reg);
+		if (iface_len > 1) {
+			iface_len -= 1;
+		} else if (op != NFT_CMP_EQ) {
+			op = NFT_CMP_EQ;
+			iface = "INVAL/D";
+			iface_len = strlen(iface) + 1;
+		} else {
+			return; /* -o + */
+		}
 	} else {
-		add_cmp_ptr(r, op, iface, iface_len + 1, reg);
+		iface_len += 1;
 	}
-}
 
-void add_outiface(struct nft_handle *h, struct nftnl_rule *r,
-		  char *iface, uint32_t op)
-{
-	int iface_len;
-	uint8_t reg;
-
-	iface_len = strlen(iface);
-
-	add_meta(h, r, NFT_META_OIFNAME, &reg);
-	if (iface[iface_len - 1] == '+') {
-		if (iface_len > 1)
-			add_cmp_ptr(r, op, iface, iface_len - 1, reg);
-		else if (op != NFT_CMP_EQ)
-			add_cmp_ptr(r, NFT_CMP_EQ, "INVAL/D",
-				    strlen("INVAL/D") + 1, reg);
-	} else {
-		add_cmp_ptr(r, op, iface, iface_len + 1, reg);
-	}
+	add_meta(h, r, key, &reg);
+	add_cmp_ptr(r, op, iface, iface_len, reg);
 }
 
 void add_addr(struct nft_handle *h, struct nftnl_rule *r,
