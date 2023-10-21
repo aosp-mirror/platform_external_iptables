@@ -11,7 +11,7 @@ third_party {
     type: GIT
     value: "git://git.netfilter.org/iptables"
   }
-  version: "v1.8.7"
-  last_upgrade_date { year: 2021 month: 3 day: 23 }
+  version: "v1.8.8"
+  last_upgrade_date { year: 2022 month: 5 day: 13 }
   license_type: RESTRICTED
 }
