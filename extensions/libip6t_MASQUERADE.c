@@ -163,7 +163,7 @@ static int MASQUERADE_xlate(struct xt_xlate *xl,
 
 	xt_xlate_add(xl, " ");
 	if (r->flags & NF_NAT_RANGE_PROTO_RANDOM_FULLY)
-		xt_xlate_add(xl, "random-fully ");
+		xt_xlate_add(xl, "fully-random ");
 
 	return 1;
 }

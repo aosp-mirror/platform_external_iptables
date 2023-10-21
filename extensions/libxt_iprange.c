@@ -73,11 +73,9 @@ iprange_parse_spec(const char *from, const char *to, union nf_inet_addr *range,
 static void iprange_parse_range(const char *oarg, union nf_inet_addr *range,
 				uint8_t family, const char *optname)
 {
-	char *arg = strdup(oarg);
+	char *arg = xtables_strdup(oarg);
 	char *dash;
 
-	if (arg == NULL)
-		xtables_error(RESOURCE_PROBLEM, "strdup");
 	dash = strchr(arg, '-');
 	if (dash == NULL) {
 		iprange_parse_spec(arg, arg, range, family, optname);

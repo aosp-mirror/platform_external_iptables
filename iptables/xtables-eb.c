@@ -195,6 +195,7 @@ struct option ebt_original_options[] =
 	{ "out-interface"  , required_argument, 0, 'o' },
 	{ "out-if"         , required_argument, 0, 'o' },
 	{ "version"        , no_argument      , 0, 'V' },
+	{ "verbose"        , no_argument      , 0, 'v' },
 	{ "help"           , no_argument      , 0, 'h' },
 	{ "jump"           , required_argument, 0, 'j' },
 	{ "set-counters"   , required_argument, 0, 'c' },
@@ -211,21 +212,15 @@ struct option ebt_original_options[] =
 	{ "new-chain"      , required_argument, 0, 'N' },
 	{ "rename-chain"   , required_argument, 0, 'E' },
 	{ "delete-chain"   , optional_argument, 0, 'X' },
-	{ "atomic-init"    , no_argument      , 0, 7   },
-	{ "atomic-commit"  , no_argument      , 0, 8   },
-	{ "atomic-file"    , required_argument, 0, 9   },
-	{ "atomic-save"    , no_argument      , 0, 10  },
 	{ "init-table"     , no_argument      , 0, 11  },
 	{ "concurrent"     , no_argument      , 0, 13  },
 	{ 0 }
 };
 
-extern void xtables_exit_error(enum xtables_exittype status, const char *msg, ...) __attribute__((noreturn, format(printf,2,3)));
 struct xtables_globals ebtables_globals = {
 	.option_offset 		= 0,
-	.program_version	= PACKAGE_VERSION,
+	.program_version	= PACKAGE_VERSION " (nf_tables)",
 	.orig_opts		= ebt_original_options,
-	.exit_err		= xtables_exit_error,
 	.compat_rev		= nft_compatible_revision,
 };
 
@@ -278,9 +273,7 @@ static struct option *merge_options(struct option *oldopts,
 	ebtables_globals.option_offset += OPTION_OFFSET;
 	*options_offset = ebtables_globals.option_offset;
 
-	merge = malloc(sizeof(struct option) * (num_new + num_old + 1));
-	if (!merge)
-		return NULL;
+	merge = xtables_malloc(sizeof(struct option) * (num_new + num_old + 1));
 	memcpy(merge, oldopts, num_old * sizeof(struct option));
 	for (i = 0; i < num_new; i++) {
 		merge[num_old + i] = newopts[i];
@@ -320,10 +313,6 @@ static void print_help(const struct xtables_target *t,
 "--new-chain -N chain          : create a user defined chain\n"
 "--rename-chain -E old new     : rename a chain\n"
 "--delete-chain -X [chain]     : delete a user defined chain\n"
-"--atomic-commit               : update the kernel w/t table contained in <FILE>\n"
-"--atomic-init                 : put the initial kernel table into <FILE>\n"
-"--atomic-save                 : put the current kernel table into <FILE>\n"
-"--atomic-file file            : set <FILE> to file\n\n"
 "Options:\n"
 "--proto  -p [!] proto         : protocol hexadecimal, by name or LENGTH\n"
 "--src    -s [!] address[/mask]: source mac address\n"
@@ -336,6 +325,7 @@ static void print_help(const struct xtables_target *t,
 "          pcnt bcnt           : set the counters of the to be added rule\n"
 "--modprobe -M program         : try to insert modules using this program\n"
 "--concurrent                  : use a file lock to support concurrent scripts\n"
+"--verbose -v                  : verbose mode\n"
 "--version -V                  : print package version\n\n"
 "Environment variable:\n"
 /*ATOMIC_ENV_VARIABLE "          : if set <FILE> (see above) will equal its value"*/
@@ -579,10 +569,7 @@ void ebt_add_match(struct xtables_match *m,
 	m->mflags = 0;
 
 	/* glue code for watchers */
-	newnode = calloc(1, sizeof(struct ebt_match));
-	if (newnode == NULL)
-		xtables_error(OTHER_PROBLEM, "Unable to alloc memory");
-
+	newnode = xtables_calloc(1, sizeof(struct ebt_match));
 	newnode->ismatch = true;
 	newnode->u.match = newm;
 
@@ -611,10 +598,7 @@ void ebt_add_watcher(struct xtables_target *watcher,
 	watcher->tflags = 0;
 
 
-	newnode = calloc(1, sizeof(struct ebt_match));
-	if (newnode == NULL)
-		xtables_error(OTHER_PROBLEM, "Unable to alloc memory");
-
+	newnode = xtables_calloc(1, sizeof(struct ebt_match));
 	newnode->u.watcher = clone;
 
 	for (matchp = &cs->match_list; *matchp; matchp = &(*matchp)->next)
@@ -683,12 +667,10 @@ int nft_init_eb(struct nft_handle *h, const char *pname)
 			ebtables_globals.program_version);
 		exit(1);
 	}
-
-#if defined(ALL_INCLUSIVE) || defined(NO_SHARED_LIBS)
+	init_extensions();
 	init_extensionsb();
-#endif
 
-	if (nft_init(h, NFPROTO_BRIDGE, xtables_bridge) < 0)
+	if (nft_init(h, NFPROTO_BRIDGE) < 0)
 		xtables_error(OTHER_PROBLEM,
 			      "Could not initialize nftables layer.");
 
@@ -743,15 +725,17 @@ int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table,
 	struct ebt_match *match;
 	bool table_set = false;
 
+	/* avoid cumulating verbosity with ebtables-restore */
+	h->verbose = 0;
+
 	/* prevent getopt to spoil our error reporting */
 	optind = 0;
 	opterr = false;
 
 	/* Getopt saves the day */
-	while ((c = getopt_long(argc, argv,
-	   "-A:D:C:I:N:E:X::L::Z::F::P:Vhi:o:j:c:p:s:d:t:M:", opts, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, EBT_OPTSTRING,
+					opts, NULL)) != -1) {
 		cs.c = c;
-		cs.invert = ebt_invert;
 		switch (c) {
 
 		case 'A': /* Add a rule */
@@ -788,7 +772,7 @@ int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table,
 					chain = argv[optind];
 					optind++;
 				}
-				ret = nft_cmd_chain_user_del(h, chain, *table, 0);
+				ret = nft_cmd_chain_del(h, chain, *table, 0);
 				break;
 			}
 
@@ -872,11 +856,15 @@ print_zero:
 				optind++;
 			}
 			break;
+		case 'v': /* verbose */
+			flags |= OPT_VERBOSE;
+			h->verbose++;
+			break;
 		case 'V': /* Version */
 			if (OPT_COMMANDS)
 				xtables_error(PARAMETER_PROBLEM,
 					      "Multiple commands are not allowed");
-			printf("%s %s (nf_tables)\n", prog_name, prog_vers);
+			printf("%s %s\n", prog_name, prog_vers);
 			exit(0);
 		case 'h': /* Help */
 			if (OPT_COMMANDS)
@@ -912,12 +900,12 @@ print_zero:
 			ebt_check_option2(&flags, OPT_TABLE);
 			if (restore && table_set)
 				xtables_error(PARAMETER_PROBLEM,
-					      "The -t option (seen in line %u) cannot be used in %s.\n",
-					      line, xt_params->program_name);
-			if (strlen(optarg) > EBT_TABLE_MAXNAMELEN - 1)
-				xtables_error(PARAMETER_PROBLEM,
-					      "Table name length cannot exceed %d characters",
-					      EBT_TABLE_MAXNAMELEN - 1);
+					      "The -t option cannot be used in %s.\n",
+					      xt_params->program_name);
+			if (!nft_table_builtin_find(h, optarg))
+				xtables_error(VERSION_PROBLEM,
+					      "table '%s' does not exist",
+					      optarg);
 			*table = optarg;
 			table_set = true;
 			break;
@@ -1088,54 +1076,9 @@ print_zero:
 					       "Use --Lmac2 with -L");
 			flags |= LIST_MAC2;
 			break;
-		case 8 : /* atomic-commit */
-/*
-			replace->command = c;
-			if (OPT_COMMANDS)
-				ebt_print_error2("Multiple commands are not allowed");
-			replace->flags |= OPT_COMMAND;
-			if (!replace->filename)
-				ebt_print_error2("No atomic file specified");*/
-			/* Get the information from the file */
-			/*ebt_get_table(replace, 0);*/
-			/* We don't want the kernel giving us its counters,
-			 * they would overwrite the counters extracted from
-			 * the file */
-			/*replace->num_counters = 0;*/
-			/* Make sure the table will be written to the kernel */
-			/*free(replace->filename);
-			replace->filename = NULL;
-			break;*/
-		/*case 7 :*/ /* atomic-init */
-		/*case 10:*/ /* atomic-save */
 		case 11: /* init-table */
 			nft_cmd_table_flush(h, *table, false);
 			return 1;
-		/*
-			replace->command = c;
-			if (OPT_COMMANDS)
-				ebt_print_error2("Multiple commands are not allowed");
-			if (c != 11 && !replace->filename)
-				ebt_print_error2("No atomic file specified");
-			replace->flags |= OPT_COMMAND;
-			{
-				char *tmp = replace->filename;*/
-
-				/* Get the kernel table */
-				/*replace->filename = NULL;
-				ebt_get_kernel_table(replace, c == 10 ? 0 : 1);
-				replace->filename = tmp;
-			}
-			break;
-		case 9 :*/ /* atomic */
-			/*
-			if (OPT_COMMANDS)
-				ebt_print_error2("--atomic has to come before the command");*/
-			/* A possible memory leak here, but this is not
-			 * executed in daemon mode */
-			/*replace->filename = (char *)malloc(strlen(optarg) + 1);
-			strcpy(replace->filename, optarg);
-			break; */
 		case 13 :
 			break;
 		case 1 :
@@ -1209,24 +1152,26 @@ print_zero:
 		}
 	} else if (command == 'L') {
 		ret = list_rules(h, chain, *table, rule_nr,
-				 0,
+				 flags & OPT_VERBOSE,
 				 0,
 				 /*flags&OPT_EXPANDED*/0,
 				 flags&LIST_N,
 				 flags&LIST_C);
 	}
 	if (flags & OPT_ZERO) {
-		ret = nft_cmd_chain_zero_counters(h, chain, *table, 0);
+		ret = nft_cmd_chain_zero_counters(h, chain, *table,
+						  flags & OPT_VERBOSE);
 	} else if (command == 'F') {
-		ret = nft_cmd_rule_flush(h, chain, *table, 0);
+		ret = nft_cmd_rule_flush(h, chain, *table, flags & OPT_VERBOSE);
 	} else if (command == 'A') {
-		ret = append_entry(h, chain, *table, &cs, 0, 0, true);
+		ret = append_entry(h, chain, *table, &cs, 0,
+				   flags & OPT_VERBOSE, true);
 	} else if (command == 'I') {
 		ret = append_entry(h, chain, *table, &cs, rule_nr - 1,
-				   0, false);
+				   flags & OPT_VERBOSE, false);
 	} else if (command == 'D') {
 		ret = delete_entry(h, chain, *table, &cs, rule_nr - 1,
-				   rule_nr_end, 0);
+				   rule_nr_end, flags & OPT_VERBOSE);
 	} /*else if (replace->command == 'C') {
 		ebt_change_counters(replace, new_entry, rule_nr, rule_nr_end, &(new_entry->cnt_surplus), chcounter);
 		if (ebt_errormsg[0] != '\0')

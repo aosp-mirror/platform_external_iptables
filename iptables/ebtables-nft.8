@@ -44,12 +44,6 @@ ebtables \- Ethernet bridge frame table administration (nft-based)
 .br
 .BR "ebtables " [ -t " table ] " --init-table
 .br
-.BR "ebtables " [ -t " table ] [" --atomic-file " file] " --atomic-commit
-.br
-.BR "ebtables " [ -t " table ] [" --atomic-file " file] " --atomic-init
-.br
-.BR "ebtables " [ -t " table ] [" --atomic-file " file] " --atomic-save
-.br
 
 .SH DESCRIPTION
 .B ebtables
@@ -149,11 +143,9 @@ a table, the commands apply to the default filter table.
 Only one command may be used on the command line at a time, except when
 the commands
 .BR -L " and " -Z
-are combined, the commands
+are combined or the commands
 .BR -N " and " -P
-are combined, or when
-.B --atomic-file
-is used.
+are combined.
 .TP
 .B "-A, --append"
 Append a rule to the end of the selected chain.
@@ -313,40 +305,13 @@ of the ebtables kernel table.
 .TP
 .B "--init-table"
 Replace the current table data by the initial table data.
-.TP
-.B "--atomic-init"
-Copy the kernel's initial data of the table to the specified
-file. This can be used as the first action, after which rules are added
-to the file. The file can be specified using the
-.B --atomic-file
-command or through the
-.IR EBTABLES_ATOMIC_FILE " environment variable."
-.TP
-.B "--atomic-save"
-Copy the kernel's current data of the table to the specified
-file. This can be used as the first action, after which rules are added
-to the file. The file can be specified using the
-.B --atomic-file
-command or through the
-.IR EBTABLES_ATOMIC_FILE " environment variable."
-.TP
-.B "--atomic-commit"
-Replace the kernel table data with the data contained in the specified
-file. This is a useful command that allows you to load all your rules of a
-certain table into the kernel at once, saving the kernel a lot of precious
-time and allowing atomic updates of the tables. The file which contains
-the table data is constructed by using either the
-.B "--atomic-init"
-or the
-.B "--atomic-save"
-command to generate a starting file. After that, using the
-.B "--atomic-file"
-command when constructing rules or setting the
-.IR EBTABLES_ATOMIC_FILE " environment variable"
-allows you to extend the file and build the complete table before
-committing it to the kernel. This command can be very useful in boot scripts
-to populate the ebtables tables in a fast way.
 .SS MISCELLANOUS COMMANDS
+.TP
+.B "-v, --verbose"
+Verbose mode.
+For appending, insertion, deletion and replacement, this causes
+detailed information on the rule or rules to be printed. \fB\-v\fP may be
+specified multiple times to possibly emit more detailed debug statements.
 .TP
 .B "-V, --version"
 Show the version of the ebtables userspace program.
@@ -370,16 +335,6 @@ The target of the rule. This is one of the following values:
 a target extension (see
 .BR "TARGET EXTENSIONS" ")"
 or a user-defined chain name.
-.TP
-.B --atomic-file "\fIfile\fP"
-Let the command operate on the specified
-.IR file .
-The data of the table to
-operate on will be extracted from the file and the result of the operation
-will be saved back into the file. If specified, this option should come
-before the command specification. An alternative that should be preferred,
-is setting the
-.IR EBTABLES_ATOMIC_FILE " environment variable."
 .TP
 .B -M, --modprobe "\fIprogram\fP"
 When talking to the kernel, use this
@@ -1100,8 +1055,6 @@ arp message and the hardware address length in the arp header is 6 bytes.
 .br
 .SH FILES
 .I /etc/ethertypes
-.SH ENVIRONMENT VARIABLES
-.I EBTABLES_ATOMIC_FILE
 .SH MAILINGLISTS
 .BR "" "See " http://netfilter.org/mailinglists.html
 .SH BUGS
@@ -1109,7 +1062,12 @@ The version of ebtables this man page ships with does not support the
 .B broute
 table. Also there is no support for
 .B string
-match. And finally, this list is probably not complete.
+match. Further, support for atomic-options
+.RB ( --atomic-file ", " --atomic-init ", " --atomic-save ", " --atomic-commit )
+has not been implemented, although
+.BR ebtables-save " and " ebtables-restore
+might replace them entirely given the inherent atomicity of nftables.
+Finally, this list is probably not complete.
 .SH SEE ALSO
 .BR xtables-nft "(8), " iptables "(8), " ip (8)
 .PP

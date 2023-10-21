@@ -107,7 +107,7 @@ static void parse_mh_types(const char *mhtype, uint8_t *types)
 	char *buffer;
 	char *cp;
 
-	buffer = strdup(mhtype);
+	buffer = xtables_strdup(mhtype);
 	if ((cp = strchr(buffer, ':')) == NULL)
 		types[0] = types[1] = name_to_type(buffer);
 	else {

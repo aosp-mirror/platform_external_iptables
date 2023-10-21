@@ -604,9 +604,7 @@ static void xtopt_parse_mport(struct xt_option_call *cb)
 	unsigned int maxiter;
 	int value;
 
-	wp_arg = lo_arg = strdup(cb->arg);
-	if (lo_arg == NULL)
-		xt_params->exit_err(RESOURCE_PROBLEM, "strdup");
+	wp_arg = lo_arg = xtables_strdup(cb->arg);
 
 	maxiter = entry->size / esize;
 	if (maxiter == 0)
@@ -747,9 +745,7 @@ static void xtopt_parse_hostmask(struct xt_option_call *cb)
 		xtopt_parse_host(cb);
 		return;
 	}
-	work = strdup(orig_arg);
-	if (work == NULL)
-		xt_params->exit_err(PARAMETER_PROBLEM, "strdup");
+	work = xtables_strdup(orig_arg);
 	p = strchr(work, '/'); /* by def this can't be NULL now */
 	*p++ = '\0';
 	/*
@@ -763,6 +759,7 @@ static void xtopt_parse_hostmask(struct xt_option_call *cb)
 	cb->arg = p;
 	xtopt_parse_plenmask(cb);
 	cb->arg = orig_arg;
+	free(work);
 }
 
 static void xtopt_parse_ethermac(struct xt_option_call *cb)
@@ -1138,11 +1135,7 @@ struct xtables_lmap *xtables_lmap_init(const char *file)
 			goto out;
 		}
 		lmap_this->id   = id;
-		lmap_this->name = strdup(cur);
-		if (lmap_this->name == NULL) {
-			free(lmap_this);
-			goto out;
-		}
+		lmap_this->name = xtables_strdup(cur);
 		lmap_this->next = NULL;
 
 		if (lmap_prev != NULL)

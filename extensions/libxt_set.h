@@ -141,7 +141,7 @@ get_set_byname(const char *setname, struct xt_set_info *info)
 static void
 parse_dirs_v0(const char *opt_arg, struct xt_set_info_v0 *info)
 {
-	char *saved = strdup(opt_arg);
+	char *saved = xtables_strdup(opt_arg);
 	char *ptr, *tmp = saved;
 	int i = 0;
 	
@@ -167,7 +167,7 @@ parse_dirs_v0(const char *opt_arg, struct xt_set_info_v0 *info)
 static void
 parse_dirs(const char *opt_arg, struct xt_set_info *info)
 {
-	char *saved = strdup(opt_arg);
+	char *saved = xtables_strdup(opt_arg);
 	char *ptr, *tmp = saved;
 	
 	while (info->dim < IPSET_DIM_MAX && tmp != NULL) {

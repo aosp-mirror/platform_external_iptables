@@ -33,6 +33,7 @@ Flushing chain \`bar'
 Flushing chain \`foo'
 Deleting chain \`bar'
 Deleting chain \`foo'
+ACCEPT  all opt -- in * out *  0.0.0.0/0  -> 0.0.0.0/0
 Flushing chain \`PREROUTING'
 Flushing chain \`INPUT'
 Flushing chain \`OUTPUT'
@@ -41,6 +42,7 @@ Flushing chain \`natbar'
 Flushing chain \`natfoo'
 Deleting chain \`natbar'
 Deleting chain \`natfoo'
+ACCEPT  all opt -- in * out *  0.0.0.0/0  -> 0.0.0.0/0
 Flushing chain \`PREROUTING'
 Flushing chain \`OUTPUT'
 Flushing chain \`rawfoo'
@@ -58,9 +60,10 @@ Flushing chain \`OUTPUT'
 Flushing chain \`secfoo'
 Deleting chain \`secfoo'"
 
-for ipt in iptables-restore ip6tables-restore; do
-	diff -u -Z <(echo "$EXPECT") <($XT_MULTI $ipt -v <<< "$DUMP")
-done
+EXPECT6=$(sed -e 's/0\.0\.0\.0/::/g' -e 's/opt --/opt   /' <<< "$EXPECT")
+
+diff -u -Z <(echo "$EXPECT") <($XT_MULTI iptables-restore -v <<< "$DUMP")
+diff -u -Z <(echo "$EXPECT6") <($XT_MULTI ip6tables-restore -v <<< "$DUMP")
 
 DUMP="*filter
 :baz - [0:0]

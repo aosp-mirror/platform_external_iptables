@@ -66,7 +66,7 @@ parse_nft_among_pair(char *buf, struct nft_among_pair *pair, bool have_ip)
 	if (sep) {
 		*sep = '\0';
 
-		if (!inet_aton(sep + 1, &pair->in))
+		if (!inet_pton(AF_INET, sep + 1, &pair->in))
 			xtables_error(PARAMETER_PROBLEM,
 				      "Invalid IP address '%s'\n", sep + 1);
 	}
@@ -194,6 +194,7 @@ static void __bramong_print(struct nft_among_pair *pairs,
 			    int cnt, bool inv, bool have_ip)
 {
 	const char *isep = inv ? "! " : "";
+	char abuf[INET_ADDRSTRLEN];
 	int i;
 
 	for (i = 0; i < cnt; i++) {
@@ -202,7 +203,8 @@ static void __bramong_print(struct nft_among_pair *pairs,
 
 		printf("%s", ether_ntoa(&pairs[i].ether));
 		if (pairs[i].in.s_addr != INADDR_ANY)
-			printf("=%s", inet_ntoa(pairs[i].in));
+			printf("=%s", inet_ntop(AF_INET, &pairs[i].in,
+						abuf, sizeof(abuf)));
 	}
 	printf(" ");
 }

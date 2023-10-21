@@ -155,10 +155,8 @@ static void xtables_restore_parse_line(struct nft_handle *h,
 				   "%s: line %u chain name invalid\n",
 				   xt_params->program_name, line);
 
-		if (strlen(chain) >= XT_EXTENSION_MAXNAMELEN)
-			xtables_error(PARAMETER_PROBLEM,
-				   "Invalid chain name `%s' (%u chars max)",
-				   chain, XT_EXTENSION_MAXNAMELEN - 1);
+		xtables_announce_chain(chain);
+		assert_valid_chain_name(chain);
 
 		policy = strtok(NULL, " \t\n");
 		DEBUGP("line %u, policy '%s'\n", line, policy);
@@ -206,10 +204,14 @@ static void xtables_restore_parse_line(struct nft_handle *h,
 		char *pcnt = NULL;
 		char *bcnt = NULL;
 		char *parsestart = buffer;
+		int i;
 
 		add_argv(&state->av_store, xt_params->program_name, 0);
 		add_argv(&state->av_store, "-t", 0);
 		add_argv(&state->av_store, state->curtable->name, 0);
+
+		for (i = 0; !h->noflush && i < verbose; i++)
+			add_argv(&state->av_store, "-v", 0);
 
 		tokenize_rule_counters(&parsestart, &pcnt, &bcnt, line);
 		if (counters && pcnt && bcnt) {
@@ -281,7 +283,6 @@ void xtables_restore_parse(struct nft_handle *h,
 static int
 xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 {
-	const struct builtin_table *tables;
 	struct nft_xt_restore_parse p = {
 		.commit = true,
 		.cb = &restore_cb,
@@ -310,10 +311,10 @@ xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 				counters = 1;
 				break;
 			case 'v':
-				verbose = 1;
+				verbose++;
 				break;
 			case 'V':
-				printf("%s v%s (nf_tables)\n", prog_name, prog_vers);
+				printf("%s v%s\n", prog_name, prog_vers);
 				exit(0);
 			case 't':
 				p.testing = 1;
@@ -357,27 +358,26 @@ xtables_restore_main(int family, const char *progname, int argc, char *argv[])
 		p.in = stdin;
 	}
 
+	init_extensions();
 	switch (family) {
 	case NFPROTO_IPV4:
-	case NFPROTO_IPV6: /* fallthough, same table */
-		tables = xtables_ipv4;
-#if defined(ALL_INCLUSIVE) || defined(NO_SHARED_LIBS)
-		init_extensions();
 		init_extensions4();
-#endif
+		break;
+	case NFPROTO_IPV6:
+		init_extensions6();
 		break;
 	case NFPROTO_ARP:
-		tables = xtables_arp;
+		init_extensionsa();
 		break;
 	case NFPROTO_BRIDGE:
-		tables = xtables_bridge;
+		init_extensionsb();
 		break;
 	default:
 		fprintf(stderr, "Unknown family %d\n", family);
 		return 1;
 	}
 
-	if (nft_init(&h, family, tables) < 0) {
+	if (nft_init(&h, family) < 0) {
 		fprintf(stderr, "%s/%s Failed to initialize nft: %s\n",
 				xtables_globals.program_name,
 				xtables_globals.program_version,
@@ -417,6 +417,7 @@ static const struct nft_xt_restore_cb ebt_restore_cb = {
 
 static const struct option ebt_restore_options[] = {
 	{.name = "noflush", .has_arg = 0, .val = 'n'},
+	{.name = "verbose", .has_arg = 0, .val = 'v'},
 	{ 0 }
 };
 
@@ -430,15 +431,18 @@ int xtables_eb_restore_main(int argc, char *argv[])
 	struct nft_handle h;
 	int c;
 
-	while ((c = getopt_long(argc, argv, "n",
+	while ((c = getopt_long(argc, argv, "nv",
 				ebt_restore_options, NULL)) != -1) {
 		switch(c) {
 		case 'n':
 			noflush = 1;
 			break;
+		case 'v':
+			verbose++;
+			break;
 		default:
 			fprintf(stderr,
-				"Usage: ebtables-restore [ --noflush ]\n");
+				"Usage: ebtables-restore [ --verbose ] [ --noflush ]\n");
 			exit(1);
 			break;
 		}
@@ -455,7 +459,7 @@ int xtables_eb_restore_main(int argc, char *argv[])
 static const struct nft_xt_restore_cb arp_restore_cb = {
 	.commit		= nft_commit,
 	.table_flush	= nft_cmd_table_flush,
-	.do_command	= do_commandarp,
+	.do_command	= do_commandx,
 	.chain_set	= nft_cmd_chain_set,
 	.chain_restore  = nft_cmd_chain_restore,
 };

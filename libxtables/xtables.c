@@ -45,9 +45,11 @@
 
 #include <xtables.h>
 #include <limits.h> /* INT_MAX in ip_tables.h/ip6_tables.h */
+#include <linux/if_ether.h> /* ETH_ALEN */
 #include <linux/netfilter_ipv4/ip_tables.h>
 #include <linux/netfilter_ipv6/ip6_tables.h>
 #include <libiptc/libxtc.h>
+#include <libiptc/linux_list.h>
 
 #ifndef NO_SHARED_LIBS
 #include <dlfcn.h>
@@ -89,6 +91,18 @@ void basic_exit_err(enum xtables_exittype status, const char *msg, ...)
 	vfprintf(stderr, msg, args);
 	va_end(args);
 	fprintf(stderr, "\n");
+	if (status == PARAMETER_PROBLEM) {
+		if (line != -1)
+			fprintf(stderr, "Error occurred at line: %d\n", line);
+		fprintf(stderr, "Try `%s -h' or '%s --help' for more information.\n",
+				xt_params->program_name, xt_params->program_name);
+	} else if (status == VERSION_PROBLEM) {
+		fprintf(stderr,
+			"Perhaps %s or your kernel needs to be upgraded.\n",
+			xt_params->program_name);
+	}
+	/* On error paths, make sure that we don't leak memory */
+	xtables_free_opts(1);
 	exit(status);
 }
 
@@ -242,8 +256,83 @@ static void dlreg_free(void)
 }
 #endif
 
+struct notarget {
+	struct hlist_node node;
+	char name[];
+};
+
+#define NOTARGET_HSIZE	512
+static struct hlist_head notargets[NOTARGET_HSIZE];
+
+static void notargets_hlist_init(void)
+{
+	int i;
+
+	for (i = 0; i < NOTARGET_HSIZE; i++)
+		INIT_HLIST_HEAD(&notargets[i]);
+}
+
+static void notargets_hlist_free(void)
+{
+	struct hlist_node *pos, *n;
+	struct notarget *cur;
+	int i;
+
+	for (i = 0; i < NOTARGET_HSIZE; i++) {
+		hlist_for_each_entry_safe(cur, pos, n, &notargets[i], node) {
+			hlist_del(&cur->node);
+			free(cur);
+		}
+	}
+}
+
+static uint32_t djb_hash(const char *key)
+{
+	uint32_t i, hash = 5381;
+
+	for (i = 0; i < strlen(key); i++)
+		hash = ((hash << 5) + hash) + key[i];
+
+	return hash;
+}
+
+static struct notarget *notargets_hlist_lookup(const char *name)
+{
+	uint32_t key = djb_hash(name) % NOTARGET_HSIZE;
+	struct hlist_node *node;
+	struct notarget *cur;
+
+	hlist_for_each_entry(cur, node, &notargets[key], node) {
+		if (!strcmp(name, cur->name))
+			return cur;
+	}
+	return NULL;
+}
+
+static void notargets_hlist_insert(const char *name)
+{
+	struct notarget *cur;
+
+	if (!name)
+		return;
+
+	cur = xtables_malloc(sizeof(*cur) + strlen(name) + 1);
+	strcpy(cur->name, name);
+	hlist_add_head(&cur->node, &notargets[djb_hash(name) % NOTARGET_HSIZE]);
+}
+
+void xtables_announce_chain(const char *name)
+{
+	if (!notargets_hlist_lookup(name))
+		notargets_hlist_insert(name);
+}
+
 void xtables_init(void)
 {
+	/* xtables cannot be used with setuid in a safe way. */
+	if (getuid() != geteuid())
+		_exit(111);
+
 	xtables_libdir = getenv("XTABLES_LIBDIR");
 	if (xtables_libdir != NULL)
 		return;
@@ -267,6 +356,8 @@ void xtables_init(void)
 		return;
 	}
 	xtables_libdir = XTABLES_LIBDIR;
+
+	notargets_hlist_init();
 }
 
 void xtables_fini(void)
@@ -274,6 +365,7 @@ void xtables_fini(void)
 #ifndef NO_SHARED_LIBS
 	dlreg_free();
 #endif
+	notargets_hlist_free();
 }
 
 void xtables_set_nfproto(uint8_t nfproto)
@@ -366,6 +458,18 @@ void *xtables_realloc(void *ptr, size_t size)
 	}
 
 	return p;
+}
+
+char *xtables_strdup(const char *s)
+{
+	char *dup = strdup(s);
+
+	if (!dup) {
+		perror("ip[6]tables: strdup failed");
+		exit(1);
+	}
+
+	return dup;
 }
 
 static char *get_modprobe(void)
@@ -668,6 +772,7 @@ xtables_find_match(const char *name, enum xtables_tryload tryload,
 	struct xtables_match **dptr;
 	struct xtables_match *ptr;
 	const char *icmp6 = "icmp6";
+	bool found = false;
 
 	if (strlen(name) >= XT_EXTENSION_MAXNAMELEN)
 		xtables_error(PARAMETER_PROBLEM,
@@ -686,7 +791,9 @@ xtables_find_match(const char *name, enum xtables_tryload tryload,
 		if (extension_cmp(name, (*dptr)->name, (*dptr)->family)) {
 			ptr = *dptr;
 			*dptr = (*dptr)->next;
-			if (xtables_fully_register_pending_match(ptr, prev)) {
+			if (!found &&
+			    xtables_fully_register_pending_match(ptr, prev)) {
+				found = true;
 				prev = ptr;
 				continue;
 			} else if (prev) {
@@ -788,6 +895,7 @@ xtables_find_target(const char *name, enum xtables_tryload tryload)
 	struct xtables_target *prev = NULL;
 	struct xtables_target **dptr;
 	struct xtables_target *ptr;
+	bool found = false;
 
 	/* Standard target? */
 	if (strcmp(name, "") == 0
@@ -796,13 +904,19 @@ xtables_find_target(const char *name, enum xtables_tryload tryload)
 	    || strcmp(name, XTC_LABEL_QUEUE) == 0
 	    || strcmp(name, XTC_LABEL_RETURN) == 0)
 		name = "standard";
+	/* known non-target? */
+	else if (notargets_hlist_lookup(name) &&
+		 tryload != XTF_LOAD_MUST_SUCCEED)
+		return NULL;
 
 	/* Trigger delayed initialization */
 	for (dptr = &xtables_pending_targets; *dptr; ) {
 		if (extension_cmp(name, (*dptr)->name, (*dptr)->family)) {
 			ptr = *dptr;
 			*dptr = (*dptr)->next;
-			if (xtables_fully_register_pending_target(ptr, prev)) {
+			if (!found &&
+			    xtables_fully_register_pending_target(ptr, prev)) {
+				found = true;
 				prev = ptr;
 				continue;
 			} else if (prev) {
@@ -861,6 +975,8 @@ xtables_find_target(const char *name, enum xtables_tryload tryload)
 
 	if (ptr)
 		ptr->used = 1;
+	else
+		notargets_hlist_insert(name);
 
 	return ptr;
 }
@@ -925,7 +1041,12 @@ int xtables_compatible_revision(const char *name, uint8_t revision, int opt)
 		/* Definitely don't support this? */
 		if (errno == ENOENT || errno == EPROTONOSUPPORT) {
 			close(sockfd);
-			return 0;
+			/* Pretend revision 0 support for better error messaging */
+			if (revision == 0)
+				fprintf(stderr,
+					"Warning: Extension %s revision 0 not supported, missing kernel module?\n",
+					name);
+			return (revision == 0);
 		} else if (errno == ENOPROTOOPT) {
 			close(sockfd);
 			/* Assume only revision 0 support (old kernel) */
@@ -1380,7 +1501,7 @@ void xtables_param_act(unsigned int status, const char *p1, ...)
 
 const char *xtables_ipaddr_to_numeric(const struct in_addr *addrp)
 {
-	static char buf[20];
+	static char buf[16];
 	const unsigned char *bytep = (const void *)&addrp->s_addr;
 
 	sprintf(buf, "%u.%u.%u.%u", bytep[0], bytep[1], bytep[2], bytep[3]);
@@ -1432,16 +1553,11 @@ int xtables_ipmask_to_cidr(const struct in_addr *mask)
 	int i;
 
 	maskaddr = ntohl(mask->s_addr);
-	/* shortcut for /32 networks */
-	if (maskaddr == 0xFFFFFFFFL)
-		return 32;
 
-	i = 32;
-	bits = 0xFFFFFFFEL;
-	while (--i >= 0 && maskaddr != bits)
-		bits <<= 1;
-	if (i >= 0)
-		return i;
+	for (i = 32, bits = (uint32_t)-1; i >= 0; i--, bits <<= 1) {
+		if (bits == maskaddr)
+			return i;
+	}
 
 	/* this mask cannot be converted to CIDR notation */
 	return -1;
@@ -1814,9 +1930,8 @@ const char *xtables_ip6mask_to_numeric(const struct in6_addr *addrp)
 struct in6_addr *xtables_numeric_to_ip6addr(const char *num)
 {
 	static struct in6_addr ap;
-	int err;
 
-	if ((err = inet_pton(AF_INET6, num, &ap)) == 1)
+	if (inet_pton(AF_INET6, num, &ap) == 1)
 		return &ap;
 
 	return NULL;
@@ -2069,10 +2184,11 @@ const struct xtables_pprot xtables_chain_protos[] = {
 	{"udp",       IPPROTO_UDP},
 	{"udplite",   IPPROTO_UDPLITE},
 	{"icmp",      IPPROTO_ICMP},
-	{"icmpv6",    IPPROTO_ICMPV6},
 	{"ipv6-icmp", IPPROTO_ICMPV6},
+	{"icmpv6",    IPPROTO_ICMPV6},
 	{"esp",       IPPROTO_ESP},
 	{"ah",        IPPROTO_AH},
+	{"mobility-header", IPPROTO_MH},
 	{"ipv6-mh",   IPPROTO_MH},
 	{"mh",        IPPROTO_MH},
 	{"all",       0},
@@ -2088,23 +2204,15 @@ xtables_parse_protocol(const char *s)
 	if (xtables_strtoui(s, NULL, &proto, 0, UINT8_MAX))
 		return proto;
 
-	/* first deal with the special case of 'all' to prevent
-	 * people from being able to redefine 'all' in nsswitch
-	 * and/or provoke expensive [not working] ldap/nis/...
-	 * lookups */
-	if (strcmp(s, "all") == 0)
-		return 0;
+	for (i = 0; xtables_chain_protos[i].name != NULL; ++i) {
+		if (strcmp(s, xtables_chain_protos[i].name) == 0)
+			return xtables_chain_protos[i].num;
+	}
 
 	pent = getprotobyname(s);
 	if (pent != NULL)
 		return pent->p_proto;
 
-	for (i = 0; i < ARRAY_SIZE(xtables_chain_protos); ++i) {
-		if (xtables_chain_protos[i].name == NULL)
-			continue;
-		if (strcmp(s, xtables_chain_protos[i].name) == 0)
-			return xtables_chain_protos[i].num;
-	}
 	xt_params->exit_err(PARAMETER_PROBLEM,
 		"unknown protocol \"%s\" specified", s);
 	return -1;
@@ -2325,32 +2433,35 @@ void get_kernel_version(void)
 
 #include <linux/netfilter/nf_tables.h>
 
+enum xt_xlate_type {
+	XT_XLATE_RULE = 0,
+	XT_XLATE_SET,
+	__XT_XLATE_MAX
+};
+
 struct xt_xlate {
-	struct {
+	struct xt_xlate_buf {
 		char	*data;
 		int	size;
 		int	rem;
 		int	off;
-	} buf;
+	} buf[__XT_XLATE_MAX];
 	char comment[NFT_USERDATA_MAXLEN];
+	int family;
 };
 
 struct xt_xlate *xt_xlate_alloc(int size)
 {
-	struct xt_xlate *xl;
+	struct xt_xlate *xl = xtables_malloc(sizeof(struct xt_xlate));
+	int i;
 
-	xl = malloc(sizeof(struct xt_xlate));
-	if (xl == NULL)
-		xtables_error(RESOURCE_PROBLEM, "OOM");
-
-	xl->buf.data = malloc(size);
-	if (xl->buf.data == NULL)
-		xtables_error(RESOURCE_PROBLEM, "OOM");
-
-	xl->buf.data[0] = '\0';
-	xl->buf.size = size;
-	xl->buf.rem = size;
-	xl->buf.off = 0;
+	for (i = 0; i < __XT_XLATE_MAX; i++) {
+		xl->buf[i].data = xtables_malloc(size);
+		xl->buf[i].data[0] = '\0';
+		xl->buf[i].size = size;
+		xl->buf[i].rem = size;
+		xl->buf[i].off = 0;
+	}
 	xl->comment[0] = '\0';
 
 	return xl;
@@ -2358,23 +2469,44 @@ struct xt_xlate *xt_xlate_alloc(int size)
 
 void xt_xlate_free(struct xt_xlate *xl)
 {
-	free(xl->buf.data);
+	int i;
+
+	for (i = 0; i < __XT_XLATE_MAX; i++)
+		free(xl->buf[i].data);
+
 	free(xl);
 }
 
-void xt_xlate_add(struct xt_xlate *xl, const char *fmt, ...)
+static void __xt_xlate_add(struct xt_xlate *xl, enum xt_xlate_type type,
+			   const char *fmt, va_list ap)
 {
-	va_list ap;
+	struct xt_xlate_buf *buf = &xl->buf[type];
 	int len;
 
-	va_start(ap, fmt);
-	len = vsnprintf(xl->buf.data + xl->buf.off, xl->buf.rem, fmt, ap);
-	if (len < 0 || len >= xl->buf.rem)
+	len = vsnprintf(buf->data + buf->off, buf->rem, fmt, ap);
+	if (len < 0 || len >= buf->rem)
 		xtables_error(RESOURCE_PROBLEM, "OOM");
 
+	buf->rem -= len;
+	buf->off += len;
+}
+
+void xt_xlate_rule_add(struct xt_xlate *xl, const char *fmt, ...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	__xt_xlate_add(xl, XT_XLATE_RULE, fmt, ap);
 	va_end(ap);
-	xl->buf.rem -= len;
-	xl->buf.off += len;
+}
+
+void xt_xlate_set_add(struct xt_xlate *xl, const char *fmt, ...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	__xt_xlate_add(xl, XT_XLATE_SET, fmt, ap);
+	va_end(ap);
 }
 
 void xt_xlate_add_comment(struct xt_xlate *xl, const char *comment)
@@ -2388,7 +2520,22 @@ const char *xt_xlate_get_comment(struct xt_xlate *xl)
 	return xl->comment[0] ? xl->comment : NULL;
 }
 
+void xl_xlate_set_family(struct xt_xlate *xl, uint8_t family)
+{
+	xl->family = family;
+}
+
+uint8_t xt_xlate_get_family(struct xt_xlate *xl)
+{
+	return xl->family;
+}
+
 const char *xt_xlate_get(struct xt_xlate *xl)
 {
-	return xl->buf.data;
+	return xl->buf[XT_XLATE_RULE].data;
+}
+
+const char *xt_xlate_set_get(struct xt_xlate *xl)
+{
+	return xl->buf[XT_XLATE_SET].data;
 }

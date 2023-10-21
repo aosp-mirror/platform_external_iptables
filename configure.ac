@@ -1,9 +1,9 @@
 
-AC_INIT([iptables], [1.8.7])
+AC_INIT([iptables], [1.8.8])
 
 # See libtool.info "Libtool's versioning system"
-libxtables_vcurrent=16
-libxtables_vage=4
+libxtables_vcurrent=18
+libxtables_vage=6
 
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -12,9 +12,8 @@ AC_PROG_INSTALL
 AM_INIT_AUTOMAKE([-Wall])
 AC_PROG_CC
 AM_PROG_CC_C_O
-AC_DISABLE_STATIC
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
-AM_PROG_LIBTOOL
+LT_INIT([disable-static])
 
 AC_ARG_WITH([kernel],
 	AS_HELP_STRING([--with-kernel=PATH],

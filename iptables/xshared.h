@@ -6,7 +6,6 @@
 #include <stdint.h>
 #include <netinet/in.h>
 #include <net/if.h>
-#include <sys/time.h>
 #include <linux/netfilter_arp/arp_tables.h>
 #include <linux/netfilter_ipv4/ip_tables.h>
 #include <linux/netfilter_ipv6/ip6_tables.h>
@@ -68,6 +67,22 @@ struct xtables_globals;
 struct xtables_rule_match;
 struct xtables_target;
 
+#define OPTSTRING_COMMON "-:A:C:D:E:F::I:L::M:N:P:VX::Z::" "c:d:i:j:o:p:s:t:"
+#define IPT_OPTSTRING	OPTSTRING_COMMON "R:S::W::" "46bfg:h::m:nvw::x"
+#define ARPT_OPTSTRING	OPTSTRING_COMMON "R:S::" "h::l:nv" /* "m:" */
+#define EBT_OPTSTRING	OPTSTRING_COMMON "hv"
+
+/* define invflags which won't collide with IPT ones */
+#define IPT_INV_SRCDEVADDR	0x0080
+#define IPT_INV_TGTDEVADDR	0x0100
+#define IPT_INV_ARPHLN		0x0200
+#define IPT_INV_ARPOP		0x0400
+#define IPT_INV_ARPHRD		0x0800
+
+void
+set_option(unsigned int *options, unsigned int option, u_int16_t *invflg,
+	   bool invert);
+
 /**
  * xtables_afinfo - protocol family dependent information
  * @kmod:		kernel module basename (e.g. "ip_tables")
@@ -125,7 +140,6 @@ struct iptables_command_state {
 		struct ip6t_entry fw6;
 		struct arpt_entry arp;
 	};
-	int invert;
 	int c;
 	unsigned int options;
 	struct xtables_rule_match *matches;
@@ -152,10 +166,8 @@ enum {
 
 extern void print_extension_helps(const struct xtables_target *,
 	const struct xtables_rule_match *);
-extern const char *proto_to_name(uint8_t, int);
 extern int command_default(struct iptables_command_state *,
-	struct xtables_globals *);
-extern struct xtables_match *load_proto(struct iptables_command_state *);
+	struct xtables_globals *, bool invert);
 extern int subcmd_main(int, char **, const struct subcommand *);
 extern void xs_init_target(struct xtables_target *);
 extern void xs_init_match(struct xtables_match *);
@@ -179,10 +191,10 @@ enum {
 	XT_LOCK_NOT_ACQUIRED  = -3,
 };
 extern void xtables_unlock(int lock);
-extern int xtables_lock_or_exit(int wait, struct timeval *tv);
+extern int xtables_lock_or_exit(int wait);
 
 int parse_wait_time(int argc, char *argv[]);
-void parse_wait_interval(int argc, char *argv[], struct timeval *wait_interval);
+void parse_wait_interval(int argc, char *argv[]);
 int parse_counters(const char *string, struct xt_counters *ctr);
 bool tokenize_rule_counters(char **bufferp, char **pcnt, char **bcnt, int line);
 bool xs_has_arg(int argc, char *argv[]);
@@ -206,13 +218,28 @@ void debug_print_argv(struct argv_store *store);
 #  define debug_print_argv(...) /* nothing */
 #endif
 
+const char *ipv4_addr_to_string(const struct in_addr *addr,
+				const struct in_addr *mask,
+				unsigned int format);
+void print_header(unsigned int format, const char *chain, const char *pol,
+		  const struct xt_counters *counters,
+		  int refs, uint32_t entries);
 void print_ipv4_addresses(const struct ipt_entry *fw, unsigned int format);
+void save_ipv4_addr(char letter, const struct in_addr *addr,
+		    const struct in_addr *mask, int invert);
 void print_ipv6_addresses(const struct ip6t_entry *fw6, unsigned int format);
+void save_ipv6_addr(char letter, const struct in6_addr *addr,
+		    const struct in6_addr *mask, int invert);
 
 void print_ifaces(const char *iniface, const char *outiface, uint8_t invflags,
 		  unsigned int format);
+void save_iface(char letter, const char *iface,
+		const unsigned char *mask, int invert);
 
-void command_match(struct iptables_command_state *cs);
+void print_fragment(unsigned int flags, unsigned int invflags,
+		    unsigned int format, bool fake);
+
+void command_match(struct iptables_command_state *cs, bool invert);
 const char *xt_parse_target(const char *targetname);
 void command_jump(struct iptables_command_state *cs, const char *jumpto);
 
@@ -220,8 +247,92 @@ char cmd2char(int option);
 void add_command(unsigned int *cmd, const int newcmd,
 		 const int othercmds, int invert);
 int parse_rulenumber(const char *rule);
+void assert_valid_chain_name(const char *chainname);
 
 void generic_opt_check(int command, int options);
 char opt2char(int option);
+
+void print_rule_details(unsigned int linenum, const struct xt_counters *ctrs,
+			const char *targname, uint8_t proto, uint8_t flags,
+			uint8_t invflags, unsigned int format);
+void save_rule_details(const char *iniface, unsigned const char *iniface_mask,
+		       const char *outiface, unsigned const char *outiface_mask,
+		       uint16_t proto, int frag, uint8_t invflags);
+
+int print_match_save(const struct xt_entry_match *e, const void *ip);
+
+void exit_tryhelp(int status, int line) __attribute__((noreturn));
+
+struct addr_mask {
+	union {
+		struct in_addr	*v4;
+		struct in6_addr *v6;
+		void *ptr;
+	} addr;
+
+	unsigned int naddrs;
+
+	union {
+		struct in_addr	*v4;
+		struct in6_addr *v6;
+		void *ptr;
+	} mask;
+};
+
+struct xtables_args {
+	int		family;
+	uint16_t	proto;
+	uint8_t		flags;
+	uint16_t	invflags;
+	char		iniface[IFNAMSIZ], outiface[IFNAMSIZ];
+	unsigned char	iniface_mask[IFNAMSIZ], outiface_mask[IFNAMSIZ];
+	bool		goto_set;
+	const char	*shostnetworkmask, *dhostnetworkmask;
+	const char	*pcnt, *bcnt;
+	struct addr_mask s, d;
+	const char	*src_mac, *dst_mac;
+	const char	*arp_hlen, *arp_opcode;
+	const char	*arp_htype, *arp_ptype;
+	unsigned long long pcnt_cnt, bcnt_cnt;
+	int		wait;
+};
+
+struct xt_cmd_parse_ops {
+	void	(*proto_parse)(struct iptables_command_state *cs,
+			       struct xtables_args *args);
+	void	(*post_parse)(int command,
+			      struct iptables_command_state *cs,
+			      struct xtables_args *args);
+};
+
+struct xt_cmd_parse {
+	unsigned int			command;
+	unsigned int			rulenum;
+	char				*table;
+	const char			*chain;
+	const char			*newname;
+	const char			*policy;
+	bool				restore;
+	int				line;
+	int				verbose;
+	bool				xlate;
+	struct xt_cmd_parse_ops		*ops;
+};
+
+void do_parse(int argc, char *argv[],
+	      struct xt_cmd_parse *p, struct iptables_command_state *cs,
+	      struct xtables_args *args);
+
+void ipv4_proto_parse(struct iptables_command_state *cs,
+		      struct xtables_args *args);
+void ipv6_proto_parse(struct iptables_command_state *cs,
+		      struct xtables_args *args);
+void ipv4_post_parse(int command, struct iptables_command_state *cs,
+		     struct xtables_args *args);
+void ipv6_post_parse(int command, struct iptables_command_state *cs,
+		     struct xtables_args *args);
+
+extern char *arp_opcodes[];
+#define ARP_NUMOPCODES 9
 
 #endif /* IPTABLES_XSHARED_H */

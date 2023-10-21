@@ -453,6 +453,7 @@ extern void xtables_set_nfproto(uint8_t);
 extern void *xtables_calloc(size_t, size_t);
 extern void *xtables_malloc(size_t);
 extern void *xtables_realloc(void *, size_t);
+char *xtables_strdup(const char *);
 
 extern int xtables_insmod(const char *, const char *, bool);
 extern int xtables_load_ko(const char *, bool);
@@ -592,8 +593,17 @@ static inline void xtables_print_mark_mask(unsigned int mark,
 	extern void init_extensions(void);
 	extern void init_extensions4(void);
 	extern void init_extensions6(void);
+	extern void init_extensionsa(void);
+	extern void init_extensionsb(void);
 #else
 #	define _init __attribute__((constructor)) _INIT
+#	define EMPTY_FUNC_DEF(x) static inline void x(void) {}
+	EMPTY_FUNC_DEF(init_extensions)
+	EMPTY_FUNC_DEF(init_extensions4)
+	EMPTY_FUNC_DEF(init_extensions6)
+	EMPTY_FUNC_DEF(init_extensionsa)
+	EMPTY_FUNC_DEF(init_extensionsb)
+#	undef EMPTY_FUNC_DEF
 #endif
 
 extern const struct xtables_pprot xtables_chain_protos[];
@@ -632,9 +642,18 @@ extern const char *xtables_lmap_id2name(const struct xtables_lmap *, int);
 struct xt_xlate *xt_xlate_alloc(int size);
 void xt_xlate_free(struct xt_xlate *xl);
 void xt_xlate_add(struct xt_xlate *xl, const char *fmt, ...) __attribute__((format(printf,2,3)));
+#define xt_xlate_rule_add xt_xlate_add
+void xt_xlate_set_add(struct xt_xlate *xl, const char *fmt, ...) __attribute__((format(printf,2,3)));
 void xt_xlate_add_comment(struct xt_xlate *xl, const char *comment);
 const char *xt_xlate_get_comment(struct xt_xlate *xl);
+void xl_xlate_set_family(struct xt_xlate *xl, uint8_t family);
+uint8_t xt_xlate_get_family(struct xt_xlate *xl);
 const char *xt_xlate_get(struct xt_xlate *xl);
+#define xt_xlate_rule_get xt_xlate_get
+const char *xt_xlate_set_get(struct xt_xlate *xl);
+
+/* informed target lookups */
+void xtables_announce_chain(const char *name);
 
 #ifdef XTABLES_INTERNAL
 

@@ -9,6 +9,7 @@ struct nft_handle;
 struct nft_chain {
 	struct list_head	head;
 	struct hlist_node	hnode;
+	struct nft_chain	**base_slot;
 	struct nftnl_chain	*nftnl;
 };
 

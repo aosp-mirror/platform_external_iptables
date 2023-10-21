@@ -32,22 +32,26 @@ EXTENSIONS_PATH = "extensions"
 LOGFILE="/tmp/iptables-test.log"
 log_file = None
 
+STDOUT_IS_TTY = sys.stdout.isatty()
+STDERR_IS_TTY = sys.stderr.isatty()
 
-class Colors:
-    HEADER = '\033[95m'
-    BLUE = '\033[94m'
-    GREEN = '\033[92m'
-    YELLOW = '\033[93m'
-    RED = '\033[91m'
-    ENDC = '\033[0m'
+def maybe_colored(color, text, isatty):
+    terminal_sequences = {
+        'green': '\033[92m',
+        'red': '\033[91m',
+    }
+
+    return (
+        terminal_sequences[color] + text + '\033[0m' if isatty else text
+    )
 
 
 def print_error(reason, filename=None, lineno=None):
     '''
     Prints an error with nice colors, indicating file and line number.
     '''
-    print(filename + ": " + Colors.RED + "ERROR" +
-        Colors.ENDC + ": line %d (%s)" % (lineno, reason))
+    print(filename + ": " + maybe_colored('red', "ERROR", STDERR_IS_TTY) +
+        ": line %d (%s)" % (lineno, reason), file=sys.stderr)
 
 
 def delete_rule(iptables, rule, filename, lineno):
@@ -69,9 +73,9 @@ def run_test(iptables, rule, rule_save, res, filename, lineno, netns):
     Executes an unit test. Returns the output of delete_rule().
 
     Parameters:
-    :param  iptables: string with the iptables command to execute
+    :param iptables: string with the iptables command to execute
     :param rule: string with iptables arguments for the rule to test
-    :param rule_save: string to find the rule in the output of iptables -save
+    :param rule_save: string to find the rule in the output of iptables-save
     :param res: expected result of the rule. Valid values: "OK", "FAIL"
     :param filename: name of the file tested (used for print_error purposes)
     :param lineno: line number being tested (used for print_error purposes)
@@ -80,7 +84,7 @@ def run_test(iptables, rule, rule_save, res, filename, lineno, netns):
 
     cmd = iptables + " -A " + rule
     if netns:
-            cmd = "ip netns exec ____iptables-container-test " + EXECUTEABLE + " " + cmd
+            cmd = "ip netns exec ____iptables-container-test " + EXECUTABLE + " " + cmd
 
     ret = execute_cmd(cmd, filename, lineno)
 
@@ -88,7 +92,7 @@ def run_test(iptables, rule, rule_save, res, filename, lineno, netns):
     # report failed test
     #
     if ret:
-        if res == "OK":
+        if res != "FAIL":
             reason = "cannot load: " + cmd
             print_error(reason, filename, lineno)
             return -1
@@ -103,28 +107,28 @@ def run_test(iptables, rule, rule_save, res, filename, lineno, netns):
             return -1
 
     matching = 0
-    splitted = iptables.split(" ")
-    if len(splitted) == 2:
-        if splitted[1] == '-4':
+    tokens = iptables.split(" ")
+    if len(tokens) == 2:
+        if tokens[1] == '-4':
             command = IPTABLES_SAVE
-        elif splitted[1] == '-6':
+        elif tokens[1] == '-6':
             command = IP6TABLES_SAVE
-    elif len(splitted) == 1:
-        if splitted[0] == IPTABLES:
+    elif len(tokens) == 1:
+        if tokens[0] == IPTABLES:
             command = IPTABLES_SAVE
-        elif splitted[0] == IP6TABLES:
+        elif tokens[0] == IP6TABLES:
             command = IP6TABLES_SAVE
-        elif splitted[0] == ARPTABLES:
+        elif tokens[0] == ARPTABLES:
             command = ARPTABLES_SAVE
-        elif splitted[0] == EBTABLES:
+        elif tokens[0] == EBTABLES:
             command = EBTABLES_SAVE
 
-    command = EXECUTEABLE + " " + command
+    command = EXECUTABLE + " " + command
 
     if netns:
             command = "ip netns exec ____iptables-container-test " + command
 
-    args = splitted[1:]
+    args = tokens[1:]
     proc = subprocess.Popen(command, shell=True,
                             stdin=subprocess.PIPE,
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -142,10 +146,20 @@ def run_test(iptables, rule, rule_save, res, filename, lineno, netns):
     # find the rule
     matching = out.find(rule_save.encode('utf-8'))
     if matching < 0:
-        reason = "cannot find: " + iptables + " -I " + rule
-        print_error(reason, filename, lineno)
-        delete_rule(iptables, rule, filename, lineno)
-        return -1
+        if res == "OK":
+            reason = "cannot find: " + iptables + " -I " + rule
+            print_error(reason, filename, lineno)
+            delete_rule(iptables, rule, filename, lineno)
+            return -1
+        else:
+            # do not report this error
+            return 0
+    else:
+        if res != "OK":
+            reason = "should not match: " + cmd
+            print_error(reason, filename, lineno)
+            delete_rule(iptables, rule, filename, lineno)
+            return -1
 
     # Test "ip netns del NETNS" path with rules in place
     if netns:
@@ -164,7 +178,7 @@ def execute_cmd(cmd, filename, lineno):
     '''
     global log_file
     if cmd.startswith('iptables ') or cmd.startswith('ip6tables ') or cmd.startswith('ebtables ') or cmd.startswith('arptables '):
-        cmd = EXECUTEABLE + " " + cmd
+        cmd = EXECUTABLE + " " + cmd
 
     print("command: {}".format(cmd), file=log_file)
     ret = subprocess.call(cmd, shell=True, universal_newlines=True,
@@ -172,10 +186,39 @@ def execute_cmd(cmd, filename, lineno):
     log_file.flush()
 
     # generic check for segfaults
-    if ret  == -11:
+    if ret == -11:
         reason = "command segfaults: " + cmd
         print_error(reason, filename, lineno)
     return ret
+
+
+def variant_res(res, variant, alt_res=None):
+    '''
+    Adjust expected result with given variant
+
+    If expected result is scoped to a variant, the other one yields a different
+    result. Therefore map @res to itself if given variant is current, use the
+    alternate result, @alt_res, if specified, invert @res otherwise.
+
+    :param res: expected result from test spec ("OK", "FAIL" or "NOMATCH")
+    :param variant: variant @res is scoped to by test spec ("NFT" or "LEGACY")
+    :param alt_res: optional expected result for the alternate variant.
+    '''
+    variant_executable = {
+        "NFT": "xtables-nft-multi",
+        "LEGACY": "xtables-legacy-multi"
+    }
+    res_inverse = {
+        "OK": "FAIL",
+        "FAIL": "OK",
+        "NOMATCH": "OK"
+    }
+
+    if variant_executable[variant] == EXECUTABLE:
+        return res
+    if alt_res is not None:
+        return alt_res
+    return res_inverse[res]
 
 
 def run_test_file(filename, netns):
@@ -198,12 +241,12 @@ def run_test_file(filename, netns):
         iptables = IPTABLES
     elif "libarpt_" in filename:
         # only supported with nf_tables backend
-        if EXECUTEABLE != "xtables-nft-multi":
+        if EXECUTABLE != "xtables-nft-multi":
            return 0, 0
         iptables = ARPTABLES
     elif "libebt_" in filename:
         # only supported with nf_tables backend
-        if EXECUTEABLE != "xtables-nft-multi":
+        if EXECUTABLE != "xtables-nft-multi":
            return 0, 0
         iptables = EBTABLES
     else:
@@ -215,6 +258,7 @@ def run_test_file(filename, netns):
     tests = 0
     passed = 0
     table = ""
+    chain_array = []
     total_test_passed = True
 
     if netns:
@@ -240,7 +284,7 @@ def run_test_file(filename, netns):
         if line[0] == "%":
             external_cmd = line.rstrip()[1:]
             if netns:
-                external_cmd = "ip netns exec ____iptables-container-test " + EXECUTEABLE + " " + external_cmd
+                external_cmd = "ip netns exec ____iptables-container-test " + EXECUTABLE + " " + external_cmd
             execute_cmd(external_cmd, filename, lineno)
             continue
 
@@ -249,8 +293,10 @@ def run_test_file(filename, netns):
             continue
 
         if len(chain_array) == 0:
-            print("broken test, missing chain, leaving")
-            sys.exit()
+            print_error("broken test, missing chain",
+                        filename = filename, lineno = lineno)
+            total_test_passed = False
+            break
 
         test_passed = True
         tests += 1
@@ -268,6 +314,14 @@ def run_test_file(filename, netns):
                 rule_save = chain + " " + item[1]
 
             res = item[2].rstrip()
+            if len(item) > 3:
+                variant = item[3].rstrip()
+                if len(item) > 4:
+                    alt_res = item[4].rstrip()
+                else:
+                    alt_res = None
+                res = variant_res(res, variant, alt_res)
+
             ret = run_test(iptables, rule, rule_save,
                            res, filename, lineno + 1, netns)
 
@@ -282,7 +336,7 @@ def run_test_file(filename, netns):
     if netns:
         execute_cmd("ip netns del ____iptables-container-test", filename, 0)
     if total_test_passed:
-        print(filename + ": " + Colors.GREEN + "OK" + Colors.ENDC)
+        print(filename + ": " + maybe_colored('green', "OK", STDOUT_IS_TTY))
 
     f.close()
     return tests, passed
@@ -304,6 +358,31 @@ def show_missing():
 
     print('\n'.join(missing))
 
+def spawn_netns():
+    # prefer unshare module
+    try:
+        import unshare
+        unshare.unshare(unshare.CLONE_NEWNET)
+        return True
+    except:
+        pass
+
+    # sledgehammer style:
+    # - call ourselves prefixed by 'unshare -n' if found
+    # - pass extra --no-netns parameter to avoid another recursion
+    try:
+        import shutil
+
+        unshare = shutil.which("unshare")
+        if unshare is None:
+            return False
+
+        sys.argv.append("--no-netns")
+        os.execv(unshare, [unshare, "-n", sys.executable] + sys.argv)
+    except:
+        pass
+
+    return False
 
 #
 # main
@@ -323,6 +402,8 @@ def main():
                         help='Test iptables-over-nftables')
     parser.add_argument('-N', '--netns', action='store_true',
                         help='Test netnamespace path')
+    parser.add_argument('--no-netns', action='store_true',
+                        help='Do not run testsuite in own network namespace')
     args = parser.parse_args()
 
     #
@@ -332,14 +413,18 @@ def main():
         show_missing()
         return
 
-    global EXECUTEABLE
-    EXECUTEABLE = "xtables-legacy-multi"
+    global EXECUTABLE
+    EXECUTABLE = "xtables-legacy-multi"
     if args.nftables:
-        EXECUTEABLE = "xtables-nft-multi"
+        EXECUTABLE = "xtables-nft-multi"
 
     if os.getuid() != 0:
-        print("You need to be root to run this, sorry")
+        print("You need to be root to run this, sorry", file=sys.stderr)
         return
+
+    if not args.netns and not args.no_netns and not spawn_netns():
+        print("Cannot run in own namespace, connectivity might break",
+              file=sys.stderr)
 
     if not args.host:
         os.putenv("XTABLES_LIBDIR", os.path.abspath(EXTENSIONS_PATH))
@@ -355,7 +440,7 @@ def main():
     try:
         log_file = open(LOGFILE, 'w')
     except IOError:
-        print("Couldn't open log file %s" % LOGFILE)
+        print("Couldn't open log file %s" % LOGFILE, file=sys.stderr)
         return
 
     if args.filename:
@@ -366,13 +451,6 @@ def main():
                      if i.endswith('.t')]
         file_list.sort()
 
-    if not args.netns:
-        try:
-            import unshare
-            unshare.unshare(unshare.CLONE_NEWNET)
-        except:
-            print("Cannot run in own namespace, connectivity might break")
-
     for filename in file_list:
         file_tests, file_passed = run_test_file(filename, args.netns)
         if file_tests:
@@ -381,7 +459,8 @@ def main():
             test_files += 1
 
     print("%d test files, %d unit tests, %d passed" % (test_files, tests, passed))
+    return passed - tests
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())
