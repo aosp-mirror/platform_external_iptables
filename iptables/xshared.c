@@ -1307,7 +1307,7 @@ static void check_empty_interface(struct xtables_args *args, const char *arg)
 		return;
 
 	if (args->family != NFPROTO_ARP)
-		xtables_error(PARAMETER_PROBLEM, msg);
+		xtables_error(PARAMETER_PROBLEM, "%s", msg);
 
 	fprintf(stderr, "%s", msg);
 }
