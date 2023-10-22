@@ -156,17 +156,17 @@ static int nft_rule_eb_xlate_add(struct nft_handle *h, const struct xt_cmd_parse
 				 const struct iptables_command_state *cs, bool append)
 {
 	struct xt_xlate *xl = xt_xlate_alloc(10240);
+	const char *tick = cs->restore ? "" : "'";
 	int ret;
 
-	if (append) {
-		xt_xlate_add(xl, "add rule bridge %s %s ", p->table, p->chain);
-	} else {
-		xt_xlate_add(xl, "insert rule bridge %s %s ", p->table, p->chain);
-	}
+	xt_xlate_add(xl, "%s%s rule bridge %s %s ", tick,
+		     append ? "add" : "insert", p->table, p->chain);
 
 	ret = h->ops->xlate(cs, xl);
 	if (ret)
-		printf("%s\n", xt_xlate_get(xl));
+		printf("%s%s\n", xt_xlate_get(xl), tick);
+	else
+		printf("%s ", tick);
 
 	xt_xlate_free(xl);
 	return ret;
@@ -294,7 +294,7 @@ print_zero:
 					      "Multiple commands are not allowed");
 			if (exec_style == EXEC_STYLE_DAEMON)
 				xtables_error(PARAMETER_PROBLEM,
-					      "%s %s\n", prog_name, prog_vers);
+					      "%s %s", prog_name, prog_vers);
 			printf("%s %s\n", prog_name, prog_vers);
 			exit(0);
 		case 'h':

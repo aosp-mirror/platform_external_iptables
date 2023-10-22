@@ -21,7 +21,6 @@ EOF
 
 msg_error() {
         echo "E: $1 ..." >&2
-        exit 1
 }
 
 msg_warn() {
@@ -34,10 +33,12 @@ msg_info() {
 
 if [ "$(id -u)" != "0" ] ; then
         msg_error "this requires root!"
+        exit 77
 fi
 
 if [ ! -d "$TESTDIR" ] ; then
         msg_error "missing testdir $TESTDIR"
+        exit 99
 fi
 
 # support matching repeated pattern in SINGLE check below
@@ -76,6 +77,7 @@ while [ -n "$1" ]; do
 		;;
 	*)
 		msg_error "unknown parameter '$1'"
+		exit 99
 		;;
 	esac
 done
@@ -122,7 +124,8 @@ EOF
 if [ "$VALGRIND" == "y" ]; then
 	tmpd=$(mktemp -d)
 	msg_info "writing valgrind logs to $tmpd"
-	chmod a+rx $tmpd
+	# let nobody write logs, too (././testcases/iptables/0008-unprivileged_0)
+	chmod 777 $tmpd
 	printscript "$XTABLES_NFT_MULTI" "$tmpd" >${tmpd}/xtables-nft-multi
 	printscript "$XTABLES_LEGACY_MULTI" "$tmpd" >${tmpd}/xtables-legacy-multi
 	trap "rm ${tmpd}/xtables-*-multi" EXIT

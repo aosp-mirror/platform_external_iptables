@@ -20,39 +20,9 @@
 #include <netdb.h>
 #include <inttypes.h>
 #include <xtables.h>
+#include <linux/netfilter_bridge/ebt_ip.h>
 
 #include "libxt_icmp.h"
-
-#define EBT_IP_SOURCE 0x01
-#define EBT_IP_DEST 0x02
-#define EBT_IP_TOS 0x04
-#define EBT_IP_PROTO 0x08
-#define EBT_IP_SPORT 0x10
-#define EBT_IP_DPORT 0x20
-#define EBT_IP_ICMP 0x40
-#define EBT_IP_IGMP 0x80
-#define EBT_IP_MASK (EBT_IP_SOURCE | EBT_IP_DEST | EBT_IP_TOS | EBT_IP_PROTO |\
-		     EBT_IP_SPORT | EBT_IP_DPORT | EBT_IP_ICMP | EBT_IP_IGMP)
-
-struct ebt_ip_info {
-	__be32 saddr;
-	__be32 daddr;
-	__be32 smsk;
-	__be32 dmsk;
-	__u8  tos;
-	__u8  protocol;
-	__u8  bitmask;
-	__u8  invflags;
-	union {
-		__u16 sport[2];
-		__u8 icmp_type[2];
-		__u8 igmp_type[2];
-	};
-	union {
-		__u16 dport[2];
-		__u8 icmp_code[2];
-	};
-};
 
 #define IP_SOURCE	'1'
 #define IP_DEST		'2'
@@ -78,68 +48,6 @@ static const struct option brip_opts[] = {
 	{ .name = "ip-icmp-type",       .has_arg = true, .val = IP_EBT_ICMP },
 	{ .name = "ip-igmp-type",       .has_arg = true, .val = IP_EBT_IGMP },
 	XT_GETOPT_TABLEEND,
-};
-
-static const struct xt_icmp_names icmp_codes[] = {
-	{ "echo-reply", 0, 0, 0xFF },
-	/* Alias */ { "pong", 0, 0, 0xFF },
-
-	{ "destination-unreachable", 3, 0, 0xFF },
-	{   "network-unreachable", 3, 0, 0 },
-	{   "host-unreachable", 3, 1, 1 },
-	{   "protocol-unreachable", 3, 2, 2 },
-	{   "port-unreachable", 3, 3, 3 },
-	{   "fragmentation-needed", 3, 4, 4 },
-	{   "source-route-failed", 3, 5, 5 },
-	{   "network-unknown", 3, 6, 6 },
-	{   "host-unknown", 3, 7, 7 },
-	{   "network-prohibited", 3, 9, 9 },
-	{   "host-prohibited", 3, 10, 10 },
-	{   "TOS-network-unreachable", 3, 11, 11 },
-	{   "TOS-host-unreachable", 3, 12, 12 },
-	{   "communication-prohibited", 3, 13, 13 },
-	{   "host-precedence-violation", 3, 14, 14 },
-	{   "precedence-cutoff", 3, 15, 15 },
-
-	{ "source-quench", 4, 0, 0xFF },
-
-	{ "redirect", 5, 0, 0xFF },
-	{   "network-redirect", 5, 0, 0 },
-	{   "host-redirect", 5, 1, 1 },
-	{   "TOS-network-redirect", 5, 2, 2 },
-	{   "TOS-host-redirect", 5, 3, 3 },
-
-	{ "echo-request", 8, 0, 0xFF },
-	/* Alias */ { "ping", 8, 0, 0xFF },
-
-	{ "router-advertisement", 9, 0, 0xFF },
-
-	{ "router-solicitation", 10, 0, 0xFF },
-
-	{ "time-exceeded", 11, 0, 0xFF },
-	/* Alias */ { "ttl-exceeded", 11, 0, 0xFF },
-	{   "ttl-zero-during-transit", 11, 0, 0 },
-	{   "ttl-zero-during-reassembly", 11, 1, 1 },
-
-	{ "parameter-problem", 12, 0, 0xFF },
-	{   "ip-header-bad", 12, 0, 0 },
-	{   "required-option-missing", 12, 1, 1 },
-
-	{ "timestamp-request", 13, 0, 0xFF },
-
-	{ "timestamp-reply", 14, 0, 0xFF },
-
-	{ "address-mask-request", 17, 0, 0xFF },
-
-	{ "address-mask-reply", 18, 0, 0xFF }
-};
-
-static const struct xt_icmp_names igmp_types[] = {
-	{ "membership-query", 0x11 },
-	{ "membership-report-v1", 0x12 },
-	{ "membership-report-v2", 0x16 },
-	{ "leave-group", 0x17 },
-	{ "membership-report-v3", 0x22 },
 };
 
 static void brip_print_help(void)
@@ -194,156 +102,6 @@ parse_port_range(const char *protocol, const char *portstring, uint16_t *ports)
 }
 
 /* original code from ebtables: useful_functions.c */
-static int undot_ip(char *ip, unsigned char *ip2)
-{
-	char *p, *q, *end;
-	long int onebyte;
-	int i;
-	char buf[20];
-
-	strncpy(buf, ip, sizeof(buf) - 1);
-
-	p = buf;
-	for (i = 0; i < 3; i++) {
-		if ((q = strchr(p, '.')) == NULL)
-			return -1;
-		*q = '\0';
-		onebyte = strtol(p, &end, 10);
-		if (*end != '\0' || onebyte > 255 || onebyte < 0)
-			return -1;
-		ip2[i] = (unsigned char)onebyte;
-		p = q + 1;
-	}
-
-	onebyte = strtol(p, &end, 10);
-	if (*end != '\0' || onebyte > 255 || onebyte < 0)
-		return -1;
-	ip2[3] = (unsigned char)onebyte;
-
-	return 0;
-}
-
-static int ip_mask(char *mask, unsigned char *mask2)
-{
-	char *end;
-	long int bits;
-	uint32_t mask22;
-
-	if (undot_ip(mask, mask2)) {
-		/* not the /a.b.c.e format, maybe the /x format */
-		bits = strtol(mask, &end, 10);
-		if (*end != '\0' || bits > 32 || bits < 0)
-			return -1;
-		if (bits != 0) {
-			mask22 = htonl(0xFFFFFFFF << (32 - bits));
-			memcpy(mask2, &mask22, 4);
-		} else {
-			mask22 = 0xFFFFFFFF;
-			memcpy(mask2, &mask22, 4);
-		}
-	}
-	return 0;
-}
-
-static void ebt_parse_ip_address(char *address, uint32_t *addr, uint32_t *msk)
-{
-	char *p;
-
-	/* first the mask */
-	if ((p = strrchr(address, '/')) != NULL) {
-		*p = '\0';
-		if (ip_mask(p + 1, (unsigned char *)msk)) {
-			xtables_error(PARAMETER_PROBLEM,
-				      "Problem with the IP mask '%s'", p + 1);
-			return;
-		}
-	} else
-		*msk = 0xFFFFFFFF;
-
-	if (undot_ip(address, (unsigned char *)addr)) {
-		xtables_error(PARAMETER_PROBLEM,
-			      "Problem with the IP address '%s'", address);
-		return;
-	}
-	*addr = *addr & *msk;
-}
-
-static char *parse_range(const char *str, unsigned int res[])
-{
-	char *next;
-
-	if (!xtables_strtoui(str, &next, &res[0], 0, 255))
-		return NULL;
-
-	res[1] = res[0];
-	if (*next == ':') {
-		str = next + 1;
-		if (!xtables_strtoui(str, &next, &res[1], 0, 255))
-			return NULL;
-	}
-
-	return next;
-}
-
-static int ebt_parse_icmp(const struct xt_icmp_names *codes, size_t n_codes,
-			  const char *icmptype, uint8_t type[], uint8_t code[])
-{
-	unsigned int match = n_codes;
-	unsigned int i, number[2];
-
-	for (i = 0; i < n_codes; i++) {
-		if (strncasecmp(codes[i].name, icmptype, strlen(icmptype)))
-			continue;
-		if (match != n_codes)
-			xtables_error(PARAMETER_PROBLEM, "Ambiguous ICMP type `%s':"
-					" `%s' or `%s'?",
-					icmptype, codes[match].name,
-					codes[i].name);
-		match = i;
-	}
-
-	if (match < n_codes) {
-		type[0] = type[1] = codes[match].type;
-		if (code) {
-			code[0] = codes[match].code_min;
-			code[1] = codes[match].code_max;
-		}
-	} else {
-		char *next = parse_range(icmptype, number);
-		if (!next) {
-			xtables_error(PARAMETER_PROBLEM, "Unknown ICMP type `%s'",
-							icmptype);
-			return -1;
-		}
-
-		type[0] = (uint8_t) number[0];
-		type[1] = (uint8_t) number[1];
-		switch (*next) {
-		case 0:
-			if (code) {
-				code[0] = 0;
-				code[1] = 255;
-			}
-			return 0;
-		case '/':
-			if (code) {
-				next = parse_range(next+1, number);
-				code[0] = (uint8_t) number[0];
-				code[1] = (uint8_t) number[1];
-				if (next == NULL)
-					return -1;
-				if (next && *next == 0)
-					return 0;
-			}
-		/* fallthrough */
-		default:
-			xtables_error(PARAMETER_PROBLEM, "unknown character %c", *next);
-			return -1;
-		}
-	}
-	return 0;
-}
-
 static void print_icmp_code(uint8_t *code)
 {
 	if (!code)
@@ -385,18 +143,26 @@ brip_parse(int c, char **argv, int invert, unsigned int *flags,
 	   const void *entry, struct xt_entry_match **match)
 {
 	struct ebt_ip_info *info = (struct ebt_ip_info *)(*match)->data;
+	struct in_addr *ipaddr, ipmask;
+	unsigned int ipnr;
 
 	switch (c) {
 	case IP_SOURCE:
 		if (invert)
 			info->invflags |= EBT_IP_SOURCE;
-		ebt_parse_ip_address(optarg, &info->saddr, &info->smsk);
+		xtables_ipparse_any(optarg, &ipaddr, &ipmask, &ipnr);
+		info->saddr = ipaddr->s_addr;
+		info->smsk = ipmask.s_addr;
+		free(ipaddr);
 		info->bitmask |= EBT_IP_SOURCE;
 		break;
 	case IP_DEST:
 		if (invert)
 			info->invflags |= EBT_IP_DEST;
-		ebt_parse_ip_address(optarg, &info->daddr, &info->dmsk);
+		xtables_ipparse_any(optarg, &ipaddr, &ipmask, &ipnr);
+		info->daddr = ipaddr->s_addr;
+		info->dmsk = ipmask.s_addr;
+		free(ipaddr);
 		info->bitmask |= EBT_IP_DEST;
 		break;
 	case IP_SPORT:
@@ -414,15 +180,13 @@ brip_parse(int c, char **argv, int invert, unsigned int *flags,
 	case IP_EBT_ICMP:
 		if (invert)
 			info->invflags |= EBT_IP_ICMP;
-		ebt_parse_icmp(icmp_codes, ARRAY_SIZE(icmp_codes), optarg,
-			      info->icmp_type, info->icmp_code);
+		ebt_parse_icmp(optarg, info->icmp_type, info->icmp_code);
 		info->bitmask |= EBT_IP_ICMP;
 		break;
 	case IP_EBT_IGMP:
 		if (invert)
 			info->invflags |= EBT_IP_IGMP;
-		ebt_parse_icmp(igmp_types, ARRAY_SIZE(igmp_types), optarg,
-			       info->igmp_type, NULL);
+		ebt_parse_igmp(optarg, info->igmp_type);
 		info->bitmask |= EBT_IP_IGMP;
 		break;
 	case IP_EBT_TOS: {

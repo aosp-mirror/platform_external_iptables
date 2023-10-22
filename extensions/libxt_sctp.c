@@ -112,9 +112,13 @@ static const struct sctp_chunk_names sctp_chunk_names[]
     { .name = "ECN_ECNE",	.chunk_type = 12,  .valid_flags = "--------", .nftname = "ecne" },
     { .name = "ECN_CWR",	.chunk_type = 13,  .valid_flags = "--------", .nftname = "cwr" },
     { .name = "SHUTDOWN_COMPLETE", .chunk_type = 14,  .valid_flags = "-------T", .nftname = "shutdown-complete" },
+    { .name = "I_DATA",		.chunk_type = 64,   .valid_flags = "----IUBE", .nftname = "i-data"},
+    { .name = "RE_CONFIG",	.chunk_type = 130,  .valid_flags = "--------", .nftname = "re-config"},
+    { .name = "PAD",		.chunk_type = 132,  .valid_flags = "--------", .nftname = "pad"},
     { .name = "ASCONF",		.chunk_type = 193,  .valid_flags = "--------", .nftname = "asconf" },
     { .name = "ASCONF_ACK",	.chunk_type = 128,  .valid_flags = "--------", .nftname = "asconf-ack" },
     { .name = "FORWARD_TSN",	.chunk_type = 192,  .valid_flags = "--------", .nftname = "forward-tsn" },
+    { .name = "I_FORWARD_TSN",	.chunk_type = 194,  .valid_flags = "--------", .nftname = "i-forward-tsn" },
 };
 
 static void
@@ -140,10 +144,8 @@ save_chunk_flag_info(struct xt_sctp_flag_info *flag_info,
 	}
 	
 	if (*flag_count == XT_NUM_SCTP_FLAGS) {
-		xtables_error (PARAMETER_PROBLEM,
-			"Number of chunk types with flags exceeds currently allowed limit."
-			"Increasing this limit involves changing IPT_NUM_SCTP_FLAGS and"
-			"recompiling both the kernel space and user space modules\n");
+		xtables_error(PARAMETER_PROBLEM,
+			      "Number of chunk types with flags exceeds currently allowed limit. Increasing this limit involves changing IPT_NUM_SCTP_FLAGS and recompiling both the kernel space and user space modules");
 	}
 
 	flag_info[*flag_count].chunktype = chunktype;
@@ -215,7 +217,8 @@ parse_sctp_chunk(struct xt_sctp_info *einfo,
 						isupper(chunk_flags[j]));
 				} else {
 					xtables_error(PARAMETER_PROBLEM,
-						"Invalid flags for chunk type %d\n", i);
+						      "Invalid flags for chunk type %d",
+						      i);
 				}
 			}
 		}
@@ -486,24 +489,24 @@ static void sctp_save(const void *ip, const struct xt_entry_match *match)
 	}
 }
 
-static const char *sctp_xlate_chunk(struct xt_xlate *xl, const char *space,
-				    const struct xt_sctp_info *einfo,
-				    const struct sctp_chunk_names *scn)
+static void sctp_xlate_chunk(struct xt_xlate *xl,
+			     const struct xt_sctp_info *einfo,
+			     const struct sctp_chunk_names *scn)
 {
 	bool inv = einfo->invflags & XT_SCTP_CHUNK_TYPES;
 	const struct xt_sctp_flag_info *flag_info = NULL;
 	int i;
 
 	if (!scn->nftname)
-		return space;
+		return;
 
 	if (!SCTP_CHUNKMAP_IS_SET(einfo->chunkmap, scn->chunk_type)) {
 		if (einfo->chunk_match_type != SCTP_CHUNK_MATCH_ONLY)
-			return space;
+			return;
 
-		xt_xlate_add(xl, "%ssctp chunk %s %s", space,
+		xt_xlate_add(xl, "sctp chunk %s %s",
 			     scn->nftname, inv ? "exists" : "missing");
-		return " ";
+		return;
 	}
 
 	for (i = 0; i < einfo->flag_count; i++) {
@@ -514,16 +517,14 @@ static const char *sctp_xlate_chunk(struct xt_xlate *xl, const char *space,
 	}
 
 	if (!flag_info) {
-		xt_xlate_add(xl, "%ssctp chunk %s %s", space,
+		xt_xlate_add(xl, "sctp chunk %s %s",
 			     scn->nftname, inv ? "missing" : "exists");
-		return " ";
+		return;
 	}
 
-	xt_xlate_add(xl, "%ssctp chunk %s flags & 0x%x %s 0x%x", space,
+	xt_xlate_add(xl, "sctp chunk %s flags & 0x%x %s 0x%x",
 		     scn->nftname, flag_info->flag_mask,
 		     inv ? "!=" : "==", flag_info->flag);
-
-	return " ";
 }
 
 static int sctp_xlate(struct xt_xlate *xl,
@@ -531,7 +532,6 @@ static int sctp_xlate(struct xt_xlate *xl,
 {
 	const struct xt_sctp_info *einfo =
 		(const struct xt_sctp_info *)params->match->data;
-	const char *space = "";
 
 	if (!einfo->flags)
 		return 0;
@@ -545,19 +545,17 @@ static int sctp_xlate(struct xt_xlate *xl,
 			xt_xlate_add(xl, "sctp sport%s %u",
 				     einfo->invflags & XT_SCTP_SRC_PORTS ? " !=" : "",
 				     einfo->spts[0]);
-		space = " ";
 	}
 
 	if (einfo->flags & XT_SCTP_DEST_PORTS) {
 		if (einfo->dpts[0] != einfo->dpts[1])
-			xt_xlate_add(xl, "%ssctp dport%s %u-%u", space,
+			xt_xlate_add(xl, "sctp dport%s %u-%u",
 				     einfo->invflags & XT_SCTP_DEST_PORTS ? " !=" : "",
 				     einfo->dpts[0], einfo->dpts[1]);
 		else
-			xt_xlate_add(xl, "%ssctp dport%s %u", space,
+			xt_xlate_add(xl, "sctp dport%s %u",
 				     einfo->invflags & XT_SCTP_DEST_PORTS ? " !=" : "",
 				     einfo->dpts[0]);
-		space = " ";
 	}
 
 	if (einfo->flags & XT_SCTP_CHUNK_TYPES) {
@@ -567,8 +565,7 @@ static int sctp_xlate(struct xt_xlate *xl,
 			return 0;
 
 		for (i = 0; i < ARRAY_SIZE(sctp_chunk_names); i++)
-			space = sctp_xlate_chunk(xl, space, einfo,
-						 &sctp_chunk_names[i]);
+			sctp_xlate_chunk(xl, einfo, &sctp_chunk_names[i]);
 	}
 
 	return 1;

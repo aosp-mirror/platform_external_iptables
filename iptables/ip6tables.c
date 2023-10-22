@@ -122,6 +122,9 @@ print_match(const struct xt_entry_match *m,
 			printf("%s%s ", match->name, unsupported_rev);
 		else
 			printf("%s ", match->name);
+
+		if (match->next == match)
+			free(match);
 	} else {
 		if (name[0])
 			printf("UNKNOWN match `%s' ", name);
@@ -179,6 +182,9 @@ print_firewall(const struct ip6t_entry *fw,
 			tg->print(&fw->ipv6, t, format & FMT_NUMERIC);
 		else if (target->print)
 			printf(" %s%s", target->name, unsupported_rev);
+
+		if (target->next == target)
+			free(target);
 	} else if (t->u.target_size != sizeof(*t))
 		printf("[%u bytes of unknown target data] ",
 		       (unsigned int)(t->u.target_size - sizeof(*t)));
@@ -277,40 +283,6 @@ insert_entry(const xt_chainlabel chain,
 	return ret;
 }
 
-static unsigned char *
-make_delete_mask(const struct xtables_rule_match *matches,
-		 const struct xtables_target *target)
-{
-	/* Establish mask for comparison */
-	unsigned int size;
-	const struct xtables_rule_match *matchp;
-	unsigned char *mask, *mptr;
-
-	size = sizeof(struct ip6t_entry);
-	for (matchp = matches; matchp; matchp = matchp->next)
-		size += XT_ALIGN(sizeof(struct xt_entry_match)) + matchp->match->size;
-
-	mask = xtables_calloc(1, size
-			 + XT_ALIGN(sizeof(struct xt_entry_target))
-			 + target->size);
-
-	memset(mask, 0xFF, sizeof(struct ip6t_entry));
-	mptr = mask + sizeof(struct ip6t_entry);
-
-	for (matchp = matches; matchp; matchp = matchp->next) {
-		memset(mptr, 0xFF,
-		       XT_ALIGN(sizeof(struct xt_entry_match))
-		       + matchp->match->userspacesize);
-		mptr += XT_ALIGN(sizeof(struct xt_entry_match)) + matchp->match->size;
-	}
-
-	memset(mptr, 0xFF,
-	       XT_ALIGN(sizeof(struct xt_entry_target))
-	       + target->userspacesize);
-
-	return mask;
-}
-
 static int
 delete_entry(const xt_chainlabel chain,
 	     struct ip6t_entry *fw,
@@ -329,7 +301,7 @@ delete_entry(const xt_chainlabel chain,
 	int ret = 1;
 	unsigned char *mask;
 
-	mask = make_delete_mask(matches, target);
+	mask = make_delete_mask(matches, target, sizeof(*fw));
 	for (i = 0; i < nsaddrs; i++) {
 		fw->ipv6.src = saddrs[i];
 		fw->ipv6.smsk = smasks[i];
@@ -359,7 +331,7 @@ check_entry(const xt_chainlabel chain, struct ip6t_entry *fw,
 	int ret = 1;
 	unsigned char *mask;
 
-	mask = make_delete_mask(matches, target);
+	mask = make_delete_mask(matches, target, sizeof(fw));
 	for (i = 0; i < nsaddrs; i++) {
 		fw->ipv6.src = saddrs[i];
 		fw->ipv6.smsk = smasks[i];
@@ -800,13 +772,12 @@ int do_command6(int argc, char *argv[], char **table,
 #ifdef IP6T_F_GOTO
 			if (cs.fw6.ipv6.flags & IP6T_F_GOTO)
 				xtables_error(PARAMETER_PROBLEM,
-						"goto '%s' is not a chain\n",
-						cs.jumpto);
+					      "goto '%s' is not a chain",
+					      cs.jumpto);
 #endif
 			xtables_find_target(cs.jumpto, XTF_LOAD_MUST_SUCCEED);
 		} else {
 			e = generate_entry(&cs.fw6, cs.matches, cs.target->t);
-			free(cs.target->t);
 		}
 	}
 
@@ -908,7 +879,7 @@ int do_command6(int argc, char *argv[], char **table,
 	if (verbose > 1)
 		dump_entries6(*handle);
 
-	xtables_rule_matches_free(&cs.matches);
+	xtables_clear_iptables_command_state(&cs);
 
 	if (e != NULL) {
 		free(e);

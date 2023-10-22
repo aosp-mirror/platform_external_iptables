@@ -380,10 +380,9 @@ static void print_tcp_xlate(struct xt_xlate *xl, uint8_t flags)
 
 		for (i = 0; (flags & tcp_flag_names_xlate[i].flag) == 0; i++);
 
-		if (have_flag)
-			xt_xlate_add(xl, ",");
-
-		xt_xlate_add(xl, "%s", tcp_flag_names_xlate[i].name);
+		xt_xlate_add(xl, "%s%s",
+			     have_flag ? "," : "",
+			     tcp_flag_names_xlate[i].name);
 		have_flag = 1;
 
 		flags &= ~tcp_flag_names_xlate[i].flag;
@@ -398,7 +397,6 @@ static int tcp_xlate(struct xt_xlate *xl,
 {
 	const struct xt_tcp *tcpinfo =
 		(const struct xt_tcp *)params->match->data;
-	char *space= "";
 
 	if (tcpinfo->spts[0] != 0 || tcpinfo->spts[1] != 0xffff) {
 		if (tcpinfo->spts[0] != tcpinfo->spts[1]) {
@@ -412,30 +410,29 @@ static int tcp_xlate(struct xt_xlate *xl,
 					"!= " : "",
 				   tcpinfo->spts[0]);
 		}
-		space = " ";
 	}
 
 	if (tcpinfo->dpts[0] != 0 || tcpinfo->dpts[1] != 0xffff) {
 		if (tcpinfo->dpts[0] != tcpinfo->dpts[1]) {
-			xt_xlate_add(xl, "%stcp dport %s%u-%u", space,
+			xt_xlate_add(xl, "tcp dport %s%u-%u",
 				   tcpinfo->invflags & XT_TCP_INV_DSTPT ?
 					"!= " : "",
 				   tcpinfo->dpts[0], tcpinfo->dpts[1]);
 		} else {
-			xt_xlate_add(xl, "%stcp dport %s%u", space,
+			xt_xlate_add(xl, "tcp dport %s%u",
 				   tcpinfo->invflags & XT_TCP_INV_DSTPT ?
 					"!= " : "",
 				   tcpinfo->dpts[0]);
 		}
-		space = " ";
 	}
 
-	/* XXX not yet implemented */
-	if (tcpinfo->option || (tcpinfo->invflags & XT_TCP_INV_OPTION))
-		return 0;
+	if (tcpinfo->option)
+		xt_xlate_add(xl, "tcp option %u %s", tcpinfo->option,
+			     tcpinfo->invflags & XT_TCP_INV_OPTION ?
+			     "missing" : "exists");
 
 	if (tcpinfo->flg_mask || (tcpinfo->invflags & XT_TCP_INV_FLAGS)) {
-		xt_xlate_add(xl, "%stcp flags %s", space,
+		xt_xlate_add(xl, "tcp flags %s",
 			     tcpinfo->invflags & XT_TCP_INV_FLAGS ? "!= ": "");
 		print_tcp_xlate(xl, tcpinfo->flg_cmp);
 		xt_xlate_add(xl, " / ");

@@ -497,7 +497,7 @@ static int __multiport_xlate(struct xt_xlate *xl,
 		xt_xlate_add(xl, "{ ");
 
 	for (i = 0; i < multiinfo->count; i++)
-		xt_xlate_add(xl, "%s%u", i ? "," : "", multiinfo->ports[i]);
+		xt_xlate_add(xl, "%s%u", i ? ", " : "", multiinfo->ports[i]);
 
 	if (multiinfo->count > 1)
 		xt_xlate_add(xl, "}");
@@ -560,7 +560,7 @@ static int __multiport_xlate_v1(struct xt_xlate *xl,
 		xt_xlate_add(xl, "{ ");
 
 	for (i = 0; i < multiinfo->count; i++) {
-		xt_xlate_add(xl, "%s%u", i ? "," : "", multiinfo->ports[i]);
+		xt_xlate_add(xl, "%s%u", i ? ", " : "", multiinfo->ports[i]);
 		if (multiinfo->pflags[i])
 			xt_xlate_add(xl, "-%u", multiinfo->ports[++i]);
 	}

@@ -146,9 +146,9 @@ out:
 static void print_range(unsigned int l, unsigned int u)
 {
 	if (l == u)
-		printf("%u ", l);
+		printf("%u", l);
 	else
-		printf("%u:%u ", l, u);
+		printf("%u:%u", l, u);
 }
 
 static int

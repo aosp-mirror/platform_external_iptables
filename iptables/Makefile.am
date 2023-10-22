@@ -2,49 +2,56 @@
 
 AM_CFLAGS        = ${regular_CFLAGS}
 AM_CPPFLAGS      = ${regular_CPPFLAGS} -I${top_builddir}/include -I${top_srcdir}/include -I${top_srcdir} ${kinclude_CPPFLAGS} ${libmnl_CFLAGS} ${libnftnl_CFLAGS} ${libnetfilter_conntrack_CFLAGS}
+AM_LDFLAGS       = ${regular_LDFLAGS}
 
 BUILT_SOURCES =
 
-xtables_legacy_multi_SOURCES  = xtables-legacy-multi.c iptables-xml.c
-xtables_legacy_multi_CFLAGS   = ${AM_CFLAGS}
-xtables_legacy_multi_LDADD    = ../extensions/libext.a
+common_sources = iptables-xml.c xtables-multi.h xshared.c xshared.h
+common_ldadd   = ../extensions/libext.a ../libxtables/libxtables.la -lm
+common_cflags  = ${AM_CFLAGS}
 if ENABLE_STATIC
-xtables_legacy_multi_CFLAGS  += -DALL_INCLUSIVE
+common_cflags += -DALL_INCLUSIVE
 endif
+
+xtables_legacy_multi_SOURCES  = ${common_sources} xtables-legacy-multi.c \
+				iptables-restore.c iptables-save.c
+xtables_legacy_multi_CFLAGS   = ${common_cflags}
+xtables_legacy_multi_LDADD    = ${common_ldadd}
 if ENABLE_IPV4
-xtables_legacy_multi_SOURCES += iptables-standalone.c iptables.c
+xtables_legacy_multi_SOURCES += iptables-standalone.c iptables.c iptables-multi.h
 xtables_legacy_multi_CFLAGS  += -DENABLE_IPV4
 xtables_legacy_multi_LDADD   += ../libiptc/libip4tc.la ../extensions/libext4.a
 endif
 if ENABLE_IPV6
-xtables_legacy_multi_SOURCES += ip6tables-standalone.c ip6tables.c
+xtables_legacy_multi_SOURCES += ip6tables-standalone.c ip6tables.c ip6tables-multi.h
 xtables_legacy_multi_CFLAGS  += -DENABLE_IPV6
 xtables_legacy_multi_LDADD   += ../libiptc/libip6tc.la ../extensions/libext6.a
 endif
-xtables_legacy_multi_SOURCES += xshared.c iptables-restore.c iptables-save.c
-xtables_legacy_multi_LDADD   += ../libxtables/libxtables.la -lm
 
 # iptables using nf_tables api
 if ENABLE_NFTABLES
-xtables_nft_multi_SOURCES  = xtables-nft-multi.c iptables-xml.c
-xtables_nft_multi_CFLAGS   = ${AM_CFLAGS}
-xtables_nft_multi_LDADD    = ../extensions/libext.a ../extensions/libext_ebt.a
-if ENABLE_STATIC
-xtables_nft_multi_CFLAGS  += -DALL_INCLUSIVE
-endif
+xtables_nft_multi_SOURCES  = ${common_sources} xtables-nft-multi.c
+xtables_nft_multi_CFLAGS   = ${common_cflags}
+xtables_nft_multi_LDADD    = ${common_ldadd} \
+			     ../extensions/libext_arpt.a \
+			     ../extensions/libext_ebt.a \
+			     ../extensions/libext4.a \
+			     ../extensions/libext6.a \
+			     ${libmnl_LIBS} ${libnftnl_LIBS} \
+			     ${libnetfilter_conntrack_LIBS}
 xtables_nft_multi_CFLAGS  += -DENABLE_NFTABLES -DENABLE_IPV4 -DENABLE_IPV6
-xtables_nft_multi_SOURCES += xtables-save.c xtables-restore.c \
-				xtables-standalone.c xtables.c nft.c \
-				nft-shared.c nft-ipv4.c nft-ipv6.c nft-arp.c \
-				xtables-monitor.c nft-cache.c \
-				xtables-arp.c \
-				nft-bridge.c nft-cmd.c nft-chain.c \
-				xtables-eb-standalone.c xtables-eb.c \
-				xtables-eb-translate.c \
-				xtables-translate.c
-xtables_nft_multi_LDADD   += ${libmnl_LIBS} ${libnftnl_LIBS} ${libnetfilter_conntrack_LIBS} ../extensions/libext4.a ../extensions/libext6.a ../extensions/libext_ebt.a ../extensions/libext_arpt.a
-xtables_nft_multi_SOURCES += xshared.c
-xtables_nft_multi_LDADD   += ../libxtables/libxtables.la -lm
+xtables_nft_multi_SOURCES += nft.c nft.h \
+			     nft-arp.c nft-ipv4.c nft-ipv6.c \
+			     nft-bridge.c nft-bridge.h \
+			     nft-cache.c nft-cache.h \
+			     nft-chain.c nft-chain.h \
+			     nft-cmd.c nft-cmd.h \
+			     nft-shared.c nft-shared.h \
+			     xtables-monitor.c \
+			     xtables.c xtables-arp.c xtables-eb.c \
+			     xtables-standalone.c xtables-eb-standalone.c \
+			     xtables-translate.c xtables-eb-translate.c \
+			     xtables-save.c xtables-restore.c
 endif
 
 sbin_PROGRAMS    = xtables-legacy-multi
@@ -56,22 +63,19 @@ man_MANS         = iptables.8 iptables-restore.8 iptables-save.8 \
                    ip6tables-save.8 iptables-extensions.8 \
                    iptables-apply.8 ip6tables-apply.8
 
-sbin_SCRIPTS     = iptables-apply
+dist_sbin_SCRIPTS = iptables-apply
+dist_pkgdata_DATA = iptables.xslt
 
 if ENABLE_NFTABLES
-man_MANS	+= xtables-nft.8 xtables-translate.8 xtables-legacy.8 \
-                   iptables-translate.8 ip6tables-translate.8 \
+man_MANS	+= iptables-translate.8 ip6tables-translate.8 \
 		   iptables-restore-translate.8 ip6tables-restore-translate.8 \
-                   xtables-monitor.8 \
-                   arptables-nft.8 arptables-nft-restore.8 arptables-nft-save.8 \
-                   ebtables-nft.8
+		   xtables-monitor.8 ebtables-translate.8
+
+dist_man_MANS	 = xtables-nft.8 xtables-translate.8 xtables-legacy.8 \
+		   arptables-nft.8 arptables-nft-restore.8 arptables-nft-save.8 \
+		   ebtables-nft.8
 endif
-CLEANFILES       = iptables.8 xtables-monitor.8 \
-		   iptables-xml.1 iptables-apply.8 \
-		   iptables-extensions.8 iptables-extensions.8.tmpl \
-		   iptables-restore.8 iptables-save.8 \
-		   iptables-restore-translate.8 ip6tables-restore-translate.8 \
-		   iptables-translate.8 ip6tables-translate.8
+CLEANFILES       = ${man_MANS} iptables-extensions.8.tmpl
 
 vx_bin_links   = iptables-xml
 if ENABLE_IPV4
@@ -85,7 +89,7 @@ endif
 if ENABLE_NFTABLES
 x_sbin_links  = iptables-nft iptables-nft-restore iptables-nft-save \
 		ip6tables-nft ip6tables-nft-restore ip6tables-nft-save \
-		iptables-translate ip6tables-translate \
+		iptables-translate ip6tables-translate ebtables-translate \
 		iptables-restore-translate ip6tables-restore-translate \
 		arptables-nft arptables \
 		arptables-nft-restore arptables-restore \
@@ -101,8 +105,11 @@ iptables-extensions.8: iptables-extensions.8.tmpl ../extensions/matches.man ../e
 		-e '/@MATCH@/ r ../extensions/matches.man' \
 		-e '/@TARGET@/ r ../extensions/targets.man' $< >$@;
 
-iptables-translate.8 ip6tables-translate.8 iptables-restore-translate.8 ip6tables-restore-translate.8:
+iptables-translate.8 ip6tables-translate.8 iptables-restore-translate.8 ip6tables-restore-translate.8 ebtables-translate.8:
 	${AM_VERBOSE_GEN} echo '.so man8/xtables-translate.8' >$@
+
+ip6tables.8 ip6tables-apply.8 ip6tables-restore.8 ip6tables-save.8:
+	${AM_VERBOSE_GEN} echo "$@" | sed 's|^ip6|.so man8/ip|' >$@
 
 pkgconfig_DATA = xtables.pc
 
@@ -138,3 +145,5 @@ uninstall-hook:
 		); \
 		( cd "$$dir" && rm -f ip6tables-apply ); \
 	}
+
+EXTRA_DIST = tests

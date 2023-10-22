@@ -161,9 +161,10 @@ static void brlog_print(const void *ip, const struct xt_entry_target *target,
 {
 	struct ebt_log_info *loginfo = (struct ebt_log_info *)target->data;
 
-	printf("--log-level %s --log-prefix \"%s\"",
-		eight_priority[loginfo->loglevel].c_name,
-		loginfo->prefix);
+	printf("--log-level %s", eight_priority[loginfo->loglevel].c_name);
+
+	if (loginfo->prefix[0])
+		printf(" --log-prefix \"%s\"", loginfo->prefix);
 
 	if (loginfo->bitmask & EBT_LOG_IP)
 		printf(" --log-ip");
@@ -180,16 +181,14 @@ static int brlog_xlate(struct xt_xlate *xl,
 	const struct ebt_log_info *loginfo = (const void *)params->target->data;
 
 	xt_xlate_add(xl, "log");
-	if (loginfo->prefix[0]) {
-		if (params->escape_quotes)
-			xt_xlate_add(xl, " prefix \\\"%s\\\"", loginfo->prefix);
-		else
-			xt_xlate_add(xl, " prefix \"%s\"", loginfo->prefix);
-	}
+	if (loginfo->prefix[0])
+		xt_xlate_add(xl, " prefix \"%s\"", loginfo->prefix);
 
 	if (loginfo->loglevel != LOG_DEFAULT_LEVEL)
 		xt_xlate_add(xl, " level %s", eight_priority[loginfo->loglevel].c_name);
 
+	/* ebt_log always decodes MAC header, nft_log always decodes upper header -
+	 * so set flags ether and ignore EBT_LOG_IP, EBT_LOG_ARP and EBT_LOG_IP6 */
 	xt_xlate_add(xl, " flags ether ");
 
 	return 1;

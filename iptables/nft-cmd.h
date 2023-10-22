@@ -24,6 +24,9 @@ struct nft_cmd {
 	struct xt_counters		counters;
 	const char			*rename;
 	int				counters_save;
+	struct {
+		unsigned int		lineno;
+	} error;
 };
 
 struct nft_cmd *nft_cmd_new(struct nft_handle *h, int command,

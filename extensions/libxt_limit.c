@@ -77,7 +77,7 @@ int parse_rate(const char *rate, uint32_t *val)
 		 * The rate maps to infinity. (1/day is the minimum they can
 		 * specify, so we are ok at that end).
 		 */
-		xtables_error(PARAMETER_PROBLEM, "Rate too fast \"%s\"\n", rate);
+		xtables_error(PARAMETER_PROBLEM, "Rate too fast \"%s\"", rate);
 	return 1;
 }
 
@@ -93,7 +93,7 @@ static void limit_init(struct xt_entry_match *m)
 /* FIXME: handle overflow:
 	if (r->avg*r->burst/r->burst != r->avg)
 		xtables_error(PARAMETER_PROBLEM,
-			   "Sorry: burst too large for that avg rate.\n");
+			      "Sorry: burst too large for that avg rate.");
 */
 
 static void limit_parse(struct xt_option_call *cb)

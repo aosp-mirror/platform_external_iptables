@@ -86,7 +86,7 @@ static int brredir_xlate(struct xt_xlate *xl,
 	xt_xlate_add(xl, "meta set pkttype host");
 	if (red->target != EBT_ACCEPT)
 		xt_xlate_add(xl, " %s ", brredir_verdict(red->target));
-	return 0;
+	return 1;
 }
 
 static struct xtables_target brredirect_target = {

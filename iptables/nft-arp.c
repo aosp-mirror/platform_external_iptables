@@ -160,25 +160,30 @@ static int nft_arp_add(struct nft_handle *h, struct nftnl_rule *r,
 	return ret;
 }
 
-static void nft_arp_parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e,
+static void nft_arp_parse_meta(struct nft_xt_ctx *ctx,
+			       const struct nft_xt_ctx_reg *reg,
+			       struct nftnl_expr *e,
 			       struct iptables_command_state *cs)
 {
 	struct arpt_entry *fw = &cs->arp;
 	uint8_t flags = 0;
 
-	parse_meta(ctx, e, ctx->meta.key, fw->arp.iniface, fw->arp.iniface_mask,
+	if (parse_meta(ctx, e, reg->meta_dreg.key, fw->arp.iniface, fw->arp.iniface_mask,
 		   fw->arp.outiface, fw->arp.outiface_mask,
-		   &flags);
+		   &flags) == 0) {
+		fw->arp.invflags |= flags;
+		return;
+	}
 
-	fw->arp.invflags |= flags;
+	ctx->errmsg = "Unknown arp meta key";
 }
 
-static void parse_mask_ipv4(struct nft_xt_ctx *ctx, struct in_addr *mask)
+static void parse_mask_ipv4(const struct nft_xt_ctx_reg *reg, struct in_addr *mask)
 {
-	mask->s_addr = ctx->bitwise.mask[0];
+	mask->s_addr = reg->bitwise.mask[0];
 }
 
-static bool nft_arp_parse_devaddr(struct nft_xt_ctx *ctx,
+static bool nft_arp_parse_devaddr(const struct nft_xt_ctx_reg *reg,
 				  struct nftnl_expr *e,
 				  struct arpt_devaddr_info *info)
 {
@@ -192,28 +197,27 @@ static bool nft_arp_parse_devaddr(struct nft_xt_ctx *ctx,
 
 	get_cmp_data(e, info->addr, ETH_ALEN, &inv);
 
-	if (ctx->flags & NFT_XT_CTX_BITWISE) {
-		memcpy(info->mask, ctx->bitwise.mask, ETH_ALEN);
-		ctx->flags &= ~NFT_XT_CTX_BITWISE;
-	} else {
+	if (reg->bitwise.set)
+		memcpy(info->mask, reg->bitwise.mask, ETH_ALEN);
+	else
 		memset(info->mask, 0xff,
-		       min(ctx->payload.len, ETH_ALEN));
-	}
+		       min(reg->payload.len, ETH_ALEN));
 
 	return inv;
 }
 
 static void nft_arp_parse_payload(struct nft_xt_ctx *ctx,
+				  const struct nft_xt_ctx_reg *reg,
 				  struct nftnl_expr *e,
 				  struct iptables_command_state *cs)
 {
 	struct arpt_entry *fw = &cs->arp;
 	struct in_addr addr;
 	uint16_t ar_hrd, ar_pro, ar_op;
-	uint8_t ar_hln;
+	uint8_t ar_hln, ar_pln;
 	bool inv;
 
-	switch (ctx->payload.offset) {
+	switch (reg->payload.offset) {
 	case offsetof(struct arphdr, ar_hrd):
 		get_cmp_data(e, &ar_hrd, sizeof(ar_hrd), &inv);
 		fw->arp.arhrd = ar_hrd;
@@ -242,47 +246,50 @@ static void nft_arp_parse_payload(struct nft_xt_ctx *ctx,
 		if (inv)
 			fw->arp.invflags |= IPT_INV_ARPOP;
 		break;
+	case offsetof(struct arphdr, ar_pln):
+		get_cmp_data(e, &ar_pln, sizeof(ar_pln), &inv);
+		if (ar_pln != 4 || inv)
+			ctx->errmsg = "unexpected ARP protocol length match";
+		break;
 	default:
-		if (ctx->payload.offset == sizeof(struct arphdr)) {
-			if (nft_arp_parse_devaddr(ctx, e, &fw->arp.src_devaddr))
+		if (reg->payload.offset == sizeof(struct arphdr)) {
+			if (nft_arp_parse_devaddr(reg, e, &fw->arp.src_devaddr))
 				fw->arp.invflags |= IPT_INV_SRCDEVADDR;
-		} else if (ctx->payload.offset == sizeof(struct arphdr) +
+		} else if (reg->payload.offset == sizeof(struct arphdr) +
 					   fw->arp.arhln) {
 			get_cmp_data(e, &addr, sizeof(addr), &inv);
 			fw->arp.src.s_addr = addr.s_addr;
-			if (ctx->flags & NFT_XT_CTX_BITWISE) {
-				parse_mask_ipv4(ctx, &fw->arp.smsk);
-				ctx->flags &= ~NFT_XT_CTX_BITWISE;
-			} else {
+			if (reg->bitwise.set)
+				parse_mask_ipv4(reg, &fw->arp.smsk);
+			else
 				memset(&fw->arp.smsk, 0xff,
-				       min(ctx->payload.len,
+				       min(reg->payload.len,
 					   sizeof(struct in_addr)));
-			}
 
 			if (inv)
 				fw->arp.invflags |= IPT_INV_SRCIP;
-		} else if (ctx->payload.offset == sizeof(struct arphdr) +
+		} else if (reg->payload.offset == sizeof(struct arphdr) +
 						  fw->arp.arhln +
 						  sizeof(struct in_addr)) {
-			if (nft_arp_parse_devaddr(ctx, e, &fw->arp.tgt_devaddr))
+			if (nft_arp_parse_devaddr(reg, e, &fw->arp.tgt_devaddr))
 				fw->arp.invflags |= IPT_INV_TGTDEVADDR;
-		} else if (ctx->payload.offset == sizeof(struct arphdr) +
+		} else if (reg->payload.offset == sizeof(struct arphdr) +
 						  fw->arp.arhln +
 						  sizeof(struct in_addr) +
 						  fw->arp.arhln) {
 			get_cmp_data(e, &addr, sizeof(addr), &inv);
 			fw->arp.tgt.s_addr = addr.s_addr;
-			if (ctx->flags & NFT_XT_CTX_BITWISE) {
-				parse_mask_ipv4(ctx, &fw->arp.tmsk);
-				ctx->flags &= ~NFT_XT_CTX_BITWISE;
-			} else {
+			if (reg->bitwise.set)
+				parse_mask_ipv4(reg, &fw->arp.tmsk);
+			else
 				memset(&fw->arp.tmsk, 0xff,
-				       min(ctx->payload.len,
+				       min(reg->payload.len,
 					   sizeof(struct in_addr)));
-			}
 
 			if (inv)
 				fw->arp.invflags |= IPT_INV_DSTIP;
+		} else {
+			ctx->errmsg = "unknown payload offset";
 		}
 		break;
 	}
@@ -490,7 +497,7 @@ nft_arp_print_rule(struct nft_handle *h, struct nftnl_rule *r,
 	if (!(format & FMT_NONEWLINE))
 		fputc('\n', stdout);
 
-	nft_clear_iptables_command_state(&cs);
+	xtables_clear_iptables_command_state(&cs);
 }
 
 static bool nft_arp_is_same(const struct iptables_command_state *cs_a,
@@ -787,7 +794,7 @@ struct nft_family_ops nft_family_ops_arp = {
 	},
 	.rule_to_cs		= nft_rule_to_iptables_command_state,
 	.init_cs		= nft_arp_init_cs,
-	.clear_cs		= nft_clear_iptables_command_state,
+	.clear_cs		= xtables_clear_iptables_command_state,
 	.parse_target		= nft_ipv46_parse_target,
 	.add_entry		= nft_arp_add_entry,
 	.delete_entry		= nft_arp_delete_entry,

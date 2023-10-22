@@ -104,10 +104,12 @@ static bool nft_ipv6_is_same(const struct iptables_command_state *a,
 				  b->fw6.ipv6.outiface_mask);
 }
 
-static void nft_ipv6_parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e,
+static void nft_ipv6_parse_meta(struct nft_xt_ctx *ctx,
+				const struct nft_xt_ctx_reg *reg,
+				struct nftnl_expr *e,
 				struct iptables_command_state *cs)
 {
-	switch (ctx->meta.key) {
+	switch (reg->meta_dreg.key) {
 	case NFT_META_L4PROTO:
 		cs->fw6.ipv6.proto = nftnl_expr_get_u8(e, NFTNL_EXPR_CMP_DATA);
 		if (nftnl_expr_get_u32(e, NFTNL_EXPR_CMP_OP) == NFT_CMP_NEQ)
@@ -117,17 +119,22 @@ static void nft_ipv6_parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e,
 		break;
 	}
 
-	parse_meta(ctx, e, ctx->meta.key, cs->fw6.ipv6.iniface,
+	if (parse_meta(ctx, e, reg->meta_dreg.key, cs->fw6.ipv6.iniface,
 		   cs->fw6.ipv6.iniface_mask, cs->fw6.ipv6.outiface,
-		   cs->fw6.ipv6.outiface_mask, &cs->fw6.ipv6.invflags);
+		   cs->fw6.ipv6.outiface_mask, &cs->fw6.ipv6.invflags) == 0)
+		return;
+
+	ctx->errmsg = "unknown ipv6 meta key";
 }
 
-static void parse_mask_ipv6(struct nft_xt_ctx *ctx, struct in6_addr *mask)
+static void parse_mask_ipv6(const struct nft_xt_ctx_reg *reg,
+			    struct in6_addr *mask)
 {
-	memcpy(mask, ctx->bitwise.mask, sizeof(struct in6_addr));
+	memcpy(mask, reg->bitwise.mask, sizeof(struct in6_addr));
 }
 
 static void nft_ipv6_parse_payload(struct nft_xt_ctx *ctx,
+				   const struct nft_xt_ctx_reg *reg,
 				   struct nftnl_expr *e,
 				   struct iptables_command_state *cs)
 {
@@ -135,17 +142,15 @@ static void nft_ipv6_parse_payload(struct nft_xt_ctx *ctx,
 	uint8_t proto;
 	bool inv;
 
-	switch (ctx->payload.offset) {
+	switch (reg->payload.offset) {
 	case offsetof(struct ip6_hdr, ip6_src):
 		get_cmp_data(e, &addr, sizeof(addr), &inv);
 		memcpy(cs->fw6.ipv6.src.s6_addr, &addr, sizeof(addr));
-		if (ctx->flags & NFT_XT_CTX_BITWISE) {
-			parse_mask_ipv6(ctx, &cs->fw6.ipv6.smsk);
-			ctx->flags &= ~NFT_XT_CTX_BITWISE;
-		} else {
+		if (reg->bitwise.set)
+			parse_mask_ipv6(reg, &cs->fw6.ipv6.smsk);
+		else
 			memset(&cs->fw6.ipv6.smsk, 0xff,
-			       min(ctx->payload.len, sizeof(struct in6_addr)));
-		}
+			       min(reg->payload.len, sizeof(struct in6_addr)));
 
 		if (inv)
 			cs->fw6.ipv6.invflags |= IP6T_INV_SRCIP;
@@ -153,13 +158,11 @@ static void nft_ipv6_parse_payload(struct nft_xt_ctx *ctx,
 	case offsetof(struct ip6_hdr, ip6_dst):
 		get_cmp_data(e, &addr, sizeof(addr), &inv);
 		memcpy(cs->fw6.ipv6.dst.s6_addr, &addr, sizeof(addr));
-		if (ctx->flags & NFT_XT_CTX_BITWISE) {
-			parse_mask_ipv6(ctx, &cs->fw6.ipv6.dmsk);
-			ctx->flags &= ~NFT_XT_CTX_BITWISE;
-		} else {
+		if (reg->bitwise.set)
+			parse_mask_ipv6(reg, &cs->fw6.ipv6.dmsk);
+		else
 			memset(&cs->fw6.ipv6.dmsk, 0xff,
-			       min(ctx->payload.len, sizeof(struct in6_addr)));
-		}
+			       min(reg->payload.len, sizeof(struct in6_addr)));
 
 		if (inv)
 			cs->fw6.ipv6.invflags |= IP6T_INV_DSTIP;
@@ -169,8 +172,13 @@ static void nft_ipv6_parse_payload(struct nft_xt_ctx *ctx,
 		cs->fw6.ipv6.proto = proto;
 		if (inv)
 			cs->fw6.ipv6.invflags |= IP6T_INV_PROTO;
+	case offsetof(struct ip6_hdr, ip6_hlim):
+		if (nft_parse_hl(ctx, e, cs) < 0)
+			ctx->errmsg = "invalid ttl field match";
+		break;
 	default:
-		DEBUGP("unknown payload offset %d\n", ctx->payload.offset);
+		DEBUGP("unknown payload offset %d\n", reg->payload.offset);
+		ctx->errmsg = "unknown payload offset";
 		break;
 	}
 }
@@ -205,7 +213,7 @@ static void nft_ipv6_print_rule(struct nft_handle *h, struct nftnl_rule *r,
 	if (!(format & FMT_NONEWLINE))
 		fputc('\n', stdout);
 
-	nft_clear_iptables_command_state(&cs);
+	xtables_clear_iptables_command_state(&cs);
 }
 
 static void nft_ipv6_save_rule(const struct iptables_command_state *cs,
@@ -417,7 +425,7 @@ struct nft_family_ops nft_family_ops_ipv6 = {
 	},
 	.parse_target		= nft_ipv46_parse_target,
 	.rule_to_cs		= nft_rule_to_iptables_command_state,
-	.clear_cs		= nft_clear_iptables_command_state,
+	.clear_cs		= xtables_clear_iptables_command_state,
 	.xlate			= nft_ipv6_xlate,
 	.add_entry		= nft_ipv6_add_entry,
 	.delete_entry		= nft_ipv6_delete_entry,

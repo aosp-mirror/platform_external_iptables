@@ -12,5 +12,5 @@ EOF
 
 EXPECT='Chain FORWARD (policy ACCEPT)
 target     prot opt source               destination         
-ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0           '
+ACCEPT     0    --  0.0.0.0/0            0.0.0.0/0           '
 diff -u <(echo "$EXPECT") <($XT_MULTI iptables -n -L FORWARD)

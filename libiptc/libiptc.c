@@ -606,6 +606,15 @@ static int iptcc_chain_index_delete_chain(struct chain_head *c, struct xtc_handl
 
 	if (index_ptr == &c->list) { /* Chain used as index ptr */
 
+		/* If this is the last chain in the list, its index bucket just
+		 * became empty. Adjust the size to avoid a NULL-pointer deref
+		 * later.
+		 */
+		if (next == &h->chains) {
+			h->chain_index_sz--;
+			return 0;
+		}
+
 		/* See if its possible to avoid a rebuild, by shifting
 		 * to next pointer.  Its possible if the next pointer
 		 * is located in the same index bucket.
@@ -2545,8 +2554,8 @@ TC_COMMIT(struct xtc_handle *handle)
 			+ sizeof(STRUCT_COUNTERS) * new_number;
 
 	/* These are the old counters we will get from kernel */
-	repl->counters = malloc(sizeof(STRUCT_COUNTERS)
-				* handle->info.num_entries);
+	repl->counters = calloc(handle->info.num_entries,
+				sizeof(STRUCT_COUNTERS));
 	if (!repl->counters) {
 		errno = ENOMEM;
 		goto out_free_repl;

@@ -317,16 +317,14 @@ static int iprange_xlate(struct xt_xlate *xl,
 			 const struct xt_xlate_mt_params *params)
 {
 	const struct ipt_iprange_info *info = (const void *)params->match->data;
-	char *space = "";
 
 	if (info->flags & IPRANGE_SRC) {
 		xt_xlate_add(xl, "ip saddr%s",
 			     info->flags & IPRANGE_SRC_INV ? " !=" : "");
 		print_iprange_xlate(&info->src, xl);
-		space = " ";
 	}
 	if (info->flags & IPRANGE_DST) {
-		xt_xlate_add(xl, "%sip daddr%s", space,
+		xt_xlate_add(xl, "ip daddr%s",
 			     info->flags & IPRANGE_DST_INV ? " !=" : "");
 		print_iprange_xlate(&info->dst, xl);
 	}
@@ -339,7 +337,6 @@ static int iprange_mt4_xlate(struct xt_xlate *xl,
 {
 	const struct xt_iprange_mtinfo *info =
 		(const void *)params->match->data;
-	char *space = "";
 
 	if (info->flags & IPRANGE_SRC) {
 		xt_xlate_add(xl, "ip saddr%s %s",
@@ -347,10 +344,9 @@ static int iprange_mt4_xlate(struct xt_xlate *xl,
 			     xtables_ipaddr_to_numeric(&info->src_min.in));
 		xt_xlate_add(xl, "-%s",
 			     xtables_ipaddr_to_numeric(&info->src_max.in));
-		space = " ";
 	}
 	if (info->flags & IPRANGE_DST) {
-		xt_xlate_add(xl, "%sip daddr%s %s", space,
+		xt_xlate_add(xl, "ip daddr%s %s",
 			     info->flags & IPRANGE_DST_INV ? " !=" : "",
 			     xtables_ipaddr_to_numeric(&info->dst_min.in));
 		xt_xlate_add(xl, "-%s",
@@ -365,7 +361,6 @@ static int iprange_mt6_xlate(struct xt_xlate *xl,
 {
 	const struct xt_iprange_mtinfo *info =
 		(const void *)params->match->data;
-	char *space = "";
 
 	if (info->flags & IPRANGE_SRC) {
 		xt_xlate_add(xl, "ip6 saddr%s %s",
@@ -373,10 +368,9 @@ static int iprange_mt6_xlate(struct xt_xlate *xl,
 			     xtables_ip6addr_to_numeric(&info->src_min.in6));
 		xt_xlate_add(xl, "-%s",
 			     xtables_ip6addr_to_numeric(&info->src_max.in6));
-		space = " ";
 	}
 	if (info->flags & IPRANGE_DST) {
-		xt_xlate_add(xl, "%sip6 daddr%s %s", space,
+		xt_xlate_add(xl, "ip6 daddr%s %s",
 			     info->flags & IPRANGE_DST_INV ? " !=" : "",
 			     xtables_ip6addr_to_numeric(&info->dst_min.in6));
 		xt_xlate_add(xl, "-%s",

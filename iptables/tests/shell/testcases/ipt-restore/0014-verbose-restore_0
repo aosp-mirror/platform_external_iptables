@@ -60,7 +60,7 @@ Flushing chain \`OUTPUT'
 Flushing chain \`secfoo'
 Deleting chain \`secfoo'"
 
-EXPECT6=$(sed -e 's/0\.0\.0\.0/::/g' -e 's/opt --/opt   /' <<< "$EXPECT")
+EXPECT6=$(sed -e 's/0\.0\.0\.0/::/g' <<< "$EXPECT")
 
 diff -u -Z <(echo "$EXPECT") <($XT_MULTI iptables-restore -v <<< "$DUMP")
 diff -u -Z <(echo "$EXPECT6") <($XT_MULTI ip6tables-restore -v <<< "$DUMP")

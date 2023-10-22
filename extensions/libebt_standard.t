@@ -12,12 +12,17 @@
 :INPUT
 -i foobar;=;OK
 -o foobar;=;FAIL
+--logical-in br0;=;OK
+--logical-out br1;=;FAIL
 :FORWARD
 -i foobar;=;OK
 -o foobar;=;OK
+--logical-in br0 --logical-out br1;=;OK
 :OUTPUT
 -i foobar;=;FAIL
 -o foobar;=;OK
+--logical-in br0;=;FAIL
+--logical-out br1;=;OK
 :PREROUTING
 *nat
 -i foobar;=;OK

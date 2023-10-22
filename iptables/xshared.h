@@ -37,11 +37,12 @@ enum {
 	OPT_OPCODE	= 1 << 15,
 	OPT_H_TYPE	= 1 << 16,
 	OPT_P_TYPE	= 1 << 17,
+	/* below are for ebtables only */
+	OPT_LOGICALIN	= 1 << 18,
+	OPT_LOGICALOUT	= 1 << 19,
+	OPT_COMMAND	= 1 << 20,
+	OPT_ZERO	= 1 << 21,
 };
-
-#define NUMBER_OF_OPT	ARRAY_SIZE(optflags)
-static const char optflags[]
-= { 'n', 's', 'd', 'p', 'j', 'v', 'x', 'i', 'o', '0', 'c', 'f', 2, 3, 'l', 4, 5, 6 };
 
 enum {
 	CMD_NONE		= 0,
@@ -69,7 +70,7 @@ struct xtables_target;
 
 #define OPTSTRING_COMMON "-:A:C:D:E:F::I:L::M:N:P:VX::Z::" "c:d:i:j:o:p:s:t:"
 #define IPT_OPTSTRING	OPTSTRING_COMMON "R:S::W::" "46bfg:h::m:nvw::x"
-#define ARPT_OPTSTRING	OPTSTRING_COMMON "R:S::" "h::l:nv" /* "m:" */
+#define ARPT_OPTSTRING	OPTSTRING_COMMON "R:S::" "h::l:nvx" /* "m:" */
 #define EBT_OPTSTRING	OPTSTRING_COMMON "hv"
 
 /* define invflags which won't collide with IPT ones */
@@ -78,30 +79,6 @@ struct xtables_target;
 #define IPT_INV_ARPHLN		0x0200
 #define IPT_INV_ARPOP		0x0400
 #define IPT_INV_ARPHRD		0x0800
-
-void
-set_option(unsigned int *options, unsigned int option, u_int16_t *invflg,
-	   bool invert);
-
-/**
- * xtables_afinfo - protocol family dependent information
- * @kmod:		kernel module basename (e.g. "ip_tables")
- * @proc_exists:	file which exists in procfs when module already loaded
- * @libprefix:		prefix of .so library name (e.g. "libipt_")
- * @family:		nfproto family
- * @ipproto:		used by setsockopt (e.g. IPPROTO_IP)
- * @so_rev_match:	optname to check revision support of match
- * @so_rev_target:	optname to check revision support of target
- */
-struct xtables_afinfo {
-	const char *kmod;
-	const char *proc_exists;
-	const char *libprefix;
-	uint8_t family;
-	uint8_t ipproto;
-	int so_rev_match;
-	int so_rev_target;
-};
 
 /* trick for ebtables-compat, since watchers are targets */
 struct ebt_match {
@@ -153,6 +130,8 @@ struct iptables_command_state {
 	bool restore;
 };
 
+void xtables_clear_iptables_command_state(struct iptables_command_state *cs);
+
 typedef int (*mainfunc_t)(int, char **);
 
 struct subcommand {
@@ -160,14 +139,6 @@ struct subcommand {
 	mainfunc_t main;
 };
 
-enum {
-	XT_OPTION_OFFSET_SCALE = 256,
-};
-
-extern void print_extension_helps(const struct xtables_target *,
-	const struct xtables_rule_match *);
-extern int command_default(struct iptables_command_state *,
-	struct xtables_globals *, bool invert);
 extern int subcmd_main(int, char **, const struct subcommand *);
 extern void xs_init_target(struct xtables_target *);
 extern void xs_init_match(struct xtables_match *);
@@ -198,8 +169,6 @@ void parse_wait_interval(int argc, char *argv[]);
 int parse_counters(const char *string, struct xt_counters *ctr);
 bool tokenize_rule_counters(char **bufferp, char **pcnt, char **bcnt, int line);
 bool xs_has_arg(int argc, char *argv[]);
-
-extern const struct xtables_afinfo *afinfo;
 
 #define MAX_ARGC	255
 struct argv_store {
@@ -239,18 +208,9 @@ void save_iface(char letter, const char *iface,
 void print_fragment(unsigned int flags, unsigned int invflags,
 		    unsigned int format, bool fake);
 
-void command_match(struct iptables_command_state *cs, bool invert);
-const char *xt_parse_target(const char *targetname);
 void command_jump(struct iptables_command_state *cs, const char *jumpto);
 
-char cmd2char(int option);
-void add_command(unsigned int *cmd, const int newcmd,
-		 const int othercmds, int invert);
-int parse_rulenumber(const char *rule);
 void assert_valid_chain_name(const char *chainname);
-
-void generic_opt_check(int command, int options);
-char opt2char(int option);
 
 void print_rule_details(unsigned int linenum, const struct xt_counters *ctrs,
 			const char *targname, uint8_t proto, uint8_t flags,
@@ -334,5 +294,9 @@ void ipv6_post_parse(int command, struct iptables_command_state *cs,
 
 extern char *arp_opcodes[];
 #define ARP_NUMOPCODES 9
+
+unsigned char *make_delete_mask(const struct xtables_rule_match *matches,
+				const struct xtables_target *target,
+				size_t entry_size);
 
 #endif /* IPTABLES_XSHARED_H */

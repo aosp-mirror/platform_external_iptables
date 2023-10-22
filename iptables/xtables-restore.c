@@ -115,14 +115,14 @@ static void xtables_restore_parse_line(struct nft_handle *h,
 		DEBUGP("line %u, table '%s'\n", line, table);
 		if (!table)
 			xtables_error(PARAMETER_PROBLEM,
-				"%s: line %u table name invalid\n",
-				xt_params->program_name, line);
+				      "%s: line %u table name invalid",
+				      xt_params->program_name, line);
 
 		state->curtable = nft_table_builtin_find(h, table);
 		if (!state->curtable)
 			xtables_error(PARAMETER_PROBLEM,
-				"%s: line %u table name '%s' invalid\n",
-				xt_params->program_name, line, table);
+				      "%s: line %u table name '%s' invalid",
+				      xt_params->program_name, line, table);
 
 		if (p->tablename && (strcmp(p->tablename, table) != 0))
 			return;
@@ -152,8 +152,8 @@ static void xtables_restore_parse_line(struct nft_handle *h,
 		DEBUGP("line %u, chain '%s'\n", line, chain);
 		if (!chain)
 			xtables_error(PARAMETER_PROBLEM,
-				   "%s: line %u chain name invalid\n",
-				   xt_params->program_name, line);
+				      "%s: line %u chain name invalid",
+				      xt_params->program_name, line);
 
 		xtables_announce_chain(chain);
 		assert_valid_chain_name(chain);
@@ -162,8 +162,8 @@ static void xtables_restore_parse_line(struct nft_handle *h,
 		DEBUGP("line %u, policy '%s'\n", line, policy);
 		if (!policy)
 			xtables_error(PARAMETER_PROBLEM,
-				   "%s: line %u policy invalid\n",
-				   xt_params->program_name, line);
+				      "%s: line %u policy invalid",
+				      xt_params->program_name, line);
 
 		if (nft_chain_builtin_find(state->curtable, chain)) {
 			if (counters) {
@@ -172,15 +172,15 @@ static void xtables_restore_parse_line(struct nft_handle *h,
 
 				if (!ctrs || !parse_counters(ctrs, &count))
 					xtables_error(PARAMETER_PROBLEM,
-						   "invalid policy counters for chain '%s'\n",
-						   chain);
+						      "invalid policy counters for chain '%s'",
+						      chain);
 
 			}
 			if (cb->chain_set &&
 			    cb->chain_set(h, state->curtable->name,
 					  chain, policy, &count) < 0) {
 				xtables_error(OTHER_PROBLEM,
-					      "Can't set policy `%s' on `%s' line %u: %s\n",
+					      "Can't set policy `%s' on `%s' line %u: %s",
 					      policy, chain, line,
 					      strerror(errno));
 			}
@@ -189,13 +189,13 @@ static void xtables_restore_parse_line(struct nft_handle *h,
 		} else if (cb->chain_restore(h, chain, state->curtable->name) < 0 &&
 			   errno != EEXIST) {
 			xtables_error(PARAMETER_PROBLEM,
-				      "cannot create chain '%s' (%s)\n",
+				      "cannot create chain '%s' (%s)",
 				      chain, strerror(errno));
 		} else if (h->family == NFPROTO_BRIDGE &&
 			   !ebt_cmd_user_chain_policy(h, state->curtable->name,
 						      chain, policy)) {
 			xtables_error(OTHER_PROBLEM,
-				      "Can't set policy `%s' on `%s' line %u: %s\n",
+				      "Can't set policy `%s' on `%s' line %u: %s",
 				      policy, chain, line,
 				      strerror(errno));
 		}
@@ -249,8 +249,11 @@ static void xtables_restore_parse_line(struct nft_handle *h,
 	    (strcmp(p->tablename, state->curtable->name) != 0))
 		return;
 	if (!ret) {
-		fprintf(stderr, "%s: line %u failed\n",
-				xt_params->program_name, line);
+		fprintf(stderr, "%s: line %u failed",
+				xt_params->program_name, h->error.lineno);
+		if (errno)
+			fprintf(stderr,	": %s.", nft_strerror(errno));
+		fprintf(stderr, "\n");
 		exit(1);
 	}
 }

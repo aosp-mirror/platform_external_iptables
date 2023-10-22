@@ -68,12 +68,12 @@ parse_nft_among_pair(char *buf, struct nft_among_pair *pair, bool have_ip)
 
 		if (!inet_pton(AF_INET, sep + 1, &pair->in))
 			xtables_error(PARAMETER_PROBLEM,
-				      "Invalid IP address '%s'\n", sep + 1);
+				      "Invalid IP address '%s'", sep + 1);
 	}
 	ether = ether_aton(buf);
 	if (!ether)
 		xtables_error(PARAMETER_PROBLEM,
-			      "Invalid MAC address '%s'\n", buf);
+			      "Invalid MAC address '%s'", buf);
 	memcpy(&pair->ether, ether, sizeof(*ether));
 }
 
@@ -119,7 +119,6 @@ static int bramong_parse(int c, char **argv, int invert,
 		 struct xt_entry_match **match)
 {
 	struct nft_among_data *data = (struct nft_among_data *)(*match)->data;
-	struct xt_entry_match *new_match;
 	bool have_ip, dst = false;
 	size_t new_size, cnt;
 	struct stat stats;
@@ -152,10 +151,9 @@ static int bramong_parse(int c, char **argv, int invert,
 			xtables_error(PARAMETER_PROBLEM,
 				      "File should only contain one line");
 		optarg[flen-1] = '\0';
-		/* fall through */
+		break;
 	case AMONG_DST:
-		if (c == AMONG_DST)
-			dst = true;
+		dst = true;
 		/* fall through */
 	case AMONG_SRC:
 		break;
@@ -171,17 +169,16 @@ static int bramong_parse(int c, char **argv, int invert,
 	new_size *= sizeof(struct nft_among_pair);
 	new_size += XT_ALIGN(sizeof(struct xt_entry_match)) +
 			sizeof(struct nft_among_data);
-	new_match = xtables_calloc(1, new_size);
-	memcpy(new_match, *match, (*match)->u.match_size);
-	new_match->u.match_size = new_size;
 
-	data = (struct nft_among_data *)new_match->data;
+	if (new_size > (*match)->u.match_size) {
+		*match = xtables_realloc(*match, new_size);
+		(*match)->u.match_size = new_size;
+		data = (struct nft_among_data *)(*match)->data;
+	}
+
 	have_ip = nft_among_pairs_have_ip(optarg);
 	poff = nft_among_prepare_data(data, dst, cnt, invert, have_ip);
 	parse_nft_among_pairs(data->pairs + poff, optarg, cnt, have_ip);
-
-	free(*match);
-	*match = new_match;
 
 	if (c == AMONG_DST_F || c == AMONG_SRC_F) {
 		munmap(argv, flen);

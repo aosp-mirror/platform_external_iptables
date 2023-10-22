@@ -97,7 +97,7 @@ static unsigned int name_to_type(const char *name)
 
 		if (!xtables_strtoui(name, NULL, &number, 0, UINT8_MAX))
 			xtables_error(PARAMETER_PROBLEM,
-				   "Invalid MH type `%s'\n", name);
+				      "Invalid MH type `%s'", name);
 		return number;
 	}
 }

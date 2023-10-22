@@ -21,7 +21,6 @@
 #include <arpa/inet.h>
 #include <netinet/ip.h>
 #include "xtables.h"
-#include "xshared.h"
 #ifndef IPTOS_NORMALSVC
 #	define IPTOS_NORMALSVC 0
 #endif
@@ -925,7 +924,7 @@ void xtables_option_tpcall(unsigned int c, char **argv, bool invert,
 	cb.entry = xtables_option_lookup(t->x6_options, c);
 	if (cb.entry == NULL)
 		xtables_error(OTHER_PROBLEM,
-			"Extension does not know id %u\n", c);
+			      "Extension does not know id %u", c);
 	cb.arg      = optarg;
 	cb.invert   = invert;
 	cb.ext_name = t->name;
@@ -961,7 +960,7 @@ void xtables_option_mpcall(unsigned int c, char **argv, bool invert,
 	cb.entry = xtables_option_lookup(m->x6_options, c);
 	if (cb.entry == NULL)
 		xtables_error(OTHER_PROBLEM,
-			"Extension does not know id %u\n", c);
+			      "Extension does not know id %u", c);
 	cb.arg      = optarg;
 	cb.invert   = invert;
 	cb.ext_name = m->name;
