@@ -1,7 +1,34 @@
 #include <stdio.h>
 #include <string.h>
+#ifndef __BIONIC__
 #define SYSLOG_NAMES
 #include <syslog.h>
+#else /* __BIONIC__ */
+#include <syslog.h>
+/* 'prioritynames[]' should come from syslog.h, but bionic doesn't provide it...
+ * It is a lookup array from a string name to a non unique LOG_* value,
+ * but it can also be used in reverse (in which case first match wins),
+ * so the order matters.
+ * iptables 1.8.9 only uses it for the level -> name lookup.
+ */
+static const struct {
+	const char * const c_name;
+	const int c_val;
+} prioritynames[] = {
+	{ .c_name = "emerg",		.c_val = LOG_EMERG,	},
+	{ .c_name = "panic",		.c_val = LOG_EMERG,	},
+	{ .c_name = "alert",		.c_val = LOG_ALERT,	},
+	{ .c_name = "crit",		.c_val = LOG_CRIT,	},
+	{ .c_name = "err",		.c_val = LOG_ERR,	},
+	{ .c_name = "error",		.c_val = LOG_ERR,	},
+	{ .c_name = "warn",		.c_val = LOG_WARNING,	},
+	{ .c_name = "warning",		.c_val = LOG_WARNING,	},
+	{ .c_name = "notice",		.c_val = LOG_NOTICE,	},
+	{ .c_name = "info",		.c_val = LOG_INFO,	},
+	{ .c_name = "debug",		.c_val = LOG_DEBUG,	},
+	{ .c_name = NULL,		.c_val = -1,		},
+};
+#endif /* __BIONIC__ */
 #include <xtables.h>
 #include <linux/netfilter/xt_LOG.h>
 
