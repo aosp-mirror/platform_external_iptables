@@ -83,6 +83,13 @@ static const struct xt_icmp_names {
 	{ "echo-reply", 129, 0, 0xFF },
 	/* Alias */ { "pong", 129, 0, 0xFF },
 
+	{ "mld-listener-query", 130, 0, 0xFF },
+
+	{ "mld-listener-report", 131, 0, 0xFF },
+
+	{ "mld-listener-done", 132, 0, 0xFF },
+	/* Alias */ { "mld-listener-reduction", 132, 0, 0xFF },
+
 	{ "router-solicitation", 133, 0, 0xFF },
 
 	{ "router-advertisement", 134, 0, 0xFF },

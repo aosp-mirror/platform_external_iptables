@@ -64,7 +64,7 @@ def test_one_replay(name, sourceline, expected, result):
     if sourceline.find(';') >= 0:
         sourceline, searchline = sourceline.split(';')
 
-    srcwords = sourceline.split()
+    srcwords = shlex.split(sourceline)
 
     srccmd = srcwords[0]
     ipt = srccmd.split('-')[0]
@@ -176,7 +176,7 @@ def run_test(name, payload):
                 result.append(name + ": " + red("Fail"))
                 result.append("nft flush ruleset call failed: " + error)
 
-    if (passed == tests) and not args.test:
+    if (passed == tests):
         print(name + ": " + green("OK"))
     if not test_passed:
         print("\n".join(result), file=sys.stderr)
@@ -241,17 +241,22 @@ def main():
                             + '/iptables/' + xtables_nft_multi
 
     files = tests = passed = failed = errors = 0
-    if args.test:
-        if not args.test.endswith(".txlate"):
-            args.test += ".txlate"
+    for test in args.test:
+        if not test.endswith(".txlate"):
+            test += ".txlate"
         try:
-            with open(args.test, "r") as payload:
-                files = 1
-                tests, passed, failed, errors = run_test(args.test, payload)
+            with open(test, "r") as payload:
+                t, p, f, e = run_test(test, payload)
+                files += 1
+                tests += t
+                passed += p
+                failed += f
+                errors += e
         except IOError:
             print(red("Error: ") + "test file does not exist", file=sys.stderr)
             return 99
-    else:
+
+    if files == 0:
         files, tests, passed, failed, errors = load_test_files()
 
     if files > 1:
@@ -272,6 +277,6 @@ parser.add_argument('-n', '--nft', type=str, default='nft',
                     help='Replay using given nft binary (default: \'%(default)s\')')
 parser.add_argument('--no-netns', action='store_true',
                     help='Do not run testsuite in own network namespace')
-parser.add_argument("test", nargs="?", help="run only the specified test file")
+parser.add_argument("test", nargs="*", help="run only the specified test file(s)")
 args = parser.parse_args()
 sys.exit(main())

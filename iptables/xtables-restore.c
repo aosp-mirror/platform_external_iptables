@@ -166,19 +166,17 @@ static void xtables_restore_parse_line(struct nft_handle *h,
 				      xt_params->program_name, line);
 
 		if (nft_chain_builtin_find(state->curtable, chain)) {
-			if (counters) {
-				char *ctrs;
-				ctrs = strtok(NULL, " \t\n");
+			char *ctrs = strtok(NULL, " \t\n");
 
-				if (!ctrs || !parse_counters(ctrs, &count))
-					xtables_error(PARAMETER_PROBLEM,
-						      "invalid policy counters for chain '%s'",
-						      chain);
-
-			}
+			if ((!ctrs && counters) ||
+			    (ctrs && !parse_counters(ctrs, &count)))
+				xtables_error(PARAMETER_PROBLEM,
+					      "invalid policy counters for chain '%s'",
+					      chain);
 			if (cb->chain_set &&
 			    cb->chain_set(h, state->curtable->name,
-					  chain, policy, &count) < 0) {
+					  chain, policy,
+					  counters ? &count : NULL) < 0) {
 				xtables_error(OTHER_PROBLEM,
 					      "Can't set policy `%s' on `%s' line %u: %s",
 					      policy, chain, line,

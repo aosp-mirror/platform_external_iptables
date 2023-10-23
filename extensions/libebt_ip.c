@@ -432,6 +432,24 @@ static void brip_xlate_nh(struct xt_xlate *xl,
 				  xtables_ipmask_to_numeric(maskp));
 }
 
+static bool may_skip_ether_type_dep(uint8_t flags)
+{
+	/* these convert to "ip (s|d)addr" matches */
+	if (flags & (EBT_IP_SOURCE | EBT_IP_DEST))
+		return true;
+
+	/* icmp match triggers implicit ether type dependency in nft */
+	if (flags & EBT_IP_ICMP)
+		return true;
+
+	/* allow if "ip protocol" match is created by brip_xlate() */
+	if (flags & EBT_IP_PROTO &&
+	    !(flags & (EBT_IP_SPORT | EBT_IP_DPORT | EBT_IP_ICMP)))
+		return true;
+
+	return false;
+}
+
 static int brip_xlate(struct xt_xlate *xl,
 		      const struct xt_xlate_mt_params *params)
 {
@@ -441,11 +459,14 @@ static int brip_xlate(struct xt_xlate *xl,
 	brip_xlate_nh(xl, info, EBT_IP_SOURCE);
 	brip_xlate_nh(xl, info, EBT_IP_DEST);
 
+	if (!may_skip_ether_type_dep(info->bitmask))
+		xt_xlate_add(xl, "ether type ip ");
+
 	if (info->bitmask & EBT_IP_TOS) {
-		xt_xlate_add(xl, "ip dscp ");
+		xt_xlate_add(xl, "@nh,8,8 ");
 		if (info->invflags & EBT_IP_TOS)
 			xt_xlate_add(xl, "!= ");
-		xt_xlate_add(xl, "0x%02x ", info->tos & 0x3f); /* remove ECN bits */
+		xt_xlate_add(xl, "0x%02x ", info->tos);
 	}
 	if (info->bitmask & EBT_IP_PROTO) {
 		struct protoent *pe;

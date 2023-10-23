@@ -346,14 +346,13 @@ static void conntrack_parse(struct xt_option_call *cb)
 			sinfo->invflags |= XT_CONNTRACK_STATE;
 		break;
 	case O_CTPROTO:
+		if (cb->val.protocol == 0)
+			xtables_error(PARAMETER_PROBLEM, cb->invert ?
+				      "condition would always match protocol" :
+				      "rule would never match protocol");
 		sinfo->tuple[IP_CT_DIR_ORIGINAL].dst.protonum = cb->val.protocol;
 		if (cb->invert)
 			sinfo->invflags |= XT_CONNTRACK_PROTO;
-		if (sinfo->tuple[IP_CT_DIR_ORIGINAL].dst.protonum == 0
-		    && (sinfo->invflags & XT_INV_PROTO))
-			xtables_error(PARAMETER_PROBLEM,
-				   "rule would never match protocol");
-
 		sinfo->flags |= XT_CONNTRACK_PROTO;
 		break;
 	case O_CTORIGSRC:
@@ -411,11 +410,11 @@ static void conntrack_mt_parse(struct xt_option_call *cb, uint8_t rev)
 			info->invert_flags |= XT_CONNTRACK_STATE;
 		break;
 	case O_CTPROTO:
+		if (cb->val.protocol == 0)
+			xtables_error(PARAMETER_PROBLEM, cb->invert ?
+				      "conntrack: condition would always match protocol" :
+				      "conntrack: rule would never match protocol");
 		info->l4proto = cb->val.protocol;
-		if (info->l4proto == 0 && (info->invert_flags & XT_INV_PROTO))
-			xtables_error(PARAMETER_PROBLEM, "conntrack: rule would "
-			           "never match protocol");
-
 		info->match_flags |= XT_CONNTRACK_PROTO;
 		if (cb->invert)
 			info->invert_flags |= XT_CONNTRACK_PROTO;

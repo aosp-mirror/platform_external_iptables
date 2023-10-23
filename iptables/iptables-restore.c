@@ -223,8 +223,6 @@ ip46tables_restore_main(const struct iptables_restore_cb *cb,
 				}
 				continue;
 			}
-			if (handle)
-				cb->ops->free(handle);
 
 			handle = create_handle(cb, table);
 			if (noflush == 0) {
@@ -283,23 +281,21 @@ ip46tables_restore_main(const struct iptables_restore_cb *cb,
 					      xt_params->program_name, line);
 
 			if (strcmp(policy, "-") != 0) {
+				char *ctrs = strtok(NULL, " \t\n");
 				struct xt_counters count = {};
 
-				if (counters) {
-					char *ctrs;
-					ctrs = strtok(NULL, " \t\n");
-
-					if (!ctrs || !parse_counters(ctrs, &count))
-						xtables_error(PARAMETER_PROBLEM,
-							      "invalid policy counters for chain '%s'",
-							      chain);
-				}
+				if ((!ctrs && counters) ||
+				    (ctrs && !parse_counters(ctrs, &count)))
+					xtables_error(PARAMETER_PROBLEM,
+						      "invalid policy counters for chain '%s'",
+						      chain);
 
 				DEBUGP("Setting policy of chain %s to %s\n",
 					chain, policy);
 
-				if (!cb->ops->set_policy(chain, policy, &count,
-						     handle))
+				if (!cb->ops->set_policy(chain, policy,
+							 counters ? &count : NULL,
+							 handle))
 					xtables_error(OTHER_PROBLEM,
 						      "Can't set policy `%s' on `%s' line %u: %s",
 						      policy, chain, line,

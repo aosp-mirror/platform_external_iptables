@@ -111,20 +111,13 @@ find_proto(const char *pname, enum xtables_tryload tryload,
  *   [think of ip6tables-restore!]
  * - the protocol extension can be successively loaded
  */
-static bool should_load_proto(struct iptables_command_state *cs)
-{
-	if (cs->protocol == NULL)
-		return false;
-	if (find_proto(cs->protocol, XTF_DONT_LOAD,
-	    cs->options & OPT_NUMERIC, NULL) == NULL)
-		return true;
-	return !cs->proto_used;
-}
-
 static struct xtables_match *load_proto(struct iptables_command_state *cs)
 {
-	if (!should_load_proto(cs))
+	if (cs->protocol == NULL)
 		return NULL;
+	if (cs->proto_used)
+		return NULL;
+	cs->proto_used = true;
 	return find_proto(cs->protocol, XTF_TRY_LOAD,
 			  cs->options & OPT_NUMERIC, &cs->matches);
 }
@@ -157,12 +150,9 @@ static int command_default(struct iptables_command_state *cs,
 		return 0;
 	}
 
-	/* Try loading protocol */
 	m = load_proto(cs);
 	if (m != NULL) {
 		size_t size;
-
-		cs->proto_used = 1;
 
 		size = XT_ALIGN(sizeof(struct xt_entry_match)) + m->size;
 
@@ -192,9 +182,12 @@ static int command_default(struct iptables_command_state *cs,
 	if (cs->c == ':')
 		xtables_error(PARAMETER_PROBLEM, "option \"%s\" "
 		              "requires an argument", cs->argv[optind-1]);
-	if (cs->c == '?')
-		xtables_error(PARAMETER_PROBLEM, "unknown option "
-			      "\"%s\"", cs->argv[optind-1]);
+	if (cs->c == '?') {
+		char optoptstr[3] = {'-', optopt, '\0'};
+
+		xtables_error(PARAMETER_PROBLEM, "unknown option \"%s\"",
+			      optopt ? optoptstr : cs->argv[optind - 1]);
+	}
 	xtables_error(PARAMETER_PROBLEM, "Unknown arg \"%s\"", optarg);
 }
 
@@ -1317,7 +1310,7 @@ static void check_empty_interface(struct xtables_args *args, const char *arg)
 }
 
 static void check_inverse(struct xtables_args *args, const char option[],
-			  bool *invert, int *optidx, int argc)
+			  bool *invert, int argc, char **argv)
 {
 	switch (args->family) {
 	case NFPROTO_ARP:
@@ -1336,12 +1329,11 @@ static void check_inverse(struct xtables_args *args, const char option[],
 		xtables_error(PARAMETER_PROBLEM,
 			      "Multiple `!' flags not allowed");
 	*invert = true;
-	if (optidx) {
-		*optidx = *optidx + 1;
-		if (argc && *optidx > argc)
-			xtables_error(PARAMETER_PROBLEM,
-				      "no argument following `!'");
-	}
+	optind++;
+	if (optind > argc)
+		xtables_error(PARAMETER_PROBLEM, "no argument following `!'");
+
+	optarg = argv[optind - 1];
 }
 
 static const char *optstring_lookup(int family)
@@ -1521,6 +1513,7 @@ void do_parse(int argc, char *argv[],
 					   "-%c requires old-chain-name and "
 					   "new-chain-name",
 					    cmd2char(CMD_RENAME_CHAIN));
+			assert_valid_chain_name(p->newname);
 			break;
 
 		case 'P':
@@ -1554,16 +1547,16 @@ void do_parse(int argc, char *argv[],
 			 * Option selection
 			 */
 		case 'p':
-			check_inverse(args, optarg, &invert, &optind, argc);
+			check_inverse(args, optarg, &invert, argc, argv);
 			set_option(&cs->options, OPT_PROTOCOL,
 				   &args->invflags, invert);
 
 			/* Canonicalize into lower case */
-			for (cs->protocol = argv[optind - 1];
+			for (cs->protocol = optarg;
 			     *cs->protocol; cs->protocol++)
 				*cs->protocol = tolower(*cs->protocol);
 
-			cs->protocol = argv[optind - 1];
+			cs->protocol = optarg;
 			args->proto = xtables_parse_protocol(cs->protocol);
 
 			if (args->proto == 0 &&
@@ -1577,17 +1570,17 @@ void do_parse(int argc, char *argv[],
 			break;
 
 		case 's':
-			check_inverse(args, optarg, &invert, &optind, argc);
+			check_inverse(args, optarg, &invert, argc, argv);
 			set_option(&cs->options, OPT_SOURCE,
 				   &args->invflags, invert);
-			args->shostnetworkmask = argv[optind - 1];
+			args->shostnetworkmask = optarg;
 			break;
 
 		case 'd':
-			check_inverse(args, optarg, &invert, &optind, argc);
+			check_inverse(args, optarg, &invert, argc, argv);
 			set_option(&cs->options, OPT_DESTINATION,
 				   &args->invflags, invert);
-			args->dhostnetworkmask = argv[optind - 1];
+			args->dhostnetworkmask = optarg;
 			break;
 
 #ifdef IPT_F_GOTO
@@ -1600,71 +1593,71 @@ void do_parse(int argc, char *argv[],
 #endif
 
 		case 2:/* src-mac */
-			check_inverse(args, optarg, &invert, &optind, argc);
+			check_inverse(args, optarg, &invert, argc, argv);
 			set_option(&cs->options, OPT_S_MAC, &args->invflags,
 				   invert);
-			args->src_mac = argv[optind - 1];
+			args->src_mac = optarg;
 			break;
 
 		case 3:/* dst-mac */
-			check_inverse(args, optarg, &invert, &optind, argc);
+			check_inverse(args, optarg, &invert, argc, argv);
 			set_option(&cs->options, OPT_D_MAC, &args->invflags,
 				   invert);
-			args->dst_mac = argv[optind - 1];
+			args->dst_mac = optarg;
 			break;
 
 		case 'l':/* hardware length */
-			check_inverse(args, optarg, &invert, &optind, argc);
+			check_inverse(args, optarg, &invert, argc, argv);
 			set_option(&cs->options, OPT_H_LENGTH, &args->invflags,
 				   invert);
-			args->arp_hlen = argv[optind - 1];
+			args->arp_hlen = optarg;
 			break;
 
 		case 8: /* was never supported, not even in arptables-legacy */
 			xtables_error(PARAMETER_PROBLEM, "not supported");
 		case 4:/* opcode */
-			check_inverse(args, optarg, &invert, &optind, argc);
+			check_inverse(args, optarg, &invert, argc, argv);
 			set_option(&cs->options, OPT_OPCODE, &args->invflags,
 				   invert);
-			args->arp_opcode = argv[optind - 1];
+			args->arp_opcode = optarg;
 			break;
 
 		case 5:/* h-type */
-			check_inverse(args, optarg, &invert, &optind, argc);
+			check_inverse(args, optarg, &invert, argc, argv);
 			set_option(&cs->options, OPT_H_TYPE, &args->invflags,
 				   invert);
-			args->arp_htype = argv[optind - 1];
+			args->arp_htype = optarg;
 			break;
 
 		case 6:/* proto-type */
-			check_inverse(args, optarg, &invert, &optind, argc);
+			check_inverse(args, optarg, &invert, argc, argv);
 			set_option(&cs->options, OPT_P_TYPE, &args->invflags,
 				   invert);
-			args->arp_ptype = argv[optind - 1];
+			args->arp_ptype = optarg;
 			break;
 
 		case 'j':
 			set_option(&cs->options, OPT_JUMP, &args->invflags,
 				   invert);
-			command_jump(cs, argv[optind - 1]);
+			command_jump(cs, optarg);
 			break;
 
 		case 'i':
 			check_empty_interface(args, optarg);
-			check_inverse(args, optarg, &invert, &optind, argc);
+			check_inverse(args, optarg, &invert, argc, argv);
 			set_option(&cs->options, OPT_VIANAMEIN,
 				   &args->invflags, invert);
-			xtables_parse_interface(argv[optind - 1],
+			xtables_parse_interface(optarg,
 						args->iniface,
 						args->iniface_mask);
 			break;
 
 		case 'o':
 			check_empty_interface(args, optarg);
-			check_inverse(args, optarg, &invert, &optind, argc);
+			check_inverse(args, optarg, &invert, argc, argv);
 			set_option(&cs->options, OPT_VIANAMEOUT,
 				   &args->invflags, invert);
-			xtables_parse_interface(argv[optind - 1],
+			xtables_parse_interface(optarg,
 						args->outiface,
 						args->outiface_mask);
 			break;
@@ -1992,6 +1985,9 @@ void ipv6_post_parse(int command, struct iptables_command_state *cs,
 	if (args->goto_set)
 		cs->fw6.ipv6.flags |= IP6T_F_GOTO;
 
+	/* nft-variants use cs->counters, legacy uses cs->fw6.counters */
+	cs->counters.pcnt = args->pcnt_cnt;
+	cs->counters.bcnt = args->bcnt_cnt;
 	cs->fw6.counters.pcnt = args->pcnt_cnt;
 	cs->fw6.counters.bcnt = args->bcnt_cnt;
 

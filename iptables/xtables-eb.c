@@ -42,6 +42,10 @@
 #include "nft.h"
 #include "nft-bridge.h"
 
+/* from linux/netfilter_bridge/ebtables.h */
+#define EBT_TABLE_MAXNAMELEN 32
+#define EBT_CHAIN_MAXNAMELEN EBT_TABLE_MAXNAMELEN
+
 /*
  * From include/ebtables_u.h
  */
@@ -74,6 +78,26 @@ static int ebt_check_inverse2(const char option[], int argc, char **argv)
 	return ebt_invert;
 }
 
+/* XXX: merge with assert_valid_chain_name()? */
+static void ebt_assert_valid_chain_name(const char *chainname)
+{
+	if (strlen(chainname) >= EBT_CHAIN_MAXNAMELEN)
+		xtables_error(PARAMETER_PROBLEM,
+			      "Chain name length can't exceed %d",
+			      EBT_CHAIN_MAXNAMELEN - 1);
+
+	if (*chainname == '-' || *chainname == '!')
+		xtables_error(PARAMETER_PROBLEM, "No chain name specified");
+
+	if (xtables_find_target(chainname, XTF_TRY_LOAD))
+		xtables_error(PARAMETER_PROBLEM,
+			      "Target with name %s exists", chainname);
+
+	if (strchr(chainname, ' ') != NULL)
+		xtables_error(PARAMETER_PROBLEM,
+			      "Use of ' ' not allowed in chain names");
+}
+
 /*
  * Glue code to use libxtables
  */
@@ -99,7 +123,7 @@ append_entry(struct nft_handle *h,
 	int ret = 1;
 
 	if (append)
-		ret = nft_cmd_rule_append(h, chain, table, cs, NULL, verbose);
+		ret = nft_cmd_rule_append(h, chain, table, cs, verbose);
 	else
 		ret = nft_cmd_rule_insert(h, chain, table, cs, rule_nr, verbose);
 
@@ -468,14 +492,14 @@ static void ebt_load_match(const char *name)
 		xtables_error(OTHER_PROBLEM, "Can't alloc memory");
 }
 
-static void __ebt_load_watcher(const char *name, const char *typename)
+static void ebt_load_watcher(const char *name)
 {
 	struct xtables_target *watcher;
 	size_t size;
 
 	watcher = xtables_find_target(name, XTF_TRY_LOAD);
 	if (!watcher) {
-		fprintf(stderr, "Unable to load %s %s\n", name, typename);
+		fprintf(stderr, "Unable to load %s watcher\n", name);
 		return;
 	}
 
@@ -496,16 +520,6 @@ static void __ebt_load_watcher(const char *name, const char *typename)
 		xtables_error(OTHER_PROBLEM, "Can't alloc memory");
 }
 
-static void ebt_load_watcher(const char *name)
-{
-	return __ebt_load_watcher(name, "watcher");
-}
-
-static void ebt_load_target(const char *name)
-{
-	return __ebt_load_watcher(name, "target");
-}
-
 void ebt_load_match_extensions(void)
 {
 	opts = ebt_original_options;
@@ -522,13 +536,6 @@ void ebt_load_match_extensions(void)
 
 	ebt_load_watcher("log");
 	ebt_load_watcher("nflog");
-
-	ebt_load_target("mark");
-	ebt_load_target("dnat");
-	ebt_load_target("snat");
-	ebt_load_target("arpreply");
-	ebt_load_target("redirect");
-	ebt_load_target("standard");
 }
 
 void ebt_add_match(struct xtables_match *m,
@@ -633,6 +640,9 @@ int ebt_command_default(struct iptables_command_state *cs)
 
 	/* Is it a watcher option? */
 	for (t = xtables_targets; t; t = t->next) {
+		if (!(t->ext_flags & XTABLES_EXT_WATCHER))
+			continue;
+
 		if (t->parse &&
 		    t->parse(cs->c - t->option_offset, cs->argv,
 			     ebt_invert, &t->tflags, NULL, &t->t)) {
@@ -640,7 +650,16 @@ int ebt_command_default(struct iptables_command_state *cs)
 			return 0;
 		}
 	}
-	return 1;
+	if (cs->c == ':')
+		xtables_error(PARAMETER_PROBLEM, "option \"%s\" "
+		              "requires an argument", cs->argv[optind - 1]);
+	if (cs->c == '?') {
+		char optoptstr[3] = {'-', optopt, '\0'};
+
+		xtables_error(PARAMETER_PROBLEM, "unknown option \"%s\"",
+			      optopt ? optoptstr : cs->argv[optind - 1]);
+	}
+	xtables_error(PARAMETER_PROBLEM, "Unknown arg \"%s\"", optarg);
 }
 
 int nft_init_eb(struct nft_handle *h, const char *pname)
@@ -680,7 +699,8 @@ void nft_fini_eb(struct nft_handle *h)
 		free(target->t);
 	}
 
-	free(opts);
+	if (opts != ebt_original_options)
+		free(opts);
 
 	nft_fini(h);
 	xtables_fini();
@@ -717,6 +737,11 @@ int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table,
 	optind = 0;
 	opterr = false;
 
+	for (t = xtables_targets; t; t = t->next) {
+		t->tflags = 0;
+		t->used = 0;
+	}
+
 	/* Getopt saves the day */
 	while ((c = getopt_long(argc, argv, EBT_OPTSTRING,
 					opts, NULL)) != -1) {
@@ -750,6 +775,7 @@ int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table,
 			flags |= OPT_COMMAND;
 
 			if (c == 'N') {
+				ebt_assert_valid_chain_name(chain);
 				ret = nft_cmd_chain_user_add(h, chain, *table);
 				break;
 			} else if (c == 'X') {
@@ -763,14 +789,12 @@ int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table,
 			}
 
 			if (c == 'E') {
-				if (optind >= argc)
+				if (!xs_has_arg(argc, argv))
 					xtables_error(PARAMETER_PROBLEM, "No new chain name specified");
 				else if (optind < argc - 1)
 					xtables_error(PARAMETER_PROBLEM, "No extra options allowed with -E");
-				else if (strlen(argv[optind]) >= NFT_CHAIN_MAXNAMELEN)
-					xtables_error(PARAMETER_PROBLEM, "Chain name length can't exceed %d"" characters", NFT_CHAIN_MAXNAMELEN - 1);
-				else if (strchr(argv[optind], ' ') != NULL)
-					xtables_error(PARAMETER_PROBLEM, "Use of ' ' not allowed in chain names");
+
+				ebt_assert_valid_chain_name(argv[optind]);
 
 				errno = 0;
 				ret = nft_cmd_chain_user_rename(h, chain, *table,
@@ -1084,11 +1108,7 @@ print_zero:
 			continue;
 		default:
 			ebt_check_inverse2(optarg, argc, argv);
-
-			if (ebt_command_default(&cs))
-				xtables_error(PARAMETER_PROBLEM,
-					      "Unknown argument: '%s'",
-					      argv[optind]);
+			ebt_command_default(&cs);
 
 			if (command != 'A' && command != 'I' &&
 			    command != 'D' && command != 'C' && command != 14)

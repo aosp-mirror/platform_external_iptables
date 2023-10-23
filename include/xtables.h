@@ -203,6 +203,7 @@ struct xtables_lmap {
 
 enum xtables_ext_flags {
 	XTABLES_EXT_ALIAS = 1 << 0,
+	XTABLES_EXT_WATCHER = 1 << 1,
 };
 
 struct xt_xlate;

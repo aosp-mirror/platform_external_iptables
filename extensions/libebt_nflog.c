@@ -146,6 +146,7 @@ static int brnflog_xlate(struct xt_xlate *xl,
 static struct xtables_target brnflog_watcher = {
 	.name		= "nflog",
 	.revision	= 0,
+	.ext_flags	= XTABLES_EXT_WATCHER,
 	.version	= XTABLES_VERSION,
 	.family		= NFPROTO_BRIDGE,
 	.size		= XT_ALIGN(sizeof(struct ebt_nflog_info)),

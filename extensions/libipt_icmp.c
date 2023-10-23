@@ -108,7 +108,8 @@ static void icmp_save(const void *ip, const struct xt_entry_match *match)
 		printf(" !");
 
 	/* special hack for 'any' case */
-	if (icmp->type == 0xFF) {
+	if (icmp->type == 0xFF &&
+	    icmp->code[0] == 0 && icmp->code[1] == 0xFF) {
 		printf(" --icmp-type any");
 	} else {
 		printf(" --icmp-type %u", icmp->type);

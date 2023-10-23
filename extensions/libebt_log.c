@@ -197,6 +197,7 @@ static int brlog_xlate(struct xt_xlate *xl,
 static struct xtables_target brlog_target = {
 	.name		= "log",
 	.revision	= 0,
+	.ext_flags	= XTABLES_EXT_WATCHER,
 	.version	= XTABLES_VERSION,
 	.family		= NFPROTO_BRIDGE,
 	.size		= XT_ALIGN(sizeof(struct ebt_log_info)),

@@ -38,7 +38,7 @@ $XT_MULTI ebtables -A foo -p IPv6 --ip6-proto tcp -j ACCEPT
 
 $XT_MULTI ebtables -A foo --limit 100 --limit-burst 42 -j ACCEPT
 $XT_MULTI ebtables -A foo --log
-$XT_MULTI ebtables -A foo --mark-set 0x23 --mark-target ACCEPT
+$XT_MULTI ebtables -A foo -j mark --mark-set 0x23 --mark-target ACCEPT
 $XT_MULTI ebtables -A foo --nflog
 $XT_MULTI ebtables -A foo --pkttype-type multicast -j ACCEPT
 $XT_MULTI ebtables -A foo --stp-type config -j ACCEPT
@@ -53,7 +53,7 @@ $XT_MULTI ebtables -A FORWARD -j foo
 $XT_MULTI ebtables -N bar
 $XT_MULTI ebtables -P bar RETURN
 
-$XT_MULTI ebtables -t nat -A PREROUTING --redirect-target ACCEPT
+$XT_MULTI ebtables -t nat -A PREROUTING -j redirect --redirect-target ACCEPT
 #$XT_MULTI ebtables -t nat -A PREROUTING --to-src fe:ed:ba:be:00:01
 
 $XT_MULTI ebtables -t nat -A OUTPUT -j ACCEPT
