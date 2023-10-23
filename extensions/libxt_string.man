@@ -7,9 +7,13 @@ Select the pattern matching strategy. (bm = Boyer-Moore, kmp = Knuth-Pratt-Morri
 Set the offset from which it starts looking for any matching. If not passed, default is 0.
 .TP
 \fB\-\-to\fP \fIoffset\fP
-Set the offset up to which should be scanned. That is, byte \fIoffset\fP-1
-(counting from 0) is the last one that is scanned.
+Set the offset up to which should be scanned. If the pattern does not start
+within this offset, it is not considered a match.
 If not passed, default is the packet size.
+A second function of this parameter is instructing the kernel how much data
+from the packet should be provided. With non-linear skbuffs (e.g. due to
+fragmentation), a pattern extending past this offset may not be found. Also see
+the related note below about Boyer-Moore algorithm in these cases.
 .TP
 [\fB!\fP] \fB\-\-string\fP \fIpattern\fP
 Matches the given pattern.
