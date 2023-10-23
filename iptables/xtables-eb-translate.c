@@ -64,22 +64,6 @@ static int parse_rule_number(const char *rule)
 	return rule_nr;
 }
 
-static int get_current_chain(const char *chain)
-{
-	if (strcmp(chain, "PREROUTING") == 0)
-		return NF_BR_PRE_ROUTING;
-	else if (strcmp(chain, "INPUT") == 0)
-		return NF_BR_LOCAL_IN;
-	else if (strcmp(chain, "FORWARD") == 0)
-		return NF_BR_FORWARD;
-	else if (strcmp(chain, "OUTPUT") == 0)
-		return NF_BR_LOCAL_OUT;
-	else if (strcmp(chain, "POSTROUTING") == 0)
-		return NF_BR_POST_ROUTING;
-
-	return -1;
-}
-
 /*
  * The original ebtables parser
  */
@@ -103,7 +87,6 @@ static int get_current_chain(const char *chain)
 /* Default command line options. Do not mess around with the already
  * assigned numbers unless you know what you are doing */
 extern struct option ebt_original_options[];
-extern struct xtables_globals ebtables_globals;
 #define opts ebtables_globals.opts
 #define prog_name ebtables_globals.program_name
 #define prog_vers ebtables_globals.program_version
@@ -169,7 +152,7 @@ static void print_ebt_cmd(int argc, char *argv[])
 	printf("\n");
 }
 
-static int nft_rule_eb_xlate_add(struct nft_handle *h, const struct nft_xt_cmd_parse *p,
+static int nft_rule_eb_xlate_add(struct nft_handle *h, const struct xt_cmd_parse *p,
 				 const struct iptables_command_state *cs, bool append)
 {
 	struct xt_xlate *xl = xt_xlate_alloc(10240);
@@ -208,7 +191,7 @@ static int do_commandeb_xlate(struct nft_handle *h, int argc, char *argv[], char
 	int selected_chain = -1;
 	struct xtables_rule_match *xtrm_i;
 	struct ebt_match *match;
-	struct nft_xt_cmd_parse p = {
+	struct xt_cmd_parse p = {
 		.table          = *table,
         };
 
@@ -220,7 +203,6 @@ static int do_commandeb_xlate(struct nft_handle *h, int argc, char *argv[], char
 	while ((c = getopt_long(argc, argv,
 	   "-A:D:I:N:E:X::L::Z::F::P:Vhi:o:j:c:p:s:d:t:M:", opts, NULL)) != -1) {
 		cs.c = c;
-		cs.invert = ebt_invert;
 		switch (c) {
 		case 'A': /* Add a rule */
 		case 'D': /* Delete a rule */
@@ -241,7 +223,7 @@ static int do_commandeb_xlate(struct nft_handle *h, int argc, char *argv[], char
 					      "Multiple commands are not allowed");
 			command = c;
 			chain = optarg;
-			selected_chain = get_current_chain(chain);
+			selected_chain = ebt_get_current_chain(chain);
 			p.chain = chain;
 			flags |= OPT_COMMAND;
 

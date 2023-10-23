@@ -16,6 +16,7 @@ int flush_rule_cache(struct nft_handle *h, const char *table,
 void nft_cache_build(struct nft_handle *h);
 int nft_cache_add_chain(struct nft_handle *h, const struct builtin_table *t,
 			struct nftnl_chain *c);
+int nft_cache_sort_chains(struct nft_handle *h, const char *table);
 
 struct nft_chain *
 nft_chain_find(struct nft_handle *h, const char *table, const char *chain);
