@@ -81,7 +81,7 @@ parse_string(const char *s, struct xt_string_info *info)
 {	
 	/* xt_string does not need \0 at the end of the pattern */
 	if (strlen(s) <= XT_STRING_MAX_PATTERN_SIZE) {
-		strncpy(info->pattern, s, XT_STRING_MAX_PATTERN_SIZE);
+		memcpy(info->pattern, s, XT_STRING_MAX_PATTERN_SIZE);
 		info->patlen = strnlen(s, XT_STRING_MAX_PATTERN_SIZE);
 		return;
 	}

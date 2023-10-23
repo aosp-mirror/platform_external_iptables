@@ -213,8 +213,8 @@ saveChain(char *chain, char *policy, struct xt_counters *ctr)
 			   "%s: line %u chain name invalid\n",
 			   prog_name, line);
 
-	chains[nextChain].chain = strdup(chain);
-	chains[nextChain].policy = strdup(policy);
+	chains[nextChain].chain = xtables_strdup(chain);
+	chains[nextChain].policy = xtables_strdup(policy);
 	chains[nextChain].count = *ctr;
 	chains[nextChain].created = 0;
 	nextChain++;
