@@ -20,11 +20,9 @@ enum {
 	O_RANDOM,
 	O_RANDOM_FULLY,
 	O_PERSISTENT,
-	O_X_TO_SRC,
 	F_TO_SRC       = 1 << O_TO_SRC,
 	F_RANDOM       = 1 << O_RANDOM,
 	F_RANDOM_FULLY = 1 << O_RANDOM_FULLY,
-	F_X_TO_SRC     = 1 << O_X_TO_SRC,
 };
 
 static void SNAT_help(void)
@@ -38,7 +36,7 @@ static void SNAT_help(void)
 
 static const struct xt_option_entry SNAT_opts[] = {
 	{.name = "to-source", .id = O_TO_SRC, .type = XTTYPE_STRING,
-	 .flags = XTOPT_MAND | XTOPT_MULTI},
+	 .flags = XTOPT_MAND},
 	{.name = "random", .id = O_RANDOM, .type = XTTYPE_NONE},
 	{.name = "random-fully", .id = O_RANDOM_FULLY, .type = XTTYPE_NONE},
 	{.name = "persistent", .id = O_PERSISTENT, .type = XTTYPE_NONE},
@@ -52,9 +50,7 @@ parse_to(const char *orig_arg, int portok, struct nf_nat_range *range)
 	char *arg, *start, *end = NULL, *colon = NULL, *dash, *error;
 	const struct in6_addr *ip;
 
-	arg = strdup(orig_arg);
-	if (arg == NULL)
-		xtables_error(RESOURCE_PROBLEM, "strdup");
+	arg = xtables_strdup(orig_arg);
 
 	start = strchr(arg, '[');
 	if (start == NULL) {
@@ -165,12 +161,7 @@ static void SNAT_parse(struct xt_option_call *cb)
 	xtables_option_parse(cb);
 	switch (cb->entry->id) {
 	case O_TO_SRC:
-		if (cb->xflags & F_X_TO_SRC) {
-			xtables_error(PARAMETER_PROBLEM,
-				      "SNAT: Multiple --to-source not supported");
-		}
 		parse_to(cb->arg, portok, range);
-		cb->xflags |= F_X_TO_SRC;
 		break;
 	case O_PERSISTENT:
 		range->flags |= NF_NAT_RANGE_PERSISTENT;

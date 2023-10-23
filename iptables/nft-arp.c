@@ -25,94 +25,8 @@
 #include <linux/netfilter/nf_tables.h>
 
 #include "nft-shared.h"
-#include "nft-arp.h"
 #include "nft.h"
-
-/* a few names */
-char *arp_opcodes[] =
-{
-	"Request",
-	"Reply",
-	"Request_Reverse",
-	"Reply_Reverse",
-	"DRARP_Request",
-	"DRARP_Reply",
-	"DRARP_Error",
-	"InARP_Request",
-	"ARP_NAK",
-};
-
-static char *
-addr_to_dotted(const struct in_addr *addrp)
-{
-	static char buf[20];
-	const unsigned char *bytep;
-
-	bytep = (const unsigned char *) &(addrp->s_addr);
-	sprintf(buf, "%d.%d.%d.%d", bytep[0], bytep[1], bytep[2], bytep[3]);
-	return buf;
-}
-
-static char *
-addr_to_host(const struct in_addr *addr)
-{
-	struct hostent *host;
-
-	if ((host = gethostbyaddr((char *) addr,
-					sizeof(struct in_addr), AF_INET)) != NULL)
-		return (char *) host->h_name;
-
-	return (char *) NULL;
-}
-
-static char *
-addr_to_network(const struct in_addr *addr)
-{
-	struct netent *net;
-
-	if ((net = getnetbyaddr((long) ntohl(addr->s_addr), AF_INET)) != NULL)
-		return (char *) net->n_name;
-
-	return (char *) NULL;
-}
-
-static char *
-addr_to_anyname(const struct in_addr *addr)
-{
-	char *name;
-
-	if ((name = addr_to_host(addr)) != NULL ||
-		(name = addr_to_network(addr)) != NULL)
-		return name;
-
-	return addr_to_dotted(addr);
-}
-
-static char *
-mask_to_dotted(const struct in_addr *mask)
-{
-	int i;
-	static char buf[22];
-	u_int32_t maskaddr, bits;
-
-	maskaddr = ntohl(mask->s_addr);
-
-	if (maskaddr == 0xFFFFFFFFL)
-		/* we don't want to see "/32" */
-		return "";
-
-	i = 32;
-	bits = 0xFFFFFFFEL;
-	while (--i >= 0 && maskaddr != bits)
-		bits <<= 1;
-	if (i >= 0)
-		sprintf(buf, "/%d", i);
-	else
-		/* mask was not a decent combination of 1's and 0's */
-		snprintf(buf, sizeof(buf), "/%s", addr_to_dotted(mask));
-
-	return buf;
-}
+#include "xshared.h"
 
 static bool need_devaddr(struct arpt_devaddr_info *info)
 {
@@ -126,59 +40,65 @@ static bool need_devaddr(struct arpt_devaddr_info *info)
 	return false;
 }
 
-static int nft_arp_add(struct nft_handle *h, struct nftnl_rule *r, void *data)
+static int nft_arp_add(struct nft_handle *h, struct nftnl_rule *r,
+		       struct iptables_command_state *cs)
 {
-	struct iptables_command_state *cs = data;
 	struct arpt_entry *fw = &cs->arp;
 	uint32_t op;
 	int ret = 0;
 
 	if (fw->arp.iniface[0] != '\0') {
 		op = nft_invflags2cmp(fw->arp.invflags, IPT_INV_VIA_IN);
-		add_iniface(r, fw->arp.iniface, op);
+		add_iniface(h, r, fw->arp.iniface, op);
 	}
 
 	if (fw->arp.outiface[0] != '\0') {
 		op = nft_invflags2cmp(fw->arp.invflags, IPT_INV_VIA_OUT);
-		add_outiface(r, fw->arp.outiface, op);
+		add_outiface(h, r, fw->arp.outiface, op);
 	}
 
 	if (fw->arp.arhrd != 0 ||
 	    fw->arp.invflags & IPT_INV_ARPHRD) {
+		uint8_t reg;
+
 		op = nft_invflags2cmp(fw->arp.invflags, IPT_INV_ARPHRD);
-		add_payload(r, offsetof(struct arphdr, ar_hrd), 2,
-			    NFT_PAYLOAD_NETWORK_HEADER);
-		add_cmp_u16(r, fw->arp.arhrd, op);
+		add_payload(h, r, offsetof(struct arphdr, ar_hrd), 2,
+			    NFT_PAYLOAD_NETWORK_HEADER, &reg);
+		add_cmp_u16(r, fw->arp.arhrd, op, reg);
 	}
 
 	if (fw->arp.arpro != 0 ||
 	    fw->arp.invflags & IPT_INV_PROTO) {
+		uint8_t reg;
+
 		op = nft_invflags2cmp(fw->arp.invflags, IPT_INV_PROTO);
-	        add_payload(r, offsetof(struct arphdr, ar_pro), 2,
-			    NFT_PAYLOAD_NETWORK_HEADER);
-		add_cmp_u16(r, fw->arp.arpro, op);
+	        add_payload(h, r, offsetof(struct arphdr, ar_pro), 2,
+			    NFT_PAYLOAD_NETWORK_HEADER, &reg);
+		add_cmp_u16(r, fw->arp.arpro, op, reg);
 	}
 
 	if (fw->arp.arhln != 0 ||
 	    fw->arp.invflags & IPT_INV_ARPHLN) {
 		op = nft_invflags2cmp(fw->arp.invflags, IPT_INV_ARPHLN);
-		add_proto(r, offsetof(struct arphdr, ar_hln), 1,
+		add_proto(h, r, offsetof(struct arphdr, ar_hln), 1,
 			  fw->arp.arhln, op);
 	}
 
-	add_proto(r, offsetof(struct arphdr, ar_pln), 1, 4, NFT_CMP_EQ);
+	add_proto(h, r, offsetof(struct arphdr, ar_pln), 1, 4, NFT_CMP_EQ);
 
 	if (fw->arp.arpop != 0 ||
 	    fw->arp.invflags & IPT_INV_ARPOP) {
+		uint8_t reg;
+
 		op = nft_invflags2cmp(fw->arp.invflags, IPT_INV_ARPOP);
-		add_payload(r, offsetof(struct arphdr, ar_op), 2,
-			    NFT_PAYLOAD_NETWORK_HEADER);
-		add_cmp_u16(r, fw->arp.arpop, op);
+		add_payload(h, r, offsetof(struct arphdr, ar_op), 2,
+			    NFT_PAYLOAD_NETWORK_HEADER, &reg);
+		add_cmp_u16(r, fw->arp.arpop, op, reg);
 	}
 
 	if (need_devaddr(&fw->arp.src_devaddr)) {
 		op = nft_invflags2cmp(fw->arp.invflags, IPT_INV_SRCDEVADDR);
-		add_addr(r, NFT_PAYLOAD_NETWORK_HEADER,
+		add_addr(h, r, NFT_PAYLOAD_NETWORK_HEADER,
 			 sizeof(struct arphdr),
 			 &fw->arp.src_devaddr.addr,
 			 &fw->arp.src_devaddr.mask,
@@ -190,7 +110,7 @@ static int nft_arp_add(struct nft_handle *h, struct nftnl_rule *r, void *data)
 	    fw->arp.smsk.s_addr != 0 ||
 	    fw->arp.invflags & IPT_INV_SRCIP) {
 		op = nft_invflags2cmp(fw->arp.invflags, IPT_INV_SRCIP);
-		add_addr(r, NFT_PAYLOAD_NETWORK_HEADER,
+		add_addr(h, r, NFT_PAYLOAD_NETWORK_HEADER,
 			 sizeof(struct arphdr) + fw->arp.arhln,
 			 &fw->arp.src.s_addr, &fw->arp.smsk.s_addr,
 			 sizeof(struct in_addr), op);
@@ -199,7 +119,7 @@ static int nft_arp_add(struct nft_handle *h, struct nftnl_rule *r, void *data)
 
 	if (need_devaddr(&fw->arp.tgt_devaddr)) {
 		op = nft_invflags2cmp(fw->arp.invflags, IPT_INV_TGTDEVADDR);
-		add_addr(r, NFT_PAYLOAD_NETWORK_HEADER,
+		add_addr(h, r, NFT_PAYLOAD_NETWORK_HEADER,
 			 sizeof(struct arphdr) + fw->arp.arhln + sizeof(struct in_addr),
 			 &fw->arp.tgt_devaddr.addr,
 			 &fw->arp.tgt_devaddr.mask,
@@ -210,7 +130,7 @@ static int nft_arp_add(struct nft_handle *h, struct nftnl_rule *r, void *data)
 	    fw->arp.tmsk.s_addr != 0 ||
 	    fw->arp.invflags & IPT_INV_DSTIP) {
 		op = nft_invflags2cmp(fw->arp.invflags, IPT_INV_DSTIP);
-		add_addr(r, NFT_PAYLOAD_NETWORK_HEADER,
+		add_addr(h, r, NFT_PAYLOAD_NETWORK_HEADER,
 			 sizeof(struct arphdr) + fw->arp.arhln + sizeof(struct in_addr) + fw->arp.arhln,
 			 &fw->arp.tgt.s_addr, &fw->arp.tmsk.s_addr,
 			 sizeof(struct in_addr), op);
@@ -241,25 +161,16 @@ static int nft_arp_add(struct nft_handle *h, struct nftnl_rule *r, void *data)
 }
 
 static void nft_arp_parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e,
-			       void *data)
+			       struct iptables_command_state *cs)
 {
-	struct iptables_command_state *cs = data;
 	struct arpt_entry *fw = &cs->arp;
 	uint8_t flags = 0;
 
-	parse_meta(e, ctx->meta.key, fw->arp.iniface, fw->arp.iniface_mask,
+	parse_meta(ctx, e, ctx->meta.key, fw->arp.iniface, fw->arp.iniface_mask,
 		   fw->arp.outiface, fw->arp.outiface_mask,
 		   &flags);
 
 	fw->arp.invflags |= flags;
-}
-
-static void nft_arp_parse_immediate(const char *jumpto, bool nft_goto,
-				    void *data)
-{
-	struct iptables_command_state *cs = data;
-
-	cs->jumpto = jumpto;
 }
 
 static void parse_mask_ipv4(struct nft_xt_ctx *ctx, struct in_addr *mask)
@@ -293,9 +204,9 @@ static bool nft_arp_parse_devaddr(struct nft_xt_ctx *ctx,
 }
 
 static void nft_arp_parse_payload(struct nft_xt_ctx *ctx,
-				  struct nftnl_expr *e, void *data)
+				  struct nftnl_expr *e,
+				  struct iptables_command_state *cs)
 {
-	struct iptables_command_state *cs = data;
 	struct arpt_entry *fw = &cs->arp;
 	struct in_addr addr;
 	uint16_t ar_hrd, ar_pro, ar_op;
@@ -380,11 +291,10 @@ static void nft_arp_parse_payload(struct nft_xt_ctx *ctx,
 static void nft_arp_print_header(unsigned int format, const char *chain,
 				 const char *pol,
 				 const struct xt_counters *counters,
-				 bool basechain, uint32_t refs,
-				 uint32_t entries)
+				 int refs, uint32_t entries)
 {
 	printf("Chain %s", chain);
-	if (basechain && pol) {
+	if (pol) {
 		printf(" (policy %s", pol);
 		if (!(format & FMT_NOCOUNTS)) {
 			fputc(' ', stdout);
@@ -395,7 +305,7 @@ static void nft_arp_print_header(unsigned int format, const char *chain,
 		}
 		printf(")\n");
 	} else {
-		printf(" (%u references)\n", refs);
+		printf(" (%d references)\n", refs);
 	}
 }
 
@@ -403,7 +313,6 @@ static void nft_arp_print_rule_details(const struct iptables_command_state *cs,
 				       unsigned int format)
 {
 	const struct arpt_entry *fw = &cs->arp;
-	char buf[BUFSIZ];
 	char iface[IFNAMSIZ+2];
 	const char *sep = "";
 	int print_iface = 0;
@@ -450,15 +359,10 @@ static void nft_arp_print_rule_details(const struct iptables_command_state *cs,
 	}
 
 	if (fw->arp.smsk.s_addr != 0L) {
-		printf("%s%s", sep, fw->arp.invflags & IPT_INV_SRCIP
-			? "! " : "");
-		if (format & FMT_NUMERIC)
-			sprintf(buf, "%s", addr_to_dotted(&(fw->arp.src)));
-		else
-			sprintf(buf, "%s", addr_to_anyname(&(fw->arp.src)));
-		strncat(buf, mask_to_dotted(&(fw->arp.smsk)),
-			sizeof(buf) - strlen(buf) - 1);
-		printf("-s %s", buf);
+		printf("%s%s-s %s", sep,
+		       fw->arp.invflags & IPT_INV_SRCIP ? "! " : "",
+		       ipv4_addr_to_string(&fw->arp.src,
+					   &fw->arp.smsk, format));
 		sep = " ";
 	}
 
@@ -476,15 +380,10 @@ static void nft_arp_print_rule_details(const struct iptables_command_state *cs,
 after_devsrc:
 
 	if (fw->arp.tmsk.s_addr != 0L) {
-		printf("%s%s", sep, fw->arp.invflags & IPT_INV_DSTIP
-			? "! " : "");
-		if (format & FMT_NUMERIC)
-			sprintf(buf, "%s", addr_to_dotted(&(fw->arp.tgt)));
-		else
-			sprintf(buf, "%s", addr_to_anyname(&(fw->arp.tgt)));
-		strncat(buf, mask_to_dotted(&(fw->arp.tmsk)),
-			sizeof(buf) - strlen(buf) - 1);
-		printf("-d %s", buf);
+		printf("%s%s-d %s", sep,
+		       fw->arp.invflags & IPT_INV_DSTIP ? "! " : "",
+		       ipv4_addr_to_string(&fw->arp.tgt,
+					   &fw->arp.tmsk, format));
 		sep = " ";
 	}
 
@@ -516,7 +415,7 @@ after_devdst:
 
 		printf("%s%s", sep, fw->arp.invflags & IPT_INV_ARPOP
 			? "! " : "");
-		if (tmp <= NUMOPCODES && !(format & FMT_NUMERIC))
+		if (tmp <= ARP_NUMOPCODES && !(format & FMT_NUMERIC))
 			printf("--opcode %s", arp_opcodes[tmp-1]);
 		else
 			printf("--opcode %d", tmp);
@@ -556,12 +455,11 @@ after_devdst:
 }
 
 static void
-nft_arp_save_rule(const void *data, unsigned int format)
+nft_arp_save_rule(const struct iptables_command_state *cs, unsigned int format)
 {
-	const struct iptables_command_state *cs = data;
-
 	format |= FMT_NUMERIC;
 
+	printf(" ");
 	nft_arp_print_rule_details(cs, format);
 	if (cs->target && cs->target->save)
 		cs->target->save(&cs->fw, cs->target->t);
@@ -595,11 +493,11 @@ nft_arp_print_rule(struct nft_handle *h, struct nftnl_rule *r,
 	nft_clear_iptables_command_state(&cs);
 }
 
-static bool nft_arp_is_same(const void *data_a,
-			    const void *data_b)
+static bool nft_arp_is_same(const struct iptables_command_state *cs_a,
+			    const struct iptables_command_state *cs_b)
 {
-	const struct arpt_entry *a = data_a;
-	const struct arpt_entry *b = data_b;
+	const struct arpt_entry *a = &cs_a->arp;
+	const struct arpt_entry *b = &cs_b->arp;
 
 	if (a->arp.src.s_addr != b->arp.src.s_addr
 	    || a->arp.tgt.s_addr != b->arp.tgt.s_addr
@@ -629,19 +527,270 @@ static void nft_arp_save_chain(const struct nftnl_chain *c, const char *policy)
 	printf(":%s %s\n", chain, policy ?: "-");
 }
 
+static int getlength_and_mask(const char *from, uint8_t *to, uint8_t *mask)
+{
+	char *dup = strdup(from);
+	char *p, *buffer;
+	int i, ret = -1;
+
+	if (!dup)
+		return -1;
+
+	if ( (p = strrchr(dup, '/')) != NULL) {
+		*p = '\0';
+		i = strtol(p+1, &buffer, 10);
+		if (*buffer != '\0' || i < 0 || i > 255)
+			goto out_err;
+		*mask = (uint8_t)i;
+	} else
+		*mask = 255;
+	i = strtol(dup, &buffer, 10);
+	if (*buffer != '\0' || i < 0 || i > 255)
+		goto out_err;
+	*to = (uint8_t)i;
+	ret = 0;
+out_err:
+	free(dup);
+	return ret;
+
+}
+
+static int get16_and_mask(const char *from, uint16_t *to,
+			  uint16_t *mask, int base)
+{
+	char *dup = strdup(from);
+	char *p, *buffer;
+	int i, ret = -1;
+
+	if (!dup)
+		return -1;
+
+	if ( (p = strrchr(dup, '/')) != NULL) {
+		*p = '\0';
+		i = strtol(p+1, &buffer, base);
+		if (*buffer != '\0' || i < 0 || i > 65535)
+			goto out_err;
+		*mask = htons((uint16_t)i);
+	} else
+		*mask = 65535;
+	i = strtol(dup, &buffer, base);
+	if (*buffer != '\0' || i < 0 || i > 65535)
+		goto out_err;
+	*to = htons((uint16_t)i);
+	ret = 0;
+out_err:
+	free(dup);
+	return ret;
+}
+
+static void nft_arp_post_parse(int command,
+			       struct iptables_command_state *cs,
+			       struct xtables_args *args)
+{
+	cs->arp.arp.invflags = args->invflags;
+
+	memcpy(cs->arp.arp.iniface, args->iniface, IFNAMSIZ);
+	memcpy(cs->arp.arp.iniface_mask, args->iniface_mask, IFNAMSIZ);
+
+	memcpy(cs->arp.arp.outiface, args->outiface, IFNAMSIZ);
+	memcpy(cs->arp.arp.outiface_mask, args->outiface_mask, IFNAMSIZ);
+
+	cs->arp.counters.pcnt = args->pcnt_cnt;
+	cs->arp.counters.bcnt = args->bcnt_cnt;
+
+	if (command & (CMD_REPLACE | CMD_INSERT |
+			CMD_DELETE | CMD_APPEND | CMD_CHECK)) {
+		if (!(cs->options & OPT_DESTINATION))
+			args->dhostnetworkmask = "0.0.0.0/0";
+		if (!(cs->options & OPT_SOURCE))
+			args->shostnetworkmask = "0.0.0.0/0";
+	}
+
+	if (args->shostnetworkmask)
+		xtables_ipparse_multiple(args->shostnetworkmask,
+					 &args->s.addr.v4, &args->s.mask.v4,
+					 &args->s.naddrs);
+	if (args->dhostnetworkmask)
+		xtables_ipparse_multiple(args->dhostnetworkmask,
+					 &args->d.addr.v4, &args->d.mask.v4,
+					 &args->d.naddrs);
+
+	if ((args->s.naddrs > 1 || args->d.naddrs > 1) &&
+	    (cs->arp.arp.invflags & (ARPT_INV_SRCIP | ARPT_INV_TGTIP)))
+		xtables_error(PARAMETER_PROBLEM,
+			      "! not allowed with multiple"
+			      " source or destination IP addresses");
+
+	if (args->src_mac &&
+	    xtables_parse_mac_and_mask(args->src_mac,
+				       cs->arp.arp.src_devaddr.addr,
+				       cs->arp.arp.src_devaddr.mask))
+		xtables_error(PARAMETER_PROBLEM,
+			      "Problem with specified source mac");
+	if (args->dst_mac &&
+	    xtables_parse_mac_and_mask(args->dst_mac,
+				       cs->arp.arp.tgt_devaddr.addr,
+				       cs->arp.arp.tgt_devaddr.mask))
+		xtables_error(PARAMETER_PROBLEM,
+			      "Problem with specified destination mac");
+	if (args->arp_hlen) {
+		getlength_and_mask(args->arp_hlen, &cs->arp.arp.arhln,
+				   &cs->arp.arp.arhln_mask);
+
+		if (cs->arp.arp.arhln != 6)
+			xtables_error(PARAMETER_PROBLEM,
+				      "Only harware address length of 6 is supported currently.");
+	}
+	if (args->arp_opcode) {
+		if (get16_and_mask(args->arp_opcode, &cs->arp.arp.arpop,
+				   &cs->arp.arp.arpop_mask, 10)) {
+			int i;
+
+			for (i = 0; i < ARP_NUMOPCODES; i++)
+				if (!strcasecmp(arp_opcodes[i],
+						args->arp_opcode))
+					break;
+			if (i == ARP_NUMOPCODES)
+				xtables_error(PARAMETER_PROBLEM,
+					      "Problem with specified opcode");
+			cs->arp.arp.arpop = htons(i+1);
+		}
+	}
+	if (args->arp_htype) {
+		if (get16_and_mask(args->arp_htype, &cs->arp.arp.arhrd,
+				   &cs->arp.arp.arhrd_mask, 16)) {
+			if (strcasecmp(args->arp_htype, "Ethernet"))
+				xtables_error(PARAMETER_PROBLEM,
+					      "Problem with specified hardware type");
+			cs->arp.arp.arhrd = htons(1);
+		}
+	}
+	if (args->arp_ptype) {
+		if (get16_and_mask(args->arp_ptype, &cs->arp.arp.arpro,
+				   &cs->arp.arp.arpro_mask, 0)) {
+			if (strcasecmp(args->arp_ptype, "ipv4"))
+				xtables_error(PARAMETER_PROBLEM,
+					      "Problem with specified protocol type");
+			cs->arp.arp.arpro = htons(0x800);
+		}
+	}
+}
+
+static void nft_arp_init_cs(struct iptables_command_state *cs)
+{
+	cs->arp.arp.arhln = 6;
+	cs->arp.arp.arhln_mask = 255;
+	cs->arp.arp.arhrd = htons(ARPHRD_ETHER);
+	cs->arp.arp.arhrd_mask = 65535;
+}
+
+static int
+nft_arp_add_entry(struct nft_handle *h,
+		  const char *chain, const char *table,
+		  struct iptables_command_state *cs,
+		  struct xtables_args *args, bool verbose,
+		  bool append, int rulenum)
+{
+	unsigned int i, j;
+	int ret = 1;
+
+	for (i = 0; i < args->s.naddrs; i++) {
+		cs->arp.arp.src.s_addr = args->s.addr.v4[i].s_addr;
+		cs->arp.arp.smsk.s_addr = args->s.mask.v4[i].s_addr;
+		for (j = 0; j < args->d.naddrs; j++) {
+			cs->arp.arp.tgt.s_addr = args->d.addr.v4[j].s_addr;
+			cs->arp.arp.tmsk.s_addr = args->d.mask.v4[j].s_addr;
+			if (append) {
+				ret = nft_cmd_rule_append(h, chain, table, cs, NULL,
+						          verbose);
+			} else {
+				ret = nft_cmd_rule_insert(h, chain, table, cs,
+						          rulenum, verbose);
+			}
+		}
+	}
+
+	return ret;
+}
+
+static int
+nft_arp_delete_entry(struct nft_handle *h,
+		     const char *chain, const char *table,
+		     struct iptables_command_state *cs,
+		     struct xtables_args *args, bool verbose)
+{
+	unsigned int i, j;
+	int ret = 1;
+
+	for (i = 0; i < args->s.naddrs; i++) {
+		cs->arp.arp.src.s_addr = args->s.addr.v4[i].s_addr;
+		cs->arp.arp.smsk.s_addr = args->s.mask.v4[i].s_addr;
+		for (j = 0; j < args->d.naddrs; j++) {
+			cs->arp.arp.tgt.s_addr = args->d.addr.v4[j].s_addr;
+			cs->arp.arp.tmsk.s_addr = args->d.mask.v4[j].s_addr;
+			ret = nft_cmd_rule_delete(h, chain, table, cs, verbose);
+		}
+	}
+
+	return ret;
+}
+
+static int
+nft_arp_check_entry(struct nft_handle *h,
+		    const char *chain, const char *table,
+		    struct iptables_command_state *cs,
+		    struct xtables_args *args, bool verbose)
+{
+	unsigned int i, j;
+	int ret = 1;
+
+	for (i = 0; i < args->s.naddrs; i++) {
+		cs->arp.arp.src.s_addr = args->s.addr.v4[i].s_addr;
+		cs->arp.arp.smsk.s_addr = args->s.mask.v4[i].s_addr;
+		for (j = 0; j < args->d.naddrs; j++) {
+			cs->arp.arp.tgt.s_addr = args->d.addr.v4[j].s_addr;
+			cs->arp.arp.tmsk.s_addr = args->d.mask.v4[j].s_addr;
+			ret = nft_cmd_rule_check(h, chain, table, cs, verbose);
+		}
+	}
+
+	return ret;
+}
+
+static int
+nft_arp_replace_entry(struct nft_handle *h,
+		      const char *chain, const char *table,
+		      struct iptables_command_state *cs,
+		      struct xtables_args *args, bool verbose,
+		      int rulenum)
+{
+	cs->arp.arp.src.s_addr = args->s.addr.v4->s_addr;
+	cs->arp.arp.tgt.s_addr = args->d.addr.v4->s_addr;
+	cs->arp.arp.smsk.s_addr = args->s.mask.v4->s_addr;
+	cs->arp.arp.tmsk.s_addr = args->d.mask.v4->s_addr;
+
+	return nft_cmd_rule_replace(h, chain, table, cs, rulenum, verbose);
+}
+
 struct nft_family_ops nft_family_ops_arp = {
 	.add			= nft_arp_add,
 	.is_same		= nft_arp_is_same,
 	.print_payload		= NULL,
 	.parse_meta		= nft_arp_parse_meta,
 	.parse_payload		= nft_arp_parse_payload,
-	.parse_immediate	= nft_arp_parse_immediate,
 	.print_header		= nft_arp_print_header,
 	.print_rule		= nft_arp_print_rule,
 	.save_rule		= nft_arp_save_rule,
 	.save_chain		= nft_arp_save_chain,
-	.post_parse		= NULL,
+	.cmd_parse		= {
+		.post_parse	= nft_arp_post_parse,
+	},
 	.rule_to_cs		= nft_rule_to_iptables_command_state,
+	.init_cs		= nft_arp_init_cs,
 	.clear_cs		= nft_clear_iptables_command_state,
 	.parse_target		= nft_ipv46_parse_target,
+	.add_entry		= nft_arp_add_entry,
+	.delete_entry		= nft_arp_delete_entry,
+	.check_entry		= nft_arp_check_entry,
+	.replace_entry		= nft_arp_replace_entry,
 };
