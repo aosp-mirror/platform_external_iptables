@@ -13,19 +13,9 @@ enum {
 	O_RANDOM,
 	O_RANDOM_FULLY,
 	O_PERSISTENT,
-	O_X_TO_SRC,
 	F_TO_SRC       = 1 << O_TO_SRC,
 	F_RANDOM       = 1 << O_RANDOM,
 	F_RANDOM_FULLY = 1 << O_RANDOM_FULLY,
-	F_X_TO_SRC     = 1 << O_X_TO_SRC,
-};
-
-/* Source NAT data consists of a multi-range, indicating where to map
-   to. */
-struct ipt_natinfo
-{
-	struct xt_entry_target t;
-	struct nf_nat_ipv4_multi_range_compat mr;
 };
 
 static void SNAT_help(void)
@@ -39,44 +29,21 @@ static void SNAT_help(void)
 
 static const struct xt_option_entry SNAT_opts[] = {
 	{.name = "to-source", .id = O_TO_SRC, .type = XTTYPE_STRING,
-	 .flags = XTOPT_MAND | XTOPT_MULTI},
+	 .flags = XTOPT_MAND},
 	{.name = "random", .id = O_RANDOM, .type = XTTYPE_NONE},
 	{.name = "random-fully", .id = O_RANDOM_FULLY, .type = XTTYPE_NONE},
 	{.name = "persistent", .id = O_PERSISTENT, .type = XTTYPE_NONE},
 	XTOPT_TABLEEND,
 };
 
-static struct ipt_natinfo *
-append_range(struct ipt_natinfo *info, const struct nf_nat_ipv4_range *range)
-{
-	unsigned int size;
-
-	/* One rangesize already in struct ipt_natinfo */
-	size = XT_ALIGN(sizeof(*info) + info->mr.rangesize * sizeof(*range));
-
-	info = realloc(info, size);
-	if (!info)
-		xtables_error(OTHER_PROBLEM, "Out of memory\n");
-
-	info->t.u.target_size = size;
-	info->mr.range[info->mr.rangesize] = *range;
-	info->mr.rangesize++;
-
-	return info;
-}
-
 /* Ranges expected in network order. */
-static struct xt_entry_target *
-parse_to(const char *orig_arg, int portok, struct ipt_natinfo *info)
+static void
+parse_to(const char *orig_arg, int portok, struct nf_nat_ipv4_range *range)
 {
-	struct nf_nat_ipv4_range range;
 	char *arg, *colon, *dash, *error;
 	const struct in_addr *ip;
 
-	arg = strdup(orig_arg);
-	if (arg == NULL)
-		xtables_error(RESOURCE_PROBLEM, "strdup");
-	memset(&range, 0, sizeof(range));
+	arg = xtables_strdup(orig_arg);
 	colon = strchr(arg, ':');
 
 	if (colon) {
@@ -86,7 +53,7 @@ parse_to(const char *orig_arg, int portok, struct ipt_natinfo *info)
 			xtables_error(PARAMETER_PROBLEM,
 				   "Need TCP, UDP, SCTP or DCCP with port specification");
 
-		range.flags |= NF_NAT_RANGE_PROTO_SPECIFIED;
+		range->flags |= NF_NAT_RANGE_PROTO_SPECIFIED;
 
 		port = atoi(colon+1);
 		if (port <= 0 || port > 65535)
@@ -100,8 +67,8 @@ parse_to(const char *orig_arg, int portok, struct ipt_natinfo *info)
 
 		dash = strchr(colon, '-');
 		if (!dash) {
-			range.min.tcp.port
-				= range.max.tcp.port
+			range->min.tcp.port
+				= range->max.tcp.port
 				= htons(port);
 		} else {
 			int maxport;
@@ -114,18 +81,18 @@ parse_to(const char *orig_arg, int portok, struct ipt_natinfo *info)
 				/* People are stupid. */
 				xtables_error(PARAMETER_PROBLEM,
 					   "Port range `%s' funky\n", colon+1);
-			range.min.tcp.port = htons(port);
-			range.max.tcp.port = htons(maxport);
+			range->min.tcp.port = htons(port);
+			range->max.tcp.port = htons(maxport);
 		}
 		/* Starts with a colon? No IP info...*/
 		if (colon == arg) {
 			free(arg);
-			return &(append_range(info, &range)->t);
+			return;
 		}
 		*colon = '\0';
 	}
 
-	range.flags |= NF_NAT_RANGE_MAP_IPS;
+	range->flags |= NF_NAT_RANGE_MAP_IPS;
 	dash = strchr(arg, '-');
 	if (colon && dash && dash > colon)
 		dash = NULL;
@@ -137,24 +104,24 @@ parse_to(const char *orig_arg, int portok, struct ipt_natinfo *info)
 	if (!ip)
 		xtables_error(PARAMETER_PROBLEM, "Bad IP address \"%s\"\n",
 			   arg);
-	range.min_ip = ip->s_addr;
+	range->min_ip = ip->s_addr;
 	if (dash) {
 		ip = xtables_numeric_to_ipaddr(dash+1);
 		if (!ip)
 			xtables_error(PARAMETER_PROBLEM, "Bad IP address \"%s\"\n",
 				   dash+1);
-		range.max_ip = ip->s_addr;
+		range->max_ip = ip->s_addr;
 	} else
-		range.max_ip = range.min_ip;
+		range->max_ip = range->min_ip;
 
 	free(arg);
-	return &(append_range(info, &range)->t);
+	return;
 }
 
 static void SNAT_parse(struct xt_option_call *cb)
 {
+	struct nf_nat_ipv4_multi_range_compat *mr = cb->data;
 	const struct ipt_entry *entry = cb->xt_entry;
-	struct ipt_natinfo *info = (void *)(*cb->target);
 	int portok;
 
 	if (entry->ip.proto == IPPROTO_TCP
@@ -169,18 +136,10 @@ static void SNAT_parse(struct xt_option_call *cb)
 	xtables_option_parse(cb);
 	switch (cb->entry->id) {
 	case O_TO_SRC:
-		if (cb->xflags & F_X_TO_SRC) {
-			if (!kernel_version)
-				get_kernel_version();
-			if (kernel_version > LINUX_VERSION(2, 6, 10))
-				xtables_error(PARAMETER_PROBLEM,
-					   "SNAT: Multiple --to-source not supported");
-		}
-		*cb->target = parse_to(cb->arg, portok, info);
-		cb->xflags |= F_X_TO_SRC;
+		parse_to(cb->arg, portok, mr->range);
 		break;
 	case O_PERSISTENT:
-		info->mr.range[0].flags |= NF_NAT_RANGE_PERSISTENT;
+		mr->range->flags |= NF_NAT_RANGE_PERSISTENT;
 		break;
 	}
 }
@@ -192,9 +151,11 @@ static void SNAT_fcheck(struct xt_fcheck_call *cb)
 	struct nf_nat_ipv4_multi_range_compat *mr = cb->data;
 
 	if ((cb->xflags & f) == f)
-		mr->range[0].flags |= NF_NAT_RANGE_PROTO_RANDOM;
+		mr->range->flags |= NF_NAT_RANGE_PROTO_RANDOM;
 	if ((cb->xflags & r) == r)
-		mr->range[0].flags |= NF_NAT_RANGE_PROTO_RANDOM_FULLY;
+		mr->range->flags |= NF_NAT_RANGE_PROTO_RANDOM_FULLY;
+
+	mr->rangesize = 1;
 }
 
 static void print_range(const struct nf_nat_ipv4_range *r)
@@ -220,36 +181,32 @@ static void print_range(const struct nf_nat_ipv4_range *r)
 static void SNAT_print(const void *ip, const struct xt_entry_target *target,
                        int numeric)
 {
-	const struct ipt_natinfo *info = (const void *)target;
-	unsigned int i = 0;
+	const struct nf_nat_ipv4_multi_range_compat *mr =
+				(const void *)target->data;
 
 	printf(" to:");
-	for (i = 0; i < info->mr.rangesize; i++) {
-		print_range(&info->mr.range[i]);
-		if (info->mr.range[i].flags & NF_NAT_RANGE_PROTO_RANDOM)
-			printf(" random");
-		if (info->mr.range[i].flags & NF_NAT_RANGE_PROTO_RANDOM_FULLY)
-			printf(" random-fully");
-		if (info->mr.range[i].flags & NF_NAT_RANGE_PERSISTENT)
-			printf(" persistent");
-	}
+	print_range(mr->range);
+	if (mr->range->flags & NF_NAT_RANGE_PROTO_RANDOM)
+		printf(" random");
+	if (mr->range->flags & NF_NAT_RANGE_PROTO_RANDOM_FULLY)
+		printf(" random-fully");
+	if (mr->range->flags & NF_NAT_RANGE_PERSISTENT)
+		printf(" persistent");
 }
 
 static void SNAT_save(const void *ip, const struct xt_entry_target *target)
 {
-	const struct ipt_natinfo *info = (const void *)target;
-	unsigned int i = 0;
+	const struct nf_nat_ipv4_multi_range_compat *mr =
+				(const void *)target->data;
 
-	for (i = 0; i < info->mr.rangesize; i++) {
-		printf(" --to-source ");
-		print_range(&info->mr.range[i]);
-		if (info->mr.range[i].flags & NF_NAT_RANGE_PROTO_RANDOM)
-			printf(" --random");
-		if (info->mr.range[i].flags & NF_NAT_RANGE_PROTO_RANDOM_FULLY)
-			printf(" --random-fully");
-		if (info->mr.range[i].flags & NF_NAT_RANGE_PERSISTENT)
-			printf(" --persistent");
-	}
+	printf(" --to-source ");
+	print_range(mr->range);
+	if (mr->range->flags & NF_NAT_RANGE_PROTO_RANDOM)
+		printf(" --random");
+	if (mr->range->flags & NF_NAT_RANGE_PROTO_RANDOM_FULLY)
+		printf(" --random-fully");
+	if (mr->range->flags & NF_NAT_RANGE_PERSISTENT)
+		printf(" --persistent");
 }
 
 static void print_range_xlate(const struct nf_nat_ipv4_range *r,
@@ -276,29 +233,27 @@ static void print_range_xlate(const struct nf_nat_ipv4_range *r,
 static int SNAT_xlate(struct xt_xlate *xl,
 		      const struct xt_xlate_tg_params *params)
 {
-	const struct ipt_natinfo *info = (const void *)params->target;
-	unsigned int i = 0;
+	const struct nf_nat_ipv4_multi_range_compat *mr =
+				(const void *)params->target->data;
 	bool sep_need = false;
 	const char *sep = " ";
 
-	for (i = 0; i < info->mr.rangesize; i++) {
-		xt_xlate_add(xl, "snat to ");
-		print_range_xlate(&info->mr.range[i], xl);
-		if (info->mr.range[i].flags & NF_NAT_RANGE_PROTO_RANDOM) {
-			xt_xlate_add(xl, " random");
-			sep_need = true;
-		}
-		if (info->mr.range[i].flags & NF_NAT_RANGE_PROTO_RANDOM_FULLY) {
-			if (sep_need)
-				sep = ",";
-			xt_xlate_add(xl, "%sfully-random", sep);
-			sep_need = true;
-		}
-		if (info->mr.range[i].flags & NF_NAT_RANGE_PERSISTENT) {
-			if (sep_need)
-				sep = ",";
-			xt_xlate_add(xl, "%spersistent", sep);
-		}
+	xt_xlate_add(xl, "snat to ");
+	print_range_xlate(mr->range, xl);
+	if (mr->range->flags & NF_NAT_RANGE_PROTO_RANDOM) {
+		xt_xlate_add(xl, " random");
+		sep_need = true;
+	}
+	if (mr->range->flags & NF_NAT_RANGE_PROTO_RANDOM_FULLY) {
+		if (sep_need)
+			sep = ",";
+		xt_xlate_add(xl, "%sfully-random", sep);
+		sep_need = true;
+	}
+	if (mr->range->flags & NF_NAT_RANGE_PERSISTENT) {
+		if (sep_need)
+			sep = ",";
+		xt_xlate_add(xl, "%spersistent", sep);
 	}
 
 	return 1;
