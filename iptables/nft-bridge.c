@@ -65,30 +65,34 @@ static void ebt_print_mac_and_mask(const unsigned char *mac, const unsigned char
 		xtables_print_mac_and_mask(mac, mask);
 }
 
-static void add_logical_iniface(struct nftnl_rule *r, char *iface, uint32_t op)
+static void add_logical_iniface(struct nft_handle *h, struct nftnl_rule *r,
+				char *iface, uint32_t op)
 {
 	int iface_len;
+	uint8_t reg;
 
 	iface_len = strlen(iface);
 
-	add_meta(r, NFT_META_BRI_IIFNAME);
+	add_meta(h, r, NFT_META_BRI_IIFNAME, &reg);
 	if (iface[iface_len - 1] == '+')
-		add_cmp_ptr(r, op, iface, iface_len - 1);
+		add_cmp_ptr(r, op, iface, iface_len - 1, reg);
 	else
-		add_cmp_ptr(r, op, iface, iface_len + 1);
+		add_cmp_ptr(r, op, iface, iface_len + 1, reg);
 }
 
-static void add_logical_outiface(struct nftnl_rule *r, char *iface, uint32_t op)
+static void add_logical_outiface(struct nft_handle *h, struct nftnl_rule *r,
+				 char *iface, uint32_t op)
 {
 	int iface_len;
+	uint8_t reg;
 
 	iface_len = strlen(iface);
 
-	add_meta(r, NFT_META_BRI_OIFNAME);
+	add_meta(h, r, NFT_META_BRI_OIFNAME, &reg);
 	if (iface[iface_len - 1] == '+')
-		add_cmp_ptr(r, op, iface, iface_len - 1);
+		add_cmp_ptr(r, op, iface, iface_len - 1, reg);
 	else
-		add_cmp_ptr(r, op, iface, iface_len + 1);
+		add_cmp_ptr(r, op, iface, iface_len + 1, reg);
 }
 
 static int _add_action(struct nftnl_rule *r, struct iptables_command_state *cs)
@@ -97,52 +101,54 @@ static int _add_action(struct nftnl_rule *r, struct iptables_command_state *cs)
 }
 
 static int nft_bridge_add(struct nft_handle *h,
-			  struct nftnl_rule *r, void *data)
+			  struct nftnl_rule *r,
+			  struct iptables_command_state *cs)
 {
-	struct iptables_command_state *cs = data;
 	struct ebt_match *iter;
 	struct ebt_entry *fw = &cs->eb;
 	uint32_t op;
 
 	if (fw->in[0] != '\0') {
 		op = nft_invflags2cmp(fw->invflags, EBT_IIN);
-		add_iniface(r, fw->in, op);
+		add_iniface(h, r, fw->in, op);
 	}
 
 	if (fw->out[0] != '\0') {
 		op = nft_invflags2cmp(fw->invflags, EBT_IOUT);
-		add_outiface(r, fw->out, op);
+		add_outiface(h, r, fw->out, op);
 	}
 
 	if (fw->logical_in[0] != '\0') {
 		op = nft_invflags2cmp(fw->invflags, EBT_ILOGICALIN);
-		add_logical_iniface(r, fw->logical_in, op);
+		add_logical_iniface(h, r, fw->logical_in, op);
 	}
 
 	if (fw->logical_out[0] != '\0') {
 		op = nft_invflags2cmp(fw->invflags, EBT_ILOGICALOUT);
-		add_logical_outiface(r, fw->logical_out, op);
+		add_logical_outiface(h, r, fw->logical_out, op);
 	}
 
 	if (fw->bitmask & EBT_ISOURCE) {
 		op = nft_invflags2cmp(fw->invflags, EBT_ISOURCE);
-		add_addr(r, NFT_PAYLOAD_LL_HEADER,
+		add_addr(h, r, NFT_PAYLOAD_LL_HEADER,
 			 offsetof(struct ethhdr, h_source),
 			 fw->sourcemac, fw->sourcemsk, ETH_ALEN, op);
 	}
 
 	if (fw->bitmask & EBT_IDEST) {
 		op = nft_invflags2cmp(fw->invflags, EBT_IDEST);
-		add_addr(r, NFT_PAYLOAD_LL_HEADER,
+		add_addr(h, r, NFT_PAYLOAD_LL_HEADER,
 			 offsetof(struct ethhdr, h_dest),
 			 fw->destmac, fw->destmsk, ETH_ALEN, op);
 	}
 
 	if ((fw->bitmask & EBT_NOPROTO) == 0) {
+		uint8_t reg;
+
 		op = nft_invflags2cmp(fw->invflags, EBT_IPROTO);
-		add_payload(r, offsetof(struct ethhdr, h_proto), 2,
-			    NFT_PAYLOAD_LL_HEADER);
-		add_cmp_u16(r, fw->ethproto, op);
+		add_payload(h, r, offsetof(struct ethhdr, h_proto), 2,
+			    NFT_PAYLOAD_LL_HEADER, &reg);
+		add_cmp_u16(r, fw->ethproto, op, reg);
 	}
 
 	add_compat(r, fw->ethproto, fw->invflags & EBT_IPROTO);
@@ -164,14 +170,14 @@ static int nft_bridge_add(struct nft_handle *h,
 }
 
 static void nft_bridge_parse_meta(struct nft_xt_ctx *ctx,
-				  struct nftnl_expr *e, void *data)
+				  struct nftnl_expr *e,
+				  struct iptables_command_state *cs)
 {
-	struct iptables_command_state *cs = data;
 	struct ebt_entry *fw = &cs->eb;
 	uint8_t invflags = 0;
 	char iifname[IFNAMSIZ] = {}, oifname[IFNAMSIZ] = {};
 
-	parse_meta(e, ctx->meta.key, iifname, NULL, oifname, NULL, &invflags);
+	parse_meta(ctx, e, ctx->meta.key, iifname, NULL, oifname, NULL, &invflags);
 
 	switch (ctx->meta.key) {
 	case NFT_META_BRI_IIFNAME:
@@ -200,9 +206,9 @@ static void nft_bridge_parse_meta(struct nft_xt_ctx *ctx,
 }
 
 static void nft_bridge_parse_payload(struct nft_xt_ctx *ctx,
-				     struct nftnl_expr *e, void *data)
+				     struct nftnl_expr *e,
+				     struct iptables_command_state *cs)
 {
-	struct iptables_command_state *cs = data;
 	struct ebt_entry *fw = &cs->eb;
 	unsigned char addr[ETH_ALEN];
 	unsigned short int ethproto;
@@ -249,14 +255,6 @@ static void nft_bridge_parse_payload(struct nft_xt_ctx *ctx,
 		fw->bitmask &= ~EBT_NOPROTO;
 		break;
 	}
-}
-
-static void nft_bridge_parse_immediate(const char *jumpto, bool nft_goto,
-				       void *data)
-{
-	struct iptables_command_state *cs = data;
-
-	cs->jumpto = jumpto;
 }
 
 /* return 0 if saddr, 1 if daddr, -1 on error */
@@ -405,7 +403,7 @@ static struct nftnl_set *set_from_lookup_expr(struct nft_xt_ctx *ctx,
 }
 
 static void nft_bridge_parse_lookup(struct nft_xt_ctx *ctx,
-				    struct nftnl_expr *e, void *data)
+				    struct nftnl_expr *e)
 {
 	struct xtables_match *match = NULL;
 	struct nft_among_data *among_data;
@@ -477,11 +475,7 @@ static void nft_bridge_parse_lookup(struct nft_xt_ctx *ctx,
 static void parse_watcher(void *object, struct ebt_match **match_list,
 			  bool ismatch)
 {
-	struct ebt_match *m;
-
-	m = calloc(1, sizeof(struct ebt_match));
-	if (m == NULL)
-		xtables_error(OTHER_PROBLEM, "Can't allocate memory");
+	struct ebt_match *m = xtables_calloc(1, sizeof(struct ebt_match));
 
 	if (ismatch)
 		m->u.match = object;
@@ -495,17 +489,15 @@ static void parse_watcher(void *object, struct ebt_match **match_list,
 		(*match_list)->next = m;
 }
 
-static void nft_bridge_parse_match(struct xtables_match *m, void *data)
+static void nft_bridge_parse_match(struct xtables_match *m,
+				   struct iptables_command_state *cs)
 {
-	struct iptables_command_state *cs = data;
-
 	parse_watcher(m, &cs->match_list, true);
 }
 
-static void nft_bridge_parse_target(struct xtables_target *t, void *data)
+static void nft_bridge_parse_target(struct xtables_target *t,
+				    struct iptables_command_state *cs)
 {
-	struct iptables_command_state *cs = data;
-
 	/* harcoded names :-( */
 	if (strcmp(t->name, "log") == 0 ||
 	    strcmp(t->name, "nflog") == 0) {
@@ -514,6 +506,7 @@ static void nft_bridge_parse_target(struct xtables_target *t, void *data)
 	}
 
 	cs->target = t;
+	cs->jumpto = t->name;
 }
 
 static void nft_rule_to_ebtables_command_state(struct nft_handle *h,
@@ -538,7 +531,7 @@ static void nft_bridge_print_table_header(const char *tablename)
 static void nft_bridge_print_header(unsigned int format, const char *chain,
 				    const char *pol,
 				    const struct xt_counters *counters,
-				    bool basechain, uint32_t refs, uint32_t entries)
+				    int refs, uint32_t entries)
 {
 	printf("Bridge chain: %s, entries: %u, policy: %s\n",
 	       chain, entries, pol ?: "RETURN");
@@ -605,10 +598,9 @@ static void print_protocol(uint16_t ethproto, bool invert, unsigned int bitmask)
 		printf("%s ", ent->e_name);
 }
 
-static void nft_bridge_save_rule(const void *data, unsigned int format)
+static void __nft_bridge_save_rule(const struct iptables_command_state *cs,
+				   unsigned int format)
 {
-	const struct iptables_command_state *cs = data;
-
 	if (cs->eb.ethproto)
 		print_protocol(cs->eb.ethproto, cs->eb.invflags & EBT_IPROTO,
 			       cs->eb.bitmask);
@@ -656,6 +648,13 @@ static void nft_bridge_save_rule(const void *data, unsigned int format)
 		fputc('\n', stdout);
 }
 
+static void nft_bridge_save_rule(const struct iptables_command_state *cs,
+				 unsigned int format)
+{
+	printf(" ");
+	__nft_bridge_save_rule(cs, format);
+}
+
 static void nft_bridge_print_rule(struct nft_handle *h, struct nftnl_rule *r,
 				  unsigned int num, unsigned int format)
 {
@@ -665,7 +664,7 @@ static void nft_bridge_print_rule(struct nft_handle *h, struct nftnl_rule *r,
 		printf("%d ", num);
 
 	nft_rule_to_ebtables_command_state(h, r, &cs);
-	nft_bridge_save_rule(&cs, format);
+	__nft_bridge_save_rule(&cs, format);
 	ebt_cs_clean(&cs);
 }
 
@@ -677,10 +676,11 @@ static void nft_bridge_save_chain(const struct nftnl_chain *c,
 	printf(":%s %s\n", chain, policy ?: "ACCEPT");
 }
 
-static bool nft_bridge_is_same(const void *data_a, const void *data_b)
+static bool nft_bridge_is_same(const struct iptables_command_state *cs_a,
+			       const struct iptables_command_state *cs_b)
 {
-	const struct ebt_entry *a = data_a;
-	const struct ebt_entry *b = data_b;
+	const struct ebt_entry *a = &cs_a->eb;
+	const struct ebt_entry *b = &cs_b->eb;
 	int i;
 
 	if (a->ethproto != b->ethproto ||
@@ -826,9 +826,9 @@ static void nft_bridge_xlate_mac(struct xt_xlate *xl, const char *type, bool inv
 	xt_xlate_add(xl, " ");
 }
 
-static int nft_bridge_xlate(const void *data, struct xt_xlate *xl)
+static int nft_bridge_xlate(const struct iptables_command_state *cs,
+			    struct xt_xlate *xl)
 {
-	const struct iptables_command_state *cs = data;
 	int ret;
 
 	xlate_ifname(xl, "iifname", cs->eb.in,
@@ -889,7 +889,6 @@ struct nft_family_ops nft_family_ops_bridge = {
 	.print_payload		= NULL,
 	.parse_meta		= nft_bridge_parse_meta,
 	.parse_payload		= nft_bridge_parse_payload,
-	.parse_immediate	= nft_bridge_parse_immediate,
 	.parse_lookup		= nft_bridge_parse_lookup,
 	.parse_match		= nft_bridge_parse_match,
 	.parse_target		= nft_bridge_parse_target,
@@ -898,7 +897,6 @@ struct nft_family_ops nft_family_ops_bridge = {
 	.print_rule		= nft_bridge_print_rule,
 	.save_rule		= nft_bridge_save_rule,
 	.save_chain		= nft_bridge_save_chain,
-	.post_parse		= NULL,
 	.rule_to_cs		= nft_rule_to_ebtables_command_state,
 	.clear_cs		= ebt_cs_clean,
 	.xlate			= nft_bridge_xlate,

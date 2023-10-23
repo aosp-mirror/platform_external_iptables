@@ -231,7 +231,6 @@ case "$MODE" in
 		"$RUNCMD" &
 		CMD_PID=$!
 		( sleep "$TIMEOUT"; kill "$CMD_PID" 2>/dev/null; exit 0 ) &
-		CMDTIMEOUT_PID=$!
 		if ! wait "$CMD_PID"; then
 			echo "failed."
 			echo "Error: unknown error running command: $RUNCMD" >&2
