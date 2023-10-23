@@ -25,10 +25,10 @@
 .SH NAME
 iptables/ip6tables \(em administration tool for IPv4/IPv6 packet filtering and NAT
 .SH SYNOPSIS
-\fBiptables\fP [\fB\-t\fP \fItable\fP] {\fB\-A\fP|\fB\-C\fP|\fB\-D\fP}
+\fBiptables\fP [\fB\-t\fP \fItable\fP] {\fB\-A\fP|\fB\-C\fP|\fB\-D\fP|\fB-V\fP}
 \fIchain\fP \fIrule-specification\fP
 .P
-\fBip6tables\fP [\fB\-t\fP \fItable\fP] {\fB\-A\fP|\fB\-C\fP|\fB\-D\fP}
+\fBip6tables\fP [\fB\-t\fP \fItable\fP] {\fB\-A\fP|\fB\-C\fP|\fB\-D\fP|\fB-V\fP}
 \fIchain rule-specification\fP
 .PP
 \fBiptables\fP [\fB\-t\fP \fItable\fP] \fB\-I\fP \fIchain\fP [\fIrulenum\fP] \fIrule-specification\fP
@@ -220,11 +220,11 @@ Create a new user-defined chain by the given name.  There must be no
 target of that name already.
 .TP
 \fB\-X\fP, \fB\-\-delete\-chain\fP [\fIchain\fP]
-Delete the optional user-defined chain specified.  There must be no references
+Delete the chain specified.  There must be no references
 to the chain.  If there are, you must delete or replace the referring rules
 before the chain can be deleted.  The chain must be empty, i.e. not contain
-any rules.  If no argument is given, it will attempt to delete every
-non-builtin chain in the table.
+any rules.  If no argument is given, it will delete all empty chains in the
+table. Empty builtin chains can only be deleted with \fBiptables-nft\fP.
 .TP
 \fB\-P\fP, \fB\-\-policy\fP \fIchain target\fP
 Set the policy for the built-in (non-user-defined) chain to the given target.
@@ -360,7 +360,14 @@ byte counters are also listed, with the suffix 'K', 'M' or 'G' for
 the \fB\-x\fP flag to change this).
 For appending, insertion, deletion and replacement, this causes
 detailed information on the rule or rules to be printed. \fB\-v\fP may be
-specified multiple times to possibly emit more detailed debug statements.
+specified multiple times to possibly emit more detailed debug statements:
+Specified twice, \fBiptables-legacy\fP will dump table info and entries in
+libiptc, \fBiptables-nft\fP dumps rules in netlink (VM code) presentation.
+Specified three times, \fBiptables-nft\fP will also dump any netlink messages
+sent to kernel.
+.TP
+\fB\-V\fP, \fB\-\-version\fP
+Show program version and the kernel API used.
 .TP
 \fB\-w\fP, \fB\-\-wait\fP [\fIseconds\fP]
 Wait for the xtables lock.
@@ -369,13 +376,6 @@ an attempt will be made to obtain an exclusive lock at launch.  By default,
 the program will exit if the lock cannot be obtained.  This option will
 make the program wait (indefinitely or for optional \fIseconds\fP) until
 the exclusive lock can be obtained.
-.TP
-\fB\-W\fP, \fB\-\-wait-interval\fP \fImicroseconds\fP
-Interval to wait per each iteration.
-When running latency sensitive applications, waiting for the xtables lock
-for extended durations may not be acceptable. This option will make each
-iteration take the amount of time specified. The default interval is
-1 second. This option only works with \fB\-w\fP.
 .TP
 \fB\-n\fP, \fB\-\-numeric\fP
 Numeric output.
