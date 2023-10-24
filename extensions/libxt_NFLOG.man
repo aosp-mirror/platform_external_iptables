@@ -17,7 +17,7 @@ A prefix string to include in the log message, up to 64 characters
 long, useful for distinguishing messages in the logs.
 .TP
 \fB\-\-nflog\-range\fP \fIsize\fP
-This option has never worked, use --nflog-size instead
+This option has never worked, use \-\-nflog\-size instead
 .TP
 \fB\-\-nflog\-size\fP \fIsize\fP
 The number of bytes to be copied to userspace (only applicable for

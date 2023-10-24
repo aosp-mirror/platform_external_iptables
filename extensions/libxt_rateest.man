@@ -31,7 +31,7 @@ combinations:
 For each estimator (either absolute or relative mode), calculate the difference
 between the estimator-determined flow rate and the static value chosen with the
 BPS/PPS options. If the flow rate is higher than the specified BPS/PPS, 0 will
-be used instead of a negative value. In other words, "max(0, rateest#_rate -
+be used instead of a negative value. In other words, "max(0, rateest#_rate \-
 rateest#_bps)" is used.
 .TP
 [\fB!\fP] \fB\-\-rateest\-lt\fP

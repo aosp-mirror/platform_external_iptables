@@ -39,4 +39,4 @@ ip6tables \-p tcp \-\-syn \-\-dport 80 \-s fe80::/64 \-m connlimit \-\-connlimit
 .TP
 # Limit the number of connections to a particular host:
 ip6tables \-p tcp \-\-syn \-\-dport 49152:65535 \-d 2001:db8::1 \-m connlimit
-\-\-connlimit-above 100 \-j REJECT
+\-\-connlimit\-above 100 \-j REJECT

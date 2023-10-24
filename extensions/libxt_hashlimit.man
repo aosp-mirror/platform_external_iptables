@@ -77,8 +77,8 @@ in 10.0.0.0/8" =>
 .TP
 matching bytes per second
 "flows exceeding 512kbyte/s" =>
-\-\-hashlimit-mode srcip,dstip,srcport,dstport \-\-hashlimit\-above 512kb/s
+\-\-hashlimit\-mode srcip,dstip,srcport,dstport \-\-hashlimit\-above 512kb/s
 .TP
 matching bytes per second
 "hosts that exceed 512kbyte/s, but permit up to 1Megabytes without matching"
-\-\-hashlimit-mode dstip \-\-hashlimit\-above 512kb/s \-\-hashlimit-burst 1mb
+\-\-hashlimit\-mode dstip \-\-hashlimit\-above 512kb/s \-\-hashlimit\-burst 1mb

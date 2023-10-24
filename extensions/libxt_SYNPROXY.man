@@ -22,7 +22,7 @@ Example:
 .PP
 Determine tcp options used by backend, from an external system
 .IP
-tcpdump -pni eth0 -c 1 'tcp[tcpflags] == (tcp-syn|tcp-ack)'
+tcpdump \-pni eth0 \-c 1 'tcp[tcpflags] == (tcp\-syn|tcp\-ack)'
 .br
     port 80 &
 .br

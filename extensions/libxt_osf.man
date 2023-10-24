@@ -29,8 +29,8 @@ Log determined genres into dmesg even if they do not match the desired one.
 .PP
 You may find something like this in syslog:
 .PP
-Windows [2000:SP3:Windows XP Pro SP1, 2000 SP3]: 11.22.33.55:4024 ->
-11.22.33.44:139 hops=3 Linux [2.5-2.6:] : 1.2.3.4:42624 -> 1.2.3.5:22 hops=4
+Windows [2000:SP3:Windows XP Pro SP1, 2000 SP3]: 11.22.33.55:4024 \->
+11.22.33.44:139 hops=3 Linux [2.5\-2.6:] : 1.2.3.4:42624 \-> 1.2.3.5:22 hops=4
 .PP
 OS fingerprints are loadable using the \fBnfnl_osf\fP program. To load
 fingerprints from a file, use:
@@ -42,4 +42,4 @@ To remove them again,
 \fBnfnl_osf \-f /usr/share/xtables/pf.os \-d\fP
 .PP
 The fingerprint database can be downloaded from
-http://www.openbsd.org/cgi-bin/cvsweb/src/etc/pf.os .
+http://www.openbsd.org/cgi\-bin/cvsweb/src/etc/pf.os .

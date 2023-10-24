@@ -21,9 +21,9 @@ if the rule also specifies one of the following protocols:
 .TP
 \fB\-\-random\fP
 Randomize source port mapping (kernel >= 2.6.21).
-Since kernel 5.0, \fB\-\-random\fP is identical to \fB\-\-random-fully\fP.
+Since kernel 5.0, \fB\-\-random\fP is identical to \fB\-\-random\-fully\fP.
 .TP
-\fB\-\-random-fully\fP
+\fB\-\-random\-fully\fP
 Fully randomize source port mapping (kernel >= 3.13).
 .TP
 IPv6 support available since Linux kernels >= 3.7.
