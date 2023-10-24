@@ -39,7 +39,7 @@ E2BIG_D=": Index of deletion too big."
 E2BIG_R=": Index of replacement too big."
 EBADRULE=": Bad rule (does a matching rule exist in that chain?)."
 #ENOTGT=" v[0-9\.]* [^ ]*: Couldn't load target \`foobar':No such file or directory"
-ENOMTH=" v[0-9\.]* [^ ]*: Couldn't load match \`foobar':No such file or directory"
+ENOMTH=" v[0-9\.]* [^ ]*: Couldn't \(load\|find\) match \`foobar'\(:No such file or directory\|\)"
 ENOTBL=": can't initialize iptables table \`foobar': Table does not exist"
 
 # test chain creation
