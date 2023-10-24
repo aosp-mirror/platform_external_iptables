@@ -55,7 +55,7 @@ It is analogous to the
 application, but less complicated, due to the fact that the Ethernet protocol
 is much simpler than the IP protocol.
 .SS CHAINS
-There are two ebtables tables with built-in chains in the
+There are three ebtables tables with built-in chains in the
 Linux kernel. These tables are used to divide functionality into
 different sets of rules. Each set of rules is called a chain.
 Each chain is an ordered list of rules that can match Ethernet frames. If a
@@ -81,7 +81,10 @@ an 'extension' (see below) or a jump to a user-defined chain.
 .B ACCEPT
 means to let the frame through.
 .B DROP
-means the frame has to be dropped.
+means the frame has to be dropped. In the
+.BR BROUTING " chain however, the " ACCEPT " and " DROP " target have different"
+meanings (see the info provided for the
+.BR -t " option)."
 .B CONTINUE
 means the next rule has to be checked. This can be handy, f.e., to know how many
 frames pass a certain point in the chain, to log those frames or to apply multiple
@@ -93,17 +96,13 @@ For the extension targets please refer to the
 .B "TARGET EXTENSIONS"
 section of this man page.
 .SS TABLES
-As stated earlier, there are two ebtables tables in the Linux
-kernel.  The table names are
-.BR filter " and " nat .
-Of these two tables,
+As stated earlier, the table names are
+.BR filter ", " nat " and " broute .
+Of these tables,
 the filter table is the default table that the command operates on.
-If you are working with the filter table, then you can drop the '-t filter'
-argument to the ebtables command.  However, you will need to provide
-the -t argument for
-.B nat
-table.  Moreover, the -t argument must be the
-first argument on the ebtables command line, if used. 
+If you are working with a table other than filter, you will need to provide
+the -t argument.  Moreover, the -t argument must be the
+first argument on the ebtables command line, if used.
 .TP
 .B "-t, --table"
 .br
@@ -131,6 +130,23 @@ iptables world to ebtables it is easier to have the same names. Note that you
 can change the name
 .BR "" ( -E )
 if you don't like the default.
+.br
+.br
+.B broute
+is used to make a brouter, it has one built-in chain:
+.BR BROUTING .
+The targets
+.BR DROP " and " ACCEPT
+have a special meaning in the broute table (these names are used for
+compatibility reasons with ebtables-legacy).
+.B DROP
+actually means the frame has to be routed, while
+.B ACCEPT
+means the frame has to be bridged. The
+.B BROUTING
+chain is traversed very early.
+Normally those frames
+would be bridged, but you can decide otherwise here.
 .SH EBTABLES COMMAND LINE ARGUMENTS
 After the initial ebtables '-t table' command line argument, the remaining
 arguments can be divided into several groups.  These groups
@@ -1059,8 +1075,6 @@ arp message and the hardware address length in the arp header is 6 bytes.
 .BR "" "See " http://netfilter.org/mailinglists.html
 .SH BUGS
 The version of ebtables this man page ships with does not support the
-.B broute
-table. Also there is no support for
 .B string
 match. Further, support for atomic-options
 .RB ( --atomic-file ", " --atomic-init ", " --atomic-save ", " --atomic-commit )

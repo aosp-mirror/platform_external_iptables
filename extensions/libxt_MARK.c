@@ -366,6 +366,8 @@ static int MARK_xlate(struct xt_xlate *xl,
 	case XT_MARK_OR:
 		xt_xlate_add(xl, "mark or 0x%x ", (uint32_t)markinfo->mark);
 		break;
+	default:
+		return 0;
 	}
 
 	return 1;

@@ -24,6 +24,9 @@ struct nft_cmd {
 	struct xt_counters		counters;
 	const char			*rename;
 	int				counters_save;
+	struct {
+		unsigned int		lineno;
+	} error;
 };
 
 struct nft_cmd *nft_cmd_new(struct nft_handle *h, int command,
@@ -34,7 +37,7 @@ void nft_cmd_free(struct nft_cmd *cmd);
 
 int nft_cmd_rule_append(struct nft_handle *h, const char *chain,
 			const char *table, struct iptables_command_state *state,
-                        void *ref, bool verbose);
+                        bool verbose);
 int nft_cmd_rule_insert(struct nft_handle *h, const char *chain,
 			const char *table, struct iptables_command_state *state,
 			int rulenum, bool verbose);

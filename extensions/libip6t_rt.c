@@ -248,17 +248,15 @@ static int rt_xlate(struct xt_xlate *xl,
 		    const struct xt_xlate_mt_params *params)
 {
 	const struct ip6t_rt *rtinfo = (struct ip6t_rt *)params->match->data;
-	char *space = "";
 
 	if (rtinfo->flags & IP6T_RT_TYP) {
 		xt_xlate_add(xl, "rt type%s %u",
 			     (rtinfo->invflags & IP6T_RT_INV_TYP) ? " !=" : "",
 			      rtinfo->rt_type);
-		space = " ";
 	}
 
 	if (!(rtinfo->segsleft[0] == 0 && rtinfo->segsleft[1] == 0xFFFFFFFF)) {
-		xt_xlate_add(xl, "%srt seg-left%s ", space,
+		xt_xlate_add(xl, "rt seg-left%s ",
 			     (rtinfo->invflags & IP6T_RT_INV_SGS) ? " !=" : "");
 
 		if (rtinfo->segsleft[0] != rtinfo->segsleft[1])
@@ -266,11 +264,10 @@ static int rt_xlate(struct xt_xlate *xl,
 					rtinfo->segsleft[1]);
 		else
 			xt_xlate_add(xl, "%u", rtinfo->segsleft[0]);
-		space = " ";
 	}
 
 	if (rtinfo->flags & IP6T_RT_LEN) {
-		xt_xlate_add(xl, "%srt hdrlength%s %u", space,
+		xt_xlate_add(xl, "rt hdrlength%s %u",
 			     (rtinfo->invflags & IP6T_RT_INV_LEN) ? " !=" : "",
 			      rtinfo->hdrlen);
 	}
