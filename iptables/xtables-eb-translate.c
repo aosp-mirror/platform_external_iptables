@@ -24,9 +24,6 @@
 /*
  * From include/ebtables_u.h
  */
-#define EXEC_STYLE_PRG    0
-#define EXEC_STYLE_DAEMON 1
-
 #define ebt_check_option2(flags, mask) EBT_CHECK_OPTION(flags, mask)
 
 extern int ebt_invert;
@@ -70,19 +67,6 @@ static int parse_rule_number(const char *rule)
 
 /* Checks whether a command has already been specified */
 #define OPT_COMMANDS (flags & OPT_COMMAND || flags & OPT_ZERO)
-
-#define OPT_COMMAND	0x01
-#define OPT_TABLE	0x02
-#define OPT_IN		0x04
-#define OPT_OUT		0x08
-#define OPT_JUMP	0x10
-#define OPT_PROTOCOL	0x20
-#define OPT_SOURCE	0x40
-#define OPT_DEST	0x80
-#define OPT_ZERO	0x100
-#define OPT_LOGICALIN	0x200
-#define OPT_LOGICALOUT	0x400
-#define OPT_COUNT	0x1000 /* This value is also defined in libebtc.c */
 
 /* Default command line options. Do not mess around with the already
  * assigned numbers unless you know what you are doing */
@@ -156,23 +140,22 @@ static int nft_rule_eb_xlate_add(struct nft_handle *h, const struct xt_cmd_parse
 				 const struct iptables_command_state *cs, bool append)
 {
 	struct xt_xlate *xl = xt_xlate_alloc(10240);
+	const char *tick = cs->restore ? "" : "'";
 	int ret;
 
-	if (append) {
-		xt_xlate_add(xl, "add rule bridge %s %s ", p->table, p->chain);
-	} else {
-		xt_xlate_add(xl, "insert rule bridge %s %s ", p->table, p->chain);
-	}
+	xt_xlate_add(xl, "%s%s rule bridge %s %s ", tick,
+		     append ? "add" : "insert", p->table, p->chain);
 
 	ret = h->ops->xlate(cs, xl);
 	if (ret)
-		printf("%s\n", xt_xlate_get(xl));
+		printf("%s%s\n", xt_xlate_get(xl), tick);
+	else
+		printf("%s ", tick);
 
 	xt_xlate_free(xl);
 	return ret;
 }
 
-/* We use exec_style instead of #ifdef's because ebtables.so is a shared object. */
 static int do_commandeb_xlate(struct nft_handle *h, int argc, char *argv[], char **table)
 {
 	char *buffer;
@@ -187,13 +170,13 @@ static int do_commandeb_xlate(struct nft_handle *h, int argc, char *argv[], char
 	};
 	char command = 'h';
 	const char *chain = NULL;
-	int exec_style = EXEC_STYLE_PRG;
 	int selected_chain = -1;
 	struct xtables_rule_match *xtrm_i;
 	struct ebt_match *match;
 	struct xt_cmd_parse p = {
 		.table          = *table,
         };
+	bool table_set = false;
 
 	/* prevent getopt to spoil our error reporting */
 	opterr = false;
@@ -201,7 +184,7 @@ static int do_commandeb_xlate(struct nft_handle *h, int argc, char *argv[], char
 	printf("nft ");
 	/* Getopt saves the day */
 	while ((c = getopt_long(argc, argv,
-	   "-A:D:I:N:E:X::L::Z::F::P:Vhi:o:j:c:p:s:d:t:M:", opts, NULL)) != -1) {
+	   "-:A:D:I:N:E:X::L::Z::F::P:Vhi:o:j:c:p:s:d:t:M:", opts, NULL)) != -1) {
 		cs.c = c;
 		switch (c) {
 		case 'A': /* Add a rule */
@@ -264,13 +247,6 @@ static int do_commandeb_xlate(struct nft_handle *h, int argc, char *argv[], char
 			ret = 1;
 			break;
 		case 'F': /* Flush */
-			if (p.chain) {
-				printf("flush chain bridge %s %s\n", p.table, p.chain);
-			} else {
-				printf("flush table bridge %s\n", p.table);
-			}
-			ret = 1;
-			break;
 		case 'Z': /* Zero counters */
 			if (c == 'Z') {
 				if ((flags & OPT_ZERO) || (flags & OPT_COMMAND && command != 'L'))
@@ -292,9 +268,6 @@ print_zero:
 			if (OPT_COMMANDS)
 				xtables_error(PARAMETER_PROBLEM,
 					      "Multiple commands are not allowed");
-			if (exec_style == EXEC_STYLE_DAEMON)
-				xtables_error(PARAMETER_PROBLEM,
-					      "%s %s\n", prog_name, prog_vers);
 			printf("%s %s\n", prog_name, prog_vers);
 			exit(0);
 		case 'h':
@@ -307,13 +280,16 @@ print_zero:
 			if (OPT_COMMANDS)
 				xtables_error(PARAMETER_PROBLEM,
 					      "Please put the -t option first");
-			ebt_check_option2(&flags, OPT_TABLE);
+			if (table_set)
+				xtables_error(PARAMETER_PROBLEM,
+					      "Multiple use of same option not allowed");
 			if (strlen(optarg) > EBT_TABLE_MAXNAMELEN - 1)
 				xtables_error(PARAMETER_PROBLEM,
 					      "Table name length cannot exceed %d characters",
 					      EBT_TABLE_MAXNAMELEN - 1);
 			*table = optarg;
 			p.table = optarg;
+			table_set = true;
 			break;
 		case 'i': /* Input interface */
 		case 2  : /* Logical input interface */
@@ -331,7 +307,7 @@ print_zero:
 				xtables_error(PARAMETER_PROBLEM,
 					      "Command and option do not match");
 			if (c == 'i') {
-				ebt_check_option2(&flags, OPT_IN);
+				ebt_check_option2(&flags, OPT_VIANAMEIN);
 				if (selected_chain > 2 && selected_chain < NF_BR_BROUTING)
 					xtables_error(PARAMETER_PROBLEM,
 						      "Use -i only in INPUT, FORWARD, PREROUTING and BROUTING chains");
@@ -351,7 +327,7 @@ print_zero:
 				ebtables_parse_interface(optarg, cs.eb.logical_in);
 				break;
 			} else if (c == 'o') {
-				ebt_check_option2(&flags, OPT_OUT);
+				ebt_check_option2(&flags, OPT_VIANAMEOUT);
 				if (selected_chain < 2 || selected_chain == NF_BR_BROUTING)
 					xtables_error(PARAMETER_PROBLEM,
 						      "Use -o only in OUTPUT, FORWARD and POSTROUTING chains");
@@ -372,7 +348,9 @@ print_zero:
 				break;
 			} else if (c == 'j') {
 				ebt_check_option2(&flags, OPT_JUMP);
-				command_jump(&cs, optarg);
+				if (strcmp(optarg, "CONTINUE") != 0) {
+					command_jump(&cs, optarg);
+				}
 				break;
 			} else if (c == 's') {
 				ebt_check_option2(&flags, OPT_SOURCE);
@@ -386,7 +364,7 @@ print_zero:
 				cs.eb.bitmask |= EBT_SOURCEMAC;
 				break;
 			} else if (c == 'd') {
-				ebt_check_option2(&flags, OPT_DEST);
+				ebt_check_option2(&flags, OPT_DESTINATION);
 				if (ebt_check_inverse2(optarg, argc, argv))
 					cs.eb.invflags |= EBT_IDEST;
 
@@ -397,7 +375,7 @@ print_zero:
 				cs.eb.bitmask |= EBT_DESTMAC;
 				break;
 			} else if (c == 'c') {
-				ebt_check_option2(&flags, OPT_COUNT);
+				ebt_check_option2(&flags, OPT_COUNTERS);
 				if (ebt_check_inverse2(optarg, argc, argv))
 					xtables_error(PARAMETER_PROBLEM,
 						      "Unexpected '!' after -c");
@@ -491,11 +469,7 @@ print_zero:
 			continue;
 		default:
 			ebt_check_inverse2(optarg, argc, argv);
-
-			if (ebt_command_default(&cs))
-				xtables_error(PARAMETER_PROBLEM,
-					      "Unknown argument: '%s'",
-					      argv[optind - 1]);
+			ebt_command_default(&cs);
 
 			if (command != 'A' && command != 'I' &&
 			    command != 'D')
@@ -525,6 +499,13 @@ print_zero:
 
 	if (command == 'P') {
 		return 0;
+	} else if (command == 'F') {
+			if (p.chain) {
+				printf("flush chain bridge %s %s\n", p.table, p.chain);
+			} else {
+				printf("flush table bridge %s\n", p.table);
+			}
+			ret = 1;
 	} else if (command == 'A') {
 		ret = nft_rule_eb_xlate_add(h, &p, &cs, true);
 		if (!ret)
