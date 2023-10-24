@@ -195,4 +195,4 @@ failed=$((legacy_fail+failed))
 
 msg_info "combined results: [OK] $ok [FAILED] $failed [TOTAL] $((ok+failed))"
 
-exit 0
+exit -$failed
