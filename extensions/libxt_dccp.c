@@ -85,7 +85,7 @@ parse_dccp_types(const char *typestring)
 	uint16_t typemask = 0;
 	char *ptr, *buffer;
 
-	buffer = strdup(typestring);
+	buffer = xtables_strdup(typestring);
 
 	for (ptr = strtok(buffer, ","); ptr; ptr = strtok(NULL, ",")) {
 		unsigned int i;
