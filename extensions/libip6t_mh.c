@@ -97,7 +97,7 @@ static unsigned int name_to_type(const char *name)
 
 		if (!xtables_strtoui(name, NULL, &number, 0, UINT8_MAX))
 			xtables_error(PARAMETER_PROBLEM,
-				   "Invalid MH type `%s'\n", name);
+				      "Invalid MH type `%s'", name);
 		return number;
 	}
 }
@@ -107,7 +107,7 @@ static void parse_mh_types(const char *mhtype, uint8_t *types)
 	char *buffer;
 	char *cp;
 
-	buffer = strdup(mhtype);
+	buffer = xtables_strdup(mhtype);
 	if ((cp = strchr(buffer, ':')) == NULL)
 		types[0] = types[1] = name_to_type(buffer);
 	else {
