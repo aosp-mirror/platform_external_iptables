@@ -68,7 +68,7 @@ The names of the two rate estimators for relative mode.
 \fB\-\-rateest\-pps2\fP [\fIvalue\fP]
 Compare the estimator(s) by bytes or packets per second, and compare against
 the chosen value. See the above bullet list for which option is to be used in
-which case. A unit suffix may be used - available ones are: bit, [kmgt]bit,
+which case. A unit suffix may be used \(em available ones are: bit, [kmgt]bit,
 [KMGT]ibit, Bps, [KMGT]Bps, [KMGT]iBps.
 .PP
 Example: This is what can be used to route outgoing data connections from an

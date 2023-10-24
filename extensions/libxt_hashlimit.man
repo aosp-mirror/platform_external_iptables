@@ -20,7 +20,7 @@ Maximum initial number of packets to match: this number gets recharged by one
 every time the limit specified above is not reached, up to this number; the
 default is 5.  When byte-based rate matching is requested, this option specifies
 the amount of bytes that can exceed the given rate.  This option should be used
-with caution -- if the entry expires, the burst value is reset too.
+with caution \(em if the entry expires, the burst value is reset too.
 .TP
 \fB\-\-hashlimit\-mode\fP {\fBsrcip\fP|\fBsrcport\fP|\fBdstip\fP|\fBdstport\fP}\fB,\fP...
 A comma-separated list of objects to take into consideration. If no
