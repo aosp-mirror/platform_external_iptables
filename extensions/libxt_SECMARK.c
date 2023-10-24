@@ -60,7 +60,7 @@ static void print_secmark(__u8 mode, const char *secctx)
 		break;
 
 	default:
-		xtables_error(OTHER_PROBLEM, PFX "invalid mode %hhu\n", mode);
+		xtables_error(OTHER_PROBLEM, PFX "invalid mode %hhu", mode);
 	}
 }
 
