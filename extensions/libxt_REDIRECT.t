@@ -14,3 +14,4 @@
 -p tcp -j REDIRECT --to-ports ftp-ssh;;FAIL
 -p tcp -j REDIRECT --to-ports 10-ssh;;FAIL
 -j REDIRECT --to-ports 42;;FAIL
+-j REDIRECT --random;=;OK
