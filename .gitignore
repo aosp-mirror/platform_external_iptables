@@ -1,4 +1,8 @@
 *.a
+*.gcda
+*.gcno
+*.gcno.gcov.json.gz
+*.gcov
 *.la
 *.lo
 *.so
@@ -16,6 +20,7 @@ Makefile.in
 /build-aux/
 /config.*
 /configure
+/configure~
 /libtool
 /stamp-h1
 /iptables/iptables-apply.8
@@ -25,3 +30,14 @@ Makefile.in
 
 # vim/nano swap file
 *.swp
+
+/tags
+
+# make check results
+/test-suite.log
+/iptables-test.py.log
+/iptables-test.py.trs
+/xlate-test.py.log
+/xlate-test.py.trs
+iptables/tests/shell/run-tests.sh.log
+iptables/tests/shell/run-tests.sh.trs
