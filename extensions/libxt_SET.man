@@ -25,7 +25,7 @@ one from the set definition
 when adding an entry if it already exists, reset the timeout value
 to the specified one or to the default from the set definition
 .TP
-\fB\-\-map\-set\fP \fIset\-name\fP
+\fB\-\-map\-set\fP \fIset-name\fP
 the set-name should be created with \-\-skbinfo option
 \fB\-\-map\-mark\fP
 map firewall mark to packet by lookup of value in the set
