@@ -14,16 +14,21 @@
 #include <xtables.h>
 #include "nft.h"
 #include "nft-cmd.h"
+#include <libnftnl/set.h>
 
 struct nft_cmd *nft_cmd_new(struct nft_handle *h, int command,
 			    const char *table, const char *chain,
 			    struct iptables_command_state *state,
 			    int rulenum, bool verbose)
 {
+	struct nft_rule_ctx ctx = {
+		.command = command,
+	};
 	struct nftnl_rule *rule;
 	struct nft_cmd *cmd;
 
 	cmd = xtables_calloc(1, sizeof(struct nft_cmd));
+	cmd->error.lineno = h->error.lineno;
 	cmd->command = command;
 	cmd->table = xtables_strdup(table);
 	if (chain)
@@ -32,7 +37,7 @@ struct nft_cmd *nft_cmd_new(struct nft_handle *h, int command,
 	cmd->verbose = verbose;
 
 	if (state) {
-		rule = nft_rule_new(h, chain, table, state);
+		rule = nft_rule_new(h, &ctx, chain, table, state);
 		if (!rule) {
 			nft_cmd_free(cmd);
 			return NULL;
@@ -91,7 +96,7 @@ static void nft_cmd_rule_bridge(struct nft_handle *h, const struct nft_cmd *cmd)
 
 int nft_cmd_rule_append(struct nft_handle *h, const char *chain,
 			const char *table, struct iptables_command_state *state,
-			void *ref, bool verbose)
+			bool verbose)
 {
 	struct nft_cmd *cmd;
 

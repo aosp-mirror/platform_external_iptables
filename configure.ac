@@ -1,9 +1,9 @@
 
-AC_INIT([iptables], [1.8.8])
+AC_INIT([iptables], [1.8.10])
 
 # See libtool.info "Libtool's versioning system"
-libxtables_vcurrent=18
-libxtables_vage=6
+libxtables_vcurrent=19
+libxtables_vage=7
 
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -71,6 +71,9 @@ AC_ARG_WITH([xt-lock-name], AS_HELP_STRING([--with-xt-lock-name=PATH],
 	[Path to the xtables lock [[/run/xtables.lock]]]),
 	[xt_lock_name="$withval"],
 	[xt_lock_name="/run/xtables.lock"])
+AC_ARG_ENABLE([profiling],
+	AS_HELP_STRING([--enable-profiling], [build for use of gcov/gprof]),
+	[enable_profiling="$enableval"], [enable_profiling="no"])
 
 AC_MSG_CHECKING([whether $LD knows -Wl,--no-undefined])
 saved_LDFLAGS="$LDFLAGS";
@@ -110,13 +113,14 @@ AM_CONDITIONAL([ENABLE_SYNCONF], [test "$enable_nfsynproxy" = "yes"])
 AM_CONDITIONAL([ENABLE_NFTABLES], [test "$enable_nftables" = "yes"])
 AM_CONDITIONAL([ENABLE_CONNLABEL], [test "$enable_connlabel" = "yes"])
 
-if test "x$enable_bpfc" = "xyes" || test "x$enable_nfsynproxy" = "xyes"; then
-	AC_CHECK_LIB(pcap, pcap_compile,, AC_MSG_ERROR(missing libpcap library required by bpf compiler or nfsynproxy tool))
-fi
-
 PKG_CHECK_MODULES([libnfnetlink], [libnfnetlink >= 1.0],
 	[nfnetlink=1], [nfnetlink=0])
 AM_CONDITIONAL([HAVE_LIBNFNETLINK], [test "$nfnetlink" = 1])
+
+if test "x$enable_bpfc" = "xyes" || test "x$enable_nfsynproxy" = "xyes"; then
+	PKG_CHECK_MODULES([libpcap], [libpcap], [], [
+		AC_MSG_ERROR(missing libpcap library required by bpf compiler or nfsynproxy tool)])
+fi
 
 if test "x$enable_nftables" = "xyes"; then
 	PKG_CHECK_MODULES([libmnl], [libmnl >= 1.0], [mnl=1], [mnl=0])
@@ -130,7 +134,7 @@ if test "x$enable_nftables" = "xyes"; then
 		exit 1
 	fi
 
-	PKG_CHECK_MODULES([libnftnl], [libnftnl >= 1.1.6], [nftables=1], [nftables=0])
+	PKG_CHECK_MODULES([libnftnl], [libnftnl >= 1.2.6], [nftables=1], [nftables=0])
 
 	if test "$nftables" = 0;
 	then
@@ -188,6 +192,11 @@ if [[ -n "$ksourcedir" ]]; then
 fi;
 pkgdatadir='${datadir}/xtables';
 
+if test "x$enable_profiling" = "xyes"; then
+	regular_CFLAGS+=" -fprofile-arcs -ftest-coverage"
+	regular_LDFLAGS+=" -lgcov --coverage"
+fi
+
 define([EXPAND_VARIABLE],
 [$2=[$]$1
 if test $prefix = 'NONE'; then
@@ -205,6 +214,7 @@ eval "$2=[$]$2"
 AC_SUBST([regular_CFLAGS])
 AC_SUBST([regular_CPPFLAGS])
 AC_SUBST([noundef_LDFLAGS])
+AC_SUBST([regular_LDFLAGS])
 AC_SUBST([kinclude_CPPFLAGS])
 AC_SUBST([kbuilddir])
 AC_SUBST([ksourcedir])
@@ -250,6 +260,7 @@ Iptables Configuration:
   nfsynproxy util support:		${enable_nfsynproxy}
   nftables support:			${enable_nftables}
   connlabel support:			${enable_connlabel}
+  profiling support:			${enable_profiling}
 
 Build parameters:
   Put plugins into executable (static):	${enable_static}
