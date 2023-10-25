@@ -343,7 +343,6 @@ static int dccp_xlate(struct xt_xlate *xl,
 {
 	const struct xt_dccp_info *einfo =
 		(const struct xt_dccp_info *)params->match->data;
-	char *space = "";
 	int ret = 1;
 
 	if (einfo->flags & XT_DCCP_SRC_PORTS) {
@@ -353,27 +352,21 @@ static int dccp_xlate(struct xt_xlate *xl,
 
 		if (einfo->spts[0] != einfo->spts[1])
 			xt_xlate_add(xl, "-%u", einfo->spts[1]);
-
-		space = " ";
 	}
 
 	if (einfo->flags & XT_DCCP_DEST_PORTS) {
-		xt_xlate_add(xl, "%sdccp dport%s %u", space,
+		xt_xlate_add(xl, "dccp dport%s %u",
 			     einfo->invflags & XT_DCCP_DEST_PORTS ? " !=" : "",
 			     einfo->dpts[0]);
 
 		if (einfo->dpts[0] != einfo->dpts[1])
 			xt_xlate_add(xl, "-%u", einfo->dpts[1]);
-
-		space = " ";
 	}
 
 	if (einfo->flags & XT_DCCP_TYPE && einfo->typemask) {
-		xt_xlate_add(xl, "%sdccp type%s ", space,
+		xt_xlate_add(xl, "dccp type%s ",
 			     einfo->invflags & XT_DCCP_TYPE ? " !=" : "");
 		ret = dccp_type_xlate(einfo, xl);
-
-		space = " ";
 	}
 
 	/* FIXME: no dccp option support in nftables yet */
