@@ -26,6 +26,14 @@
 #include "nft-cache.h"
 #include "nft-chain.h"
 
+/* users may define NDEBUG */
+static void assert_nft_restart(struct nft_handle *h)
+{
+	int rc = nft_restart(h);
+
+	assert(rc >= 0);
+}
+
 static void cache_chain_list_insert(struct list_head *list, const char *name)
 {
 	struct cache_chain *pos = NULL, *new;
@@ -105,7 +113,8 @@ static void mnl_genid_get(struct nft_handle *h, uint32_t *genid)
 		return;
 
 	xtables_error(RESOURCE_PROBLEM,
-		      "Could not fetch rule set generation id: %s\n", nft_strerror(errno));
+		      "Could not fetch rule set generation id: %s",
+		      nft_strerror(errno));
 }
 
 static int nftnl_table_list_cb(const struct nlmsghdr *nlh, void *data)
@@ -141,12 +150,12 @@ static int fetch_table_cache(struct nft_handle *h)
 	char buf[16536];
 	int i, ret;
 
-	nlh = nftnl_rule_nlmsg_build_hdr(buf, NFT_MSG_GETTABLE, h->family,
-					NLM_F_DUMP, h->seq);
+	nlh = nftnl_nlmsg_build_hdr(buf, NFT_MSG_GETTABLE, h->family,
+				    NLM_F_DUMP, h->seq);
 
 	ret = mnl_talk(h, nlh, nftnl_table_list_cb, h);
 	if (ret < 0 && errno == EINTR)
-		assert(nft_restart(h) >= 0);
+		assert_nft_restart(h);
 
 	for (i = 0; i < NFT_TABLE_MAX; i++) {
 		enum nft_table_type type = h->tables[i].type;
@@ -416,6 +425,7 @@ static int set_fetch_elem_cb(struct nftnl_set *s, void *data)
 	char buf[MNL_SOCKET_BUFFER_SIZE];
 	struct nft_handle *h = data;
 	struct nlmsghdr *nlh;
+	int ret;
 
 	if (set_has_elements(s))
 		return 0;
@@ -424,7 +434,14 @@ static int set_fetch_elem_cb(struct nftnl_set *s, void *data)
 				    NLM_F_DUMP, h->seq);
 	nftnl_set_elems_nlmsg_build_payload(nlh, s);
 
-	return mnl_talk(h, nlh, set_elem_cb, s);
+	ret = mnl_talk(h, nlh, set_elem_cb, s);
+
+	if (!ret && h->verbose > 1) {
+		fprintf(stdout, "set ");
+		nftnl_set_fprintf(stdout, s, 0, 0);
+		fprintf(stdout, "\n");
+	}
+	return ret;
 }
 
 static int fetch_set_cache(struct nft_handle *h,
@@ -453,8 +470,8 @@ static int fetch_set_cache(struct nft_handle *h,
 		}
 	}
 
-	nlh = nftnl_set_nlmsg_build_hdr(buf, NFT_MSG_GETSET,
-					h->family, flags, h->seq);
+	nlh = nftnl_nlmsg_build_hdr(buf, NFT_MSG_GETSET,
+				    h->family, flags, h->seq);
 
 	if (s) {
 		nftnl_set_nlmsg_build_payload(nlh, s);
@@ -463,7 +480,7 @@ static int fetch_set_cache(struct nft_handle *h,
 
 	ret = mnl_talk(h, nlh, nftnl_set_list_cb, &d);
 	if (ret < 0 && errno == EINTR) {
-		assert(nft_restart(h) >= 0);
+		assert_nft_restart(h);
 		return ret;
 	}
 
@@ -496,14 +513,14 @@ static int __fetch_chain_cache(struct nft_handle *h,
 	struct nlmsghdr *nlh;
 	int ret;
 
-	nlh = nftnl_chain_nlmsg_build_hdr(buf, NFT_MSG_GETCHAIN, h->family,
-					  c ? NLM_F_ACK : NLM_F_DUMP, h->seq);
+	nlh = nftnl_nlmsg_build_hdr(buf, NFT_MSG_GETCHAIN, h->family,
+				    c ? NLM_F_ACK : NLM_F_DUMP, h->seq);
 	if (c)
 		nftnl_chain_nlmsg_build_payload(nlh, c);
 
 	ret = mnl_talk(h, nlh, nftnl_chain_list_cb, &d);
 	if (ret < 0 && errno == EINTR)
-		assert(nft_restart(h) >= 0);
+		assert_nft_restart(h);
 
 	return ret;
 }
@@ -591,13 +608,13 @@ static int nft_rule_list_update(struct nft_chain *nc, void *data)
 	nftnl_rule_set_str(rule, NFTNL_RULE_CHAIN,
 			   nftnl_chain_get_str(c, NFTNL_CHAIN_NAME));
 
-	nlh = nftnl_rule_nlmsg_build_hdr(buf, NFT_MSG_GETRULE, h->family,
-					NLM_F_DUMP, h->seq);
+	nlh = nftnl_nlmsg_build_hdr(buf, NFT_MSG_GETRULE, h->family,
+				    NLM_F_DUMP, h->seq);
 	nftnl_rule_nlmsg_build_payload(nlh, rule);
 
 	ret = mnl_talk(h, nlh, nftnl_rule_list_cb, &rld);
 	if (ret < 0 && errno == EINTR)
-		assert(nft_restart(h) >= 0);
+		assert_nft_restart(h);
 
 	nftnl_rule_free(rule);
 

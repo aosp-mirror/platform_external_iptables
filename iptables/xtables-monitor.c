@@ -227,7 +227,7 @@ static void trace_print_rule(const struct nftnl_trace *nlt, struct cb_arg *args)
 		exit(EXIT_FAILURE);
 	}
 
-	nlh = nftnl_chain_nlmsg_build_hdr(buf, NFT_MSG_GETRULE, family, 0, 0);
+	nlh = nftnl_nlmsg_build_hdr(buf, NFT_MSG_GETRULE, family, 0, 0);
 
         nftnl_rule_set_u32(r, NFTNL_RULE_FAMILY, family);
 	nftnl_rule_set_str(r, NFTNL_RULE_CHAIN, chain);
@@ -339,7 +339,7 @@ static void trace_print_packet(const struct nftnl_trace *nlt, struct cb_arg *arg
 			inet_ntop(AF_INET, &iph->daddr, addrbuf, sizeof(addrbuf));
 			printf("DST=%s ", addrbuf);
 
-			printf("LEN=%d TOS=0x%x TTL=%d ID=%d", ntohs(iph->tot_len), iph->tos, iph->ttl, ntohs(iph->id));
+			printf("LEN=%d TOS=0x%x TTL=%d ID=%d ", ntohs(iph->tot_len), iph->tos, iph->ttl, ntohs(iph->id));
 			if (iph->frag_off & htons(0x8000))
 				printf("CE ");
 			if (iph->frag_off & htons(IP_DF))
@@ -362,7 +362,7 @@ static void trace_print_packet(const struct nftnl_trace *nlt, struct cb_arg *arg
 				printf("OPT (");
 				for (i = 0; i < optsize; i++)
 					printf("%02X", op[i]);
-				printf(")");
+				printf(") ");
 			}
 			break;
 		}

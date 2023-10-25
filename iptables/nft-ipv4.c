@@ -26,27 +26,12 @@
 #include "nft.h"
 #include "nft-shared.h"
 
-static int nft_ipv4_add(struct nft_handle *h, struct nftnl_rule *r,
-			struct iptables_command_state *cs)
+static int nft_ipv4_add(struct nft_handle *h, struct nft_rule_ctx *ctx,
+			struct nftnl_rule *r, struct iptables_command_state *cs)
 {
 	struct xtables_rule_match *matchp;
 	uint32_t op;
 	int ret;
-
-	if (cs->fw.ip.iniface[0] != '\0') {
-		op = nft_invflags2cmp(cs->fw.ip.invflags, IPT_INV_VIA_IN);
-		add_iniface(h, r, cs->fw.ip.iniface, op);
-	}
-
-	if (cs->fw.ip.outiface[0] != '\0') {
-		op = nft_invflags2cmp(cs->fw.ip.invflags, IPT_INV_VIA_OUT);
-		add_outiface(h, r, cs->fw.ip.outiface, op);
-	}
-
-	if (cs->fw.ip.proto != 0) {
-		op = nft_invflags2cmp(cs->fw.ip.invflags, XT_INV_PROTO);
-		add_l4proto(h, r, cs->fw.ip.proto, op);
-	}
 
 	if (cs->fw.ip.src.s_addr || cs->fw.ip.smsk.s_addr || cs->fw.ip.invflags & IPT_INV_SRCIP) {
 		op = nft_invflags2cmp(cs->fw.ip.invflags, IPT_INV_SRCIP);
@@ -55,6 +40,7 @@ static int nft_ipv4_add(struct nft_handle *h, struct nftnl_rule *r,
 			 &cs->fw.ip.src.s_addr, &cs->fw.ip.smsk.s_addr,
 			 sizeof(struct in_addr), op);
 	}
+
 	if (cs->fw.ip.dst.s_addr || cs->fw.ip.dmsk.s_addr || cs->fw.ip.invflags & IPT_INV_DSTIP) {
 		op = nft_invflags2cmp(cs->fw.ip.invflags, IPT_INV_DSTIP);
 		add_addr(h, r, NFT_PAYLOAD_NETWORK_HEADER,
@@ -62,6 +48,23 @@ static int nft_ipv4_add(struct nft_handle *h, struct nftnl_rule *r,
 			 &cs->fw.ip.dst.s_addr, &cs->fw.ip.dmsk.s_addr,
 			 sizeof(struct in_addr), op);
 	}
+
+	if (cs->fw.ip.iniface[0] != '\0') {
+		op = nft_invflags2cmp(cs->fw.ip.invflags, IPT_INV_VIA_IN);
+		add_iface(h, r, cs->fw.ip.iniface, NFT_META_IIFNAME, op);
+	}
+
+	if (cs->fw.ip.outiface[0] != '\0') {
+		op = nft_invflags2cmp(cs->fw.ip.invflags, IPT_INV_VIA_OUT);
+		add_iface(h, r, cs->fw.ip.outiface, NFT_META_OIFNAME, op);
+	}
+
+	if (cs->fw.ip.proto != 0) {
+		op = nft_invflags2cmp(cs->fw.ip.invflags, XT_INV_PROTO);
+		add_proto(h, r, offsetof(struct iphdr, protocol),
+			  sizeof(uint8_t), cs->fw.ip.proto, op);
+	}
+
 	if (cs->fw.ip.flags & IPT_F_FRAG) {
 		uint8_t reg;
 
@@ -81,7 +84,7 @@ static int nft_ipv4_add(struct nft_handle *h, struct nftnl_rule *r,
 	add_compat(r, cs->fw.ip.proto, cs->fw.ip.invflags & XT_INV_PROTO);
 
 	for (matchp = cs->matches; matchp; matchp = matchp->next) {
-		ret = add_match(h, r, matchp->match->m);
+		ret = add_match(h, ctx, r, matchp->match->m);
 		if (ret < 0)
 			return ret;
 	}
@@ -113,103 +116,6 @@ static bool nft_ipv4_is_same(const struct iptables_command_state *a,
 				  a->fw.ip.iniface_mask, a->fw.ip.outiface_mask,
 				  b->fw.ip.iniface, b->fw.ip.outiface,
 				  b->fw.ip.iniface_mask, b->fw.ip.outiface_mask);
-}
-
-static void get_frag(struct nft_xt_ctx *ctx, struct nftnl_expr *e, bool *inv)
-{
-	uint8_t op;
-
-	/* we assume correct mask and xor */
-	if (!(ctx->flags & NFT_XT_CTX_BITWISE))
-		return;
-
-	/* we assume correct data */
-	op = nftnl_expr_get_u32(e, NFTNL_EXPR_CMP_OP);
-	if (op == NFT_CMP_EQ)
-		*inv = true;
-	else
-		*inv = false;
-
-	ctx->flags &= ~NFT_XT_CTX_BITWISE;
-}
-
-static void nft_ipv4_parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e,
-				struct iptables_command_state *cs)
-{
-	switch (ctx->meta.key) {
-	case NFT_META_L4PROTO:
-		cs->fw.ip.proto = nftnl_expr_get_u8(e, NFTNL_EXPR_CMP_DATA);
-		if (nftnl_expr_get_u32(e, NFTNL_EXPR_CMP_OP) == NFT_CMP_NEQ)
-			cs->fw.ip.invflags |= XT_INV_PROTO;
-		return;
-	default:
-		break;
-	}
-
-	parse_meta(ctx, e, ctx->meta.key, cs->fw.ip.iniface, cs->fw.ip.iniface_mask,
-		   cs->fw.ip.outiface, cs->fw.ip.outiface_mask,
-		   &cs->fw.ip.invflags);
-}
-
-static void parse_mask_ipv4(struct nft_xt_ctx *ctx, struct in_addr *mask)
-{
-	mask->s_addr = ctx->bitwise.mask[0];
-}
-
-static void nft_ipv4_parse_payload(struct nft_xt_ctx *ctx,
-				   struct nftnl_expr *e,
-				   struct iptables_command_state *cs)
-{
-	struct in_addr addr;
-	uint8_t proto;
-	bool inv;
-
-	switch(ctx->payload.offset) {
-	case offsetof(struct iphdr, saddr):
-		get_cmp_data(e, &addr, sizeof(addr), &inv);
-		cs->fw.ip.src.s_addr = addr.s_addr;
-		if (ctx->flags & NFT_XT_CTX_BITWISE) {
-			parse_mask_ipv4(ctx, &cs->fw.ip.smsk);
-			ctx->flags &= ~NFT_XT_CTX_BITWISE;
-		} else {
-			memset(&cs->fw.ip.smsk, 0xff,
-			       min(ctx->payload.len, sizeof(struct in_addr)));
-		}
-
-		if (inv)
-			cs->fw.ip.invflags |= IPT_INV_SRCIP;
-		break;
-	case offsetof(struct iphdr, daddr):
-		get_cmp_data(e, &addr, sizeof(addr), &inv);
-		cs->fw.ip.dst.s_addr = addr.s_addr;
-		if (ctx->flags & NFT_XT_CTX_BITWISE) {
-			parse_mask_ipv4(ctx, &cs->fw.ip.dmsk);
-			ctx->flags &= ~NFT_XT_CTX_BITWISE;
-		} else {
-			memset(&cs->fw.ip.dmsk, 0xff,
-			       min(ctx->payload.len, sizeof(struct in_addr)));
-		}
-
-		if (inv)
-			cs->fw.ip.invflags |= IPT_INV_DSTIP;
-		break;
-	case offsetof(struct iphdr, protocol):
-		get_cmp_data(e, &proto, sizeof(proto), &inv);
-		cs->fw.ip.proto = proto;
-		if (inv)
-			cs->fw.ip.invflags |= IPT_INV_PROTO;
-		break;
-	case offsetof(struct iphdr, frag_off):
-		cs->fw.ip.flags |= IPT_F_FRAG;
-		inv = false;
-		get_frag(ctx, e, &inv);
-		if (inv)
-			cs->fw.ip.invflags |= IPT_INV_FRAG;
-		break;
-	default:
-		DEBUGP("unknown payload offset %d\n", ctx->payload.offset);
-		break;
-	}
 }
 
 static void nft_ipv4_set_goto_flag(struct iptables_command_state *cs)
@@ -244,7 +150,7 @@ static void nft_ipv4_print_rule(struct nft_handle *h, struct nftnl_rule *r,
 	if (!(format & FMT_NONEWLINE))
 		fputc('\n', stdout);
 
-	nft_clear_iptables_command_state(&cs);
+	xtables_clear_iptables_command_state(&cs);
 }
 
 static void nft_ipv4_save_rule(const struct iptables_command_state *cs,
@@ -365,7 +271,7 @@ nft_ipv4_add_entry(struct nft_handle *h,
 
 			if (append) {
 				ret = nft_cmd_rule_append(h, chain, table,
-						      cs, NULL, verbose);
+						      cs, verbose);
 			} else {
 				ret = nft_cmd_rule_insert(h, chain, table,
 						      cs, rulenum, verbose);
@@ -438,20 +344,18 @@ nft_ipv4_replace_entry(struct nft_handle *h,
 struct nft_family_ops nft_family_ops_ipv4 = {
 	.add			= nft_ipv4_add,
 	.is_same		= nft_ipv4_is_same,
-	.parse_meta		= nft_ipv4_parse_meta,
-	.parse_payload		= nft_ipv4_parse_payload,
 	.set_goto_flag		= nft_ipv4_set_goto_flag,
 	.print_header		= print_header,
 	.print_rule		= nft_ipv4_print_rule,
 	.save_rule		= nft_ipv4_save_rule,
 	.save_chain		= nft_ipv46_save_chain,
+	.rule_parse		= &nft_ruleparse_ops_ipv4,
 	.cmd_parse		= {
 		.proto_parse	= ipv4_proto_parse,
 		.post_parse	= ipv4_post_parse,
 	},
-	.parse_target		= nft_ipv46_parse_target,
 	.rule_to_cs		= nft_rule_to_iptables_command_state,
-	.clear_cs		= nft_clear_iptables_command_state,
+	.clear_cs		= xtables_clear_iptables_command_state,
 	.xlate			= nft_ipv4_xlate,
 	.add_entry		= nft_ipv4_add_entry,
 	.delete_entry		= nft_ipv4_delete_entry,
