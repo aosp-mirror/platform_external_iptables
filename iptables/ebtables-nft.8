@@ -722,46 +722,46 @@ for that option is used, while if the upper bound is omitted (but the colon agai
 highest possible upper bound for that option is used.
 .TP
 .BR "--stp-type " "[!] \fItype\fP"
-The BPDU type (0-255), recognized non-numerical types are
+The BPDU type (0\(en255), recognized non-numerical types are
 .IR config ", denoting a configuration BPDU (=0), and"
 .IR tcn ", denothing a topology change notification BPDU (=128)."
 .TP
 .BR "--stp-flags " "[!] \fIflag\fP"
-The BPDU flag (0-255), recognized non-numerical flags are
+The BPDU flag (0\(en255), recognized non-numerical flags are
 .IR topology-change ", denoting the topology change flag (=1), and"
 .IR topology-change-ack ", denoting the topology change acknowledgement flag (=128)."
 .TP
 .BR "--stp-root-prio " "[!] [\fIprio\fP][:\fIprio\fP]"
-The root priority (0-65535) range.
+The root priority (0\(en65535) range.
 .TP
 .BR "--stp-root-addr " "[!] [\fIaddress\fP][/\fImask\fP]"
 The root mac address, see the option
 .BR -s " for more details."
 .TP
 .BR "--stp-root-cost " "[!] [\fIcost\fP][:\fIcost\fP]"
-The root path cost (0-4294967295) range.
+The root path cost (0\(en4294967295) range.
 .TP
 .BR "--stp-sender-prio " "[!] [\fIprio\fP][:\fIprio\fP]"
-The BPDU's sender priority (0-65535) range.
+The BPDU's sender priority (0\(en65535) range.
 .TP
 .BR "--stp-sender-addr " "[!] [\fIaddress\fP][/\fImask\fP]"
 The BPDU's sender mac address, see the option
 .BR -s " for more details."
 .TP
 .BR "--stp-port " "[!] [\fIport\fP][:\fIport\fP]"
-The port identifier (0-65535) range.
+The port identifier (0\(en65535) range.
 .TP
 .BR "--stp-msg-age " "[!] [\fIage\fP][:\fIage\fP]"
-The message age timer (0-65535) range.
+The message age timer (0\(en65535) range.
 .TP
 .BR "--stp-max-age " "[!] [\fIage\fP][:\fIage\fP]"
-The max age timer (0-65535) range.
+The max age timer (0\(en65535) range.
 .TP
 .BR "--stp-hello-time " "[!] [\fItime\fP][:\fItime\fP]"
-The hello time timer (0-65535) range.
+The hello time timer (0\(en65535) range.
 .TP
 .BR "--stp-forward-delay " "[!] [\fIdelay\fP][:\fIdelay\fP]"
-The forward delay timer (0-65535) range.
+The forward delay timer (0\(en65535) range.
 .\" .SS string
 .\" This module matches on a given string using some pattern matching strategy.
 .\" .TP
@@ -858,7 +858,7 @@ Log with the default logging options
 .TP
 .B --nflog-group "\fInlgroup\fP"
 .br
-The netlink group (1 - 2^32-1) to which packets are (only applicable for
+The netlink group (1\(en2^32-1) to which packets are (only applicable for
 nfnetlink_log). The default value is 1.
 .TP
 .B --nflog-prefix "\fIprefix\fP"

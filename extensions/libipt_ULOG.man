@@ -9,7 +9,7 @@ Like LOG, this is a "non-terminating target", i.e. rule traversal
 continues at the next rule.
 .TP
 \fB\-\-ulog\-nlgroup\fP \fInlgroup\fP
-This specifies the netlink group (1-32) to which the packet is sent.
+This specifies the netlink group (1\(en32) to which the packet is sent.
 Default value is 1.
 .TP
 \fB\-\-ulog\-prefix\fP \fIprefix\fP
