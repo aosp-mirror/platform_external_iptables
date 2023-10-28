@@ -22,5 +22,8 @@
 -p tcp -m tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG SYN;=;OK
 -p tcp -m tcp ! --tcp-flags FIN,SYN,RST,PSH,ACK,URG SYN;=;OK
 -p tcp -m tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG RST;=;OK
+-m tcp --dport 1;;FAIL
+-m tcp --dport 1 -p tcp;-p tcp -m tcp --dport 1;OK
+-m tcp --dport 1 -p 6;-p tcp -m tcp --dport 1;OK
 # should we accept this below?
 -p tcp -m tcp;=;OK
