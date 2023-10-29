@@ -41,7 +41,9 @@ void xlate_ifname(struct xt_xlate *xl, const char *nftmeta, const char *ifname,
 	for (i = 0, j = 0; i < ifaclen + 1; i++, j++) {
 		switch (ifname[i]) {
 		case '*':
-			iface[j++] = '\\';
+			/* asterisk is non-special mid-string */
+			if (i == ifaclen - 1)
+				iface[j++] = '\\';
 			/* fall through */
 		default:
 			iface[j] = ifname[i];
@@ -83,12 +85,10 @@ int xlate_action(const struct iptables_command_state *cs, bool goto_set,
 		else if (strcmp(cs->jumpto, XTC_LABEL_RETURN) == 0)
 			xt_xlate_add(xl, " return");
 		else if (cs->target->xlate) {
-			xt_xlate_add(xl, " ");
 			struct xt_xlate_tg_params params = {
 				.ip		= (const void *)&cs->fw,
 				.target		= cs->target->t,
 				.numeric	= numeric,
-				.escape_quotes	= !cs->restore,
 			};
 			ret = cs->target->xlate(xl, &params);
 		}
@@ -115,17 +115,12 @@ int xlate_matches(const struct iptables_command_state *cs, struct xt_xlate *xl)
 			.ip		= (const void *)&cs->fw,
 			.match		= matchp->match->m,
 			.numeric	= numeric,
-			.escape_quotes	= !cs->restore,
 		};
 
 		if (!matchp->match->xlate)
 			return 0;
 
 		ret = matchp->match->xlate(xl, &params);
-
-		if (strcmp(matchp->match->name, "comment") != 0)
-			xt_xlate_add(xl, " ");
-
 		if (!ret)
 			break;
 	}
@@ -150,34 +145,49 @@ const char *family2str[] = {
 };
 
 static int nft_rule_xlate_add(struct nft_handle *h,
-			      const struct nft_xt_cmd_parse *p,
+			      const struct xt_cmd_parse *p,
 			      const struct iptables_command_state *cs,
 			      bool append)
 {
 	struct xt_xlate *xl = xt_xlate_alloc(10240);
+	const char *tick = cs->restore ? "" : "'";
+	const char *set;
 	int ret;
 
-	if (append) {
-		xt_xlate_add(xl, "add rule %s %s %s ",
-			   family2str[h->family], p->table, p->chain);
-	} else {
-		xt_xlate_add(xl, "insert rule %s %s %s ",
-			   family2str[h->family], p->table, p->chain);
+	xl_xlate_set_family(xl, h->family);
+	ret = h->ops->xlate(cs, xl);
+	if (!ret)
+		goto err_out;
+
+	set = xt_xlate_set_get(xl);
+	if (set[0]) {
+		printf("%sadd set %s %s %s%s\n",
+		       tick, family2str[h->family], p->table,
+		       xt_xlate_set_get(xl), tick);
+
+		if (!cs->restore && p->command != CMD_NONE)
+			printf("nft ");
 	}
 
-	ret = h->ops->xlate(cs, xl);
-	if (ret)
-		printf("%s\n", xt_xlate_get(xl));
+	printf("%s%s rule %s %s %s ",
+	       tick,
+	       append ? "add" : "insert",
+	       family2str[h->family], p->table, p->chain);
+	if (!append && p->rulenum > 1)
+		printf("index %d ", p->rulenum);
 
+	printf("%s%s\n", xt_xlate_rule_get(xl), tick);
+
+err_out:
 	xt_xlate_free(xl);
 	return ret;
 }
 
-static int xlate(struct nft_handle *h, struct nft_xt_cmd_parse *p,
+static int xlate(struct nft_handle *h, struct xt_cmd_parse *p,
 		 struct iptables_command_state *cs,
 		 struct xtables_args *args, bool append,
 		 int (*cb)(struct nft_handle *h,
-			   const struct nft_xt_cmd_parse *p,
+			   const struct xt_cmd_parse *p,
 			   const struct iptables_command_state *cs,
 			   bool append))
 {
@@ -235,17 +245,26 @@ static int do_command_xlate(struct nft_handle *h, int argc, char *argv[],
 			    char **table, bool restore)
 {
 	int ret = 0;
-	struct nft_xt_cmd_parse p = {
+	struct xt_cmd_parse p = {
 		.table		= *table,
 		.restore	= restore,
+		.line		= line,
 		.xlate		= true,
+		.ops		= &h->ops->cmd_parse,
 	};
-	struct iptables_command_state cs;
+	struct iptables_command_state cs = {
+		.jumpto = "",
+		.argv = argv,
+	};
+
 	struct xtables_args args = {
 		.family = h->family,
 	};
 
-	do_parse(h, argc, argv, &p, &cs, &args);
+	if (h->ops->init_cs)
+		h->ops->init_cs(&cs);
+
+	do_parse(argc, argv, &p, &cs, &args);
 
 	cs.restore = restore;
 
@@ -319,7 +338,7 @@ static int do_command_xlate(struct nft_handle *h, int argc, char *argv[],
 		exit(1);
 	}
 
-	nft_clear_iptables_command_state(&cs);
+	h->ops->clear_cs(&cs);
 
 	if (h->family == AF_INET) {
 		free(args.s.addr.v4);
@@ -341,9 +360,10 @@ static void print_usage(const char *name, const char *version)
 {
 	fprintf(stderr, "%s %s "
 			"(c) 2014 by Pablo Neira Ayuso <pablo@netfilter.org>\n"
-			"Usage: %s [-h] [-f]\n"
+			"Usage: %s [-h] [-f <FILE>] [-V]\n"
                         "	[ --help ]\n"
-                        "	[ --file=<FILE> ]\n", name, version, name);
+                        "	[ --file=<FILE> ]\n"
+                        "	[ --version ]\n", name, version, name);
         exit(1);
 }
 
@@ -451,7 +471,6 @@ static int xtables_xlate_main_common(struct nft_handle *h,
 				     int family,
 				     const char *progname)
 {
-	const struct builtin_table *tables;
 	int ret;
 
 	xtables_globals.program_name = progname;
@@ -463,27 +482,26 @@ static int xtables_xlate_main_common(struct nft_handle *h,
 			xtables_globals.program_version);
 		return 1;
 	}
+	init_extensions();
 	switch (family) {
 	case NFPROTO_IPV4:
-	case NFPROTO_IPV6: /* fallthrough: same table */
-#if defined(ALL_INCLUSIVE) || defined(NO_SHARED_LIBS)
-	init_extensions();
-	init_extensions4();
-#endif
-		tables = xtables_ipv4;
+		init_extensions4();
+		break;
+	case NFPROTO_IPV6:
+		init_extensions6();
 		break;
 	case NFPROTO_ARP:
-		tables = xtables_arp;
+		init_extensionsa();
 		break;
 	case NFPROTO_BRIDGE:
-		tables = xtables_bridge;
+		init_extensionsb();
 		break;
 	default:
 		fprintf(stderr, "Unknown family %d\n", family);
 		return 1;
 	}
 
-	if (nft_init(h, family, tables) < 0) {
+	if (nft_init(h, family) < 0) {
 		fprintf(stderr, "%s/%s Failed to initialize nft: %s\n",
 				xtables_globals.program_name,
 				xtables_globals.program_version,
