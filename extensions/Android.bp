@@ -20,8 +20,6 @@ cc_defaults {
 
         "-Wno-format",
         "-Wno-missing-field-initializers",
-        // libxt_recent.c:202:11: error: address of array 'info->name' will always evaluate to 'true' [-Werror,-Wpointer-bool-conversion]
-        "-Wno-pointer-bool-conversion",
         "-Wno-tautological-pointer-compare",
     ],
 }
