@@ -26,5 +26,5 @@ nfacct get http\-traffic
 .PP
 You can obtain
 .B nfacct(8)
-from http://www.netfilter.org or, alternatively, from the git.netfilter.org
+from https://www.netfilter.org or, alternatively, from the git.netfilter.org
 repository.

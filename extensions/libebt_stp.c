@@ -90,7 +90,8 @@ static int parse_range(const char *portstring, void *lower, void *upper,
 	uint32_t low_nr, upp_nr;
 	int ret = 0;
 
-	buffer = strdup(portstring);
+	buffer = xtables_strdup(portstring);
+
 	if ((cp = strchr(buffer, ':')) == NULL) {
 		low_nr = strtoul(buffer, &end, 10);
 		if (*end || low_nr < min || low_nr > max) {
@@ -145,9 +146,9 @@ out:
 static void print_range(unsigned int l, unsigned int u)
 {
 	if (l == u)
-		printf("%u ", l);
+		printf("%u", l);
 	else
-		printf("%u:%u ", l, u);
+		printf("%u:%u", l, u);
 }
 
 static int
