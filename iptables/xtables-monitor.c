@@ -37,7 +37,6 @@
 #include "iptables.h" /* for xtables_globals */
 #include "xtables-multi.h"
 #include "nft.h"
-#include "nft-arp.h"
 
 struct cb_arg {
 	uint32_t nfproto;
@@ -228,7 +227,7 @@ static void trace_print_rule(const struct nftnl_trace *nlt, struct cb_arg *args)
 		exit(EXIT_FAILURE);
 	}
 
-	nlh = nftnl_chain_nlmsg_build_hdr(buf, NFT_MSG_GETRULE, family, 0, 0);
+	nlh = nftnl_nlmsg_build_hdr(buf, NFT_MSG_GETRULE, family, 0, 0);
 
         nftnl_rule_set_u32(r, NFTNL_RULE_FAMILY, family);
 	nftnl_rule_set_str(r, NFTNL_RULE_CHAIN, chain);
@@ -340,7 +339,7 @@ static void trace_print_packet(const struct nftnl_trace *nlt, struct cb_arg *arg
 			inet_ntop(AF_INET, &iph->daddr, addrbuf, sizeof(addrbuf));
 			printf("DST=%s ", addrbuf);
 
-			printf("LEN=%d TOS=0x%x TTL=%d ID=%d", ntohs(iph->tot_len), iph->tos, iph->ttl, ntohs(iph->id));
+			printf("LEN=%d TOS=0x%x TTL=%d ID=%d ", ntohs(iph->tot_len), iph->tos, iph->ttl, ntohs(iph->id));
 			if (iph->frag_off & htons(0x8000))
 				printf("CE ");
 			if (iph->frag_off & htons(IP_DF))
@@ -363,7 +362,7 @@ static void trace_print_packet(const struct nftnl_trace *nlt, struct cb_arg *arg
 				printf("OPT (");
 				for (i = 0; i < optsize; i++)
 					printf("%02X", op[i]);
-				printf(")");
+				printf(") ");
 			}
 			break;
 		}
@@ -625,12 +624,13 @@ int xtables_monitor_main(int argc, char *argv[])
 				xtables_globals.program_version);
 		exit(1);
 	}
-#if defined(ALL_INCLUSIVE) || defined(NO_SHARED_LIBS)
 	init_extensions();
 	init_extensions4();
-#endif
+	init_extensions6();
+	init_extensionsa();
+	init_extensionsb();
 
-	if (nft_init(&h, AF_INET, xtables_ipv4)) {
+	if (nft_init(&h, AF_INET)) {
 		fprintf(stderr, "%s/%s Failed to initialize nft: %s\n",
 			xtables_globals.program_name,
 			xtables_globals.program_version,
