@@ -21,7 +21,6 @@
 #include <arpa/inet.h>
 #include <netinet/ip.h>
 #include "xtables.h"
-#include "xshared.h"
 #ifndef IPTOS_NORMALSVC
 #	define IPTOS_NORMALSVC 0
 #endif
@@ -604,9 +603,7 @@ static void xtopt_parse_mport(struct xt_option_call *cb)
 	unsigned int maxiter;
 	int value;
 
-	wp_arg = lo_arg = strdup(cb->arg);
-	if (lo_arg == NULL)
-		xt_params->exit_err(RESOURCE_PROBLEM, "strdup");
+	wp_arg = lo_arg = xtables_strdup(cb->arg);
 
 	maxiter = entry->size / esize;
 	if (maxiter == 0)
@@ -747,9 +744,7 @@ static void xtopt_parse_hostmask(struct xt_option_call *cb)
 		xtopt_parse_host(cb);
 		return;
 	}
-	work = strdup(orig_arg);
-	if (work == NULL)
-		xt_params->exit_err(PARAMETER_PROBLEM, "strdup");
+	work = xtables_strdup(orig_arg);
 	p = strchr(work, '/'); /* by def this can't be NULL now */
 	*p++ = '\0';
 	/*
@@ -763,6 +758,7 @@ static void xtopt_parse_hostmask(struct xt_option_call *cb)
 	cb->arg = p;
 	xtopt_parse_plenmask(cb);
 	cb->arg = orig_arg;
+	free(work);
 }
 
 static void xtopt_parse_ethermac(struct xt_option_call *cb)
@@ -928,7 +924,7 @@ void xtables_option_tpcall(unsigned int c, char **argv, bool invert,
 	cb.entry = xtables_option_lookup(t->x6_options, c);
 	if (cb.entry == NULL)
 		xtables_error(OTHER_PROBLEM,
-			"Extension does not know id %u\n", c);
+			      "Extension does not know id %u", c);
 	cb.arg      = optarg;
 	cb.invert   = invert;
 	cb.ext_name = t->name;
@@ -964,7 +960,7 @@ void xtables_option_mpcall(unsigned int c, char **argv, bool invert,
 	cb.entry = xtables_option_lookup(m->x6_options, c);
 	if (cb.entry == NULL)
 		xtables_error(OTHER_PROBLEM,
-			"Extension does not know id %u\n", c);
+			      "Extension does not know id %u", c);
 	cb.arg      = optarg;
 	cb.invert   = invert;
 	cb.ext_name = m->name;
@@ -1138,11 +1134,7 @@ struct xtables_lmap *xtables_lmap_init(const char *file)
 			goto out;
 		}
 		lmap_this->id   = id;
-		lmap_this->name = strdup(cur);
-		if (lmap_this->name == NULL) {
-			free(lmap_this);
-			goto out;
-		}
+		lmap_this->name = xtables_strdup(cur);
 		lmap_this->next = NULL;
 
 		if (lmap_prev != NULL)

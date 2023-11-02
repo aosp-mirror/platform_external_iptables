@@ -6,24 +6,17 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <errno.h>
-#include "../iptables/xshared.h"
 
 static int
 get_version(unsigned *version)
 {
-	int res, sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
+	int res, sockfd = socket(AF_INET, SOCK_RAW | SOCK_CLOEXEC, IPPROTO_RAW);
 	struct ip_set_req_version req_version;
 	socklen_t size = sizeof(req_version);
 	
 	if (sockfd < 0)
 		xtables_error(OTHER_PROBLEM,
 			      "Can't open socket to ipset.\n");
-
-	if (fcntl(sockfd, F_SETFD, FD_CLOEXEC) == -1) {
-		xtables_error(OTHER_PROBLEM,
-			      "Could not set close on exec: %s\n",
-			      strerror(errno));
-	}
 
 	req_version.op = IP_SET_OP_VERSION;
 	res = getsockopt(sockfd, SOL_IP, SO_IP_SET, &req_version, &size);
@@ -141,7 +134,7 @@ get_set_byname(const char *setname, struct xt_set_info *info)
 static void
 parse_dirs_v0(const char *opt_arg, struct xt_set_info_v0 *info)
 {
-	char *saved = strdup(opt_arg);
+	char *saved = xtables_strdup(opt_arg);
 	char *ptr, *tmp = saved;
 	int i = 0;
 	
@@ -167,7 +160,7 @@ parse_dirs_v0(const char *opt_arg, struct xt_set_info_v0 *info)
 static void
 parse_dirs(const char *opt_arg, struct xt_set_info *info)
 {
-	char *saved = strdup(opt_arg);
+	char *saved = xtables_strdup(opt_arg);
 	char *ptr, *tmp = saved;
 	
 	while (info->dim < IPSET_DIM_MAX && tmp != NULL) {
