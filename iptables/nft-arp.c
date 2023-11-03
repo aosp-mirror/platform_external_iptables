@@ -490,7 +490,7 @@ static void nft_arp_post_parse(int command,
 					 &args->d.naddrs);
 
 	if ((args->s.naddrs > 1 || args->d.naddrs > 1) &&
-	    (cs->arp.arp.invflags & (ARPT_INV_SRCIP | ARPT_INV_TGTIP)))
+	    (cs->arp.arp.invflags & (IPT_INV_SRCIP | IPT_INV_DSTIP)))
 		xtables_error(PARAMETER_PROBLEM,
 			      "! not allowed with multiple"
 			      " source or destination IP addresses");

@@ -77,7 +77,7 @@ arpmangle_parse(int c, char **argv, int invert, unsigned int *flags,
 		if (e->arp.arhln_mask == 0)
 			xtables_error(PARAMETER_PROBLEM,
 				      "no --h-length defined");
-		if (e->arp.invflags & ARPT_INV_ARPHLN)
+		if (e->arp.invflags & IPT_INV_ARPHLN)
 			xtables_error(PARAMETER_PROBLEM,
 				      "! --h-length not allowed for "
 				      "--mangle-mac-s");
@@ -95,7 +95,7 @@ arpmangle_parse(int c, char **argv, int invert, unsigned int *flags,
 		if (e->arp.arhln_mask == 0)
 			xtables_error(PARAMETER_PROBLEM,
 				      "no --h-length defined");
-		if (e->arp.invflags & ARPT_INV_ARPHLN)
+		if (e->arp.invflags & IPT_INV_ARPHLN)
 			xtables_error(PARAMETER_PROBLEM,
 				      "! hln not allowed for --mangle-mac-d");
 		if (e->arp.arhln != 6)

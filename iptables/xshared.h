@@ -80,7 +80,9 @@ struct xtables_target;
 #define ARPT_OPTSTRING	OPTSTRING_COMMON "R:S::" "h::l:nvx" /* "m:" */
 #define EBT_OPTSTRING	OPTSTRING_COMMON "hv"
 
-/* define invflags which won't collide with IPT ones */
+/* define invflags which won't collide with IPT ones.
+ * arptables-nft does NOT use the legacy ARPT_INV_* defines.
+ */
 #define IPT_INV_SRCDEVADDR	0x0080
 #define IPT_INV_TGTDEVADDR	0x0100
 #define IPT_INV_ARPHLN		0x0200
