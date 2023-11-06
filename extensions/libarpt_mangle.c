@@ -13,7 +13,6 @@
 #include <xtables.h>
 #include <linux/netfilter_arp/arpt_mangle.h>
 #include "iptables/nft.h"
-#include "iptables/nft-arp.h"
 
 static void arpmangle_print_help(void)
 {
