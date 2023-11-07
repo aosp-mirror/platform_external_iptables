@@ -14,7 +14,7 @@ def run_proc(args, shell = False, input = None):
     output, error = process.communicate(input)
     return (process.returncode, output, error)
 
-keywords = ("iptables-translate", "ip6tables-translate", "ebtables-translate")
+keywords = ("iptables-translate", "ip6tables-translate", "arptables-translate", "ebtables-translate")
 xtables_nft_multi = 'xtables-nft-multi'
 
 if sys.stdout.isatty():
@@ -95,6 +95,8 @@ def test_one_replay(name, sourceline, expected, result):
     fam = ""
     if srccmd.startswith("ip6"):
         fam = "ip6 "
+    elif srccmd.startswith("arp"):
+        fam = "arp "
     elif srccmd.startswith("ebt"):
         fam = "bridge "
 

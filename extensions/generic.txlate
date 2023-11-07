@@ -1,3 +1,9 @@
+arptables-translate -A OUTPUT --proto-type ipv4 -s 1.2.3.4 -j ACCEPT
+nft 'add rule arp filter OUTPUT arp htype 1 arp hlen 6 arp plen 4 arp ptype 0x800 arp saddr ip 1.2.3.4 counter accept'
+
+arptables-translate -I OUTPUT -o oifname
+nft 'insert rule arp filter OUTPUT oifname "oifname" arp htype 1 arp hlen 6 arp plen 4 counter'
+
 iptables-translate -I OUTPUT -p udp -d 8.8.8.8 -j ACCEPT
 nft 'insert rule ip filter OUTPUT ip protocol udp ip daddr 8.8.8.8 counter accept'
 
