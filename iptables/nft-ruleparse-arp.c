@@ -90,6 +90,8 @@ static void nft_arp_parse_payload(struct nft_xt_ctx *ctx,
 		fw->arp.arhrd_mask = 0xffff;
 		if (inv)
 			fw->arp.invflags |= IPT_INV_ARPHRD;
+		if (reg->bitwise.set)
+			fw->arp.arhrd_mask = reg->bitwise.mask[0];
 		break;
 	case offsetof(struct arphdr, ar_pro):
 		get_cmp_data(e, &ar_pro, sizeof(ar_pro), &inv);
@@ -97,6 +99,8 @@ static void nft_arp_parse_payload(struct nft_xt_ctx *ctx,
 		fw->arp.arpro_mask = 0xffff;
 		if (inv)
 			fw->arp.invflags |= IPT_INV_PROTO;
+		if (reg->bitwise.set)
+			fw->arp.arpro_mask = reg->bitwise.mask[0];
 		break;
 	case offsetof(struct arphdr, ar_op):
 		get_cmp_data(e, &ar_op, sizeof(ar_op), &inv);
@@ -104,6 +108,8 @@ static void nft_arp_parse_payload(struct nft_xt_ctx *ctx,
 		fw->arp.arpop_mask = 0xffff;
 		if (inv)
 			fw->arp.invflags |= IPT_INV_ARPOP;
+		if (reg->bitwise.set)
+			fw->arp.arpop_mask = reg->bitwise.mask[0];
 		break;
 	case offsetof(struct arphdr, ar_hln):
 		get_cmp_data(e, &ar_hln, sizeof(ar_hln), &inv);
@@ -111,6 +117,8 @@ static void nft_arp_parse_payload(struct nft_xt_ctx *ctx,
 		fw->arp.arhln_mask = 0xff;
 		if (inv)
 			fw->arp.invflags |= IPT_INV_ARPHLN;
+		if (reg->bitwise.set)
+			fw->arp.arhln_mask = reg->bitwise.mask[0];
 		break;
 	case offsetof(struct arphdr, ar_pln):
 		get_cmp_data(e, &ar_pln, sizeof(ar_pln), &inv);

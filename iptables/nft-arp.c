@@ -58,41 +58,56 @@ static int nft_arp_add(struct nft_handle *h, struct nft_rule_ctx *ctx,
 	}
 
 	if (fw->arp.arhrd != 0 ||
+	    fw->arp.arhrd_mask != 0xffff ||
 	    fw->arp.invflags & IPT_INV_ARPHRD) {
 		uint8_t reg;
 
 		op = nft_invflags2cmp(fw->arp.invflags, IPT_INV_ARPHRD);
 		add_payload(h, r, offsetof(struct arphdr, ar_hrd), 2,
 			    NFT_PAYLOAD_NETWORK_HEADER, &reg);
+		if (fw->arp.arhrd_mask != 0xffff)
+			add_bitwise_u16(h, r, fw->arp.arhrd_mask, 0, reg, &reg);
 		add_cmp_u16(r, fw->arp.arhrd, op, reg);
 	}
 
 	if (fw->arp.arpro != 0 ||
+	    fw->arp.arpro_mask != 0xffff ||
 	    fw->arp.invflags & IPT_INV_PROTO) {
 		uint8_t reg;
 
 		op = nft_invflags2cmp(fw->arp.invflags, IPT_INV_PROTO);
 	        add_payload(h, r, offsetof(struct arphdr, ar_pro), 2,
 			    NFT_PAYLOAD_NETWORK_HEADER, &reg);
+		if (fw->arp.arpro_mask != 0xffff)
+			add_bitwise_u16(h, r, fw->arp.arpro_mask, 0, reg, &reg);
 		add_cmp_u16(r, fw->arp.arpro, op, reg);
 	}
 
 	if (fw->arp.arhln != 0 ||
+	    fw->arp.arhln_mask != 255 ||
 	    fw->arp.invflags & IPT_INV_ARPHLN) {
+		uint8_t reg;
+
 		op = nft_invflags2cmp(fw->arp.invflags, IPT_INV_ARPHLN);
-		add_proto(h, r, offsetof(struct arphdr, ar_hln), 1,
-			  fw->arp.arhln, op);
+		add_payload(h, r, offsetof(struct arphdr, ar_hln), 1,
+			    NFT_PAYLOAD_NETWORK_HEADER, &reg);
+		if (fw->arp.arhln_mask != 255)
+			add_bitwise(h, r, &fw->arp.arhln_mask, 1, reg, &reg);
+		add_cmp_u8(r, fw->arp.arhln, op, reg);
 	}
 
 	add_proto(h, r, offsetof(struct arphdr, ar_pln), 1, 4, NFT_CMP_EQ);
 
 	if (fw->arp.arpop != 0 ||
+	    fw->arp.arpop_mask != 0xffff ||
 	    fw->arp.invflags & IPT_INV_ARPOP) {
 		uint8_t reg;
 
 		op = nft_invflags2cmp(fw->arp.invflags, IPT_INV_ARPOP);
 		add_payload(h, r, offsetof(struct arphdr, ar_op), 2,
 			    NFT_PAYLOAD_NETWORK_HEADER, &reg);
+		if (fw->arp.arpop_mask != 0xffff)
+			add_bitwise_u16(h, r, fw->arp.arpop_mask, 0, reg, &reg);
 		add_cmp_u16(r, fw->arp.arpop, op, reg);
 	}
 
@@ -556,6 +571,8 @@ static void nft_arp_init_cs(struct iptables_command_state *cs)
 	cs->arp.arp.arhln_mask = 255;
 	cs->arp.arp.arhrd = htons(ARPHRD_ETHER);
 	cs->arp.arp.arhrd_mask = 65535;
+	cs->arp.arp.arpop_mask = 65535;
+	cs->arp.arp.arpro_mask = 65535;
 }
 
 static int
