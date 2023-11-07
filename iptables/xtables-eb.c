@@ -169,6 +169,8 @@ int ebt_get_current_chain(const char *chain)
 		return NF_BR_LOCAL_OUT;
 	else if (strcmp(chain, "POSTROUTING") == 0)
 		return NF_BR_POST_ROUTING;
+	else if (strcmp(chain, "BROUTING") == 0)
+		return NF_BR_BROUTING;
 
 	/* placeholder for user defined chain */
 	return NF_BR_NUMHOOKS;
