@@ -290,6 +290,7 @@ mark_tg_arp_parse(int c, char **argv, int invert, unsigned int *flags,
 			return 0;
 		}
 		info->mark = i;
+		info->mask = 0xffffffffU;
 		if (*flags)
 			xtables_error(PARAMETER_PROBLEM,
 				"MARK: Can't specify --set-mark twice");
@@ -430,6 +431,7 @@ static struct xtables_target mark_tg_reg[] = {
 		.save          = mark_tg_arp_save,
 		.parse         = mark_tg_arp_parse,
 		.extra_opts    = mark_tg_arp_opts,
+		.xlate	       = mark_tg_xlate,
 	},
 };
 
