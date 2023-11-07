@@ -140,6 +140,7 @@ bool xlate_find_match(const struct iptables_command_state *cs, const char *p_nam
 }
 
 const char *family2str[] = {
+	[NFPROTO_ARP]	= "arp",
 	[NFPROTO_IPV4]	= "ip",
 	[NFPROTO_IPV6]	= "ip6",
 };
@@ -196,6 +197,15 @@ static int xlate(struct nft_handle *h, struct xt_cmd_parse *p,
 
 	for (i = 0; i < args->s.naddrs; i++) {
 		switch (h->family) {
+		case NFPROTO_ARP:
+			cs->arp.arp.src.s_addr = args->s.addr.v4[i].s_addr;
+			cs->arp.arp.smsk.s_addr = args->s.mask.v4[i].s_addr;
+			for (j = 0; j < args->d.naddrs; j++) {
+				cs->arp.arp.tgt.s_addr = args->d.addr.v4[j].s_addr;
+				cs->arp.arp.tmsk.s_addr = args->d.mask.v4[j].s_addr;
+				ret = cb(h, p, cs, append);
+			}
+			break;
 		case AF_INET:
 			cs->fw.ip.src.s_addr = args->s.addr.v4[i].s_addr;
 			cs->fw.ip.smsk.s_addr = args->s.mask.v4[i].s_addr;
@@ -475,7 +485,24 @@ static int xtables_xlate_main_common(struct nft_handle *h,
 
 	xtables_globals.program_name = progname;
 	xtables_globals.compat_rev = dummy_compat_rev;
-	ret = xtables_init_all(&xtables_globals, family);
+
+	switch (family) {
+	case NFPROTO_IPV4:
+		ret = xtables_init_all(&xtables_globals, family);
+		break;
+	case NFPROTO_IPV6:
+		ret = xtables_init_all(&xtables_globals, family);
+		break;
+	case NFPROTO_ARP:
+		arptables_globals.program_name = progname;
+		arptables_globals.compat_rev = dummy_compat_rev;
+		ret = xtables_init_all(&arptables_globals, family);
+		break;
+	default:
+		ret = -1;
+		break;
+	}
+
 	if (ret < 0) {
 		fprintf(stderr, "%s/%s Failed to initialize xtables\n",
 			xtables_globals.program_name,
@@ -588,6 +615,12 @@ static int xtables_restore_xlate_main(int family, const char *progname,
 	xtables_fini();
 	fclose(p.in);
 	exit(0);
+}
+
+int xtables_arp_xlate_main(int argc, char *argv[])
+{
+	return xtables_xlate_main(NFPROTO_ARP, "arptables-translate",
+				  argc, argv);
 }
 
 int xtables_ip4_xlate_main(int argc, char *argv[])

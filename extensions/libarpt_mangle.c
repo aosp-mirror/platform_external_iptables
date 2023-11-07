@@ -170,6 +170,52 @@ static void arpmangle_save(const void *ip, const struct xt_entry_target *target)
 	arpmangle_print(ip, target, 0);
 }
 
+static void print_devaddr_xlate(const char *macaddress, struct xt_xlate *xl)
+{
+	unsigned int i;
+
+	xt_xlate_add(xl, "%02x", macaddress[0]);
+	for (i = 1; i < ETH_ALEN; ++i)
+		xt_xlate_add(xl, ":%02x", macaddress[i]);
+}
+
+static int arpmangle_xlate(struct xt_xlate *xl,
+			 const struct xt_xlate_tg_params *params)
+{
+	const struct arpt_mangle *m = (const void *)params->target->data;
+
+	if (m->flags & ARPT_MANGLE_SIP)
+		xt_xlate_add(xl, "arp saddr ip set %s ",
+			     xtables_ipaddr_to_numeric(&m->u_s.src_ip));
+
+	if (m->flags & ARPT_MANGLE_SDEV) {
+		xt_xlate_add(xl, "arp %caddr ether set ", 's');
+		print_devaddr_xlate(m->src_devaddr, xl);
+	}
+
+	if (m->flags & ARPT_MANGLE_TIP)
+		xt_xlate_add(xl, "arp daddr ip set %s ",
+			     xtables_ipaddr_to_numeric(&m->u_t.tgt_ip));
+
+	if (m->flags & ARPT_MANGLE_TDEV) {
+		xt_xlate_add(xl, "arp %caddr ether set ", 'd');
+		print_devaddr_xlate(m->tgt_devaddr, xl);
+	}
+
+	switch (m->target) {
+	case NF_ACCEPT:
+		xt_xlate_add(xl, "accept");
+		break;
+	case NF_DROP:
+		xt_xlate_add(xl, "drop");
+		break;
+	default:
+		break;
+	}
+
+	return 1;
+}
+
 static struct xtables_target arpmangle_target = {
 	.name		= "mangle",
 	.revision	= 0,
@@ -184,6 +230,7 @@ static struct xtables_target arpmangle_target = {
 	.print		= arpmangle_print,
 	.save		= arpmangle_save,
 	.extra_opts	= arpmangle_opts,
+	.xlate		= arpmangle_xlate,
 };
 
 void _init(void)
