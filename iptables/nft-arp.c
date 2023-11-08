@@ -339,7 +339,7 @@ after_devdst:
 		else
 			printf("--proto-type 0x%x", tmp);
 		if (fw->arp.arpro_mask != 65535)
-			printf("/%x", ntohs(fw->arp.arpro_mask));
+			printf("/0x%x", ntohs(fw->arp.arpro_mask));
 		sep = " ";
 	}
 }

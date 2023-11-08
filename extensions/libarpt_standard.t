@@ -16,3 +16,7 @@
 --src-mac ! 01:02:03:04:05:06 --dst-mac ! 07:08:09:0A:0B:0C --h-length ! 6 --opcode ! Request --h-type ! Ethernet --proto-type ! ipv4;! --src-mac 01:02:03:04:05:06 ! --dst-mac 07:08:09:0a:0b:0c ! --h-length 6 ! --opcode 1 ! --h-type 0x1 ! --proto-type 0x800;OK
 --h-type 10;--h-type 0x10;OK
 --h-type 0x10;=;OK
+--proto-type 10;--proto-type 0xa;OK
+--proto-type 10/10;--proto-type 0xa/0xa;OK
+--proto-type 0x10;=;OK
+--proto-type 0x10/0x10;=;OK
