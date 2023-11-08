@@ -20,3 +20,4 @@
 --proto-type 10/10;--proto-type 0xa/0xa;OK
 --proto-type 0x10;=;OK
 --proto-type 0x10/0x10;=;OK
+--h-length 6/15 --opcode 1/235 --h-type 0x8/0xcf --proto-type 0x800/0xde00;=;OK
