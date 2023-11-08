@@ -323,9 +323,9 @@ after_devdst:
 		if (tmp == 1 && !(format & FMT_NUMERIC))
 			printf("--h-type %s", "Ethernet");
 		else
-			printf("--h-type %u", tmp);
+			printf("--h-type 0x%x", tmp);
 		if (fw->arp.arhrd_mask != 65535)
-			printf("/%d", ntohs(fw->arp.arhrd_mask));
+			printf("/0x%x", ntohs(fw->arp.arhrd_mask));
 		sep = " ";
 	}
 
