@@ -957,6 +957,11 @@ static const unsigned int options_v_commands[NUMBER_OF_OPT] = {
 /*OPT_OPCODE*/		CMD_IDRAC,
 /*OPT_H_TYPE*/		CMD_IDRAC,
 /*OPT_P_TYPE*/		CMD_IDRAC,
+/*OPT_LOGICALIN*/	CMD_IDRAC,
+/*OPT_LOGICALOUT*/	CMD_IDRAC,
+/*OPT_LIST_C*/		CMD_LIST,
+/*OPT_LIST_X*/		CMD_LIST,
+/*OPT_LIST_MAC2*/	CMD_LIST,
 };
 #undef CMD_IDRAC
 
@@ -1301,6 +1306,7 @@ static void check_inverse(struct xtables_args *args, const char option[],
 {
 	switch (args->family) {
 	case NFPROTO_ARP:
+	case NFPROTO_BRIDGE:
 		break;
 	default:
 		return;
@@ -1499,6 +1505,8 @@ void do_parse(int argc, char *argv[],
 				parse_change_counters_rule(argc, argv, p, args);
 				break;
 			}
+			/* fall through */
+		case 14: /* ebtables --check */
 			add_command(&p->command, CMD_CHECK, CMD_NONE, invert);
 			p->chain = optarg;
 			break;
@@ -1606,15 +1614,19 @@ void do_parse(int argc, char *argv[],
 			break;
 
 		case 'P':
-			add_command(&p->command, CMD_SET_POLICY, CMD_NONE,
+			add_command(&p->command, CMD_SET_POLICY,
+				    family_is_bridge ? CMD_NEW_CHAIN : CMD_NONE,
 				    invert);
-			p->chain = optarg;
-			if (xs_has_arg(argc, argv))
+			if (p->command & CMD_NEW_CHAIN) {
+				p->policy = optarg;
+			} else if (xs_has_arg(argc, argv)) {
+				p->chain = optarg;
 				p->policy = argv[optind++];
-			else
+			} else {
 				xtables_error(PARAMETER_PROBLEM,
 					   "-%c requires a chain and a policy",
 					   cmd2char(CMD_SET_POLICY));
+			}
 			break;
 
 		case 'h':
@@ -1716,6 +1728,45 @@ void do_parse(int argc, char *argv[],
 			args->arp_ptype = optarg;
 			break;
 
+		case 11: /* ebtables --init-table */
+			if (p->restore)
+				xtables_error(PARAMETER_PROBLEM,
+					      "--init-table is not supported in daemon mode");
+			add_command(&p->command, CMD_INIT_TABLE, CMD_NONE, invert);
+			break;
+
+		case 12 : /* ebtables --Lmac2 */
+			set_option(p->ops, &cs->options, OPT_LIST_MAC2,
+				   &args->invflags, invert);
+			break;
+
+		case 13 : /* ebtables --concurrent */
+			break;
+
+		case 15 : /* ebtables --logical-in */
+			check_inverse(args, optarg, &invert, argc, argv);
+			set_option(p->ops, &cs->options, OPT_LOGICALIN,
+				   &args->invflags, invert);
+			parse_interface(optarg, args->bri_iniface);
+			break;
+
+		case 16 : /* ebtables --logical-out */
+			check_inverse(args, optarg, &invert, argc, argv);
+			set_option(p->ops, &cs->options, OPT_LOGICALOUT,
+				   &args->invflags, invert);
+			parse_interface(optarg, args->bri_outiface);
+			break;
+
+		case 17 : /* ebtables --Lc */
+			set_option(p->ops, &cs->options, OPT_LIST_C,
+				   &args->invflags, invert);
+			break;
+
+		case 19 : /* ebtables --Lx */
+			set_option(p->ops, &cs->options, OPT_LIST_X,
+				   &args->invflags, invert);
+			break;
+
 		case 'j':
 			set_option(p->ops, &cs->options, OPT_JUMP,
 				   &args->invflags, invert);
@@ -1815,6 +1866,7 @@ void do_parse(int argc, char *argv[],
 			break;
 
 		case '0':
+		case 18 : /* ebtables --Ln */
 			set_option(p->ops, &cs->options, OPT_LINENUMBERS,
 				   &args->invflags, invert);
 			break;
@@ -1880,6 +1932,7 @@ void do_parse(int argc, char *argv[],
 			exit_tryhelp(2, p->line);
 
 		default:
+			check_inverse(args, optarg, &invert, argc, argv);
 			if (p->ops->command_default(cs, xt_params, invert))
 				/* cf. ip6tables.c */
 				continue;
@@ -1888,7 +1941,8 @@ void do_parse(int argc, char *argv[],
 		invert = false;
 	}
 
-	if (strcmp(p->table, "nat") == 0 &&
+	if (!family_is_bridge &&
+	    strcmp(p->table, "nat") == 0 &&
 	    ((p->policy != NULL && strcmp(p->policy, "DROP") == 0) ||
 	    (cs->jumpto != NULL && strcmp(cs->jumpto, "DROP") == 0)))
 		xtables_error(PARAMETER_PROBLEM,
@@ -1929,17 +1983,22 @@ void do_parse(int argc, char *argv[],
 	    p->command == CMD_DELETE ||
 	    p->command == CMD_CHECK ||
 	    p->command == CMD_INSERT ||
-	    p->command == CMD_REPLACE) {
+	    p->command == CMD_REPLACE ||
+	    p->command == CMD_CHANGE_COUNTERS) {
 		if (strcmp(p->chain, "PREROUTING") == 0
 		    || strcmp(p->chain, "INPUT") == 0) {
 			/* -o not valid with incoming packets. */
 			option_test_and_reject(p, cs, OPT_VIANAMEOUT);
+			/* same with --logical-out */
+			option_test_and_reject(p, cs, OPT_LOGICALOUT);
 		}
 
 		if (strcmp(p->chain, "POSTROUTING") == 0
 		    || strcmp(p->chain, "OUTPUT") == 0) {
 			/* -i not valid with outgoing packets */
 			option_test_and_reject(p, cs, OPT_VIANAMEIN);
+			/* same with --logical-in */
+			option_test_and_reject(p, cs, OPT_LOGICALIN);
 		}
 	}
 }

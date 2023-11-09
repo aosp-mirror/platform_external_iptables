@@ -571,11 +571,132 @@ static int nft_bridge_xlate(const struct iptables_command_state *cs,
 	return ret;
 }
 
+static const char *nft_bridge_option_name(int option)
+{
+	switch (option) {
+	/* ebtables specific ones */
+	case OPT_LOGICALIN:	return "--logical-in";
+	case OPT_LOGICALOUT:	return "--logical-out";
+	case OPT_LINENUMBERS:	return "--Ln";
+	case OPT_LIST_C:	return "--Lc";
+	case OPT_LIST_X:	return "--Lx";
+	case OPT_LIST_MAC2:	return "--Lmac2";
+	default:		return ip46t_option_name(option);
+	}
+}
+
+static int nft_bridge_option_invert(int option)
+{
+	switch (option) {
+	case OPT_SOURCE:	return EBT_ISOURCE;
+	case OPT_DESTINATION:	return EBT_IDEST;
+	case OPT_PROTOCOL:	return EBT_IPROTO;
+	case OPT_VIANAMEIN:	return EBT_IIN;
+	case OPT_VIANAMEOUT:	return EBT_IOUT;
+	case OPT_LOGICALIN:	return EBT_ILOGICALIN;
+	case OPT_LOGICALOUT:	return EBT_ILOGICALOUT;
+	default:		return -1;
+	}
+}
+
+static void nft_bridge_proto_parse(struct iptables_command_state *cs,
+				   struct xtables_args *args)
+{
+	char *buffer;
+	int i;
+
+	cs->eb.bitmask &= ~((unsigned int)EBT_NOPROTO);
+
+	i = strtol(cs->protocol, &buffer, 16);
+	if (*buffer == '\0' && (i < 0 || i > 0xFFFF))
+		xtables_error(PARAMETER_PROBLEM,
+			      "Problem with the specified protocol");
+	if (*buffer != '\0') {
+		struct xt_ethertypeent *ent;
+
+		if (!strcmp(cs->protocol, "length")) {
+			cs->eb.bitmask |= EBT_802_3;
+			return;
+		}
+		ent = xtables_getethertypebyname(cs->protocol);
+		if (!ent)
+			xtables_error(PARAMETER_PROBLEM,
+				      "Problem with the specified Ethernet protocol '%s', perhaps "XT_PATH_ETHERTYPES " is missing",
+				      cs->protocol);
+		cs->eb.ethproto = ent->e_ethertype;
+	} else
+		cs->eb.ethproto = i;
+
+	if (cs->eb.ethproto < 0x0600)
+		xtables_error(PARAMETER_PROBLEM,
+			      "Sorry, protocols have values above or equal to 0x0600");
+}
+
+static void nft_bridge_post_parse(int command,
+				  struct iptables_command_state *cs,
+				  struct xtables_args *args)
+{
+	struct ebt_match *match;
+
+	cs->eb.invflags = args->invflags;
+
+	memcpy(cs->eb.in, args->iniface, IFNAMSIZ);
+	memcpy(cs->eb.out, args->outiface, IFNAMSIZ);
+	memcpy(cs->eb.logical_in, args->bri_iniface, IFNAMSIZ);
+	memcpy(cs->eb.logical_out, args->bri_outiface, IFNAMSIZ);
+
+	cs->counters.pcnt = args->pcnt_cnt;
+	cs->counters.bcnt = args->bcnt_cnt;
+
+	if (args->shostnetworkmask) {
+		if (xtables_parse_mac_and_mask(args->shostnetworkmask,
+					       cs->eb.sourcemac,
+					       cs->eb.sourcemsk))
+			xtables_error(PARAMETER_PROBLEM,
+				      "Problem with specified source mac '%s'",
+				      args->shostnetworkmask);
+		cs->eb.bitmask |= EBT_SOURCEMAC;
+	}
+	if (args->dhostnetworkmask) {
+		if (xtables_parse_mac_and_mask(args->dhostnetworkmask,
+					       cs->eb.destmac,
+					       cs->eb.destmsk))
+			xtables_error(PARAMETER_PROBLEM,
+				      "Problem with specified destination mac '%s'",
+				      args->dhostnetworkmask);
+		cs->eb.bitmask |= EBT_DESTMAC;
+	}
+
+	if ((cs->options & (OPT_LIST_X | OPT_LINENUMBERS)) ==
+			(OPT_LIST_X | OPT_LINENUMBERS))
+		xtables_error(PARAMETER_PROBLEM,
+			      "--Lx is not compatible with --Ln");
+
+	/* So, the extensions can work with the host endian.
+	 * The kernel does not have to do this of course */
+	cs->eb.ethproto = htons(cs->eb.ethproto);
+
+	for (match = cs->match_list; match; match = match->next) {
+		if (match->ismatch)
+			continue;
+
+		xtables_option_tfcall(match->u.watcher);
+	}
+}
+
 struct nft_family_ops nft_family_ops_bridge = {
 	.add			= nft_bridge_add,
 	.is_same		= nft_bridge_is_same,
 	.print_payload		= NULL,
 	.rule_parse		= &nft_ruleparse_ops_bridge,
+	.cmd_parse		= {
+		.proto_parse	= nft_bridge_proto_parse,
+		.post_parse	= nft_bridge_post_parse,
+		.option_name	= nft_bridge_option_name,
+		.option_invert	= nft_bridge_option_invert,
+		.command_default = ebt_command_default,
+		.print_help	= nft_bridge_print_help,
+	},
 	.print_table_header	= nft_bridge_print_table_header,
 	.print_header		= nft_bridge_print_header,
 	.print_rule		= nft_bridge_print_rule,

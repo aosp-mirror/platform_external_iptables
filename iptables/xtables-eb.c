@@ -42,76 +42,6 @@
 #include "nft.h"
 #include "nft-bridge.h"
 
-/* from linux/netfilter_bridge/ebtables.h */
-#define EBT_TABLE_MAXNAMELEN 32
-#define EBT_CHAIN_MAXNAMELEN EBT_TABLE_MAXNAMELEN
-
-/*
- * From include/ebtables_u.h
- */
-#define ebt_check_option2(flags, mask) EBT_CHECK_OPTION(flags, mask)
-
-/*
- * From useful_functions.c
- */
-
-/* 0: default
- * 1: the inverse '!' of the option has already been specified */
-int ebt_invert = 0;
-
-static int ebt_check_inverse2(const char option[], int argc, char **argv)
-{
-	if (!option)
-		return ebt_invert;
-	if (strcmp(option, "!") == 0) {
-		if (ebt_invert == 1)
-			xtables_error(PARAMETER_PROBLEM,
-				      "Double use of '!' not allowed");
-		if (optind >= argc)
-			optarg = NULL;
-		else
-			optarg = argv[optind];
-		optind++;
-		ebt_invert = 1;
-		return 1;
-	}
-	return ebt_invert;
-}
-
-/* XXX: merge with assert_valid_chain_name()? */
-static void ebt_assert_valid_chain_name(const char *chainname)
-{
-	if (strlen(chainname) >= EBT_CHAIN_MAXNAMELEN)
-		xtables_error(PARAMETER_PROBLEM,
-			      "Chain name length can't exceed %d",
-			      EBT_CHAIN_MAXNAMELEN - 1);
-
-	if (*chainname == '-' || *chainname == '!')
-		xtables_error(PARAMETER_PROBLEM, "No chain name specified");
-
-	if (xtables_find_target(chainname, XTF_TRY_LOAD))
-		xtables_error(PARAMETER_PROBLEM,
-			      "Target with name %s exists", chainname);
-
-	if (strchr(chainname, ' ') != NULL)
-		xtables_error(PARAMETER_PROBLEM,
-			      "Use of ' ' not allowed in chain names");
-}
-
-/*
- * Glue code to use libxtables
- */
-static int parse_rule_number(const char *rule)
-{
-	unsigned int rule_nr;
-
-	if (!xtables_strtoui(rule, NULL, &rule_nr, 1, INT_MAX))
-		xtables_error(PARAMETER_PROBLEM,
-			      "Invalid rule number `%s'", rule);
-
-	return rule_nr;
-}
-
 static int
 delete_entry(struct nft_handle *h,
 	     const char *chain,
@@ -158,35 +88,6 @@ change_entry_counters(struct nft_handle *h,
 
 	return ret;
 }
-
-int ebt_get_current_chain(const char *chain)
-{
-	if (!chain)
-		return -1;
-
-	if (strcmp(chain, "PREROUTING") == 0)
-		return NF_BR_PRE_ROUTING;
-	else if (strcmp(chain, "INPUT") == 0)
-		return NF_BR_LOCAL_IN;
-	else if (strcmp(chain, "FORWARD") == 0)
-		return NF_BR_FORWARD;
-	else if (strcmp(chain, "OUTPUT") == 0)
-		return NF_BR_LOCAL_OUT;
-	else if (strcmp(chain, "POSTROUTING") == 0)
-		return NF_BR_POST_ROUTING;
-	else if (strcmp(chain, "BROUTING") == 0)
-		return NF_BR_BROUTING;
-
-	/* placeholder for user defined chain */
-	return NF_BR_NUMHOOKS;
-}
-
-/*
- * The original ebtables parser
- */
-
-/* Checks whether a command has already been specified */
-#define OPT_COMMANDS (flags & OPT_COMMAND || flags & OPT_ZERO)
 
 /* Default command line options. Do not mess around with the already
  * assigned numbers unless you know what you are doing */
@@ -244,10 +145,6 @@ struct xtables_globals ebtables_globals = {
 #define prog_name ebtables_globals.program_name
 #define prog_vers ebtables_globals.program_version
 
-/*
- * From libebtc.c
- */
-
 /* Prints all registered extensions */
 static void ebt_list_extensions(const struct xtables_target *t,
 				const struct xtables_rule_match *m)
@@ -303,7 +200,7 @@ static struct option *merge_options(struct option *oldopts,
 	return merge;
 }
 
-static void print_help(struct iptables_command_state *cs)
+void nft_bridge_print_help(struct iptables_command_state *cs)
 {
 	const struct xtables_rule_match *m = cs->matches;
 	struct xtables_target *t = cs->target;
@@ -411,107 +308,6 @@ static int list_rules(struct nft_handle *h, const char *chain, const char *table
 	return nft_cmd_rule_list(h, chain, table, rule_nr, format);
 }
 
-static int parse_rule_range(const char *argv, int *rule_nr, int *rule_nr_end)
-{
-	char *colon = strchr(argv, ':'), *buffer;
-
-	if (colon) {
-		*colon = '\0';
-		if (*(colon + 1) == '\0')
-			*rule_nr_end = -1; /* Until the last rule */
-		else {
-			*rule_nr_end = strtol(colon + 1, &buffer, 10);
-			if (*buffer != '\0' || *rule_nr_end == 0)
-				return -1;
-		}
-	}
-	if (colon == argv)
-		*rule_nr = 1; /* Beginning with the first rule */
-	else {
-		*rule_nr = strtol(argv, &buffer, 10);
-		if (*buffer != '\0' || *rule_nr == 0)
-			return -1;
-	}
-	if (!colon)
-		*rule_nr_end = *rule_nr;
-	return 0;
-}
-
-/* Incrementing or decrementing rules in daemon mode is not supported as the
- * involved code overload is not worth it (too annoying to take the increased
- * counters in the kernel into account). */
-static uint8_t parse_change_counters_rule(int argc, char **argv,
-					  int *rule_nr, int *rule_nr_end,
-					  struct iptables_command_state *cs)
-{
-	uint8_t ret = 0;
-	char *buffer;
-
-	if (optind + 1 >= argc ||
-	    (argv[optind][0] == '-' && !isdigit(argv[optind][1])) ||
-	    (argv[optind + 1][0] == '-' && !isdigit(argv[optind + 1][1])))
-		xtables_error(PARAMETER_PROBLEM,
-			      "The command -C needs at least 2 arguments");
-	if (optind + 2 < argc &&
-	    (argv[optind + 2][0] != '-' || isdigit(argv[optind + 2][1]))) {
-		if (optind + 3 != argc)
-			xtables_error(PARAMETER_PROBLEM,
-				      "No extra options allowed with -C start_nr[:end_nr] pcnt bcnt");
-		if (parse_rule_range(argv[optind], rule_nr, rule_nr_end))
-			xtables_error(PARAMETER_PROBLEM,
-				      "Something is wrong with the rule number specification '%s'",
-				      argv[optind]);
-		optind++;
-	}
-
-	if (argv[optind][0] == '+') {
-		ret |= CTR_OP_INC_PKTS;
-		cs->counters.pcnt = strtoull(argv[optind] + 1, &buffer, 10);
-	} else if (argv[optind][0] == '-') {
-		ret |= CTR_OP_DEC_PKTS;
-		cs->counters.pcnt = strtoull(argv[optind] + 1, &buffer, 10);
-	} else {
-		cs->counters.pcnt = strtoull(argv[optind], &buffer, 10);
-	}
-	if (*buffer != '\0')
-		goto invalid;
-
-	optind++;
-
-	if (argv[optind][0] == '+') {
-		ret |= CTR_OP_INC_BYTES;
-		cs->counters.bcnt = strtoull(argv[optind] + 1, &buffer, 10);
-	} else if (argv[optind][0] == '-') {
-		ret |= CTR_OP_DEC_BYTES;
-		cs->counters.bcnt = strtoull(argv[optind] + 1, &buffer, 10);
-	} else {
-		cs->counters.bcnt = strtoull(argv[optind], &buffer, 10);
-	}
-	if (*buffer != '\0')
-		goto invalid;
-
-	optind++;
-
-	return ret;
-invalid:
-	xtables_error(PARAMETER_PROBLEM,
-		      "Packet counter '%s' invalid", argv[optind]);
-}
-
-static void ebtables_parse_interface(const char *arg, char *vianame)
-{
-	unsigned char mask[IFNAMSIZ];
-	char *c;
-
-	xtables_parse_interface(arg, vianame, mask);
-
-	if ((c = strchr(vianame, '+'))) {
-		if (*(c + 1) != '\0')
-			xtables_error(PARAMETER_PROBLEM,
-				      "Spurious characters after '+' wildcard");
-	}
-}
-
 /* This code is very similar to iptables/xtables.c:command_match() */
 static void ebt_load_match(const char *name)
 {
@@ -580,6 +376,10 @@ static void ebt_load_match_extensions(void)
 
 	ebt_load_watcher("log");
 	ebt_load_watcher("nflog");
+
+	/* assign them back so do_parse() may
+	 * reset opts to orig_opts upon each call */
+	xt_params->orig_opts = opts;
 }
 
 void ebt_add_match(struct xtables_match *m,
@@ -642,7 +442,8 @@ void ebt_add_watcher(struct xtables_target *watcher,
 	*matchp = newnode;
 }
 
-int ebt_command_default(struct iptables_command_state *cs)
+int ebt_command_default(struct iptables_command_state *cs,
+			struct xtables_globals *unused, bool ebt_invert)
 {
 	struct xtables_target *t = cs->target;
 	struct xtables_match *m;
@@ -753,431 +554,43 @@ void nft_fini_eb(struct nft_handle *h)
 int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table,
 		 bool restore)
 {
-	char *buffer;
-	int c, i;
-	uint8_t chcounter = 0; /* Needed for -C */
-	int rule_nr = 0;
-	int rule_nr_end = 0;
-	int ret = 0;
-	unsigned int flags = 0;
-	struct xtables_target *t;
 	struct iptables_command_state cs = {
 		.argc = argc,
 		.argv = argv,
 		.jumpto	= "",
 		.eb.bitmask = EBT_NOPROTO,
 	};
-	struct xt_cmd_parse p = {
+	const struct builtin_table *t;
+	struct xtables_args args = {
+		.family	= h->family,
 	};
-	char command = 'h';
-	const char *chain = NULL;
-	const char *policy = NULL;
-	int selected_chain = -1;
-	struct xtables_rule_match *xtrm_i;
-	struct ebt_match *match;
-	bool table_set = false;
+	struct xt_cmd_parse p = {
+		.table		= *table,
+		.restore	= restore,
+		.line		= line,
+		.rule_ranges	= true,
+		.ops		= &h->ops->cmd_parse,
+	};
+	int ret = 0;
 
-	/* avoid cumulating verbosity with ebtables-restore */
-	h->verbose = 0;
+	do_parse(argc, argv, &p, &cs, &args);
 
-	/* prevent getopt to spoil our error reporting */
-	optind = 0;
-	opterr = false;
+	h->verbose	= p.verbose;
 
-	for (t = xtables_targets; t; t = t->next) {
-		t->tflags = 0;
-		t->used = 0;
-	}
+	t = nft_table_builtin_find(h, p.table);
+	if (!t)
+		xtables_error(VERSION_PROBLEM,
+			      "table '%s' does not exist", p.table);
 
-	/* Getopt saves the day */
-	while ((c = getopt_long(argc, argv, EBT_OPTSTRING,
-					opts, NULL)) != -1) {
-		cs.c = c;
-		switch (c) {
-
-		case 'A': /* Add a rule */
-		case 'D': /* Delete a rule */
-		case 'C': /* Change counters */
-		case 'P': /* Define policy */
-		case 'I': /* Insert a rule */
-		case 'N': /* Make a user defined chain */
-		case 'E': /* Rename chain */
-		case 'X': /* Delete chain */
-		case 14:  /* check a rule */
-			/* We allow -N chainname -P policy */
-			if (command == 'N' && c == 'P') {
-				command = c;
-				optind--; /* No table specified */
-				goto handle_P;
-			}
-			if (OPT_COMMANDS)
-				xtables_error(PARAMETER_PROBLEM,
-					      "Multiple commands are not allowed");
-
-			command = c;
-			if (optarg && (optarg[0] == '-' || !strcmp(optarg, "!")))
-				xtables_error(PARAMETER_PROBLEM, "No chain name specified");
-			chain = optarg;
-			selected_chain = ebt_get_current_chain(chain);
-			flags |= OPT_COMMAND;
-
-			if (c == 'N') {
-				ebt_assert_valid_chain_name(chain);
-				ret = nft_cmd_chain_user_add(h, chain, *table);
-				break;
-			} else if (c == 'X') {
-				/* X arg is optional, optarg is NULL */
-				if (!chain && optind < argc && argv[optind][0] != '-') {
-					chain = argv[optind];
-					optind++;
-				}
-				ret = nft_cmd_chain_del(h, chain, *table, 0);
-				break;
-			}
-
-			if (c == 'E') {
-				if (!xs_has_arg(argc, argv))
-					xtables_error(PARAMETER_PROBLEM, "No new chain name specified");
-				else if (optind < argc - 1)
-					xtables_error(PARAMETER_PROBLEM, "No extra options allowed with -E");
-
-				ebt_assert_valid_chain_name(argv[optind]);
-
-				errno = 0;
-				ret = nft_cmd_chain_user_rename(h, chain, *table,
-							    argv[optind]);
-				if (ret != 0 && errno == ENOENT)
-					xtables_error(PARAMETER_PROBLEM, "Chain '%s' doesn't exists", chain);
-
-				optind++;
-				break;
-			} else if (c == 'D' && optind < argc && (argv[optind][0] != '-' || (argv[optind][1] >= '0' && argv[optind][1] <= '9'))) {
-				if (optind != argc - 1)
-					xtables_error(PARAMETER_PROBLEM,
-							 "No extra options allowed with -D start_nr[:end_nr]");
-				if (parse_rule_range(argv[optind], &rule_nr, &rule_nr_end))
-					xtables_error(PARAMETER_PROBLEM,
-							 "Problem with the specified rule number(s) '%s'", argv[optind]);
-				optind++;
-			} else if (c == 'C') {
-				if ((chcounter = parse_change_counters_rule(argc, argv, &rule_nr, &rule_nr_end, &cs)) == -1)
-					return -1;
-			} else if (c == 'I') {
-				if (optind >= argc || (argv[optind][0] == '-' && (argv[optind][1] < '0' || argv[optind][1] > '9')))
-					rule_nr = 1;
-				else {
-					rule_nr = parse_rule_number(argv[optind]);
-					optind++;
-				}
-			} else if (c == 'P') {
-handle_P:
-				if (optind >= argc)
-					xtables_error(PARAMETER_PROBLEM,
-						      "No policy specified");
-				for (i = 0; i < NUM_STANDARD_TARGETS; i++)
-					if (!strcmp(argv[optind], nft_ebt_standard_target(i))) {
-						policy = argv[optind];
-						if (-i-1 == EBT_CONTINUE)
-							xtables_error(PARAMETER_PROBLEM,
-								      "Wrong policy '%s'",
-								      argv[optind]);
-						break;
-					}
-				if (i == NUM_STANDARD_TARGETS)
-					xtables_error(PARAMETER_PROBLEM,
-						      "Unknown policy '%s'", argv[optind]);
-				optind++;
-			}
+	switch (p.command) {
+	case CMD_NEW_CHAIN:
+	case CMD_NEW_CHAIN | CMD_SET_POLICY:
+		ret = nft_cmd_chain_user_add(h, p.chain, p.table);
+		if (!ret || !(p.command & CMD_SET_POLICY))
 			break;
-		case 'L': /* List */
-		case 'F': /* Flush */
-		case 'Z': /* Zero counters */
-			if (c == 'Z') {
-				if ((flags & OPT_ZERO) || (flags & OPT_COMMAND && command != 'L'))
-print_zero:
-					xtables_error(PARAMETER_PROBLEM,
-						      "Command -Z only allowed together with command -L");
-				flags |= OPT_ZERO;
-			} else {
-				if (flags & OPT_COMMAND)
-					xtables_error(PARAMETER_PROBLEM,
-						      "Multiple commands are not allowed");
-				command = c;
-				flags |= OPT_COMMAND;
-				if (flags & OPT_ZERO && c != 'L')
-					goto print_zero;
-			}
-
-			if (optind < argc && argv[optind][0] != '-') {
-				chain = argv[optind];
-				optind++;
-			}
-			break;
-		case 'v': /* verbose */
-			flags |= OPT_VERBOSE;
-			h->verbose++;
-			break;
-		case 'V': /* Version */
-			if (OPT_COMMANDS)
-				xtables_error(PARAMETER_PROBLEM,
-					      "Multiple commands are not allowed");
-			printf("%s %s\n", prog_name, prog_vers);
-			exit(0);
-		case 'h': /* Help */
-			if (OPT_COMMANDS)
-				xtables_error(PARAMETER_PROBLEM,
-					      "Multiple commands are not allowed");
-			print_help(&cs);
-			exit(0);
-		case 't': /* Table */
-			if (restore && table_set)
-				xtables_error(PARAMETER_PROBLEM,
-					      "The -t option cannot be used in %s.",
-					      xt_params->program_name);
-			else if (table_set)
-				xtables_error(PARAMETER_PROBLEM,
-					      "Multiple use of same option not allowed");
-			if (!nft_table_builtin_find(h, optarg))
-				xtables_error(VERSION_PROBLEM,
-					      "table '%s' does not exist",
-					      optarg);
-			*table = optarg;
-			table_set = true;
-			break;
-		case 'i': /* Input interface */
-		case 15 : /* Logical input interface */
-		case 'o': /* Output interface */
-		case 16 : /* Logical output interface */
-		case 'j': /* Target */
-		case 'p': /* Net family protocol */
-		case 's': /* Source mac */
-		case 'd': /* Destination mac */
-		case 'c': /* Set counters */
-			if (!OPT_COMMANDS)
-				xtables_error(PARAMETER_PROBLEM,
-					      "No command specified");
-			if (command != 'A' && command != 'D' &&
-			    command != 'I' && command != 'C' && command != 14)
-				xtables_error(PARAMETER_PROBLEM,
-					      "Command and option do not match");
-			if (c == 'i') {
-				ebt_check_option2(&flags, OPT_VIANAMEIN);
-				if (selected_chain > 2 && selected_chain < NF_BR_BROUTING)
-					xtables_error(PARAMETER_PROBLEM,
-						      "Use -i only in INPUT, FORWARD, PREROUTING and BROUTING chains");
-				if (ebt_check_inverse2(optarg, argc, argv))
-					cs.eb.invflags |= EBT_IIN;
-
-				ebtables_parse_interface(optarg, cs.eb.in);
-				break;
-			} else if (c == 15) {
-				ebt_check_option2(&flags, OPT_LOGICALIN);
-				if (selected_chain > 2 && selected_chain < NF_BR_BROUTING)
-					xtables_error(PARAMETER_PROBLEM,
-						      "Use --logical-in only in INPUT, FORWARD, PREROUTING and BROUTING chains");
-				if (ebt_check_inverse2(optarg, argc, argv))
-					cs.eb.invflags |= EBT_ILOGICALIN;
-
-				ebtables_parse_interface(optarg, cs.eb.logical_in);
-				break;
-			} else if (c == 'o') {
-				ebt_check_option2(&flags, OPT_VIANAMEOUT);
-				if (selected_chain < 2 || selected_chain == NF_BR_BROUTING)
-					xtables_error(PARAMETER_PROBLEM,
-						      "Use -o only in OUTPUT, FORWARD and POSTROUTING chains");
-				if (ebt_check_inverse2(optarg, argc, argv))
-					cs.eb.invflags |= EBT_IOUT;
-
-				ebtables_parse_interface(optarg, cs.eb.out);
-				break;
-			} else if (c == 16) {
-				ebt_check_option2(&flags, OPT_LOGICALOUT);
-				if (selected_chain < 2 || selected_chain == NF_BR_BROUTING)
-					xtables_error(PARAMETER_PROBLEM,
-						      "Use --logical-out only in OUTPUT, FORWARD and POSTROUTING chains");
-				if (ebt_check_inverse2(optarg, argc, argv))
-					cs.eb.invflags |= EBT_ILOGICALOUT;
-
-				ebtables_parse_interface(optarg, cs.eb.logical_out);
-				break;
-			} else if (c == 'j') {
-				ebt_check_option2(&flags, OPT_JUMP);
-				if (strcmp(optarg, "CONTINUE") != 0) {
-					command_jump(&cs, optarg);
-				}
-				break;
-			} else if (c == 's') {
-				ebt_check_option2(&flags, OPT_SOURCE);
-				if (ebt_check_inverse2(optarg, argc, argv))
-					cs.eb.invflags |= EBT_ISOURCE;
-
-				if (xtables_parse_mac_and_mask(optarg,
-							       cs.eb.sourcemac,
-							       cs.eb.sourcemsk))
-					xtables_error(PARAMETER_PROBLEM, "Problem with specified source mac '%s'", optarg);
-				cs.eb.bitmask |= EBT_SOURCEMAC;
-				break;
-			} else if (c == 'd') {
-				ebt_check_option2(&flags, OPT_DESTINATION);
-				if (ebt_check_inverse2(optarg, argc, argv))
-					cs.eb.invflags |= EBT_IDEST;
-
-				if (xtables_parse_mac_and_mask(optarg,
-							       cs.eb.destmac,
-							       cs.eb.destmsk))
-					xtables_error(PARAMETER_PROBLEM, "Problem with specified destination mac '%s'", optarg);
-				cs.eb.bitmask |= EBT_DESTMAC;
-				break;
-			} else if (c == 'c') {
-				ebt_check_option2(&flags, OPT_COUNTERS);
-				if (ebt_check_inverse2(optarg, argc, argv))
-					xtables_error(PARAMETER_PROBLEM,
-						      "Unexpected '!' after -c");
-				if (optind >= argc || optarg[0] == '-' || argv[optind][0] == '-')
-					xtables_error(PARAMETER_PROBLEM,
-						      "Option -c needs 2 arguments");
-
-				cs.counters.pcnt = strtoull(optarg, &buffer, 10);
-				if (*buffer != '\0')
-					xtables_error(PARAMETER_PROBLEM,
-						      "Packet counter '%s' invalid",
-						      optarg);
-				cs.counters.bcnt = strtoull(argv[optind], &buffer, 10);
-				if (*buffer != '\0')
-					xtables_error(PARAMETER_PROBLEM,
-						      "Packet counter '%s' invalid",
-						      argv[optind]);
-				optind++;
-				break;
-			}
-			ebt_check_option2(&flags, OPT_PROTOCOL);
-			if (ebt_check_inverse2(optarg, argc, argv))
-				cs.eb.invflags |= EBT_IPROTO;
-
-			cs.eb.bitmask &= ~((unsigned int)EBT_NOPROTO);
-			i = strtol(optarg, &buffer, 16);
-			if (*buffer == '\0' && (i < 0 || i > 0xFFFF))
-				xtables_error(PARAMETER_PROBLEM,
-					      "Problem with the specified protocol");
-			if (*buffer != '\0') {
-				struct xt_ethertypeent *ent;
-
-				if (!strcasecmp(optarg, "LENGTH")) {
-					cs.eb.bitmask |= EBT_802_3;
-					break;
-				}
-				ent = xtables_getethertypebyname(optarg);
-				if (!ent)
-					xtables_error(PARAMETER_PROBLEM,
-						      "Problem with the specified Ethernet protocol '%s', perhaps "XT_PATH_ETHERTYPES " is missing", optarg);
-				cs.eb.ethproto = ent->e_ethertype;
-			} else
-				cs.eb.ethproto = i;
-
-			if (cs.eb.ethproto < 0x0600)
-				xtables_error(PARAMETER_PROBLEM,
-					      "Sorry, protocols have values above or equal to 0x0600");
-			break;
-		case 17 : /* Lc */
-			ebt_check_option2(&flags, LIST_C);
-			if (command != 'L')
-				xtables_error(PARAMETER_PROBLEM,
-					      "Use --Lc with -L");
-			flags |= LIST_C;
-			break;
-		case 18 : /* Ln */
-			ebt_check_option2(&flags, LIST_N);
-			if (command != 'L')
-				xtables_error(PARAMETER_PROBLEM,
-					      "Use --Ln with -L");
-			if (flags & LIST_X)
-				xtables_error(PARAMETER_PROBLEM,
-					      "--Lx is not compatible with --Ln");
-			flags |= LIST_N;
-			break;
-		case 19 : /* Lx */
-			ebt_check_option2(&flags, LIST_X);
-			if (command != 'L')
-				xtables_error(PARAMETER_PROBLEM,
-					      "Use --Lx with -L");
-			if (flags & LIST_N)
-				xtables_error(PARAMETER_PROBLEM,
-					      "--Lx is not compatible with --Ln");
-			flags |= LIST_X;
-			break;
-		case 12 : /* Lmac2 */
-			ebt_check_option2(&flags, LIST_MAC2);
-			if (command != 'L')
-				xtables_error(PARAMETER_PROBLEM,
-					       "Use --Lmac2 with -L");
-			flags |= LIST_MAC2;
-			break;
-		case 11: /* init-table */
-			if (restore)
-				xtables_error(PARAMETER_PROBLEM,
-					      "--init-table is not supported in daemon mode");
-			nft_cmd_table_flush(h, *table, false);
-			return 1;
-		case 13 :
-			break;
-		case 1 :
-			if (!strcmp(optarg, "!"))
-				ebt_check_inverse2(optarg, argc, argv);
-			else
-				xtables_error(PARAMETER_PROBLEM,
-					      "Bad argument : '%s'", optarg);
-			/* ebt_ebt_check_inverse2() did optind++ */
-			optind--;
-			continue;
-		default:
-			ebt_check_inverse2(optarg, argc, argv);
-			ebt_command_default(&cs);
-
-			if (command != 'A' && command != 'I' &&
-			    command != 'D' && command != 'C' && command != 14)
-				xtables_error(PARAMETER_PROBLEM,
-					      "Extensions only for -A, -I, -D and -C");
-		}
-		ebt_invert = 0;
-	}
-
-	/* Just in case we didn't catch an error */
-	/*if (ebt_errormsg[0] != '\0')
-		return -1;
-
-	if (!(table = ebt_find_table(replace->name)))
-		ebt_print_error2("Bad table name");*/
-
-	/* Do the final checks */
-	if (command == 'A' || command == 'I' ||
-	    command == 'D' || command == 'C' || command == 14) {
-		for (xtrm_i = cs.matches; xtrm_i; xtrm_i = xtrm_i->next)
-			xtables_option_mfcall(xtrm_i->match);
-
-		for (match = cs.match_list; match; match = match->next) {
-			if (match->ismatch)
-				continue;
-
-			xtables_option_tfcall(match->u.watcher);
-		}
-
-		if (cs.target != NULL)
-			xtables_option_tfcall(cs.target);
-	}
-	/* So, the extensions can work with the host endian.
-	 * The kernel does not have to do this of course */
-	cs.eb.ethproto = htons(cs.eb.ethproto);
-
-	p.table		= *table;
-	p.chain		= chain;
-	p.policy	= policy;
-	p.rulenum	= rule_nr;
-	p.rulenum_end	= rule_nr_end;
-	cs.options	= flags;
-
-	switch (command) {
-	case 'P':
-		if (selected_chain >= NF_BR_NUMHOOKS) {
+		/* fall through */
+	case CMD_SET_POLICY:
+		if (!nft_chain_builtin_find(t, p.chain)) {
 			ret = ebt_cmd_user_chain_policy(h, p.table, p.chain,
 							p.policy);
 			break;
@@ -1190,46 +603,83 @@ print_zero:
 		if (ret < 0)
 			xtables_error(PARAMETER_PROBLEM, "Wrong policy");
 		break;
-	case 'L':
-		ret = list_rules(h, p.chain, p.table, p.rulenum,
-				 cs.options & OPT_VERBOSE,
-				 0,
-				 /*cs.options&OPT_EXPANDED*/0,
-				 cs.options&LIST_N,
-				 cs.options&LIST_C);
-		if (!(cs.options & OPT_ZERO))
-			break;
-	case 'Z':
+	case CMD_LIST:
+	case CMD_LIST | CMD_ZERO:
+	case CMD_LIST | CMD_ZERO_NUM:
+	case CMD_LIST_RULES:
+	case CMD_LIST_RULES | CMD_ZERO:
+	case CMD_LIST_RULES | CMD_ZERO_NUM:
+		if (p.command & CMD_LIST)
+			ret = list_rules(h, p.chain, p.table, p.rulenum,
+					 cs.options & OPT_VERBOSE,
+					 0,
+					 /*cs.options&OPT_EXPANDED*/0,
+					 cs.options&OPT_LINENUMBERS,
+					 cs.options&OPT_LIST_C);
+		else if (p.command & CMD_LIST_RULES)
+			ret = nft_cmd_rule_list_save(h, p.chain, p.table,
+						     p.rulenum - 1,
+						     cs.options & OPT_VERBOSE);
+		if (ret && (p.command & CMD_ZERO))
+			ret = nft_cmd_chain_zero_counters(h, p.chain, p.table,
+							  cs.options & OPT_VERBOSE);
+		if (ret && (p.command & CMD_ZERO_NUM))
+			ret = nft_cmd_rule_zero_counters(h, p.chain, p.table,
+							 p.rulenum - 1);
+		break;
+	case CMD_ZERO:
 		ret = nft_cmd_chain_zero_counters(h, p.chain, p.table,
 						  cs.options & OPT_VERBOSE);
 		break;
-	case 'F':
+	case CMD_ZERO_NUM:
+		ret = nft_cmd_rule_zero_counters(h, p.chain, p.table,
+						 p.rulenum - 1);
+		break;
+	case CMD_FLUSH:
 		ret = nft_cmd_rule_flush(h, p.chain, p.table,
 					 cs.options & OPT_VERBOSE);
 		break;
-	case 'A':
+	case CMD_APPEND:
 		ret = nft_cmd_rule_append(h, p.chain, p.table, &cs,
 					  cs.options & OPT_VERBOSE);
 		break;
-	case 'I':
+	case CMD_INSERT:
 		ret = nft_cmd_rule_insert(h, p.chain, p.table, &cs,
 					  p.rulenum - 1,
 					  cs.options & OPT_VERBOSE);
 		break;
-	case 'D':
+	case CMD_DELETE:
+	case CMD_DELETE_NUM:
 		ret = delete_entry(h, p.chain, p.table, &cs, p.rulenum - 1,
 				   p.rulenum_end, cs.options & OPT_VERBOSE);
 		break;
-	case 14:
+	case CMD_DELETE_CHAIN:
+		ret = nft_cmd_chain_del(h, p.chain, p.table, 0);
+		break;
+	case CMD_RENAME_CHAIN:
+		ret = nft_cmd_chain_user_rename(h, p.chain, p.table, p.newname);
+		break;
+	case CMD_INIT_TABLE:
+		ret = nft_cmd_table_flush(h, p.table, false);
+		break;
+	case CMD_CHECK:
 		ret = nft_cmd_rule_check(h, p.chain, p.table,
 					 &cs, cs.options & OPT_VERBOSE);
 		break;
-	case 'C':
+	case CMD_CHANGE_COUNTERS:
 		ret = change_entry_counters(h, p.chain, p.table, &cs,
 					    p.rulenum - 1, p.rulenum_end,
-					    chcounter,
+					    args.counter_op,
 					    cs.options & OPT_VERBOSE);
 		break;
+	case CMD_REPLACE:
+		ret = nft_cmd_rule_replace(h, p.chain, p.table, &cs,
+					   p.rulenum - 1,
+					   cs.options & OPT_VERBOSE);
+		break;
+	default:
+		/* We should never reach this... */
+		exit_tryhelp(2, line);
 	}
 
 	ebt_cs_clean(&cs);

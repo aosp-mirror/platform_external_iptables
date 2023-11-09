@@ -47,10 +47,11 @@ enum {
 	/* below are for ebtables only */
 	OPT_LOGICALIN	= 1 << 18,
 	OPT_LOGICALOUT	= 1 << 19,
-	OPT_COMMAND	= 1 << 20,
-	OPT_ZERO	= 1 << 21,
+	OPT_LIST_C	= 1 << 20,
+	OPT_LIST_X	= 1 << 21,
+	OPT_LIST_MAC2	= 1 << 22,
 };
-#define NUMBER_OF_OPT	23
+#define NUMBER_OF_OPT	24
 
 enum {
 	CMD_NONE		= 0,
@@ -70,16 +71,17 @@ enum {
 	CMD_ZERO_NUM		= 1 << 13,
 	CMD_CHECK		= 1 << 14,
 	CMD_CHANGE_COUNTERS	= 1 << 15, /* ebtables only */
+	CMD_INIT_TABLE		= 1 << 16, /* ebtables only */
 };
-#define NUMBER_OF_CMD		17
+#define NUMBER_OF_CMD		18
 
 struct xtables_globals;
 struct xtables_rule_match;
 struct xtables_target;
 
-#define OPTSTRING_COMMON "-:A:C:D:E:F::I:L::M:N:P:VX::Z::" "c:d:i:j:o:p:s:t:v"
-#define IPT_OPTSTRING	OPTSTRING_COMMON "R:S::W::" "46bfg:h::m:nw::x"
-#define ARPT_OPTSTRING	OPTSTRING_COMMON "R:S::" "h::l:nx" /* "m:" */
+#define OPTSTRING_COMMON "-:A:C:D:E:F::I:L::M:N:P:R:S::VX::Z::" "c:d:i:j:o:p:s:t:v"
+#define IPT_OPTSTRING	OPTSTRING_COMMON "W::" "46bfg:h::m:nw::x"
+#define ARPT_OPTSTRING	OPTSTRING_COMMON "h::l:nx" /* "m:" */
 #define EBT_OPTSTRING	OPTSTRING_COMMON "h"
 
 /* define invflags which won't collide with IPT ones.
@@ -262,6 +264,7 @@ struct xtables_args {
 	uint16_t	invflags;
 	char		iniface[IFNAMSIZ], outiface[IFNAMSIZ];
 	unsigned char	iniface_mask[IFNAMSIZ], outiface_mask[IFNAMSIZ];
+	char		bri_iniface[IFNAMSIZ], bri_outiface[IFNAMSIZ];
 	bool		goto_set;
 	const char	*shostnetworkmask, *dhostnetworkmask;
 	const char	*pcnt, *bcnt;
