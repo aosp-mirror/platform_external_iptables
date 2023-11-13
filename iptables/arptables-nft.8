@@ -24,20 +24,34 @@
 .SH NAME
 arptables \(em ARP table administration (nft-based)
 .SH SYNOPSIS
-.BR "arptables " [ "-t table" ] " -" [ AD ] " chain rule-specification " [ options ]
-.br
-.BR "arptables " [ "-t table" ] " -" [ RI ] " chain rulenum rule-specification " [ options ]
-.br
-.BR "arptables " [ "-t table" ] " -D chain rulenum " [ options ]
-.br
-.BR "arptables " [ "-t table" ] " -" [ "LFZ" ] " " [ chain ] " " [ options ]
-.br
-.BR "arptables " [ "-t table" ] " -" [ "NX" ] " chain"
-.br
-.BR "arptables " [ "-t table" ] " -E old-chain-name new-chain-name"
-.br
-.BR "arptables " [ "-t table" ] " -P chain target " [ options ]
-
+\fBarptables\fP [\fB\-t\fP \fItable\fP] {\fB\-A|\-D\fP} \fIchain\fP
+\fIrule-specification\fP [options...]
+.PP
+\fBarptables\fP [\fB\-t\fP \fItable\fP] \fB\-I\fP \fIchain\fP [\fIrulenum\fP]
+\fIrule-specification\fP
+.PP
+\fBarptables\fP [\fB\-t\fP \fItable\fP] \fB\-R\fP \fIchain rulenum
+rule-specification\fP
+.PP
+\fBarptables\fP [\fB\-t\fP \fItable\fP] \fB\-D\fP \fIchain rulenum\fP
+.PP
+\fBarptables\fP [\fB\-t\fP \fItable\fP] {\fB\-F\fP|\fB\-L\fP|\fB\-Z\fP}
+[\fIchain\fP [\fIrulenum\fP]] [\fIoptions...\fP]
+.PP
+\fBarptables\fP [\fB\-t\fP \fItable\fP] \fB\-N\fP \fIchain\fP
+.PP
+\fBarptables\fP [\fB\-t\fP \fItable\fP] \fB\-X\fP [\fIchain\fP]
+.PP
+\fBarptables\fP [\fB\-t\fP \fItable\fP] \fB\-P\fP \fIchain target\fP
+.PP
+\fBarptables\fP [\fB\-t\fP \fItable\fP] \fB\-E\fP \fIold-chain-name
+new-chain-name\fP
+.PP
+rule-specification := [matches...] [target]
+.PP
+match := \fB\-m\fP \fImatchname\fP [per-match-options]
+.PP
+target := \fB\-j\fP \fItargetname\fP [per-target-options]
 .SH DESCRIPTION
 .B arptables
 is a user space tool, it is used to set up and maintain the
