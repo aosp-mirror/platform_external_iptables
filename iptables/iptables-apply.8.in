@@ -3,8 +3,6 @@
 .\"      Date: May 10, 2010
 .\"
 .TH IPTABLES\-APPLY 8 "" "@PACKAGE_STRING@" "@PACKAGE_STRING@"
-.\" disable hyphenation
-.nh
 .SH NAME
 iptables-apply \(em a safer way to update iptables remotely
 .SH SYNOPSIS
