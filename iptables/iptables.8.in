@@ -49,11 +49,11 @@ iptables/ip6tables \(em administration tool for IPv4/IPv6 packet filtering and N
 .PP
 \fBiptables\fP [\fB\-t\fP \fItable\fP] \fB\-E\fP \fIold-chain-name new-chain-name\fP
 .PP
-rule-specification = [\fImatches...\fP] [\fItarget\fP]
+rule-specification := [matches...] [target]
 .PP
-match = \fB\-m\fP \fImatchname\fP [\fIper-match-options\fP]
+match := \fB\-m\fP \fImatchname\fP [per-match-options]
 .PP
-target = \fB\-j\fP \fItargetname\fP [\fIper\-target\-options\fP]
+target := \fB\-j\fP \fItargetname\fP [per-target-options]
 .SH DESCRIPTION
 \fBIptables\fP and \fBip6tables\fP are used to set up, maintain, and inspect the
 tables of IPv4 and IPv6 packet
