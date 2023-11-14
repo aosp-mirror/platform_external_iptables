@@ -832,6 +832,19 @@ static const char *nft_arp_option_name(int option)
 	}
 }
 
+static int nft_arp_option_invert(int option)
+{
+	switch (option) {
+	case OPT_S_MAC:		return IPT_INV_SRCDEVADDR;
+	case OPT_D_MAC:		return IPT_INV_TGTDEVADDR;
+	case OPT_H_LENGTH:	return IPT_INV_ARPHLN;
+	case OPT_OPCODE:	return IPT_INV_ARPOP;
+	case OPT_H_TYPE:	return IPT_INV_ARPHRD;
+	case OPT_P_TYPE:	return IPT_INV_PROTO;
+	default:		return ip46t_option_invert(option);
+	}
+}
+
 struct nft_family_ops nft_family_ops_arp = {
 	.add			= nft_arp_add,
 	.is_same		= nft_arp_is_same,
@@ -844,6 +857,7 @@ struct nft_family_ops nft_family_ops_arp = {
 	.cmd_parse		= {
 		.post_parse	= nft_arp_post_parse,
 		.option_name	= nft_arp_option_name,
+		.option_invert	= nft_arp_option_invert,
 	},
 	.rule_to_cs		= nft_rule_to_iptables_command_state,
 	.init_cs		= nft_arp_init_cs,

@@ -1003,27 +1003,18 @@ const char *ip46t_option_name(int option)
 	}
 }
 
-static const int inverse_for_options[NUMBER_OF_OPT] =
+int ip46t_option_invert(int option)
 {
-/* -n */ 0,
-/* -s */ IPT_INV_SRCIP,
-/* -d */ IPT_INV_DSTIP,
-/* -p */ XT_INV_PROTO,
-/* -j */ 0,
-/* -v */ 0,
-/* -x */ 0,
-/* -i */ IPT_INV_VIA_IN,
-/* -o */ IPT_INV_VIA_OUT,
-/*--line*/ 0,
-/* -c */ 0,
-/* -f */ IPT_INV_FRAG,
-/* 2 */ IPT_INV_SRCDEVADDR,
-/* 3 */ IPT_INV_TGTDEVADDR,
-/* -l */ IPT_INV_ARPHLN,
-/* 4 */ IPT_INV_ARPOP,
-/* 5 */ IPT_INV_ARPHRD,
-/* 6 */ IPT_INV_PROTO,
-};
+	switch (option) {
+	case OPT_SOURCE:	return IPT_INV_SRCIP;
+	case OPT_DESTINATION:	return IPT_INV_DSTIP;
+	case OPT_PROTOCOL:	return XT_INV_PROTO;
+	case OPT_VIANAMEIN:	return IPT_INV_VIA_IN;
+	case OPT_VIANAMEOUT:	return IPT_INV_VIA_OUT;
+	case OPT_FRAGMENT:	return IPT_INV_FRAG;
+	default:		return -1;
+	}
+}
 
 static void
 set_option(struct xt_cmd_parse_ops *ops,
@@ -1037,14 +1028,13 @@ set_option(struct xt_cmd_parse_ops *ops,
 	*options |= option;
 
 	if (invert) {
-		unsigned int i;
-		for (i = 0; 1 << i != option; i++);
+		int invopt = ops->option_invert(option);
 
-		if (!inverse_for_options[i])
+		if (invopt < 0)
 			xtables_error(PARAMETER_PROBLEM,
 				      "cannot have ! before %s",
 				      ops->option_name(option));
-		*invflg |= inverse_for_options[i];
+		*invflg |= invopt;
 	}
 }
 
