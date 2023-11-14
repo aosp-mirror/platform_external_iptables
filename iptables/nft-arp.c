@@ -815,6 +815,23 @@ static int nft_arp_xlate(const struct iptables_command_state *cs,
 	return xlate_action(cs, false, xl);
 }
 
+static const char *nft_arp_option_name(int option)
+{
+	switch (option) {
+	default:		return ip46t_option_name(option);
+	/* different name than iptables */
+	case OPT_SOURCE:	return "--source-ip";
+	case OPT_DESTINATION:	return "--destination-ip";
+	/* arptables specific ones */
+	case OPT_S_MAC:		return "--source-mac";
+	case OPT_D_MAC:		return "--destination-mac";
+	case OPT_H_LENGTH:	return "--h-length";
+	case OPT_OPCODE:	return "--opcode";
+	case OPT_H_TYPE:	return "--h-type";
+	case OPT_P_TYPE:	return "--proto-type";
+	}
+}
+
 struct nft_family_ops nft_family_ops_arp = {
 	.add			= nft_arp_add,
 	.is_same		= nft_arp_is_same,
@@ -826,6 +843,7 @@ struct nft_family_ops nft_family_ops_arp = {
 	.rule_parse		= &nft_ruleparse_ops_arp,
 	.cmd_parse		= {
 		.post_parse	= nft_arp_post_parse,
+		.option_name	= nft_arp_option_name,
 	},
 	.rule_to_cs		= nft_rule_to_iptables_command_state,
 	.init_cs		= nft_arp_init_cs,

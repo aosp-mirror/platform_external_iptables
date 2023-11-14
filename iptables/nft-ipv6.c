@@ -344,6 +344,7 @@ struct nft_family_ops nft_family_ops_ipv6 = {
 	.cmd_parse		= {
 		.proto_parse	= ipv6_proto_parse,
 		.post_parse	= ipv6_post_parse,
+		.option_name	= ip46t_option_name,
 	},
 	.rule_to_cs		= nft_rule_to_iptables_command_state,
 	.clear_cs		= xtables_clear_iptables_command_state,

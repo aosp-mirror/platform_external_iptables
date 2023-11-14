@@ -50,6 +50,7 @@ enum {
 	OPT_COMMAND	= 1 << 20,
 	OPT_ZERO	= 1 << 21,
 };
+#define NUMBER_OF_OPT	23
 
 enum {
 	CMD_NONE		= 0,
@@ -272,6 +273,7 @@ struct xt_cmd_parse_ops {
 	void	(*post_parse)(int command,
 			      struct iptables_command_state *cs,
 			      struct xtables_args *args);
+	const char *(*option_name)(int option);
 };
 
 struct xt_cmd_parse {
@@ -286,6 +288,8 @@ struct xt_cmd_parse {
 	int				verbose;
 	struct xt_cmd_parse_ops		*ops;
 };
+
+const char *ip46t_option_name(int option);
 
 void do_parse(int argc, char *argv[],
 	      struct xt_cmd_parse *p, struct iptables_command_state *cs,

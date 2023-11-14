@@ -663,6 +663,7 @@ int do_command4(int argc, char *argv[], char **table,
 	struct xt_cmd_parse_ops cmd_parse_ops = {
 		.proto_parse	= ipv4_proto_parse,
 		.post_parse	= ipv4_post_parse,
+		.option_name	= ip46t_option_name,
 	};
 	struct xt_cmd_parse p = {
 		.table		= *table,
