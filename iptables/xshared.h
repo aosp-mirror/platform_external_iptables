@@ -249,7 +249,6 @@ struct addr_mask {
 
 struct xtables_args {
 	int		family;
-	uint16_t	proto;
 	uint8_t		flags;
 	uint16_t	invflags;
 	char		iniface[IFNAMSIZ], outiface[IFNAMSIZ];

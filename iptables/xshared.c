@@ -1547,12 +1547,6 @@ void do_parse(int argc, char *argv[],
 				*cs->protocol = tolower(*cs->protocol);
 
 			cs->protocol = optarg;
-			args->proto = xtables_parse_protocol(cs->protocol);
-
-			if (args->proto == 0 &&
-			    (args->invflags & XT_INV_PROTO))
-				xtables_error(PARAMETER_PROBLEM,
-					   "rule would never match protocol");
 
 			/* This needs to happen here to parse extensions */
 			if (p->ops->proto_parse)
@@ -1865,7 +1859,13 @@ void do_parse(int argc, char *argv[],
 void ipv4_proto_parse(struct iptables_command_state *cs,
 		      struct xtables_args *args)
 {
-	cs->fw.ip.proto = args->proto;
+	cs->fw.ip.proto = xtables_parse_protocol(cs->protocol);
+
+	if (cs->fw.ip.proto == 0 &&
+	    (args->invflags & XT_INV_PROTO))
+		xtables_error(PARAMETER_PROBLEM,
+			      "rule would never match protocol");
+
 	cs->fw.ip.invflags = args->invflags;
 }
 
@@ -1881,7 +1881,13 @@ static int is_exthdr(uint16_t proto)
 void ipv6_proto_parse(struct iptables_command_state *cs,
 		      struct xtables_args *args)
 {
-	cs->fw6.ipv6.proto = args->proto;
+	cs->fw6.ipv6.proto = xtables_parse_protocol(cs->protocol);
+
+	if (cs->fw6.ipv6.proto == 0 &&
+	    (args->invflags & XT_INV_PROTO))
+		xtables_error(PARAMETER_PROBLEM,
+			      "rule would never match protocol");
+
 	cs->fw6.ipv6.invflags = args->invflags;
 
 	/* this is needed for ip6tables-legacy only */
