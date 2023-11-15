@@ -272,6 +272,8 @@ struct xt_cmd_parse_ops {
 			      struct xtables_args *args);
 	const char *(*option_name)(int option);
 	int	(*option_invert)(int option);
+	int	(*command_default)(struct iptables_command_state *cs,
+				   struct xtables_globals *gl, bool invert);
 };
 
 struct xt_cmd_parse {
@@ -289,6 +291,8 @@ struct xt_cmd_parse {
 
 const char *ip46t_option_name(int option);
 int ip46t_option_invert(int option);
+int command_default(struct iptables_command_state *cs,
+		    struct xtables_globals *gl, bool invert);
 
 void do_parse(int argc, char *argv[],
 	      struct xt_cmd_parse *p, struct iptables_command_state *cs,

@@ -122,8 +122,8 @@ static struct xtables_match *load_proto(struct iptables_command_state *cs)
 			  cs->options & OPT_NUMERIC, &cs->matches);
 }
 
-static int command_default(struct iptables_command_state *cs,
-			   struct xtables_globals *gl, bool invert)
+int command_default(struct iptables_command_state *cs,
+		    struct xtables_globals *gl, bool invert)
 {
 	struct xtables_rule_match *matchp;
 	struct xtables_match *m;
@@ -1784,7 +1784,7 @@ void do_parse(int argc, char *argv[],
 			exit_tryhelp(2, p->line);
 
 		default:
-			if (command_default(cs, xt_params, invert))
+			if (p->ops->command_default(cs, xt_params, invert))
 				/* cf. ip6tables.c */
 				continue;
 			break;
