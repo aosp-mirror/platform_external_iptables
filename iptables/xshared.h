@@ -280,6 +280,7 @@ struct xt_cmd_parse_ops {
 struct xt_cmd_parse {
 	unsigned int			command;
 	unsigned int			rulenum;
+	unsigned int			rulenum_end;
 	char				*table;
 	const char			*chain;
 	const char			*newname;
@@ -287,6 +288,7 @@ struct xt_cmd_parse {
 	bool				restore;
 	int				line;
 	int				verbose;
+	bool				rule_ranges;
 	struct xt_cmd_parse_ops		*ops;
 };
 

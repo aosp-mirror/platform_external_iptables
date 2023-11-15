@@ -903,6 +903,38 @@ static int parse_rulenumber(const char *rule)
 	return rulenum;
 }
 
+static void parse_rule_range(struct xt_cmd_parse *p, const char *argv)
+{
+	char *colon = strchr(argv, ':'), *buffer;
+
+	if (colon) {
+		if (!p->rule_ranges)
+			xtables_error(PARAMETER_PROBLEM,
+				      "Rule ranges are not supported");
+
+		*colon = '\0';
+		if (*(colon + 1) == '\0')
+			p->rulenum_end = -1; /* Until the last rule */
+		else {
+			p->rulenum_end = strtol(colon + 1, &buffer, 10);
+			if (*buffer != '\0' || p->rulenum_end == 0)
+				xtables_error(PARAMETER_PROBLEM,
+					      "Invalid rule range end`%s'",
+					      colon + 1);
+		}
+	}
+	if (colon == argv)
+		p->rulenum = 1; /* Beginning with the first rule */
+	else {
+		p->rulenum = strtol(argv, &buffer, 10);
+		if (*buffer != '\0' || p->rulenum == 0)
+			xtables_error(PARAMETER_PROBLEM,
+				      "Invalid rule number `%s'", argv);
+	}
+	if (!colon)
+		p->rulenum_end = p->rulenum;
+}
+
 /* list the commands an option is allowed with */
 #define CMD_IDRAC	CMD_INSERT | CMD_DELETE | CMD_REPLACE | \
 			CMD_APPEND | CMD_CHECK
@@ -1411,7 +1443,7 @@ void do_parse(int argc, char *argv[],
 			add_command(&p->command, CMD_DELETE, CMD_NONE, invert);
 			p->chain = optarg;
 			if (xs_has_arg(argc, argv)) {
-				p->rulenum = parse_rulenumber(argv[optind++]);
+				parse_rule_range(p, argv[optind++]);
 				p->command = CMD_DELETE_NUM;
 			}
 			break;
