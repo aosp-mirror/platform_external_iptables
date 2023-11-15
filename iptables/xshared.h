@@ -212,8 +212,7 @@ void save_ipv6_addr(char letter, const struct in6_addr *addr,
 
 void print_ifaces(const char *iniface, const char *outiface, uint8_t invflags,
 		  unsigned int format);
-void save_iface(char letter, const char *iface,
-		const unsigned char *mask, int invert);
+void save_iface(char letter, const char *iface, int invert);
 
 void print_fragment(unsigned int flags, unsigned int invflags,
 		    unsigned int format, bool fake);
@@ -225,8 +224,7 @@ void assert_valid_chain_name(const char *chainname);
 void print_rule_details(unsigned int linenum, const struct xt_counters *ctrs,
 			const char *targname, uint8_t proto, uint8_t flags,
 			uint8_t invflags, unsigned int format);
-void save_rule_details(const char *iniface, unsigned const char *iniface_mask,
-		       const char *outiface, unsigned const char *outiface_mask,
+void save_rule_details(const char *iniface, const char *outiface,
 		       uint16_t proto, int frag, uint8_t invflags);
 
 int print_match_save(const struct xt_entry_match *e, const void *ip);

@@ -509,8 +509,7 @@ void print_rule6(const struct ip6t_entry *e,
 	save_ipv6_addr('d', &e->ipv6.dst, &e->ipv6.dmsk,
 		       e->ipv6.invflags & IP6T_INV_DSTIP);
 
-	save_rule_details(e->ipv6.iniface, e->ipv6.iniface_mask,
-			  e->ipv6.outiface, e->ipv6.outiface_mask,
+	save_rule_details(e->ipv6.iniface, e->ipv6.outiface,
 			  e->ipv6.proto, 0, e->ipv6.invflags);
 
 #if 0

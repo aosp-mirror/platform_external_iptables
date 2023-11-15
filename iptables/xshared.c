@@ -757,29 +757,12 @@ void print_ifaces(const char *iniface, const char *outiface, uint8_t invflags,
 	printf(FMT("%-6s ", "out %s "), iface);
 }
 
-/* This assumes that mask is contiguous, and byte-bounded. */
-void save_iface(char letter, const char *iface,
-		const unsigned char *mask, int invert)
+void save_iface(char letter, const char *iface, int invert)
 {
-	unsigned int i;
-
-	if (mask[0] == 0)
+	if (!strlen(iface) || !strcmp(iface, "+"))
 		return;
 
-	printf("%s -%c ", invert ? " !" : "", letter);
-
-	for (i = 0; i < IFNAMSIZ; i++) {
-		if (mask[i] != 0) {
-			if (iface[i] != '\0')
-				printf("%c", iface[i]);
-		} else {
-			/* we can access iface[i-1] here, because
-			 * a few lines above we make sure that mask[0] != 0 */
-			if (iface[i-1] != '\0')
-				printf("+");
-			break;
-		}
-	}
+	printf("%s -%c %s", invert ? " !" : "", letter, iface);
 }
 
 static void command_match(struct iptables_command_state *cs, bool invert)
@@ -1066,17 +1049,14 @@ void print_rule_details(unsigned int linenum, const struct xt_counters *ctrs,
 		printf(FMT("%-4s ", "%s "), pname);
 }
 
-void save_rule_details(const char *iniface, unsigned const char *iniface_mask,
-		       const char *outiface, unsigned const char *outiface_mask,
+void save_rule_details(const char *iniface, const char *outiface,
 		       uint16_t proto, int frag, uint8_t invflags)
 {
 	if (iniface != NULL) {
-		save_iface('i', iniface, iniface_mask,
-			    invflags & IPT_INV_VIA_IN);
+		save_iface('i', iniface, invflags & IPT_INV_VIA_IN);
 	}
 	if (outiface != NULL) {
-		save_iface('o', outiface, outiface_mask,
-			    invflags & IPT_INV_VIA_OUT);
+		save_iface('o', outiface, invflags & IPT_INV_VIA_OUT);
 	}
 
 	if (proto > 0) {

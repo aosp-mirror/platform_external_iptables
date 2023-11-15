@@ -516,8 +516,7 @@ void print_rule4(const struct ipt_entry *e,
 	save_ipv4_addr('d', &e->ip.dst, &e->ip.dmsk,
 			e->ip.invflags & IPT_INV_DSTIP);
 
-	save_rule_details(e->ip.iniface, e->ip.iniface_mask,
-			  e->ip.outiface, e->ip.outiface_mask,
+	save_rule_details(e->ip.iniface, e->ip.outiface,
 			  e->ip.proto, e->ip.flags & IPT_F_FRAG,
 			  e->ip.invflags);
 
