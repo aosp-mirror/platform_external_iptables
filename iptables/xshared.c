@@ -1836,11 +1836,6 @@ void do_parse(int argc, char *argv[],
 	if (p->ops->post_parse)
 		p->ops->post_parse(p->command, cs, args);
 
-	if (p->command == CMD_REPLACE &&
-	    (args->s.naddrs != 1 || args->d.naddrs != 1))
-		xtables_error(PARAMETER_PROBLEM, "Replacement rule does not "
-			   "specify a unique address");
-
 	generic_opt_check(p->command, cs->options);
 
 	if (p->chain != NULL && strlen(p->chain) >= XT_EXTENSION_MAXNAMELEN)
