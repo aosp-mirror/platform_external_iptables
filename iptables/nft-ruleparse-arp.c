@@ -34,9 +34,8 @@ static void nft_arp_parse_meta(struct nft_xt_ctx *ctx,
 	struct arpt_entry *fw = &cs->arp;
 	uint8_t flags = 0;
 
-	if (parse_meta(ctx, e, reg->meta_dreg.key, fw->arp.iniface, fw->arp.iniface_mask,
-		   fw->arp.outiface, fw->arp.outiface_mask,
-		   &flags) == 0) {
+	if (parse_meta(ctx, e, reg->meta_dreg.key, fw->arp.iniface,
+		       fw->arp.outiface, &flags) == 0) {
 		fw->arp.invflags |= flags;
 		return;
 	}
