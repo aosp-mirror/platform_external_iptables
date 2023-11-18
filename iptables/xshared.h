@@ -311,4 +311,6 @@ unsigned char *make_delete_mask(const struct xtables_rule_match *matches,
 				const struct xtables_target *target,
 				size_t entry_size);
 
+void iface_to_mask(const char *ifname, unsigned char *mask);
+
 #endif /* IPTABLES_XSHARED_H */

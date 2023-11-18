@@ -706,6 +706,9 @@ int do_command4(int argc, char *argv[], char **table,
 	smasks		= args.s.mask.v4;
 	dmasks		= args.d.mask.v4;
 
+	iface_to_mask(cs.fw.ip.iniface, cs.fw.ip.iniface_mask);
+	iface_to_mask(cs.fw.ip.outiface, cs.fw.ip.outiface_mask);
+
 	/* Attempt to acquire the xtables lock */
 	if (!restore)
 		xtables_lock_or_exit(wait);

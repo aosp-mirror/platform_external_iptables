@@ -1322,6 +1322,44 @@ void xtables_clear_iptables_command_state(struct iptables_command_state *cs)
 	}
 }
 
+void iface_to_mask(const char *iface, unsigned char *mask)
+{
+	unsigned int len = strlen(iface);
+
+	memset(mask, 0, IFNAMSIZ);
+
+	if (!len) {
+		return;
+	} else if (iface[len - 1] == '+') {
+		memset(mask, 0xff, len - 1);
+		/* Don't remove `+' here! -HW */
+	} else {
+		/* Include nul-terminator in match */
+		memset(mask, 0xff, len + 1);
+	}
+}
+
+static void parse_interface(const char *arg, char *iface)
+{
+	unsigned int len = strlen(arg);
+
+	memset(iface, 0, IFNAMSIZ);
+
+	if (!len)
+		return;
+	if (len >= IFNAMSIZ)
+		xtables_error(PARAMETER_PROBLEM,
+			      "interface name `%s' must be shorter than %d characters",
+			      arg, IFNAMSIZ);
+
+	if (strchr(arg, '/') || strchr(arg, ' '))
+		fprintf(stderr,
+			"Warning: weird character in interface `%s' ('/' and ' ' are not allowed by the kernel).\n",
+			arg);
+
+	strcpy(iface, arg);
+}
+
 void do_parse(int argc, char *argv[],
 	      struct xt_cmd_parse *p, struct iptables_command_state *cs,
 	      struct xtables_args *args)
@@ -1600,9 +1638,7 @@ void do_parse(int argc, char *argv[],
 			check_inverse(args, optarg, &invert, argc, argv);
 			set_option(p->ops, &cs->options, OPT_VIANAMEIN,
 				   &args->invflags, invert);
-			xtables_parse_interface(optarg,
-						args->iniface,
-						args->iniface_mask);
+			parse_interface(optarg, args->iniface);
 			break;
 
 		case 'o':
@@ -1610,9 +1646,7 @@ void do_parse(int argc, char *argv[],
 			check_inverse(args, optarg, &invert, argc, argv);
 			set_option(p->ops, &cs->options, OPT_VIANAMEOUT,
 				   &args->invflags, invert);
-			xtables_parse_interface(optarg,
-						args->outiface,
-						args->outiface_mask);
+			parse_interface(optarg, args->outiface);
 			break;
 
 		case 'f':
@@ -1873,12 +1907,7 @@ void ipv4_post_parse(int command, struct iptables_command_state *cs,
 	cs->fw.ip.invflags = args->invflags;
 
 	memcpy(cs->fw.ip.iniface, args->iniface, IFNAMSIZ);
-	memcpy(cs->fw.ip.iniface_mask,
-	       args->iniface_mask, IFNAMSIZ*sizeof(unsigned char));
-
 	memcpy(cs->fw.ip.outiface, args->outiface, IFNAMSIZ);
-	memcpy(cs->fw.ip.outiface_mask,
-	       args->outiface_mask, IFNAMSIZ*sizeof(unsigned char));
 
 	if (args->goto_set)
 		cs->fw.ip.flags |= IPT_F_GOTO;
