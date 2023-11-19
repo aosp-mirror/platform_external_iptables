@@ -284,7 +284,6 @@ struct xt_cmd_parse {
 	bool				restore;
 	int				line;
 	int				verbose;
-	bool				xlate;
 	struct xt_cmd_parse_ops		*ops;
 };
 

@@ -259,7 +259,6 @@ static int do_command_xlate(struct nft_handle *h, int argc, char *argv[],
 		.table		= *table,
 		.restore	= restore,
 		.line		= line,
-		.xlate		= true,
 		.ops		= &h->ops->cmd_parse,
 	};
 	struct iptables_command_state cs = {
