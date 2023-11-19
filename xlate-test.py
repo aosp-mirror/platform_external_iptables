@@ -41,9 +41,10 @@ def green(string):
 
 
 def test_one_xlate(name, sourceline, expected, result):
-    rc, output, error = run_proc([xtables_nft_multi] + shlex.split(sourceline))
+    cmd = [xtables_nft_multi] + shlex.split(sourceline)
+    rc, output, error = run_proc(cmd)
     if rc != 0:
-        result.append(name + ": " + red("Error: ") + "iptables-translate failure")
+        result.append(name + ": " + red("Error: ") + "Call failed: " + " ".join(cmd))
         result.append(error)
         return False
 
