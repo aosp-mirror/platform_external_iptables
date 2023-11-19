@@ -30,10 +30,12 @@ iptables-translate \(em translation tool to migrate from iptables to nftables
 ip6tables-translate \(em translation tool to migrate from ip6tables to nftables
 .P
 ebtables-translate \(em translation tool to migrate from ebtables to nftables
+.P
+arptables-translate \(em translation tool to migrate from arptables to nftables
 .SH DESCRIPTION
 There is a set of tools to help the system administrator translate a given
-ruleset from \fBiptables(8)\fP, \fBip6tables(8)\fP and \fBebtables(8)\fP to
-\fBnftables(8)\fP.
+ruleset from \fBiptables(8)\fP, \fBip6tables(8)\fP, \fBebtables(8)\fP and
+\fBarptables(8)\fP to \fBnftables(8)\fP.
 
 The available commands are:
 
@@ -47,11 +49,13 @@ ip6tables\-translate
 ip6tables\-restore\-translate
 .IP \[bu] 2
 ebtables\-translate
+.IP \[bu] 2
+arptables\-translate
 
 .SH USAGE
 They take as input the original
-\fBiptables(8)\fP/\fBip6tables(8)\fP/\fBebtables(8)\fP syntax and
-output the native \fBnftables(8)\fP syntax.
+\fBiptables(8)\fP/\fBip6tables(8)\fP/\fBebtables(8)\fP/\fBarptables(8)\fP
+syntax and output the native \fBnftables(8)\fP syntax.
 
 The \fBiptables-restore-translate\fP tool reads a ruleset in the syntax
 produced by \fBiptables-save(8)\fP. Likewise, the
