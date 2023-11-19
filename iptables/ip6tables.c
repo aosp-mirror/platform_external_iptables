@@ -671,6 +671,7 @@ int do_command6(int argc, char *argv[], char **table,
 		.option_name	= ip46t_option_name,
 		.option_invert	= ip46t_option_invert,
 		.command_default = command_default,
+		.print_help	= xtables_printhelp,
 	};
 	struct xt_cmd_parse p = {
 		.table		= *table,

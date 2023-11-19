@@ -274,6 +274,7 @@ struct xt_cmd_parse_ops {
 	int	(*option_invert)(int option);
 	int	(*command_default)(struct iptables_command_state *cs,
 				   struct xtables_globals *gl, bool invert);
+	void	(*print_help)(struct iptables_command_state *cs);
 };
 
 struct xt_cmd_parse {
@@ -289,6 +290,7 @@ struct xt_cmd_parse {
 	struct xt_cmd_parse_ops		*ops;
 };
 
+void xtables_printhelp(struct iptables_command_state *cs);
 const char *ip46t_option_name(int option);
 int ip46t_option_invert(int option);
 int command_default(struct iptables_command_state *cs,

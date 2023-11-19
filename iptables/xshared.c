@@ -1108,9 +1108,9 @@ int print_match_save(const struct xt_entry_match *e, const void *ip)
 	return 0;
 }
 
-static void
-xtables_printhelp(const struct xtables_rule_match *matches)
+void xtables_printhelp(struct iptables_command_state *cs)
 {
+	const struct xtables_rule_match *matches = cs->matches;
 	const char *prog_name = xt_params->program_name;
 	const char *prog_vers = xt_params->program_version;
 
@@ -1527,7 +1527,7 @@ void do_parse(int argc, char *argv[],
 				xtables_find_match(cs->protocol,
 					XTF_TRY_LOAD, &cs->matches);
 
-			xtables_printhelp(cs->matches);
+			p->ops->print_help(cs);
 			xtables_clear_iptables_command_state(cs);
 			xtables_free_opts(1);
 			xtables_fini();
