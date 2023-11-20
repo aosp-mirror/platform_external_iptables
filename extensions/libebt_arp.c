@@ -87,91 +87,17 @@ static void brarp_print_help(void)
 #define OPT_MAC_D  0x40
 #define OPT_GRAT   0x80
 
-static int undot_ip(char *ip, unsigned char *ip2)
-{
-	char *p, *q, *end;
-	long int onebyte;
-	int i;
-	char buf[20];
-
-	strncpy(buf, ip, sizeof(buf) - 1);
-
-	p = buf;
-	for (i = 0; i < 3; i++) {
-		if ((q = strchr(p, '.')) == NULL)
-			return -1;
-		*q = '\0';
-		onebyte = strtol(p, &end, 10);
-		if (*end != '\0' || onebyte > 255 || onebyte < 0)
-			return -1;
-		ip2[i] = (unsigned char)onebyte;
-		p = q + 1;
-	}
-
-	onebyte = strtol(p, &end, 10);
-	if (*end != '\0' || onebyte > 255 || onebyte < 0)
-		return -1;
-	ip2[3] = (unsigned char)onebyte;
-
-	return 0;
-}
-
-static int ip_mask(char *mask, unsigned char *mask2)
-{
-	char *end;
-	long int bits;
-	uint32_t mask22;
-
-	if (undot_ip(mask, mask2)) {
-		/* not the /a.b.c.e format, maybe the /x format */
-		bits = strtol(mask, &end, 10);
-		if (*end != '\0' || bits > 32 || bits < 0)
-			return -1;
-		if (bits != 0) {
-			mask22 = htonl(0xFFFFFFFF << (32 - bits));
-			memcpy(mask2, &mask22, 4);
-		} else {
-			mask22 = 0xFFFFFFFF;
-			memcpy(mask2, &mask22, 4);
-		}
-	}
-	return 0;
-}
-
-static void ebt_parse_ip_address(char *address, uint32_t *addr, uint32_t *msk)
-{
-	char *p;
-
-	/* first the mask */
-	if ((p = strrchr(address, '/')) != NULL) {
-		*p = '\0';
-		if (ip_mask(p + 1, (unsigned char *)msk)) {
-			xtables_error(PARAMETER_PROBLEM,
-				      "Problem with the IP mask '%s'", p + 1);
-			return;
-		}
-	} else
-		*msk = 0xFFFFFFFF;
-
-	if (undot_ip(address, (unsigned char *)addr)) {
-		xtables_error(PARAMETER_PROBLEM,
-			      "Problem with the IP address '%s'", address);
-		return;
-	}
-	*addr = *addr & *msk;
-}
-
 static int
 brarp_parse(int c, char **argv, int invert, unsigned int *flags,
 	    const void *entry, struct xt_entry_match **match)
 {
 	struct ebt_arp_info *arpinfo = (struct ebt_arp_info *)(*match)->data;
+	struct in_addr *ipaddr, ipmask;
 	long int i;
 	char *end;
-	uint32_t *addr;
-	uint32_t *mask;
 	unsigned char *maddr;
 	unsigned char *mmask;
+	unsigned int ipnr;
 
 	switch (c) {
 	case ARP_OPCODE:
@@ -231,24 +157,25 @@ brarp_parse(int c, char **argv, int invert, unsigned int *flags,
 
 	case ARP_IP_S:
 	case ARP_IP_D:
+		xtables_ipparse_any(optarg, &ipaddr, &ipmask, &ipnr);
 		if (c == ARP_IP_S) {
 			EBT_CHECK_OPTION(flags, OPT_IP_S);
-			addr = &arpinfo->saddr;
-			mask = &arpinfo->smsk;
+			arpinfo->saddr = ipaddr->s_addr;
+			arpinfo->smsk = ipmask.s_addr;
 			arpinfo->bitmask |= EBT_ARP_SRC_IP;
 		} else {
 			EBT_CHECK_OPTION(flags, OPT_IP_D);
-			addr = &arpinfo->daddr;
-			mask = &arpinfo->dmsk;
+			arpinfo->daddr = ipaddr->s_addr;
+			arpinfo->dmsk = ipmask.s_addr;
 			arpinfo->bitmask |= EBT_ARP_DST_IP;
 		}
+		free(ipaddr);
 		if (invert) {
 			if (c == ARP_IP_S)
 				arpinfo->invflags |= EBT_ARP_SRC_IP;
 			else
 				arpinfo->invflags |= EBT_ARP_DST_IP;
 		}
-		ebt_parse_ip_address(optarg, addr, mask);
 		break;
 	case ARP_MAC_S:
 	case ARP_MAC_D:
