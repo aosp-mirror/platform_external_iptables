@@ -1168,47 +1168,57 @@ print_zero:
 	 * The kernel does not have to do this of course */
 	cs.eb.ethproto = htons(cs.eb.ethproto);
 
-	if (command == 'P') {
+	switch (command) {
+	case 'P':
 		if (selected_chain >= NF_BR_NUMHOOKS) {
 			ret = ebt_cmd_user_chain_policy(h, *table, chain, policy);
-		} else {
-			if (strcmp(policy, "RETURN") == 0) {
-				xtables_error(PARAMETER_PROBLEM,
-					      "Policy RETURN only allowed for user defined chains");
-			}
-			ret = nft_cmd_chain_set(h, *table, chain, policy, NULL);
-			if (ret < 0)
-				xtables_error(PARAMETER_PROBLEM, "Wrong policy");
+			break;
 		}
-	} else if (command == 'L') {
+		if (strcmp(policy, "RETURN") == 0) {
+			xtables_error(PARAMETER_PROBLEM,
+				      "Policy RETURN only allowed for user defined chains");
+		}
+		ret = nft_cmd_chain_set(h, *table, chain, policy, NULL);
+		if (ret < 0)
+			xtables_error(PARAMETER_PROBLEM, "Wrong policy");
+		break;
+	case 'L':
 		ret = list_rules(h, chain, *table, rule_nr,
 				 flags & OPT_VERBOSE,
 				 0,
 				 /*flags&OPT_EXPANDED*/0,
 				 flags&LIST_N,
 				 flags&LIST_C);
-	}
-	if (flags & OPT_ZERO) {
+		if (!(flags & OPT_ZERO))
+			break;
+	case 'Z':
 		ret = nft_cmd_chain_zero_counters(h, chain, *table,
 						  flags & OPT_VERBOSE);
-	} else if (command == 'F') {
+		break;
+	case 'F':
 		ret = nft_cmd_rule_flush(h, chain, *table, flags & OPT_VERBOSE);
-	} else if (command == 'A') {
+		break;
+	case 'A':
 		ret = nft_cmd_rule_append(h, chain, *table, &cs,
 					  flags & OPT_VERBOSE);
-	} else if (command == 'I') {
+		break;
+	case 'I':
 		ret = nft_cmd_rule_insert(h, chain, *table, &cs,
 					  rule_nr - 1, flags & OPT_VERBOSE);
-	} else if (command == 'D') {
+		break;
+	case 'D':
 		ret = delete_entry(h, chain, *table, &cs, rule_nr - 1,
 				   rule_nr_end, flags & OPT_VERBOSE);
-	} else if (command == 14) {
+		break;
+	case 14:
 		ret = nft_cmd_rule_check(h, chain, *table,
 					 &cs, flags & OPT_VERBOSE);
-	} else if (command == 'C') {
+		break;
+	case 'C':
 		ret = change_entry_counters(h, chain, *table, &cs,
 					    rule_nr - 1, rule_nr_end, chcounter,
 					    flags & OPT_VERBOSE);
+		break;
 	}
 
 	ebt_cs_clean(&cs);

@@ -497,23 +497,25 @@ print_zero:
 
 	cs.eb.ethproto = htons(cs.eb.ethproto);
 
-	if (command == 'P') {
-		return 0;
-	} else if (command == 'F') {
-			if (p.chain) {
-				printf("flush chain bridge %s %s\n", p.table, p.chain);
-			} else {
-				printf("flush table bridge %s\n", p.table);
-			}
-			ret = 1;
-	} else if (command == 'A') {
+	switch (command) {
+	case 'F':
+		if (p.chain) {
+			printf("flush chain bridge %s %s\n", p.table, p.chain);
+		} else {
+			printf("flush table bridge %s\n", p.table);
+		}
+		ret = 1;
+		break;
+	case 'A':
 		ret = nft_rule_eb_xlate_add(h, &p, &cs, true);
 		if (!ret)
 			print_ebt_cmd(argc, argv);
-	} else if (command == 'I') {
+		break;
+	case 'I':
 		ret = nft_rule_eb_xlate_add(h, &p, &cs, false);
 		if (!ret)
 			print_ebt_cmd(argc, argv);
+		break;
 	}
 
 	ebt_cs_clean(&cs);
