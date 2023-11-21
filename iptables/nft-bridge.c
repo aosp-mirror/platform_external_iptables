@@ -354,7 +354,7 @@ static void nft_bridge_print_rule(struct nft_handle *h, struct nftnl_rule *r,
 	struct iptables_command_state cs = {};
 
 	if (format & FMT_LINENUMBERS)
-		printf("%d ", num);
+		printf("%d. ", num);
 
 	nft_rule_to_ebtables_command_state(h, r, &cs);
 	__nft_bridge_save_rule(&cs, format);
