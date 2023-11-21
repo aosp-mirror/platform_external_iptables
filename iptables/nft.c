@@ -337,6 +337,7 @@ static int mnl_append_error(const struct nft_handle *h,
 	case NFT_COMPAT_RULE_REPLACE:
 	case NFT_COMPAT_RULE_DELETE:
 	case NFT_COMPAT_RULE_FLUSH:
+	case NFT_COMPAT_RULE_CHANGE_COUNTERS:
 		snprintf(tcr, sizeof(tcr), "rule in chain %s",
 			 nftnl_rule_get_str(o->rule, NFTNL_RULE_CHAIN));
 #if 0
@@ -2641,6 +2642,58 @@ int nft_rule_replace(struct nft_handle *h, const char *chain,
 	return ret;
 }
 
+static int nft_rule_change_counters(struct nft_handle *h, const char *table,
+				    const char *chain, struct nftnl_rule *rule,
+				    int rulenum, struct xt_counters *counters,
+				    uint8_t counter_op, bool verbose)
+{
+	struct iptables_command_state cs = {};
+	struct nftnl_rule *r, *new_rule;
+	struct nft_rule_ctx ctx = {
+		.command = NFT_COMPAT_RULE_APPEND,
+	};
+	struct nft_chain *c;
+
+	nft_fn = nft_rule_change_counters;
+
+	c = nft_chain_find(h, table, chain);
+	if (!c) {
+		errno = ENOENT;
+		return 0;
+	}
+
+	r = nft_rule_find(h, c, rule, rulenum);
+	if (!r) {
+		errno = E2BIG;
+		return 0;
+	}
+
+	DEBUGP("changing counters of rule with handle=%llu\n",
+		(unsigned long long)
+		nftnl_rule_get_u64(r, NFTNL_RULE_HANDLE));
+
+	h->ops->rule_to_cs(h, r, &cs);
+
+	if (counter_op & CTR_OP_INC_PKTS)
+		cs.counters.pcnt += counters->pcnt;
+	else if (counter_op & CTR_OP_DEC_PKTS)
+		cs.counters.pcnt -= counters->pcnt;
+	else
+		cs.counters.pcnt = counters->pcnt;
+
+	if (counter_op & CTR_OP_INC_BYTES)
+		cs.counters.bcnt += counters->bcnt;
+	else if (counter_op & CTR_OP_DEC_BYTES)
+		cs.counters.bcnt -= counters->bcnt;
+	else
+		cs.counters.bcnt = counters->bcnt;
+
+	new_rule = nft_rule_new(h, &ctx, chain, table, &cs);
+	h->ops->clear_cs(&cs);
+
+	return nft_rule_append(h, chain, table, new_rule, r, verbose);
+}
+
 static int
 __nft_rule_list(struct nft_handle *h, struct nftnl_chain *c,
 		int rulenum, unsigned int format,
@@ -3031,6 +3084,7 @@ static void batch_obj_del(struct nft_handle *h, struct obj_update *o)
 	case NFT_COMPAT_RULE_APPEND:
 	case NFT_COMPAT_RULE_INSERT:
 	case NFT_COMPAT_RULE_REPLACE:
+	case NFT_COMPAT_RULE_CHANGE_COUNTERS:
 		break;
 	case NFT_COMPAT_RULE_DELETE:
 	case NFT_COMPAT_RULE_FLUSH:
@@ -3118,6 +3172,7 @@ static void nft_refresh_transaction(struct nft_handle *h)
 		case NFT_COMPAT_RULE_APPEND:
 		case NFT_COMPAT_RULE_INSERT:
 		case NFT_COMPAT_RULE_REPLACE:
+		case NFT_COMPAT_RULE_CHANGE_COUNTERS:
 		case NFT_COMPAT_RULE_DELETE:
 		case NFT_COMPAT_SET_ADD:
 		case NFT_COMPAT_RULE_LIST:
@@ -3208,6 +3263,7 @@ retry:
 						  n->rule);
 			break;
 		case NFT_COMPAT_RULE_REPLACE:
+		case NFT_COMPAT_RULE_CHANGE_COUNTERS:
 			nft_compat_rule_batch_add(h, NFT_MSG_NEWRULE,
 						  NLM_F_CREATE | NLM_F_REPLACE,
 						  n->seq, n->rule);
@@ -3510,6 +3566,15 @@ static int nft_prepare(struct nft_handle *h)
 		case NFT_COMPAT_CHAIN_ADD:
 			assert(0);
 			return 0;
+		case NFT_COMPAT_RULE_CHANGE_COUNTERS:
+			ret = nft_rule_change_counters(h, cmd->table,
+						       cmd->chain,
+						       cmd->obj.rule,
+						       cmd->rulenum,
+						       &cmd->counters,
+						       cmd->counter_op,
+						       cmd->verbose);
+			break;
 		}
 
 		nft_cmd_free(cmd);

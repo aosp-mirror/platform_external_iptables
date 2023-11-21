@@ -136,6 +136,29 @@ delete_entry(struct nft_handle *h,
 	return ret;
 }
 
+static int
+change_entry_counters(struct nft_handle *h,
+		      const char *chain, const char *table,
+		      struct iptables_command_state *cs,
+		      int rule_nr, int rule_nr_end, uint8_t counter_op,
+		      bool verbose)
+{
+	int ret = 1;
+
+	if (rule_nr == -1)
+		return nft_cmd_rule_change_counters(h, chain, table, cs,
+						    rule_nr, counter_op,
+						    verbose);
+	do {
+		ret = nft_cmd_rule_change_counters(h, chain, table, cs,
+						   rule_nr, counter_op,
+						   verbose);
+		rule_nr++;
+	} while (rule_nr < rule_nr_end);
+
+	return ret;
+}
+
 int ebt_get_current_chain(const char *chain)
 {
 	if (!chain)
@@ -391,51 +414,62 @@ static int parse_rule_range(const char *argv, int *rule_nr, int *rule_nr_end)
 /* Incrementing or decrementing rules in daemon mode is not supported as the
  * involved code overload is not worth it (too annoying to take the increased
  * counters in the kernel into account). */
-static int parse_change_counters_rule(int argc, char **argv, int *rule_nr, int *rule_nr_end, struct iptables_command_state *cs)
+static uint8_t parse_change_counters_rule(int argc, char **argv,
+					  int *rule_nr, int *rule_nr_end,
+					  struct iptables_command_state *cs)
 {
+	uint8_t ret = 0;
 	char *buffer;
-	int ret = 0;
 
-	if (optind + 1 >= argc || argv[optind][0] == '-' || argv[optind + 1][0] == '-')
+	if (optind + 1 >= argc ||
+	    (argv[optind][0] == '-' && !isdigit(argv[optind][1])) ||
+	    (argv[optind + 1][0] == '-' && !isdigit(argv[optind + 1][1])))
 		xtables_error(PARAMETER_PROBLEM,
 			      "The command -C needs at least 2 arguments");
-	if (optind + 2 < argc && (argv[optind + 2][0] != '-' || (argv[optind + 2][1] >= '0' && argv[optind + 2][1] <= '9'))) {
+	if (optind + 2 < argc &&
+	    (argv[optind + 2][0] != '-' || isdigit(argv[optind + 2][1]))) {
 		if (optind + 3 != argc)
 			xtables_error(PARAMETER_PROBLEM,
 				      "No extra options allowed with -C start_nr[:end_nr] pcnt bcnt");
 		if (parse_rule_range(argv[optind], rule_nr, rule_nr_end))
 			xtables_error(PARAMETER_PROBLEM,
-				      "Something is wrong with the rule number specification '%s'", argv[optind]);
+				      "Something is wrong with the rule number specification '%s'",
+				      argv[optind]);
 		optind++;
 	}
 
 	if (argv[optind][0] == '+') {
-		ret += 1;
+		ret |= CTR_OP_INC_PKTS;
 		cs->counters.pcnt = strtoull(argv[optind] + 1, &buffer, 10);
 	} else if (argv[optind][0] == '-') {
-		ret += 2;
+		ret |= CTR_OP_DEC_PKTS;
 		cs->counters.pcnt = strtoull(argv[optind] + 1, &buffer, 10);
-	} else
+	} else {
 		cs->counters.pcnt = strtoull(argv[optind], &buffer, 10);
-
+	}
 	if (*buffer != '\0')
 		goto invalid;
+
 	optind++;
+
 	if (argv[optind][0] == '+') {
-		ret += 3;
+		ret |= CTR_OP_INC_BYTES;
 		cs->counters.bcnt = strtoull(argv[optind] + 1, &buffer, 10);
 	} else if (argv[optind][0] == '-') {
-		ret += 6;
+		ret |= CTR_OP_DEC_BYTES;
 		cs->counters.bcnt = strtoull(argv[optind] + 1, &buffer, 10);
-	} else
+	} else {
 		cs->counters.bcnt = strtoull(argv[optind], &buffer, 10);
-
+	}
 	if (*buffer != '\0')
 		goto invalid;
+
 	optind++;
+
 	return ret;
 invalid:
-	xtables_error(PARAMETER_PROBLEM,"Packet counter '%s' invalid", argv[optind]);
+	xtables_error(PARAMETER_PROBLEM,
+		      "Packet counter '%s' invalid", argv[optind]);
 }
 
 static void ebtables_parse_interface(const char *arg, char *vianame)
@@ -695,7 +729,7 @@ int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table,
 {
 	char *buffer;
 	int c, i;
-	int chcounter = 0; /* Needed for -C */
+	uint8_t chcounter = 0; /* Needed for -C */
 	int rule_nr = 0;
 	int rule_nr_end = 0;
 	int ret = 0;
@@ -1171,11 +1205,11 @@ print_zero:
 	} else if (command == 14) {
 		ret = nft_cmd_rule_check(h, chain, *table,
 					 &cs, flags & OPT_VERBOSE);
-	} /*else if (replace->command == 'C') {
-		ebt_change_counters(replace, new_entry, rule_nr, rule_nr_end, &(new_entry->cnt_surplus), chcounter);
-		if (ebt_errormsg[0] != '\0')
-			return -1;
-	}*/
+	} else if (command == 'C') {
+		ret = change_entry_counters(h, chain, *table, &cs,
+					    rule_nr - 1, rule_nr_end, chcounter,
+					    flags & OPT_VERBOSE);
+	}
 
 	ebt_cs_clean(&cs);
 	return ret;

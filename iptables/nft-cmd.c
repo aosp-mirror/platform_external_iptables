@@ -400,3 +400,23 @@ int ebt_cmd_user_chain_policy(struct nft_handle *h, const char *table,
 
 	return 1;
 }
+
+int nft_cmd_rule_change_counters(struct nft_handle *h,
+				 const char *chain, const char *table,
+				 struct iptables_command_state *cs,
+				 int rule_nr, uint8_t counter_op, bool verbose)
+{
+	struct nft_cmd *cmd;
+
+	cmd = nft_cmd_new(h, NFT_COMPAT_RULE_CHANGE_COUNTERS, table, chain,
+			  rule_nr == -1 ? cs : NULL, rule_nr, verbose);
+	if (!cmd)
+		return 0;
+
+	cmd->counter_op = counter_op;
+	cmd->counters = cs->counters;
+
+	nft_cache_level_set(h, NFT_CL_RULES, cmd);
+
+	return 1;
+}
