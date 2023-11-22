@@ -580,23 +580,23 @@ int xtables_load_ko(const char *modprobe, bool quiet)
 }
 
 /**
- * xtables_strtou{i,l} - string to number conversion
+ * xtables_strtoul_base - string to number conversion
  * @s:	input string
  * @end:	like strtoul's "end" pointer
  * @value:	pointer for result
  * @min:	minimum accepted value
  * @max:	maximum accepted value
+ * @base:	assumed base of value
  *
  * If @end is NULL, we assume the caller wants a "strict strtoul", and hence
  * "15a" is rejected.
  * In either case, the value obtained is compared for min-max compliance.
- * Base is always 0, i.e. autodetect depending on @s.
  *
  * Returns true/false whether number was accepted. On failure, *value has
  * undefined contents.
  */
-bool xtables_strtoul(const char *s, char **end, uintmax_t *value,
-                     uintmax_t min, uintmax_t max)
+bool xtables_strtoul_base(const char *s, char **end, uintmax_t *value,
+			  uintmax_t min, uintmax_t max, unsigned int base)
 {
 	uintmax_t v;
 	const char *p;
@@ -608,7 +608,7 @@ bool xtables_strtoul(const char *s, char **end, uintmax_t *value,
 		;
 	if (*p == '-')
 		return false;
-	v = strtoumax(s, &my_end, 0);
+	v = strtoumax(s, &my_end, base);
 	if (my_end == s)
 		return false;
 	if (end != NULL)
@@ -623,6 +623,12 @@ bool xtables_strtoul(const char *s, char **end, uintmax_t *value,
 	}
 
 	return false;
+}
+
+bool xtables_strtoul(const char *s, char **end, uintmax_t *value,
+		     uintmax_t min, uintmax_t max)
+{
+	return xtables_strtoul_base(s, end, value, min, max, 0);
 }
 
 bool xtables_strtoui(const char *s, char **end, unsigned int *value,

@@ -486,6 +486,8 @@ extern void xtables_register_matches(struct xtables_match *, unsigned int);
 extern void xtables_register_target(struct xtables_target *me);
 extern void xtables_register_targets(struct xtables_target *, unsigned int);
 
+extern bool xtables_strtoul_base(const char *, char **, uintmax_t *,
+	uintmax_t, uintmax_t, unsigned int);
 extern bool xtables_strtoul(const char *, char **, uintmax_t *,
 	uintmax_t, uintmax_t);
 extern bool xtables_strtoui(const char *, char **, unsigned int *,
