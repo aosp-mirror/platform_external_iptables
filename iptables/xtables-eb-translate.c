@@ -292,9 +292,9 @@ print_zero:
 			table_set = true;
 			break;
 		case 'i': /* Input interface */
-		case 2  : /* Logical input interface */
+		case 15 : /* Logical input interface */
 		case 'o': /* Output interface */
-		case 3  : /* Logical output interface */
+		case 16 : /* Logical output interface */
 		case 'j': /* Target */
 		case 'p': /* Net family protocol */
 		case 's': /* Source mac */
@@ -316,7 +316,7 @@ print_zero:
 
 				ebtables_parse_interface(optarg, cs.eb.in);
 				break;
-			} else if (c == 2) {
+			} else if (c == 15) {
 				ebt_check_option2(&flags, OPT_LOGICALIN);
 				if (selected_chain > 2 && selected_chain < NF_BR_BROUTING)
 					xtables_error(PARAMETER_PROBLEM,
@@ -336,7 +336,7 @@ print_zero:
 
 				ebtables_parse_interface(optarg, cs.eb.out);
 				break;
-			} else if (c == 3) {
+			} else if (c == 16) {
 				ebt_check_option2(&flags, OPT_LOGICALOUT);
 				if (selected_chain < 2 || selected_chain == NF_BR_BROUTING)
 					xtables_error(PARAMETER_PROBLEM,
@@ -424,14 +424,14 @@ print_zero:
 				xtables_error(PARAMETER_PROBLEM,
 					      "Sorry, protocols have values above or equal to 0x0600");
 			break;
-		case 4  : /* Lc */
+		case 17 : /* Lc */
 			ebt_check_option2(&flags, LIST_C);
 			if (command != 'L')
 				xtables_error(PARAMETER_PROBLEM,
 					      "Use --Lc with -L");
 			flags |= LIST_C;
 			break;
-		case 5  : /* Ln */
+		case 18 : /* Ln */
 			ebt_check_option2(&flags, LIST_N);
 			if (command != 'L')
 				xtables_error(PARAMETER_PROBLEM,
@@ -441,7 +441,7 @@ print_zero:
 					      "--Lx is not compatible with --Ln");
 			flags |= LIST_N;
 			break;
-		case 6  : /* Lx */
+		case 19 : /* Lx */
 			ebt_check_option2(&flags, LIST_X);
 			if (command != 'L')
 				xtables_error(PARAMETER_PROBLEM,
