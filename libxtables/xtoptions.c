@@ -161,7 +161,8 @@ static void xtopt_parse_int(struct xt_option_call *cb)
 	if (cb->entry->max != 0)
 		lmax = cb->entry->max;
 
-	if (!xtables_strtoul(cb->arg, NULL, &value, lmin, lmax))
+	if (!xtables_strtoul_base(cb->arg, NULL, &value,
+				  lmin, lmax, cb->entry->base))
 		xt_params->exit_err(PARAMETER_PROBLEM,
 			"%s: bad value for option \"--%s\", "
 			"or out of range (%ju-%ju).\n",
