@@ -504,7 +504,7 @@ static void ebt_load_watcher(const char *name)
 		xtables_error(OTHER_PROBLEM, "Can't alloc memory");
 }
 
-void ebt_load_match_extensions(void)
+static void ebt_load_match_extensions(void)
 {
 	opts = ebt_original_options;
 	ebt_load_match("802_3");

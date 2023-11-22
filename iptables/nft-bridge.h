@@ -115,7 +115,6 @@ static inline const char *ebt_target_name(unsigned int verdict)
 })								\
 
 void ebt_cs_clean(struct iptables_command_state *cs);
-void ebt_load_match_extensions(void);
 void ebt_add_match(struct xtables_match *m,
 			  struct iptables_command_state *cs);
 void ebt_add_watcher(struct xtables_target *watcher,
