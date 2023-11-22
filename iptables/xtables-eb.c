@@ -113,24 +113,6 @@ static int parse_rule_number(const char *rule)
 }
 
 static int
-append_entry(struct nft_handle *h,
-	     const char *chain,
-	     const char *table,
-	     struct iptables_command_state *cs,
-	     int rule_nr,
-	     bool verbose, bool append)
-{
-	int ret = 1;
-
-	if (append)
-		ret = nft_cmd_rule_append(h, chain, table, cs, verbose);
-	else
-		ret = nft_cmd_rule_insert(h, chain, table, cs, rule_nr, verbose);
-
-	return ret;
-}
-
-static int
 delete_entry(struct nft_handle *h,
 	     const char *chain,
 	     const char *table,
@@ -1178,11 +1160,11 @@ print_zero:
 	} else if (command == 'F') {
 		ret = nft_cmd_rule_flush(h, chain, *table, flags & OPT_VERBOSE);
 	} else if (command == 'A') {
-		ret = append_entry(h, chain, *table, &cs, 0,
-				   flags & OPT_VERBOSE, true);
+		ret = nft_cmd_rule_append(h, chain, *table, &cs,
+					  flags & OPT_VERBOSE);
 	} else if (command == 'I') {
-		ret = append_entry(h, chain, *table, &cs, rule_nr - 1,
-				   flags & OPT_VERBOSE, false);
+		ret = nft_cmd_rule_insert(h, chain, *table, &cs,
+					  rule_nr - 1, flags & OPT_VERBOSE);
 	} else if (command == 'D') {
 		ret = delete_entry(h, chain, *table, &cs, rule_nr - 1,
 				   rule_nr_end, flags & OPT_VERBOSE);
