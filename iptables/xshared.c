@@ -1527,9 +1527,6 @@ void do_parse(int argc, char *argv[],
 			break;
 
 		case 'h':
-			if (!optarg)
-				optarg = argv[optind];
-
 			/* iptables -p icmp -h */
 			if (!cs->matches && cs->protocol)
 				xtables_find_match(cs->protocol,
