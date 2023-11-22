@@ -1634,7 +1634,8 @@ void do_parse(int argc, char *argv[],
 		case 'j':
 			set_option(&cs->options, OPT_JUMP, &args->invflags,
 				   invert);
-			command_jump(cs, optarg);
+			if (strcmp(optarg, "CONTINUE"))
+				command_jump(cs, optarg);
 			break;
 
 		case 'i':
