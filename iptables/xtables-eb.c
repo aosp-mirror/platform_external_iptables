@@ -303,9 +303,11 @@ static struct option *merge_options(struct option *oldopts,
 	return merge;
 }
 
-static void print_help(const struct xtables_target *t,
-		       const struct xtables_rule_match *m, const char *table)
+static void print_help(struct iptables_command_state *cs)
 {
+	const struct xtables_rule_match *m = cs->matches;
+	struct xtables_target *t = cs->target;
+
 	printf("%s %s\n", prog_name, prog_vers);
 	printf(
 "Usage:\n"
@@ -354,9 +356,6 @@ static void print_help(const struct xtables_target *t,
 		printf("\n");
 		t->help();
 	}
-
-//	if (table->help)
-//		table->help(ebt_hooknames);
 }
 
 /* Execute command L */
@@ -1144,7 +1143,7 @@ print_zero:
 		ebt_print_error2("Bad table name");*/
 
 	if (command == 'h' && !(flags & OPT_ZERO)) {
-		print_help(cs.target, cs.matches, *table);
+		print_help(&cs);
 		ret = 1;
 	}
 
