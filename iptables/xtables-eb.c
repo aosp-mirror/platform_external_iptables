@@ -767,6 +767,8 @@ int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table,
 		.jumpto	= "",
 		.eb.bitmask = EBT_NOPROTO,
 	};
+	struct xt_cmd_parse p = {
+	};
 	char command = 'h';
 	const char *chain = NULL;
 	const char *policy = NULL;
@@ -1166,56 +1168,67 @@ print_zero:
 	 * The kernel does not have to do this of course */
 	cs.eb.ethproto = htons(cs.eb.ethproto);
 
+	p.table		= *table;
+	p.chain		= chain;
+	p.policy	= policy;
+	p.rulenum	= rule_nr;
+	p.rulenum_end	= rule_nr_end;
+	cs.options	= flags;
+
 	switch (command) {
 	case 'P':
 		if (selected_chain >= NF_BR_NUMHOOKS) {
-			ret = ebt_cmd_user_chain_policy(h, *table, chain, policy);
+			ret = ebt_cmd_user_chain_policy(h, p.table, p.chain,
+							p.policy);
 			break;
 		}
-		if (strcmp(policy, "RETURN") == 0) {
+		if (strcmp(p.policy, "RETURN") == 0) {
 			xtables_error(PARAMETER_PROBLEM,
 				      "Policy RETURN only allowed for user defined chains");
 		}
-		ret = nft_cmd_chain_set(h, *table, chain, policy, NULL);
+		ret = nft_cmd_chain_set(h, p.table, p.chain, p.policy, NULL);
 		if (ret < 0)
 			xtables_error(PARAMETER_PROBLEM, "Wrong policy");
 		break;
 	case 'L':
-		ret = list_rules(h, chain, *table, rule_nr,
-				 flags & OPT_VERBOSE,
+		ret = list_rules(h, p.chain, p.table, p.rulenum,
+				 cs.options & OPT_VERBOSE,
 				 0,
-				 /*flags&OPT_EXPANDED*/0,
-				 flags&LIST_N,
-				 flags&LIST_C);
-		if (!(flags & OPT_ZERO))
+				 /*cs.options&OPT_EXPANDED*/0,
+				 cs.options&LIST_N,
+				 cs.options&LIST_C);
+		if (!(cs.options & OPT_ZERO))
 			break;
 	case 'Z':
-		ret = nft_cmd_chain_zero_counters(h, chain, *table,
-						  flags & OPT_VERBOSE);
+		ret = nft_cmd_chain_zero_counters(h, p.chain, p.table,
+						  cs.options & OPT_VERBOSE);
 		break;
 	case 'F':
-		ret = nft_cmd_rule_flush(h, chain, *table, flags & OPT_VERBOSE);
+		ret = nft_cmd_rule_flush(h, p.chain, p.table,
+					 cs.options & OPT_VERBOSE);
 		break;
 	case 'A':
-		ret = nft_cmd_rule_append(h, chain, *table, &cs,
-					  flags & OPT_VERBOSE);
+		ret = nft_cmd_rule_append(h, p.chain, p.table, &cs,
+					  cs.options & OPT_VERBOSE);
 		break;
 	case 'I':
-		ret = nft_cmd_rule_insert(h, chain, *table, &cs,
-					  rule_nr - 1, flags & OPT_VERBOSE);
+		ret = nft_cmd_rule_insert(h, p.chain, p.table, &cs,
+					  p.rulenum - 1,
+					  cs.options & OPT_VERBOSE);
 		break;
 	case 'D':
-		ret = delete_entry(h, chain, *table, &cs, rule_nr - 1,
-				   rule_nr_end, flags & OPT_VERBOSE);
+		ret = delete_entry(h, p.chain, p.table, &cs, p.rulenum - 1,
+				   p.rulenum_end, cs.options & OPT_VERBOSE);
 		break;
 	case 14:
-		ret = nft_cmd_rule_check(h, chain, *table,
-					 &cs, flags & OPT_VERBOSE);
+		ret = nft_cmd_rule_check(h, p.chain, p.table,
+					 &cs, cs.options & OPT_VERBOSE);
 		break;
 	case 'C':
-		ret = change_entry_counters(h, chain, *table, &cs,
-					    rule_nr - 1, rule_nr_end, chcounter,
-					    flags & OPT_VERBOSE);
+		ret = change_entry_counters(h, p.chain, p.table, &cs,
+					    p.rulenum - 1, p.rulenum_end,
+					    chcounter,
+					    cs.options & OPT_VERBOSE);
 		break;
 	}
 
