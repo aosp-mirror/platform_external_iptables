@@ -1837,7 +1837,6 @@ void do_parse(int argc, char *argv[],
 
 	if (p->command == CMD_APPEND ||
 	    p->command == CMD_DELETE ||
-	    p->command == CMD_DELETE_NUM ||
 	    p->command == CMD_CHECK ||
 	    p->command == CMD_INSERT ||
 	    p->command == CMD_REPLACE) {
