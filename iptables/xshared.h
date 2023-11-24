@@ -69,8 +69,9 @@ enum {
 	CMD_LIST_RULES		= 1 << 12,
 	CMD_ZERO_NUM		= 1 << 13,
 	CMD_CHECK		= 1 << 14,
+	CMD_CHANGE_COUNTERS	= 1 << 15, /* ebtables only */
 };
-#define NUMBER_OF_CMD		16
+#define NUMBER_OF_CMD		17
 
 struct xtables_globals;
 struct xtables_rule_match;
@@ -247,6 +248,13 @@ struct addr_mask {
 	} mask;
 };
 
+enum {
+	CTR_OP_INC_PKTS = 1 << 0,
+	CTR_OP_DEC_PKTS = 1 << 1,
+	CTR_OP_INC_BYTES = 1 << 2,
+	CTR_OP_DEC_BYTES = 1 << 3,
+};
+
 struct xtables_args {
 	int		family;
 	uint8_t		flags;
@@ -261,6 +269,7 @@ struct xtables_args {
 	const char	*arp_hlen, *arp_opcode;
 	const char	*arp_htype, *arp_ptype;
 	unsigned long long pcnt_cnt, bcnt_cnt;
+	uint8_t		counter_op;
 	int		wait;
 };
 

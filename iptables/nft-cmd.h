@@ -7,13 +7,6 @@
 
 struct nftnl_rule;
 
-enum {
-	CTR_OP_INC_PKTS = 1 << 0,
-	CTR_OP_DEC_PKTS = 1 << 1,
-	CTR_OP_INC_BYTES = 1 << 2,
-	CTR_OP_DEC_BYTES = 1 << 3,
-};
-
 struct nft_cmd {
 	struct list_head		head;
 	int				command;

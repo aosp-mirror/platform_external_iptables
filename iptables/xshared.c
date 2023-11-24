@@ -937,7 +937,7 @@ static void parse_rule_range(struct xt_cmd_parse *p, const char *argv)
 
 /* list the commands an option is allowed with */
 #define CMD_IDRAC	CMD_INSERT | CMD_DELETE | CMD_REPLACE | \
-			CMD_APPEND | CMD_CHECK
+			CMD_APPEND | CMD_CHECK | CMD_CHANGE_COUNTERS
 static const unsigned int options_v_commands[NUMBER_OF_OPT] = {
 /*OPT_NUMERIC*/		CMD_LIST,
 /*OPT_SOURCE*/		CMD_IDRAC,
@@ -1392,10 +1392,58 @@ static void parse_interface(const char *arg, char *iface)
 	strcpy(iface, arg);
 }
 
+static bool
+parse_signed_counter(char *argv, unsigned long long *val, uint8_t *ctr_op,
+		     uint8_t flag_inc, uint8_t flag_dec)
+{
+	char *endptr, *p = argv;
+
+	switch (*p) {
+	case '+':
+		*ctr_op |= flag_inc;
+		p++;
+		break;
+	case '-':
+		*ctr_op |= flag_dec;
+		p++;
+		break;
+	}
+	*val = strtoull(p, &endptr, 10);
+	return *endptr == '\0';
+}
+
+static void parse_change_counters_rule(int argc, char **argv,
+				       struct xt_cmd_parse *p,
+				       struct xtables_args *args)
+{
+	if (optind + 1 >= argc ||
+	    (argv[optind][0] == '-' && !isdigit(argv[optind][1])) ||
+	    (argv[optind + 1][0] == '-' && !isdigit(argv[optind + 1][1])))
+		xtables_error(PARAMETER_PROBLEM,
+			      "The command -C needs at least 2 arguments");
+	if (optind + 2 < argc &&
+	    (argv[optind + 2][0] != '-' || isdigit(argv[optind + 2][1]))) {
+		if (optind + 3 != argc)
+			xtables_error(PARAMETER_PROBLEM,
+				      "No extra options allowed with -C start_nr[:end_nr] pcnt bcnt");
+		parse_rule_range(p, argv[optind++]);
+	}
+
+	if (!parse_signed_counter(argv[optind++], &args->pcnt_cnt,
+				  &args->counter_op,
+				  CTR_OP_INC_PKTS, CTR_OP_DEC_PKTS) ||
+	    !parse_signed_counter(argv[optind++], &args->bcnt_cnt,
+				  &args->counter_op,
+				  CTR_OP_INC_BYTES, CTR_OP_DEC_BYTES))
+		xtables_error(PARAMETER_PROBLEM,
+			      "Packet counter '%s' invalid", argv[optind - 1]);
+}
+
 void do_parse(int argc, char *argv[],
 	      struct xt_cmd_parse *p, struct iptables_command_state *cs,
 	      struct xtables_args *args)
 {
+	bool family_is_bridge = args->family == NFPROTO_BRIDGE;
 	struct xtables_match *m;
 	struct xtables_rule_match *matchp;
 	bool wait_interval_set = false;
@@ -1435,6 +1483,13 @@ void do_parse(int argc, char *argv[],
 			break;
 
 		case 'C':
+			if (family_is_bridge) {
+				add_command(&p->command, CMD_CHANGE_COUNTERS,
+					    CMD_NONE, invert);
+				p->chain = optarg;
+				parse_change_counters_rule(argc, argv, p, args);
+				break;
+			}
 			add_command(&p->command, CMD_CHECK, CMD_NONE, invert);
 			p->chain = optarg;
 			break;
