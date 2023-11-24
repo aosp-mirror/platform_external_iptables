@@ -308,6 +308,33 @@ static void print_help(struct iptables_command_state *cs)
 	const struct xtables_rule_match *m = cs->matches;
 	struct xtables_target *t = cs->target;
 
+	while (optind < cs->argc) {
+		/*struct ebt_u_match *m;
+		struct ebt_u_watcher *w;*/
+
+		if (!strcasecmp("list_extensions", cs->argv[optind])) {
+			ebt_list_extensions(xtables_targets, cs->matches);
+			exit(0);
+		}
+		/*if ((m = ebt_find_match(cs->argv[optind])))
+			ebt_add_match(new_entry, m);
+		else if ((w = ebt_find_watcher(cs->argv[optind])))
+			ebt_add_watcher(new_entry, w);
+		else {*/
+			if (!(t = xtables_find_target(cs->argv[optind],
+						      XTF_TRY_LOAD)))
+				xtables_error(PARAMETER_PROBLEM,
+					      "Extension '%s' not found",
+					      cs->argv[optind]);
+			if (cs->options & OPT_JUMP)
+				xtables_error(PARAMETER_PROBLEM,
+					      "Sorry, you can only see help for one target extension at a time");
+			cs->options |= OPT_JUMP;
+			cs->target = t;
+		//}
+		optind++;
+	}
+
 	printf("%s %s\n", prog_name, prog_vers);
 	printf(
 "Usage:\n"
@@ -735,6 +762,7 @@ int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table,
 	unsigned int flags = 0;
 	struct xtables_target *t;
 	struct iptables_command_state cs = {
+		.argc = argc,
 		.argv = argv,
 		.jumpto	= "",
 		.eb.bitmask = EBT_NOPROTO,
@@ -897,32 +925,8 @@ print_zero:
 			if (OPT_COMMANDS)
 				xtables_error(PARAMETER_PROBLEM,
 					      "Multiple commands are not allowed");
-			command = 'h';
-
-			/* All other arguments should be extension names */
-			while (optind < argc) {
-				/*struct ebt_u_match *m;
-				struct ebt_u_watcher *w;*/
-
-				if (!strcasecmp("list_extensions", argv[optind])) {
-					ebt_list_extensions(xtables_targets, cs.matches);
-					exit(0);
-				}
-				/*if ((m = ebt_find_match(argv[optind])))
-					ebt_add_match(new_entry, m);
-				else if ((w = ebt_find_watcher(argv[optind])))
-					ebt_add_watcher(new_entry, w);
-				else {*/
-					if (!(t = xtables_find_target(argv[optind], XTF_TRY_LOAD)))
-						xtables_error(PARAMETER_PROBLEM,"Extension '%s' not found", argv[optind]);
-					if (flags & OPT_JUMP)
-						xtables_error(PARAMETER_PROBLEM,"Sorry, you can only see help for one target extension at a time");
-					flags |= OPT_JUMP;
-					cs.target = t;
-				//}
-				optind++;
-			}
-			break;
+			print_help(&cs);
+			exit(0);
 		case 't': /* Table */
 			if (restore && table_set)
 				xtables_error(PARAMETER_PROBLEM,
@@ -1141,11 +1145,6 @@ print_zero:
 
 	if (!(table = ebt_find_table(replace->name)))
 		ebt_print_error2("Bad table name");*/
-
-	if (command == 'h' && !(flags & OPT_ZERO)) {
-		print_help(&cs);
-		ret = 1;
-	}
 
 	/* Do the final checks */
 	if (command == 'A' || command == 'I' ||

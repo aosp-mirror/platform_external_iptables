@@ -137,6 +137,7 @@ struct iptables_command_state {
 	char *protocol;
 	int proto_used;
 	const char *jumpto;
+	int argc;
 	char **argv;
 	bool restore;
 };
