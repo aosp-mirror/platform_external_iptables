@@ -1439,6 +1439,15 @@ static void parse_change_counters_rule(int argc, char **argv,
 			      "Packet counter '%s' invalid", argv[optind - 1]);
 }
 
+static void option_test_and_reject(struct xt_cmd_parse *p,
+				   struct iptables_command_state *cs,
+				   unsigned int option)
+{
+	if (cs->options & option)
+		xtables_error(PARAMETER_PROBLEM, "Can't use %s with %s",
+			      p->ops->option_name(option), p->chain);
+}
+
 void do_parse(int argc, char *argv[],
 	      struct xt_cmd_parse *p, struct iptables_command_state *cs,
 	      struct xtables_args *args)
@@ -1924,21 +1933,13 @@ void do_parse(int argc, char *argv[],
 		if (strcmp(p->chain, "PREROUTING") == 0
 		    || strcmp(p->chain, "INPUT") == 0) {
 			/* -o not valid with incoming packets. */
-			if (cs->options & OPT_VIANAMEOUT)
-				xtables_error(PARAMETER_PROBLEM,
-					      "Can't use %s with %s\n",
-					      p->ops->option_name(OPT_VIANAMEOUT),
-					      p->chain);
+			option_test_and_reject(p, cs, OPT_VIANAMEOUT);
 		}
 
 		if (strcmp(p->chain, "POSTROUTING") == 0
 		    || strcmp(p->chain, "OUTPUT") == 0) {
 			/* -i not valid with outgoing packets */
-			if (cs->options & OPT_VIANAMEIN)
-				xtables_error(PARAMETER_PROBLEM,
-					      "Can't use %s with %s\n",
-					      p->ops->option_name(OPT_VIANAMEIN),
-					      p->chain);
+			option_test_and_reject(p, cs, OPT_VIANAMEIN);
 		}
 	}
 }
