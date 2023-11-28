@@ -691,6 +691,10 @@ static void xtopt_parse_plenmask(struct xt_option_call *cb)
 
 	xtopt_parse_plen(cb);
 
+	/* may not be convertible to CIDR notation */
+	if (cb->val.hlen == (uint8_t)-1)
+		goto out_put;
+
 	memset(mask, 0xFF, sizeof(union nf_inet_addr));
 	/* This shifting is AF-independent. */
 	if (cb->val.hlen == 0) {
@@ -711,6 +715,7 @@ static void xtopt_parse_plenmask(struct xt_option_call *cb)
 	mask[1] = htonl(mask[1]);
 	mask[2] = htonl(mask[2]);
 	mask[3] = htonl(mask[3]);
+out_put:
 	if (entry->flags & XTOPT_PUT)
 		memcpy(XTOPT_MKPTR(cb), mask, sizeof(union nf_inet_addr));
 }
