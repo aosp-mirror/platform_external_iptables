@@ -92,12 +92,13 @@ xtables_options_xfrm(struct option *orig_opts, struct option *oldopts,
 	for (num_new = 0; entry[num_new].name != NULL; ++num_new)
 		;
 
-	mp = xtables_calloc(num_new, sizeof(*mp));
+	mp = xtables_calloc(num_new + 1, sizeof(*mp));
 	for (i = 0; i < num_new; i++) {
 		mp[i].name	= entry[i].name;
 		mp[i].has_arg	= entry[i].type != XTTYPE_NONE;
 		mp[i].val	= entry[i].id;
 	}
+
 	merge = xtables_merge_options(orig_opts, oldopts, mp, offset);
 
 	free(mp);
