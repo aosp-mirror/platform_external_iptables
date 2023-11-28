@@ -9,7 +9,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <getopt.h>
 #include <ctype.h>
 #include <xtables.h>
 #include <netinet/if_ether.h>
@@ -18,28 +17,18 @@
 #include "iptables/nft.h"
 #include "iptables/nft-bridge.h"
 
-#define NAME_VLAN_ID    "id"
-#define NAME_VLAN_PRIO  "prio"
-#define NAME_VLAN_ENCAP "encap"
-
-#define VLAN_ID    '1'
-#define VLAN_PRIO  '2'
-#define VLAN_ENCAP '3'
-
-static const struct option brvlan_opts[] = {
-	{"vlan-id"   , required_argument, NULL, VLAN_ID},
-	{"vlan-prio" , required_argument, NULL, VLAN_PRIO},
-	{"vlan-encap", required_argument, NULL, VLAN_ENCAP},
-	XT_GETOPT_TABLEEND,
+static const struct xt_option_entry brvlan_opts[] =
+{
+	{ .name = "vlan-id", .id = EBT_VLAN_ID, .type = XTTYPE_UINT16,
+	  .max = 4094, .flags = XTOPT_INVERT | XTOPT_PUT,
+	  XTOPT_POINTER(struct ebt_vlan_info, id) },
+	{ .name = "vlan-prio", .id = EBT_VLAN_PRIO, .type = XTTYPE_UINT8,
+	  .max = 7, .flags = XTOPT_INVERT | XTOPT_PUT,
+	  XTOPT_POINTER(struct ebt_vlan_info, prio) },
+	{ .name = "vlan-encap", .id = EBT_VLAN_ENCAP, .type = XTTYPE_STRING,
+	  .flags = XTOPT_INVERT },
+	XTOPT_TABLEEND,
 };
-
-/*
- * option inverse flags definition
- */
-#define OPT_VLAN_ID     0x01
-#define OPT_VLAN_PRIO   0x02
-#define OPT_VLAN_ENCAP  0x04
-#define OPT_VLAN_FLAGS	(OPT_VLAN_ID | OPT_VLAN_PRIO | OPT_VLAN_ENCAP)
 
 static void brvlan_print_help(void)
 {
@@ -50,57 +39,34 @@ static void brvlan_print_help(void)
 "--vlan-encap [!] encap : Encapsulated frame protocol (hexadecimal or name)\n");
 }
 
-static int
-brvlan_parse(int c, char **argv, int invert, unsigned int *flags,
-	       const void *entry, struct xt_entry_match **match)
+static void brvlan_parse(struct xt_option_call *cb)
 {
-	struct ebt_vlan_info *vlaninfo = (struct ebt_vlan_info *) (*match)->data;
+	struct ebt_vlan_info *vlaninfo = cb->data;
 	struct xt_ethertypeent *ethent;
 	char *end;
-	struct ebt_vlan_info local;
 
-	switch (c) {
-	case VLAN_ID:
-		EBT_CHECK_OPTION(flags, OPT_VLAN_ID);
-		if (invert)
-			vlaninfo->invflags |= EBT_VLAN_ID;
-		local.id = strtoul(optarg, &end, 10);
-		if (local.id > 4094 || *end != '\0')
-			xtables_error(PARAMETER_PROBLEM, "Invalid --vlan-id range ('%s')", optarg);
-		vlaninfo->id = local.id;
-		vlaninfo->bitmask |= EBT_VLAN_ID;
-		break;
-	case VLAN_PRIO:
-		EBT_CHECK_OPTION(flags, OPT_VLAN_PRIO);
-		if (invert)
-			vlaninfo->invflags |= EBT_VLAN_PRIO;
-		local.prio = strtoul(optarg, &end, 10);
-		if (local.prio >= 8 || *end != '\0')
-			xtables_error(PARAMETER_PROBLEM, "Invalid --vlan-prio range ('%s')", optarg);
-		vlaninfo->prio = local.prio;
-		vlaninfo->bitmask |= EBT_VLAN_PRIO;
-		break;
-	case VLAN_ENCAP:
-		EBT_CHECK_OPTION(flags, OPT_VLAN_ENCAP);
-		if (invert)
-			vlaninfo->invflags |= EBT_VLAN_ENCAP;
-		local.encap = strtoul(optarg, &end, 16);
+	xtables_option_parse(cb);
+
+	vlaninfo->bitmask |= cb->entry->id;
+	if (cb->invert)
+		vlaninfo->invflags |= cb->entry->id;
+
+	if (cb->entry->id == EBT_VLAN_ENCAP) {
+		vlaninfo->encap = strtoul(cb->arg, &end, 16);
 		if (*end != '\0') {
-			ethent = xtables_getethertypebyname(optarg);
+			ethent = xtables_getethertypebyname(cb->arg);
 			if (ethent == NULL)
-				xtables_error(PARAMETER_PROBLEM, "Unknown --vlan-encap value ('%s')", optarg);
-			local.encap = ethent->e_ethertype;
+				xtables_error(PARAMETER_PROBLEM,
+					      "Unknown --vlan-encap value ('%s')",
+					      cb->arg);
+			vlaninfo->encap = ethent->e_ethertype;
 		}
-		if (local.encap < ETH_ZLEN)
-			xtables_error(PARAMETER_PROBLEM, "Invalid --vlan-encap range ('%s')", optarg);
-		vlaninfo->encap = htons(local.encap);
-		vlaninfo->bitmask |= EBT_VLAN_ENCAP;
-		break;
-	default:
-		return 0;
-
+		if (vlaninfo->encap < ETH_ZLEN)
+			xtables_error(PARAMETER_PROBLEM,
+				      "Invalid --vlan-encap range ('%s')",
+				      cb->arg);
+		vlaninfo->encap = htons(vlaninfo->encap);
 	}
-	return 1;
 }
 
 static void brvlan_print(const void *ip, const struct xt_entry_match *match,
@@ -144,10 +110,10 @@ static struct xtables_match brvlan_match = {
 	.size		= XT_ALIGN(sizeof(struct ebt_vlan_info)),
 	.userspacesize	= XT_ALIGN(sizeof(struct ebt_vlan_info)),
 	.help		= brvlan_print_help,
-	.parse		= brvlan_parse,
+	.x6_parse	= brvlan_parse,
 	.print		= brvlan_print,
 	.xlate		= brvlan_xlate,
-	.extra_opts	= brvlan_opts,
+	.x6_options	= brvlan_opts,
 };
 
 void _init(void)
