@@ -15,6 +15,7 @@ import sys
 import os
 import subprocess
 import argparse
+from difflib import unified_diff
 
 IPTABLES = "iptables"
 IP6TABLES = "ip6tables"
@@ -367,11 +368,12 @@ def run_test_file_fast(iptables, filename, netns):
 
     out = out.decode('utf-8').rstrip()
     if out.find(out_expect) < 0:
-        msg = ["dumps differ!"]
-        msg.extend(["expect: " + l for l in out_expect.split("\n")])
-        msg.extend(["got: " + l for l in out.split("\n")
-                                if not l[0] in ['*', ':', '#']])
-        print("\n".join(msg), file=log_file)
+        print("dumps differ!", file=log_file)
+        out_clean = [ l for l in out.split("\n")
+                        if not l[0] in ['*', ':', '#']]
+        diff = unified_diff(out_expect.split("\n"), out_clean,
+                            fromfile="expect", tofile="got", lineterm='')
+        print("\n".join(diff), file=log_file)
         return -1
 
     return tests
