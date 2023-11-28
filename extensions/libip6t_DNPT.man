@@ -15,7 +15,7 @@ Set destination prefix that you want to use in the translation and length
 .PP
 You have to use the SNPT target to undo the translation. Example:
 .IP
-ip6tables \-t mangle \-I POSTROUTING \-s fd00::/64 \! \-o vboxnet0
+ip6tables \-t mangle \-I POSTROUTING \-s fd00::/64 ! \-o vboxnet0
 \-j SNPT \-\-src-pfx fd00::/64 \-\-dst-pfx 2001:e20:2000:40f::/64
 .IP
 ip6tables \-t mangle \-I PREROUTING \-i wlan0 \-d 2001:e20:2000:40f::/64
