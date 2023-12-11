@@ -529,7 +529,7 @@ static void nft_arp_post_parse(int command,
 
 		if (cs->arp.arp.arhln != 6)
 			xtables_error(PARAMETER_PROBLEM,
-				      "Only harware address length of 6 is supported currently.");
+				      "Only hardware address length of 6 is supported currently.");
 	}
 	if (args->arp_opcode) {
 		if (get16_and_mask(args->arp_opcode, &cs->arp.arp.arpop,
