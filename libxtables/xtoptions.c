@@ -71,6 +71,7 @@ static uint8_t afinfo_family(void)
 {
 	switch (afinfo->family) {
 	case NFPROTO_ARP:
+	case NFPROTO_BRIDGE:
 		return NFPROTO_IPV4;
 	default:
 		return afinfo->family;
