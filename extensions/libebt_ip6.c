@@ -127,18 +127,6 @@ static void brip6_print_help(void)
 	xt_print_icmp_types(icmpv6_codes, ARRAY_SIZE(icmpv6_codes));
 }
 
-static void brip6_init(struct xt_entry_match *match)
-{
-	struct ebt_ip6_info *ipinfo = (struct ebt_ip6_info *)match->data;
-
-	ipinfo->invflags = 0;
-	ipinfo->bitmask = 0;
-	memset(ipinfo->saddr.s6_addr, 0, sizeof(ipinfo->saddr.s6_addr));
-	memset(ipinfo->smsk.s6_addr, 0, sizeof(ipinfo->smsk.s6_addr));
-	memset(ipinfo->daddr.s6_addr, 0, sizeof(ipinfo->daddr.s6_addr));
-	memset(ipinfo->dmsk.s6_addr, 0, sizeof(ipinfo->dmsk.s6_addr));
-}
-
 /* wrap xtables_ip6parse_any(), ignoring any but the first returned address */
 static void ebt_parse_ip6_address(char *address,
 				  struct in6_addr *addr, struct in6_addr *msk)
@@ -452,7 +440,6 @@ static struct xtables_match brip6_match = {
 	.family		= NFPROTO_BRIDGE,
 	.size		= XT_ALIGN(sizeof(struct ebt_ip6_info)),
 	.userspacesize	= XT_ALIGN(sizeof(struct ebt_ip6_info)),
-	.init		= brip6_init,
 	.help		= brip6_print_help,
 	.parse		= brip6_parse,
 	.final_check	= brip6_final_check,

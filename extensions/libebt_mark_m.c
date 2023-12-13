@@ -30,16 +30,6 @@ static void brmark_m_print_help(void)
 "--mark    [!] [value][/mask]: Match nfmask value (see man page)\n");
 }
 
-static void brmark_m_init(struct xt_entry_match *match)
-{
-	struct ebt_mark_m_info *info = (struct ebt_mark_m_info *)match->data;
-
-	info->mark = 0;
-	info->mask = 0;
-	info->invert = 0;
-	info->bitmask = 0;
-}
-
 #define OPT_MARK 0x01
 static int
 brmark_m_parse(int c, char **argv, int invert, unsigned int *flags,
@@ -128,7 +118,6 @@ static struct xtables_match brmark_m_match = {
 	.family		= NFPROTO_BRIDGE,
 	.size		= XT_ALIGN(sizeof(struct ebt_mark_m_info)),
 	.userspacesize	= XT_ALIGN(sizeof(struct ebt_mark_m_info)),
-	.init		= brmark_m_init,
 	.help		= brmark_m_print_help,
 	.parse		= brmark_m_parse,
 	.final_check	= brmark_m_final_check,

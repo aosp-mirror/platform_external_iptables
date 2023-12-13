@@ -36,14 +36,6 @@ static void br802_3_print_help(void)
 "  Type implies SAP value 0xaa\n");
 }
 
-static void br802_3_init(struct xt_entry_match *match)
-{
-	struct ebt_802_3_info *info = (struct ebt_802_3_info *)match->data;
-
-	info->invflags = 0;
-	info->bitmask = 0;
-}
-
 static int
 br802_3_parse(int c, char **argv, int invert, unsigned int *flags,
 	      const void *entry, struct xt_entry_match **match)
@@ -119,7 +111,6 @@ static struct xtables_match br802_3_match =
 	.family		= NFPROTO_BRIDGE,
 	.size		= XT_ALIGN(sizeof(struct ebt_802_3_info)),
 	.userspacesize	= XT_ALIGN(sizeof(struct ebt_802_3_info)),
-	.init		= br802_3_init,
 	.help		= br802_3_print_help,
 	.parse		= br802_3_parse,
 	.final_check	= br802_3_final_check,

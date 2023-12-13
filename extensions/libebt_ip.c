@@ -69,14 +69,6 @@ static void brip_print_help(void)
 	xt_print_icmp_types(igmp_types, ARRAY_SIZE(igmp_types));
 }
 
-static void brip_init(struct xt_entry_match *match)
-{
-	struct ebt_ip_info *info = (struct ebt_ip_info *)match->data;
-
-	info->invflags = 0;
-	info->bitmask = 0;
-}
-
 static void
 parse_port_range(const char *protocol, const char *portstring, uint16_t *ports)
 {
@@ -503,7 +495,6 @@ static struct xtables_match brip_match = {
 	.family		= NFPROTO_BRIDGE,
 	.size		= XT_ALIGN(sizeof(struct ebt_ip_info)),
 	.userspacesize	= XT_ALIGN(sizeof(struct ebt_ip_info)),
-	.init		= brip_init,
 	.help		= brip_print_help,
 	.parse		= brip_parse,
 	.final_check	= brip_final_check,
