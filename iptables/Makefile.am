@@ -114,15 +114,15 @@ x_sbin_links  = iptables-nft iptables-nft-restore iptables-nft-save \
 endif
 
 iptables-extensions.8: iptables-extensions.8.tmpl ../extensions/matches.man ../extensions/targets.man
-	${AM_VERBOSE_GEN} sed \
+	${AM_V_GEN} sed \
 		-e '/@MATCH@/ r ../extensions/matches.man' \
 		-e '/@TARGET@/ r ../extensions/targets.man' $< >$@;
 
 ${xlate_man_links}:
-	${AM_VERBOSE_GEN} echo '.so man8/xtables-translate.8' >$@
+	${AM_V_GEN} echo '.so man8/xtables-translate.8' >$@
 
 ip6tables.8 ip6tables-apply.8 ip6tables-restore.8 ip6tables-save.8:
-	${AM_VERBOSE_GEN} echo "$@" | sed 's|^ip6|.so man8/ip|' >$@
+	${AM_V_GEN} echo "$@" | sed 's|^ip6|.so man8/ip|' >$@
 
 pkgconfig_DATA = xtables.pc
 
