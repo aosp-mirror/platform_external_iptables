@@ -35,7 +35,6 @@ AM_DEPFLAGS     = -Wp,-MMD,$(@D)/.$(@F).d,-MT,$@
 AM_LDFLAGS      = @noundef_LDFLAGS@ @regular_LDFLAGS@
 
 ifeq (${V},)
-AM_LIBTOOL_SILENT = --silent
 AM_VERBOSE_CC     = @echo "  CC      " $@;
 AM_VERBOSE_CCLD   = @echo "  CCLD    " $@;
 AM_VERBOSE_CXX    = @echo "  CXX     " $@;
