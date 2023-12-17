@@ -791,6 +791,15 @@ static void xtopt_parse_ethermac(struct xt_option_call *cb)
 	xt_params->exit_err(PARAMETER_PROBLEM, "Invalid MAC address specified.");
 }
 
+static void xtopt_parse_ethermacmask(struct xt_option_call *cb)
+{
+	memset(cb->val.ethermacmask, 0xff, ETH_ALEN);
+	if (xtables_parse_mac_and_mask(cb->arg, cb->val.ethermac,
+				       cb->val.ethermacmask))
+		xt_params->exit_err(PARAMETER_PROBLEM,
+				    "Invalid MAC/mask address specified.");
+}
+
 static void (*const xtopt_subparse[])(struct xt_option_call *) = {
 	[XTTYPE_UINT8]       = xtopt_parse_int,
 	[XTTYPE_UINT16]      = xtopt_parse_int,
@@ -813,6 +822,7 @@ static void (*const xtopt_subparse[])(struct xt_option_call *) = {
 	[XTTYPE_PLEN]        = xtopt_parse_plen,
 	[XTTYPE_PLENMASK]    = xtopt_parse_plenmask,
 	[XTTYPE_ETHERMAC]    = xtopt_parse_ethermac,
+	[XTTYPE_ETHERMACMASK]= xtopt_parse_ethermacmask,
 };
 
 /**
