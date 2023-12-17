@@ -61,7 +61,6 @@ struct in_addr;
  * %XTTYPE_SYSLOGLEVEL:	syslog level by name or number
  * %XTTYPE_HOST:	one host or address (ptr: union nf_inet_addr)
  * %XTTYPE_HOSTMASK:	one host or address, with an optional prefix length
- * 			(ptr: union nf_inet_addr; only host portion is stored)
  * %XTTYPE_PROTOCOL:	protocol number/name from /etc/protocols (ptr: uint8_t)
  * %XTTYPE_PORT:	16-bit port name or number (supports %XTOPT_NBO)
  * %XTTYPE_PORTRC:	colon-separated port range (names acceptable),
