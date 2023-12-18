@@ -1,7 +1,7 @@
 :INPUT,FORWARD,OUTPUT
 --stp-type 1;=;OK
 --stp-flags 0x1;--stp-flags topology-change -j CONTINUE;OK
---stp-root-prio 1  -j ACCEPT;=;OK
+--stp-root-prio 1 -j ACCEPT;=;OK
 --stp-root-addr 0d:ea:d0:0b:ee:f0;=;OK
 --stp-root-cost 1;=;OK
 --stp-sender-prio 1;=;OK
