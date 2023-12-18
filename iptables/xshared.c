@@ -270,7 +270,7 @@ static int xtables_lock(int wait)
 		return XT_LOCK_FAILED;
 	}
 
-	if (wait != -1) {
+	if (wait > 0) {
 		sigact_alarm.sa_handler = alarm_ignore;
 		sigact_alarm.sa_flags = SA_RESETHAND;
 		sigemptyset(&sigact_alarm.sa_mask);
@@ -278,7 +278,7 @@ static int xtables_lock(int wait)
 		alarm(wait);
 	}
 
-	if (flock(fd, LOCK_EX) == 0)
+	if (flock(fd, LOCK_EX | (wait ? 0 : LOCK_NB)) == 0)
 		return fd;
 
 	if (errno == EINTR) {
