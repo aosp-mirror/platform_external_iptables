@@ -147,6 +147,14 @@ static size_t xtopt_esize_by_type(enum xt_option_type type)
 	}
 }
 
+static uint64_t htonll(uint64_t val)
+{
+	uint32_t high = val >> 32;
+	uint32_t low = val & UINT32_MAX;
+
+	return (uint64_t)htonl(low) << 32 | htonl(high);
+}
+
 /**
  * Require a simple integer.
  */
@@ -174,14 +182,20 @@ static void xtopt_parse_int(struct xt_option_call *cb)
 			*(uint8_t *)XTOPT_MKPTR(cb) = cb->val.u8;
 	} else if (entry->type == XTTYPE_UINT16) {
 		cb->val.u16 = value;
+		if (entry->flags & XTOPT_NBO)
+			cb->val.u16 = htons(cb->val.u16);
 		if (entry->flags & XTOPT_PUT)
 			*(uint16_t *)XTOPT_MKPTR(cb) = cb->val.u16;
 	} else if (entry->type == XTTYPE_UINT32) {
 		cb->val.u32 = value;
+		if (entry->flags & XTOPT_NBO)
+			cb->val.u32 = htonl(cb->val.u32);
 		if (entry->flags & XTOPT_PUT)
 			*(uint32_t *)XTOPT_MKPTR(cb) = cb->val.u32;
 	} else if (entry->type == XTTYPE_UINT64) {
 		cb->val.u64 = value;
+		if (entry->flags & XTOPT_NBO)
+			cb->val.u64 = htonll(cb->val.u64);
 		if (entry->flags & XTOPT_PUT)
 			*(uint64_t *)XTOPT_MKPTR(cb) = cb->val.u64;
 	}
@@ -216,17 +230,25 @@ static void xtopt_parse_float(struct xt_option_call *cb)
 static void xtopt_mint_value_to_cb(struct xt_option_call *cb, uintmax_t value)
 {
 	const struct xt_option_entry *entry = cb->entry;
+	uint8_t i = cb->nvals;
 
-	if (cb->nvals >= ARRAY_SIZE(cb->val.u32_range))
+	if (i >= ARRAY_SIZE(cb->val.u32_range))
 		return;
-	if (entry->type == XTTYPE_UINT8RC)
-		cb->val.u8_range[cb->nvals] = value;
-	else if (entry->type == XTTYPE_UINT16RC)
-		cb->val.u16_range[cb->nvals] = value;
-	else if (entry->type == XTTYPE_UINT32RC)
-		cb->val.u32_range[cb->nvals] = value;
-	else if (entry->type == XTTYPE_UINT64RC)
-		cb->val.u64_range[cb->nvals] = value;
+	if (entry->type == XTTYPE_UINT8RC) {
+		cb->val.u8_range[i] = value;
+	} else if (entry->type == XTTYPE_UINT16RC) {
+		cb->val.u16_range[i] = value;
+		if (entry->flags & XTOPT_NBO)
+			cb->val.u16_range[i] = htons(cb->val.u16_range[i]);
+	} else if (entry->type == XTTYPE_UINT32RC) {
+		cb->val.u32_range[i] = value;
+		if (entry->flags & XTOPT_NBO)
+			cb->val.u32_range[i] = htonl(cb->val.u32_range[i]);
+	} else if (entry->type == XTTYPE_UINT64RC) {
+		cb->val.u64_range[i] = value;
+		if (entry->flags & XTOPT_NBO)
+			cb->val.u64_range[i] = htonll(cb->val.u64_range[i]);
+	}
 }
 
 /**
