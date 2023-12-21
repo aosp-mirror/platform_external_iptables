@@ -33,9 +33,9 @@ static void br802_3_print_help(void)
 {
 	printf(
 "802_3 options:\n"
-"--802_3-sap [!] protocol       : 802.3 DSAP/SSAP- 1 byte value (hex)\n"
+"[!] --802_3-sap protocol       : 802.3 DSAP/SSAP- 1 byte value (hex)\n"
 "  DSAP and SSAP are always the same.  One SAP applies to both fields\n"
-"--802_3-type [!] protocol      : 802.3 SNAP Type- 2 byte value (hex)\n"
+"[!] --802_3-type protocol      : 802.3 SNAP Type- 2 byte value (hex)\n"
 "  Type implies SAP value 0xaa\n");
 }
 
@@ -55,16 +55,14 @@ static void br802_3_print(const void *ip, const struct xt_entry_match *match,
 	struct ebt_802_3_info *info = (struct ebt_802_3_info *)match->data;
 
 	if (info->bitmask & EBT_802_3_SAP) {
-		printf("--802_3-sap ");
 		if (info->invflags & EBT_802_3_SAP)
 			printf("! ");
-		printf("0x%.2x ", info->sap);
+		printf("--802_3-sap 0x%.2x ", info->sap);
 	}
 	if (info->bitmask & EBT_802_3_TYPE) {
-		printf("--802_3-type ");
 		if (info->invflags & EBT_802_3_TYPE)
 			printf("! ");
-		printf("0x%.4x ", ntohs(info->type));
+		printf("--802_3-type 0x%.4x ", ntohs(info->type));
 	}
 }
 

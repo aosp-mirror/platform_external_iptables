@@ -372,7 +372,7 @@ and the
 .BR "WATCHER EXTENSIONS" 
 below.
 .TP
-.BR "-p, --protocol " "[!] \fIprotocol\fP"
+.RB [ ! ] " -p" , " --protocol " \fIprotocol\fP
 The protocol that was responsible for creating the frame. This can be a
 hexadecimal number, above 
 .IR 0x0600 ,
@@ -402,7 +402,7 @@ See that file for more information. The flag
 .B --proto
 is an alias for this option.
 .TP 
-.BR "-i, --in-interface " "[!] \fIname\fP"
+.RB [ ! ] " -i" , " --in-interface " \fIname\fP
 The interface (bridge port) via which a frame is received (this option is useful in the
 .BR INPUT ,
 .BR FORWARD ,
@@ -413,7 +413,7 @@ The flag
 .B --in-if
 is an alias for this option.
 .TP
-.BR "--logical-in " "[!] \fIname\fP"
+.RB [ ! ] " --logical-in " \fIname\fP
 The (logical) bridge interface via which a frame is received (this option is useful in the
 .BR INPUT ,
 .BR FORWARD ,
@@ -422,7 +422,7 @@ chains).
 If the interface name ends with '+', then
 any interface name that begins with this name (disregarding '+') will match.
 .TP
-.BR "-o, --out-interface " "[!] \fIname\fP"
+.RB [ ! ] " -o" , " --out-interface " \fIname\fP
 The interface (bridge port) via which a frame is going to be sent (this option is useful in the
 .BR OUTPUT ,
 .B FORWARD
@@ -434,7 +434,7 @@ The flag
 .B --out-if
 is an alias for this option.
 .TP
-.BR "--logical-out " "[!] \fIname\fP"
+.RB [ ! ] " --logical-out " \fIname\fP
 The (logical) bridge interface via which a frame is going to be sent (this option
 is useful in the
 .BR OUTPUT ,
@@ -445,7 +445,7 @@ chains).
 If the interface name ends with '+', then
 any interface name that begins with this name (disregarding '+') will match.
 .TP
-.BR "-s, --source " "[!] \fIaddress\fP[/\fImask\fP]"
+.RB [ ! ] " -s" , " --source " \fIaddress\fP[ / \fImask\fP]
 The source MAC address. Both mask and address are written as 6 hexadecimal
 numbers separated by colons. Alternatively one can specify Unicast,
 Multicast, Broadcast or BGA (Bridge Group Address):
@@ -459,7 +459,7 @@ address will also match the multicast specification. The flag
 .B --src
 is an alias for this option.
 .TP
-.BR "-d, --destination " "[!] \fIaddress\fP[/\fImask\fP]"
+.RB [ ! ] " -d" , " --destination " \fIaddress\fP[ / \fImask\fP]
 The destination MAC address. See
 .B -s
 (above) for more details on MAC addresses. The flag
@@ -484,11 +484,11 @@ the core ebtables code.
 Specify 802.3 DSAP/SSAP fields or SNAP type.  The protocol must be specified as
 .IR "LENGTH " "(see the option " " -p " above).
 .TP
-.BR "--802_3-sap " "[!] \fIsap\fP"
+.RB [ ! ] " --802_3-sap " \fIsap\fP
 DSAP and SSAP are two one byte 802.3 fields.  The bytes are always
 equal, so only one byte (hexadecimal) is needed as an argument.
 .TP
-.BR "--802_3-type " "[!] \fItype\fP"
+.RB [ ! ] " --802_3-type " \fItype\fP
 If the 802.3 DSAP and SSAP values are 0xaa then the SNAP type field must
 be consulted to determine the payload protocol.  This is a two byte
 (hexadecimal) argument.  Only 802.3 frames with DSAP/SSAP 0xaa are
@@ -503,88 +503,88 @@ the MAC address is optional. Multiple MAC/IP address pairs with the same MAC add
 but different IP address (and vice versa) can be specified. If the MAC address doesn't
 match any entry from the list, the frame doesn't match the rule (unless "!" was used).
 .TP
-.BR "--among-dst " "[!] \fIlist\fP"
+.RB [ ! ] " --among-dst " \fIlist\fP
 Compare the MAC destination to the given list. If the Ethernet frame has type
 .IR IPv4 " or " ARP ,
 then comparison with MAC/IP destination address pairs from the
 list is possible.
 .TP
-.BR "--among-src " "[!] \fIlist\fP"
+.RB [ ! ] " --among-src " \fIlist\fP
 Compare the MAC source to the given list. If the Ethernet frame has type
 .IR IPv4 " or " ARP ,
 then comparison with MAC/IP source address pairs from the list
 is possible.
 .TP
-.BR "--among-dst-file " "[!] \fIfile\fP"
+.RB [ ! ] " --among-dst-file " \fIfile\fP
 Same as
 .BR --among-dst " but the list is read in from the specified file."
 .TP
-.BR "--among-src-file " "[!] \fIfile\fP"
+.RB [ ! ] " --among-src-file " \fIfile\fP
 Same as
 .BR --among-src " but the list is read in from the specified file."
 .SS arp
 Specify (R)ARP fields. The protocol must be specified as
 .IR ARP " or " RARP .
 .TP
-.BR "--arp-opcode " "[!] \fIopcode\fP"
+.RB [ ! ] " --arp-opcode " \fIopcode\fP
 The (R)ARP opcode (decimal or a string, for more details see
 .BR "ebtables -h arp" ).
 .TP
-.BR "--arp-htype " "[!] \fIhardware type\fP"
+.RB [ ! ] " --arp-htype " \fIhardware-type\fP
 The hardware type, this can be a decimal or the string
 .I Ethernet
 (which sets
 .I type
 to 1). Most (R)ARP packets have Eternet as hardware type.
 .TP
-.BR "--arp-ptype " "[!] \fIprotocol type\fP"
+.RB [ ! ] " --arp-ptype " \fIprotocol-type\fP
 The protocol type for which the (r)arp is used (hexadecimal or the string
 .IR IPv4 ,
 denoting 0x0800).
 Most (R)ARP packets have protocol type IPv4.
 .TP
-.BR "--arp-ip-src " "[!] \fIaddress\fP[/\fImask\fP]"
+.RB [ ! ] " --arp-ip-src " \fIaddress\fP[ / \fImask\fP]
 The (R)ARP IP source address specification.
 .TP
-.BR "--arp-ip-dst " "[!] \fIaddress\fP[/\fImask\fP]"
+.RB [ ! ] " --arp-ip-dst " \fIaddress\fP[ / \fImask\fP]
 The (R)ARP IP destination address specification.
 .TP
-.BR "--arp-mac-src " "[!] \fIaddress\fP[/\fImask\fP]"
+.RB [ ! ] " --arp-mac-src " \fIaddress\fP[ / \fImask\fP]
 The (R)ARP MAC source address specification.
 .TP
-.BR "--arp-mac-dst " "[!] \fIaddress\fP[/\fImask\fP]"
+.RB [ ! ] " --arp-mac-dst " \fIaddress\fP[ / \fImask\fP]
 The (R)ARP MAC destination address specification.
 .TP
-.BR "" "[!]" " --arp-gratuitous"
+.RB [ ! ] " --arp-gratuitous"
 Checks for ARP gratuitous packets: checks equality of IPv4 source
 address and IPv4 destination address inside the ARP header.
 .SS ip
 Specify IPv4 fields. The protocol must be specified as
 .IR IPv4 .
 .TP
-.BR "--ip-source " "[!] \fIaddress\fP[/\fImask\fP]"
+.RB [ ! ] " --ip-source " \fIaddress\fP[ / \fImask\fP]
 The source IP address.
 The flag
 .B --ip-src
 is an alias for this option.
 .TP
-.BR "--ip-destination " "[!] \fIaddress\fP[/\fImask\fP]"
+.RB [ ! ] " --ip-destination " \fIaddress\fP[ / \fImask\fP]
 The destination IP address.
 The flag
 .B --ip-dst
 is an alias for this option.
 .TP
-.BR "--ip-tos " "[!] \fItos\fP"
+.RB [ ! ] " --ip-tos " \fItos\fP
 The IP type of service, in hexadecimal numbers.
 .BR IPv4 .
 .TP
-.BR "--ip-protocol " "[!] \fIprotocol\fP"
+.RB [ ! ] " --ip-protocol " \fIprotocol\fP
 The IP protocol.
 The flag
 .B --ip-proto
 is an alias for this option.
 .TP
-.BR "--ip-source-port " "[!] \fIport1\fP[:\fIport2\fP]"
+.RB [ ! ] " --ip-source-port " \fIport1\fP[ : \fIport2\fP]
 The source port or port range for the IP protocols 6 (TCP), 17
 (UDP), 33 (DCCP) or 132 (SCTP). The
 .B --ip-protocol
@@ -596,7 +596,7 @@ The flag
 .B --ip-sport
 is an alias for this option.
 .TP
-.BR "--ip-destination-port " "[!] \fIport1\fP[:\fIport2\fP]"
+.RB [ ! ] " --ip-destination-port " \fIport1\fP[ : \fIport2\fP]
 The destination port or port range for ip protocols 6 (TCP), 17
 (UDP), 33 (DCCP) or 132 (SCTP). The
 .B --ip-protocol
@@ -611,28 +611,28 @@ is an alias for this option.
 Specify IPv6 fields. The protocol must be specified as
 .IR IPv6 .
 .TP
-.BR "--ip6-source " "[!] \fIaddress\fP[/\fImask\fP]"
+.RB [ ! ] " --ip6-source " \fIaddress\fP[ / \fImask\fP]
 The source IPv6 address.
 The flag
 .B --ip6-src
 is an alias for this option.
 .TP
-.BR "--ip6-destination " "[!] \fIaddress\fP[/\fImask\fP]"
+.RB [ ! ] " --ip6-destination " \fIaddress\fP[ / \fImask\fP]
 The destination IPv6 address.
 The flag
 .B --ip6-dst
 is an alias for this option.
 .TP
-.BR "--ip6-tclass " "[!] \fItclass\fP"
+.RB [ ! ] " --ip6-tclass " \fItclass\fP
 The IPv6 traffic class, in hexadecimal numbers.
 .TP
-.BR "--ip6-protocol " "[!] \fIprotocol\fP"
+.RB [ ! ] " --ip6-protocol " \fIprotocol\fP
 The IP protocol.
 The flag
 .B --ip6-proto
 is an alias for this option.
 .TP
-.BR "--ip6-source-port " "[!] \fIport1\fP[:\fIport2\fP]"
+.RB [ ! ] " --ip6-source-port " \fIport1\fP[ : \fIport2\fP]
 The source port or port range for the IPv6 protocols 6 (TCP), 17
 (UDP), 33 (DCCP) or 132 (SCTP). The
 .B --ip6-protocol
@@ -644,7 +644,7 @@ The flag
 .B --ip6-sport
 is an alias for this option.
 .TP
-.BR "--ip6-destination-port " "[!] \fIport1\fP[:\fIport2\fP]"
+.RB [ ! ] " --ip6-destination-port " \fIport1\fP[ : \fIport2\fP]
 The destination port or port range for IPv6 protocols 6 (TCP), 17
 (UDP), 33 (DCCP) or 132 (SCTP). The
 .B --ip6-protocol
@@ -656,7 +656,7 @@ The flag
 .B --ip6-dport
 is an alias for this option.
 .TP
-.BR "--ip6-icmp-type " "[!] {\fItype\fP[:\fItype\fP]/\fIcode\fP[:\fIcode\fP]|\fItypename\fP}"
+.RB [ ! ] " --ip6-icmp-type " {\fItype\fP[ : \fItype\fP] / \fIcode\fP[ : \fIcode\fP]|\fItypename\fP}
 Specify ipv6\-icmp type and code to match.
 Ranges for both type and code are supported. Type and code are
 separated by a slash. Valid numbers for type and range are 0 to 255.
@@ -685,7 +685,7 @@ number; the default is
 .IR 5 .
 .SS mark_m
 .TP
-.BR "--mark " "[!] [\fIvalue\fP][/\fImask\fP]"
+.RB [ ! ] " --mark " [\fIvalue\fP][ / \fImask\fP]
 Matches frames with the given unsigned mark value. If a
 .IR value " and " mask " are specified, the logical AND of the mark value of the frame and"
 the user-specified
@@ -704,7 +704,7 @@ non-zero. Only specifying a
 .IR mask " is useful to match multiple mark values."
 .SS pkttype
 .TP
-.BR "--pkttype-type " "[!] \fItype\fP"
+.RB [ ! ] " --pkttype-type " \fItype\fP
 Matches on the Ethernet "class" of the frame, which is determined by the
 generic networking code. Possible values:
 .IR broadcast " (MAC destination is the broadcast address),"
@@ -721,46 +721,46 @@ if the lower bound is omitted (but the colon is not), then the lowest possible l
 for that option is used, while if the upper bound is omitted (but the colon again is not), the
 highest possible upper bound for that option is used.
 .TP
-.BR "--stp-type " "[!] \fItype\fP"
+.RB [ ! ] " --stp-type " \fItype\fP
 The BPDU type (0\(en255), recognized non-numerical types are
 .IR config ", denoting a configuration BPDU (=0), and"
 .IR tcn ", denothing a topology change notification BPDU (=128)."
 .TP
-.BR "--stp-flags " "[!] \fIflag\fP"
+.RB [ ! ] " --stp-flags " \fIflag\fP
 The BPDU flag (0\(en255), recognized non-numerical flags are
 .IR topology-change ", denoting the topology change flag (=1), and"
 .IR topology-change-ack ", denoting the topology change acknowledgement flag (=128)."
 .TP
-.BR "--stp-root-prio " "[!] [\fIprio\fP][:\fIprio\fP]"
+.RB [ ! ] " --stp-root-prio " [\fIprio\fP][ : \fIprio\fP]
 The root priority (0\(en65535) range.
 .TP
-.BR "--stp-root-addr " "[!] [\fIaddress\fP][/\fImask\fP]"
+.RB [ ! ] " --stp-root-addr " [\fIaddress\fP][ / \fImask\fP]
 The root mac address, see the option
 .BR -s " for more details."
 .TP
-.BR "--stp-root-cost " "[!] [\fIcost\fP][:\fIcost\fP]"
+.RB [ ! ] " --stp-root-cost " [\fIcost\fP][ : \fIcost\fP]
 The root path cost (0\(en4294967295) range.
 .TP
-.BR "--stp-sender-prio " "[!] [\fIprio\fP][:\fIprio\fP]"
+.RB [ ! ] " --stp-sender-prio " [\fIprio\fP][ : \fIprio\fP]
 The BPDU's sender priority (0\(en65535) range.
 .TP
-.BR "--stp-sender-addr " "[!] [\fIaddress\fP][/\fImask\fP]"
+.RB [ ! ] " --stp-sender-addr " [\fIaddress\fP][ / \fImask\fP]
 The BPDU's sender mac address, see the option
 .BR -s " for more details."
 .TP
-.BR "--stp-port " "[!] [\fIport\fP][:\fIport\fP]"
+.RB [ ! ] " --stp-port " [\fIport\fP][ : \fIport\fP]
 The port identifier (0\(en65535) range.
 .TP
-.BR "--stp-msg-age " "[!] [\fIage\fP][:\fIage\fP]"
+.RB [ ! ] " --stp-msg-age " [\fIage\fP][ : \fIage\fP]
 The message age timer (0\(en65535) range.
 .TP
-.BR "--stp-max-age " "[!] [\fIage\fP][:\fIage\fP]"
+.RB [ ! ] " --stp-max-age " [\fIage\fP][ : \fIage\fP]
 The max age timer (0\(en65535) range.
 .TP
-.BR "--stp-hello-time " "[!] [\fItime\fP][:\fItime\fP]"
+.RB [ ! ] " --stp-hello-time " [\fItime\fP][ : \fItime\fP]
 The hello time timer (0\(en65535) range.
 .TP
-.BR "--stp-forward-delay " "[!] [\fIdelay\fP][:\fIdelay\fP]"
+.RB [ ! ] " --stp-forward-delay " [\fIdelay\fP][ : \fIdelay\fP]
 The forward delay timer (0\(en65535) range.
 .\" .SS string
 .\" This module matches on a given string using some pattern matching strategy.
@@ -774,10 +774,10 @@ The forward delay timer (0\(en65535) range.
 .\" .BR "--string-to " "\fIoffset\fP"
 .\" The highest offset from which a match can start. (default: size of frame)
 .\" .TP
-.\" .BR "--string " "[!] \fIpattern\fP"
+.\" .RB [ ! ] " --string " \fIpattern\fP
 .\" Matches the given pattern.
 .\" .TP
-.\" .BR "--string-hex " "[!] \fIpattern\fP"
+.\" .RB [ ! ] " --string-hex " \fIpattern\fP
 .\" Matches the given pattern in hex notation, e.g. '|0D 0A|', '|0D0A|', 'www|09|netfilter|03|org|00|'
 .\" .TP
 .\" .BR "--string-icase"
@@ -787,15 +787,15 @@ Specify 802.1Q Tag Control Information fields.
 The protocol must be specified as
 .IR 802_1Q " (0x8100)."
 .TP
-.BR "--vlan-id " "[!] \fIid\fP"
+.RB [ ! ] " --vlan-id " \fIid\fP
 The VLAN identifier field (VID). Decimal number from 0 to 4095.
 .TP
-.BR "--vlan-prio " "[!] \fIprio\fP"
+.RB [ ! ] " --vlan-prio " \fIprio\fP
 The user priority field, a decimal number from 0 to 7.
 The VID should be set to 0 ("null VID") or unspecified
 (in the latter case the VID is deliberately set to 0).
 .TP
-.BR "--vlan-encap " "[!] \fItype\fP"
+.RB [ ! ] " --vlan-encap " \fItype\fP
 The encapsulated Ethernet frame type/length.
 Specified as a hexadecimal
 number from 0x0000 to 0xFFFF or as a symbolic name

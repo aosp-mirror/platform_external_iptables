@@ -34,9 +34,9 @@ static void brvlan_print_help(void)
 {
 	printf(
 "vlan options:\n"
-"--vlan-id [!] id       : vlan-tagged frame identifier, 0,1-4096 (integer)\n"
-"--vlan-prio [!] prio   : Priority-tagged frame's user priority, 0-7 (integer)\n"
-"--vlan-encap [!] encap : Encapsulated frame protocol (hexadecimal or name)\n");
+"[!] --vlan-id id       : vlan-tagged frame identifier, 0,1-4096 (integer)\n"
+"[!] --vlan-prio prio   : Priority-tagged frame's user priority, 0-7 (integer)\n"
+"[!] --vlan-encap encap : Encapsulated frame protocol (hexadecimal or name)\n");
 }
 
 static void brvlan_parse(struct xt_option_call *cb)
@@ -75,14 +75,19 @@ static void brvlan_print(const void *ip, const struct xt_entry_match *match,
 	struct ebt_vlan_info *vlaninfo = (struct ebt_vlan_info *) match->data;
 
 	if (vlaninfo->bitmask & EBT_VLAN_ID) {
-		printf("--vlan-id %s%d ", (vlaninfo->invflags & EBT_VLAN_ID) ? "! " : "", vlaninfo->id);
+		printf("%s--vlan-id %d ",
+		       (vlaninfo->invflags & EBT_VLAN_ID) ? "! " : "",
+		       vlaninfo->id);
 	}
 	if (vlaninfo->bitmask & EBT_VLAN_PRIO) {
-		printf("--vlan-prio %s%d ", (vlaninfo->invflags & EBT_VLAN_PRIO) ? "! " : "", vlaninfo->prio);
+		printf("%s--vlan-prio %d ",
+		       (vlaninfo->invflags & EBT_VLAN_PRIO) ? "! " : "",
+		       vlaninfo->prio);
 	}
 	if (vlaninfo->bitmask & EBT_VLAN_ENCAP) {
-		printf("--vlan-encap %s", (vlaninfo->invflags & EBT_VLAN_ENCAP) ? "! " : "");
-		printf("%4.4X ", ntohs(vlaninfo->encap));
+		printf("%s--vlan-encap %4.4X ",
+		       (vlaninfo->invflags & EBT_VLAN_ENCAP) ? "! " : "",
+		       ntohs(vlaninfo->encap));
 	}
 }
 

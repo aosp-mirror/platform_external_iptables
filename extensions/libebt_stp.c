@@ -63,18 +63,18 @@ static void brstp_print_help(void)
 {
 	printf(
 "stp options:\n"
-"--stp-type type                  : BPDU type\n"
-"--stp-flags flag                 : control flag\n"
-"--stp-root-prio prio[:prio]      : root priority (16-bit) range\n"
-"--stp-root-addr address[/mask]   : MAC address of root\n"
-"--stp-root-cost cost[:cost]      : root cost (32-bit) range\n"
-"--stp-sender-prio prio[:prio]    : sender priority (16-bit) range\n"
-"--stp-sender-addr address[/mask] : MAC address of sender\n"
-"--stp-port port[:port]           : port id (16-bit) range\n"
-"--stp-msg-age age[:age]          : message age timer (16-bit) range\n"
-"--stp-max-age age[:age]          : maximum age timer (16-bit) range\n"
-"--stp-hello-time time[:time]     : hello time timer (16-bit) range\n"
-"--stp-forward-delay delay[:delay]: forward delay timer (16-bit) range\n"
+"[!] --stp-type type                  : BPDU type\n"
+"[!] --stp-flags flag                 : control flag\n"
+"[!] --stp-root-prio prio[:prio]      : root priority (16-bit) range\n"
+"[!] --stp-root-addr address[/mask]   : MAC address of root\n"
+"[!] --stp-root-cost cost[:cost]      : root cost (32-bit) range\n"
+"[!] --stp-sender-prio prio[:prio]    : sender priority (16-bit) range\n"
+"[!] --stp-sender-addr address[/mask] : MAC address of sender\n"
+"[!] --stp-port port[:port]           : port id (16-bit) range\n"
+"[!] --stp-msg-age age[:age]          : message age timer (16-bit) range\n"
+"[!] --stp-max-age age[:age]          : maximum age timer (16-bit) range\n"
+"[!] --stp-hello-time time[:time]     : hello time timer (16-bit) range\n"
+"[!] --stp-forward-delay delay[:delay]: forward delay timer (16-bit) range\n"
 " Recognized BPDU type strings:\n"
 "   \"config\": configuration BPDU (=0)\n"
 "   \"tcn\"   : topology change notification BPDU (=0x80)\n"
@@ -184,8 +184,9 @@ static void brstp_print(const void *ip, const struct xt_entry_match *match,
 	for (i = 0; (1 << i) < EBT_STP_MASK; i++) {
 		if (!(stpinfo->bitmask & (1 << i)))
 			continue;
-		printf("--%s %s", brstp_opts[i].name,
-		       (stpinfo->invflags & (1 << i)) ? "! " : "");
+		printf("%s--%s ",
+		       (stpinfo->invflags & (1 << i)) ? "! " : "",
+		       brstp_opts[i].name);
 		if (EBT_STP_TYPE == (1 << i)) {
 			if (stpinfo->type == BPDU_TYPE_CONFIG)
 				printf("%s", BPDU_TYPE_CONFIG_STRING);

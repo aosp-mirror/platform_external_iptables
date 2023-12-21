@@ -116,13 +116,13 @@ static void brip6_print_help(void)
 {
 	printf(
 "ip6 options:\n"
-"--ip6-src    [!] address[/mask]: ipv6 source specification\n"
-"--ip6-dst    [!] address[/mask]: ipv6 destination specification\n"
-"--ip6-tclass [!] tclass        : ipv6 traffic class specification\n"
-"--ip6-proto  [!] protocol      : ipv6 protocol specification\n"
-"--ip6-sport  [!] port[:port]   : tcp/udp source port or port range\n"
-"--ip6-dport  [!] port[:port]   : tcp/udp destination port or port range\n"
-"--ip6-icmp-type [!] type[[:type]/code[:code]] : ipv6-icmp type/code or type/code range\n");
+"[!] --ip6-src    address[/mask]: ipv6 source specification\n"
+"[!] --ip6-dst    address[/mask]: ipv6 destination specification\n"
+"[!] --ip6-tclass tclass        : ipv6 traffic class specification\n"
+"[!] --ip6-proto  protocol      : ipv6 protocol specification\n"
+"[!] --ip6-sport  port[:port]   : tcp/udp source port or port range\n"
+"[!] --ip6-dport  port[:port]   : tcp/udp destination port or port range\n"
+"[!] --ip6-icmp-type type[[:type]/code[:code]] : ipv6-icmp type/code or type/code range\n");
 	printf("Valid ICMPv6 Types:");
 	xt_print_icmp_types(icmpv6_codes, ARRAY_SIZE(icmpv6_codes));
 }
@@ -173,31 +173,30 @@ static void brip6_print(const void *ip, const struct xt_entry_match *match,
 	struct ebt_ip6_info *ipinfo = (struct ebt_ip6_info *)match->data;
 
 	if (ipinfo->bitmask & EBT_IP6_SOURCE) {
-		printf("--ip6-src ");
 		if (ipinfo->invflags & EBT_IP6_SOURCE)
 			printf("! ");
+		printf("--ip6-src ");
 		printf("%s", xtables_ip6addr_to_numeric(&ipinfo->saddr));
 		printf("%s ", xtables_ip6mask_to_numeric(&ipinfo->smsk));
 	}
 	if (ipinfo->bitmask & EBT_IP6_DEST) {
-		printf("--ip6-dst ");
 		if (ipinfo->invflags & EBT_IP6_DEST)
 			printf("! ");
+		printf("--ip6-dst ");
 		printf("%s", xtables_ip6addr_to_numeric(&ipinfo->daddr));
 		printf("%s ", xtables_ip6mask_to_numeric(&ipinfo->dmsk));
 	}
 	if (ipinfo->bitmask & EBT_IP6_TCLASS) {
-		printf("--ip6-tclass ");
 		if (ipinfo->invflags & EBT_IP6_TCLASS)
 			printf("! ");
-		printf("0x%02X ", ipinfo->tclass);
+		printf("--ip6-tclass 0x%02X ", ipinfo->tclass);
 	}
 	if (ipinfo->bitmask & EBT_IP6_PROTO) {
 		struct protoent *pe;
 
-		printf("--ip6-proto ");
 		if (ipinfo->invflags & EBT_IP6_PROTO)
 			printf("! ");
+		printf("--ip6-proto ");
 		pe = getprotobynumber(ipinfo->protocol);
 		if (pe == NULL) {
 			printf("%d ", ipinfo->protocol);
@@ -206,21 +205,21 @@ static void brip6_print(const void *ip, const struct xt_entry_match *match,
 		}
 	}
 	if (ipinfo->bitmask & EBT_IP6_SPORT) {
-		printf("--ip6-sport ");
 		if (ipinfo->invflags & EBT_IP6_SPORT)
 			printf("! ");
+		printf("--ip6-sport ");
 		print_port_range(ipinfo->sport);
 	}
 	if (ipinfo->bitmask & EBT_IP6_DPORT) {
-		printf("--ip6-dport ");
 		if (ipinfo->invflags & EBT_IP6_DPORT)
 			printf("! ");
+		printf("--ip6-dport ");
 		print_port_range(ipinfo->dport);
 	}
 	if (ipinfo->bitmask & EBT_IP6_ICMP6) {
-		printf("--ip6-icmp-type ");
 		if (ipinfo->invflags & EBT_IP6_ICMP6)
 			printf("! ");
+		printf("--ip6-icmp-type ");
 		print_icmp_type(ipinfo->icmpv6_type, ipinfo->icmpv6_code);
 	}
 }

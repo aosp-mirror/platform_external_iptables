@@ -38,7 +38,7 @@ static void brpkttype_print_help(void)
 {
 	printf(
 "pkttype options:\n"
-"--pkttype-type    [!] type: class the packet belongs to\n"
+"[!] --pkttype-type    type: class the packet belongs to\n"
 "Possible values: broadcast, multicast, host, otherhost, or any other byte value (which would be pretty useless).\n");
 }
 
@@ -76,7 +76,7 @@ static void brpkttype_print(const void *ip, const struct xt_entry_match *match, 
 {
 	struct ebt_pkttype_info *pt = (struct ebt_pkttype_info *)match->data;
 
-	printf("--pkttype-type %s", pt->invert ? "! " : "");
+	printf("%s--pkttype-type ", pt->invert ? "! " : "");
 
 	if (pt->pkt_type < ARRAY_SIZE(classes))
 		printf("%s ", classes[pt->pkt_type]);

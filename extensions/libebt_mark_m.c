@@ -29,7 +29,7 @@ static void brmark_m_print_help(void)
 {
 	printf(
 "mark option:\n"
-"--mark    [!] [value][/mask]: Match nfmask value (see man page)\n");
+"[!] --mark    [value][/mask]: Match nfmask value (see man page)\n");
 }
 
 static void brmark_m_parse(struct xt_option_call *cb)
@@ -63,9 +63,9 @@ static void brmark_m_print(const void *ip, const struct xt_entry_match *match,
 {
 	struct ebt_mark_m_info *info = (struct ebt_mark_m_info *)match->data;
 
-	printf("--mark ");
 	if (info->invert)
 		printf("! ");
+	printf("--mark ");
 	if (info->bitmask == EBT_MARK_OR)
 		printf("/0x%lx ", info->mask);
 	else if (info->mask != 0xffffffff)
