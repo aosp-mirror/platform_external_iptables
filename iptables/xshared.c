@@ -1103,7 +1103,7 @@ void save_rule_details(const char *iniface, const char *outiface,
 	}
 
 	if (proto > 0) {
-		const char *pname = proto_to_name(proto, 0);
+		const char *pname = proto_to_name(proto, true);
 
 		if (invflags & XT_INV_PROTO)
 			printf(" !");
