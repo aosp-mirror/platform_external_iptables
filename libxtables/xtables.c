@@ -2203,6 +2203,8 @@ const struct xtables_pprot xtables_chain_protos[] = {
 	{"mobility-header", IPPROTO_MH},
 	{"ipv6-mh",   IPPROTO_MH},
 	{"mh",        IPPROTO_MH},
+	{"dccp",      IPPROTO_DCCP},
+	{"ipcomp",    IPPROTO_COMP},
 	{"all",       0},
 	{NULL},
 };
