@@ -142,7 +142,7 @@ static void brstp_parse(struct xt_option_call *cb)
 #define RANGE_ASSIGN(name, fname, val) {				    \
 		stpinfo->config.fname##l = val[0];			    \
 		stpinfo->config.fname##u = cb->nvals > 1 ? val[1] : val[0]; \
-		if (val[1] < val[0])					    \
+		if (stpinfo->config.fname##u < stpinfo->config.fname##l)    \
 			xtables_error(PARAMETER_PROBLEM,		    \
 				      "Bad --stp-" name " range");	    \
 }
