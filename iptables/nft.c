@@ -2812,8 +2812,10 @@ int nft_rule_list(struct nft_handle *h, const char *chain, const char *table,
 
 	if (chain) {
 		c = nft_chain_find(h, table, chain);
-		if (!c)
+		if (!c) {
+			errno = ENOENT;
 			return 0;
+		}
 
 		if (rulenum)
 			d.save_fmt = true;	/* skip header printing */
@@ -2920,8 +2922,10 @@ int nft_rule_list_save(struct nft_handle *h, const char *chain,
 
 	if (chain) {
 		c = nft_chain_find(h, table, chain);
-		if (!c)
+		if (!c) {
+			errno = ENOENT;
 			return 0;
+		}
 
 		if (!rulenum)
 			nft_rule_list_chain_save(c, &counters);
@@ -2953,8 +2957,10 @@ int nft_rule_zero_counters(struct nft_handle *h, const char *chain,
 	nft_fn = nft_rule_delete;
 
 	c = nft_chain_find(h, table, chain);
-	if (!c)
+	if (!c) {
+		errno = ENOENT;
 		return 0;
+	}
 
 	r = nft_rule_find(h, c, NULL, rulenum);
 	if (r == NULL) {
