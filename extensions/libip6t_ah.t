@@ -18,4 +18,4 @@
 -m ah --ahspi :3;-m ah --ahspi 0:3;OK
 -m ah --ahspi 3:;-m ah --ahspi 3:4294967295;OK
 -m ah --ahspi 3:3;-m ah --ahspi 3;OK
--m ah --ahspi 4:3;=;OK
+-m ah --ahspi 4:3;;FAIL

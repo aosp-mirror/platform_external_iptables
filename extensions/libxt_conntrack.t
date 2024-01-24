@@ -18,7 +18,7 @@
 -m conntrack --ctexpire 42949672956;;FAIL
 -m conntrack --ctexpire -1;;FAIL
 -m conntrack --ctexpire 3:3;-m conntrack --ctexpire 3;OK
--m conntrack --ctexpire 4:3;=;OK
+-m conntrack --ctexpire 4:3;;FAIL
 -m conntrack --ctdir ORIGINAL;=;OK
 -m conntrack --ctdir REPLY;=;OK
 -m conntrack --ctstatus NONE;=;OK

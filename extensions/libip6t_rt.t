@@ -8,4 +8,4 @@
 -m rt --rt-segsleft :3;-m rt --rt-segsleft 0:3;OK
 -m rt --rt-segsleft 3:;-m rt --rt-segsleft 3:4294967295;OK
 -m rt --rt-segsleft 3:3;-m rt --rt-segsleft 3;OK
--m rt --rt-segsleft 4:3;=;OK
+-m rt --rt-segsleft 4:3;;FAIL

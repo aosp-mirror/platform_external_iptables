@@ -139,36 +139,33 @@ static void brstp_parse(struct xt_option_call *cb)
 		       cb->val.ethermacmask, ETH_ALEN);
 		break;
 
-#define RANGE_ASSIGN(name, fname, val) {				    \
+#define RANGE_ASSIGN(fname, val) {				    \
 		stpinfo->config.fname##l = val[0];			    \
 		stpinfo->config.fname##u = cb->nvals > 1 ? val[1] : val[0]; \
-		if (stpinfo->config.fname##u < stpinfo->config.fname##l)    \
-			xtables_error(PARAMETER_PROBLEM,		    \
-				      "Bad --stp-" name " range");	    \
 }
 	case O_RPRIO:
-		RANGE_ASSIGN("root-prio", root_prio, cb->val.u16_range);
+		RANGE_ASSIGN(root_prio, cb->val.u16_range);
 		break;
 	case O_RCOST:
-		RANGE_ASSIGN("root-cost", root_cost, cb->val.u32_range);
+		RANGE_ASSIGN(root_cost, cb->val.u32_range);
 		break;
 	case O_SPRIO:
-		RANGE_ASSIGN("sender-prio", sender_prio, cb->val.u16_range);
+		RANGE_ASSIGN(sender_prio, cb->val.u16_range);
 		break;
 	case O_PORT:
-		RANGE_ASSIGN("port", port, cb->val.u16_range);
+		RANGE_ASSIGN(port, cb->val.u16_range);
 		break;
 	case O_MSGAGE:
-		RANGE_ASSIGN("msg-age", msg_age, cb->val.u16_range);
+		RANGE_ASSIGN(msg_age, cb->val.u16_range);
 		break;
 	case O_MAXAGE:
-		RANGE_ASSIGN("max-age", max_age, cb->val.u16_range);
+		RANGE_ASSIGN(max_age, cb->val.u16_range);
 		break;
 	case O_HTIME:
-		RANGE_ASSIGN("hello-time", hello_time, cb->val.u16_range);
+		RANGE_ASSIGN(hello_time, cb->val.u16_range);
 		break;
 	case O_FWDD:
-		RANGE_ASSIGN("forward-delay", forward_delay, cb->val.u16_range);
+		RANGE_ASSIGN(forward_delay, cb->val.u16_range);
 		break;
 #undef RANGE_ASSIGN
 	}

@@ -5,7 +5,7 @@
 -m frag --fragid 42:;-m frag --fragid 42:4294967295;OK
 -m frag --fragid 1:42;=;OK
 -m frag --fragid 3:3;-m frag --fragid 3;OK
--m frag --fragid 4:3;=;OK
+-m frag --fragid 4:3;;FAIL
 -m frag --fraglen 42;=;OK
 -m frag --fragres;=;OK
 -m frag --fragfirst;=;OK

@@ -291,8 +291,8 @@ static void xtopt_parse_mint(struct xt_option_call *cb)
 	size_t esize = xtopt_esize_by_type(entry->type);
 	const uintmax_t lmax = xtopt_max_by_type(entry->type);
 	void *put = XTOPT_MKPTR(cb);
+	uintmax_t value, lmin = 0;
 	unsigned int maxiter;
-	uintmax_t value;
 	char *end = "";
 	char sep = ':';
 
@@ -314,16 +314,17 @@ static void xtopt_parse_mint(struct xt_option_call *cb)
 			end = (char *)arg;
 			value = (cb->nvals == 1) ? lmax : 0;
 		} else {
-			if (!xtables_strtoul(arg, &end, &value, 0, lmax))
+			if (!xtables_strtoul(arg, &end, &value, lmin, lmax))
 				xt_params->exit_err(PARAMETER_PROBLEM,
 					"%s: bad value for option \"--%s\" near "
-					"\"%s\", or out of range (0-%ju).\n",
-					cb->ext_name, entry->name, arg, lmax);
+					"\"%s\", or out of range (%ju-%ju).\n",
+					cb->ext_name, entry->name, arg, lmin, lmax);
 			if (*end != '\0' && *end != sep)
 				xt_params->exit_err(PARAMETER_PROBLEM,
 					"%s: Argument to \"--%s\" has "
 					"unexpected characters near \"%s\".\n",
 					cb->ext_name, entry->name, end);
+			lmin = value;
 		}
 		xtopt_mint_value_to_cb(cb, value);
 		++cb->nvals;

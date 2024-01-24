@@ -7,4 +7,4 @@
 -p ipcomp -m ipcomp --ipcompspi 4:;-p ipcomp -m ipcomp --ipcompspi 4:4294967295;OK
 -p ipcomp -m ipcomp --ipcompspi 3:4;=;OK
 -p ipcomp -m ipcomp --ipcompspi 4:4;-p ipcomp -m ipcomp --ipcompspi 4;OK
--p ipcomp -m ipcomp --ipcompspi 4:3;=;OK
+-p ipcomp -m ipcomp --ipcompspi 4:3;;FAIL
