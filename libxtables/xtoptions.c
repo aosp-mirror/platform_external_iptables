@@ -604,7 +604,7 @@ static void xtopt_parse_mport(struct xt_option_call *cb)
 	const struct xt_option_entry *entry = cb->entry;
 	char *lo_arg, *wp_arg, *arg;
 	unsigned int maxiter;
-	int value;
+	int value, prev = 0;
 
 	wp_arg = lo_arg = xtables_strdup(cb->arg);
 
@@ -634,6 +634,11 @@ static void xtopt_parse_mport(struct xt_option_call *cb)
 			xt_params->exit_err(PARAMETER_PROBLEM,
 				"Port \"%s\" does not resolve to "
 				"anything.\n", arg);
+		if (value < prev)
+			xt_params->exit_err(PARAMETER_PROBLEM,
+				"Port range %d-%d is negative.\n",
+				prev, value);
+		prev = value;
 		if (entry->flags & XTOPT_NBO)
 			value = htons(value);
 		if (cb->nvals < ARRAY_SIZE(cb->val.port_range))

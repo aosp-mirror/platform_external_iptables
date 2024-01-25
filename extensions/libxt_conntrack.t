@@ -34,22 +34,22 @@
 -m conntrack --ctorigsrcport 4:;-m conntrack --ctorigsrcport 4:65535;OK
 -m conntrack --ctorigsrcport 3:4;=;OK
 -m conntrack --ctorigsrcport 4:4;-m conntrack --ctorigsrcport 4;OK
--m conntrack --ctorigsrcport 4:3;=;OK
+-m conntrack --ctorigsrcport 4:3;;FAIL
 -m conntrack --ctreplsrcport :;-m conntrack --ctreplsrcport 0:65535;OK
 -m conntrack --ctreplsrcport :4;-m conntrack --ctreplsrcport 0:4;OK
 -m conntrack --ctreplsrcport 4:;-m conntrack --ctreplsrcport 4:65535;OK
 -m conntrack --ctreplsrcport 3:4;=;OK
 -m conntrack --ctreplsrcport 4:4;-m conntrack --ctreplsrcport 4;OK
--m conntrack --ctreplsrcport 4:3;=;OK
+-m conntrack --ctreplsrcport 4:3;;FAIL
 -m conntrack --ctorigdstport :;-m conntrack --ctorigdstport 0:65535;OK
 -m conntrack --ctorigdstport :4;-m conntrack --ctorigdstport 0:4;OK
 -m conntrack --ctorigdstport 4:;-m conntrack --ctorigdstport 4:65535;OK
 -m conntrack --ctorigdstport 3:4;=;OK
 -m conntrack --ctorigdstport 4:4;-m conntrack --ctorigdstport 4;OK
--m conntrack --ctorigdstport 4:3;=;OK
+-m conntrack --ctorigdstport 4:3;;FAIL
 -m conntrack --ctrepldstport :;-m conntrack --ctrepldstport 0:65535;OK
 -m conntrack --ctrepldstport :4;-m conntrack --ctrepldstport 0:4;OK
 -m conntrack --ctrepldstport 4:;-m conntrack --ctrepldstport 4:65535;OK
 -m conntrack --ctrepldstport 3:4;=;OK
 -m conntrack --ctrepldstport 4:4;-m conntrack --ctrepldstport 4;OK
--m conntrack --ctrepldstport 4:3;=;OK
+-m conntrack --ctrepldstport 4:3;;FAIL
