@@ -6,6 +6,18 @@
 -p IPv4 ! --ip-tos 0xFF;=;OK
 -p IPv4 --ip-proto tcp --ip-dport 22;=;OK
 -p IPv4 --ip-proto udp --ip-sport 1024:65535;=;OK
+-p IPv4 --ip-proto udp --ip-sport :;-p IPv4 --ip-proto udp --ip-sport 0:65535;OK
+-p IPv4 --ip-proto udp --ip-sport :4;-p IPv4 --ip-proto udp --ip-sport 0:4;OK
+-p IPv4 --ip-proto udp --ip-sport 4:;-p IPv4 --ip-proto udp --ip-sport 4:65535;OK
+-p IPv4 --ip-proto udp --ip-sport 3:4;=;OK
+-p IPv4 --ip-proto udp --ip-sport 4:4;-p IPv4 --ip-proto udp --ip-sport 4;OK
+-p IPv4 --ip-proto udp --ip-sport 4:3;;FAIL
+-p IPv4 --ip-proto udp --ip-dport :;-p IPv4 --ip-proto udp --ip-dport 0:65535;OK
+-p IPv4 --ip-proto udp --ip-dport :4;-p IPv4 --ip-proto udp --ip-dport 0:4;OK
+-p IPv4 --ip-proto udp --ip-dport 4:;-p IPv4 --ip-proto udp --ip-dport 4:65535;OK
+-p IPv4 --ip-proto udp --ip-dport 3:4;=;OK
+-p IPv4 --ip-proto udp --ip-dport 4:4;-p IPv4 --ip-proto udp --ip-dport 4;OK
+-p IPv4 --ip-proto udp --ip-dport 4:3;;FAIL
 -p IPv4 --ip-proto 253;=;OK
 -p IPv4 ! --ip-proto 253;=;OK
 -p IPv4 --ip-proto icmp --ip-icmp-type echo-request;=;OK

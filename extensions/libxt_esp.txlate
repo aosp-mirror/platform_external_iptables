@@ -9,3 +9,15 @@ nft 'add rule ip filter INPUT esp spi 500 counter drop'
 
 iptables-translate -A INPUT -p 50 -m esp --espspi 500:600 -j DROP
 nft 'add rule ip filter INPUT esp spi 500-600 counter drop'
+
+iptables-translate -A INPUT -p 50 -m esp --espspi 0:4294967295 -j DROP
+nft 'add rule ip filter INPUT counter drop'
+
+iptables-translate -A INPUT -p 50 -m esp ! --espspi 0:4294967295 -j DROP
+nft 'add rule ip filter INPUT counter drop'
+
+ip6tables-translate -A INPUT -p 50 -m esp --espspi 0:4294967295 -j DROP
+nft 'add rule ip6 filter INPUT counter drop'
+
+ip6tables-translate -A INPUT -p 50 -m esp ! --espspi 0:4294967295 -j DROP
+nft 'add rule ip6 filter INPUT counter drop'

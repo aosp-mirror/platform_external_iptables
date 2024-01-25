@@ -10,6 +10,18 @@
 -p IPv6 --ip6-proto tcp ! --ip6-dport 22;=;OK
 -p IPv6 --ip6-proto tcp ! --ip6-sport 22 --ip6-dport 22;=;OK
 -p IPv6 --ip6-proto udp --ip6-sport 1024:65535;=;OK
+-p IPv6 --ip6-proto udp --ip6-sport :;-p IPv6 --ip6-proto udp --ip6-sport 0:65535;OK
+-p IPv6 --ip6-proto udp --ip6-sport :4;-p IPv6 --ip6-proto udp --ip6-sport 0:4;OK
+-p IPv6 --ip6-proto udp --ip6-sport 4:;-p IPv6 --ip6-proto udp --ip6-sport 4:65535;OK
+-p IPv6 --ip6-proto udp --ip6-sport 3:4;=;OK
+-p IPv6 --ip6-proto udp --ip6-sport 4:4;-p IPv6 --ip6-proto udp --ip6-sport 4;OK
+-p IPv6 --ip6-proto udp --ip6-sport 4:3;;FAIL
+-p IPv6 --ip6-proto udp --ip6-dport :;-p IPv6 --ip6-proto udp --ip6-dport 0:65535;OK
+-p IPv6 --ip6-proto udp --ip6-dport :4;-p IPv6 --ip6-proto udp --ip6-dport 0:4;OK
+-p IPv6 --ip6-proto udp --ip6-dport 4:;-p IPv6 --ip6-proto udp --ip6-dport 4:65535;OK
+-p IPv6 --ip6-proto udp --ip6-dport 3:4;=;OK
+-p IPv6 --ip6-proto udp --ip6-dport 4:4;-p IPv6 --ip6-proto udp --ip6-dport 4;OK
+-p IPv6 --ip6-proto udp --ip6-dport 4:3;;FAIL
 -p IPv6 --ip6-proto 253;=;OK
 -p IPv6 ! --ip6-proto 253;=;OK
 -p IPv6 --ip6-proto ipv6-icmp --ip6-icmp-type echo-request -j CONTINUE;=;OK

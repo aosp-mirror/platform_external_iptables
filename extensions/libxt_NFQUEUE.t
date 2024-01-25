@@ -8,6 +8,13 @@
 -j NFQUEUE --queue-balance 0:65535;;FAIL
 -j NFQUEUE --queue-balance 0:65536;;FAIL
 -j NFQUEUE --queue-balance -1:65535;;FAIL
+-j NFQUEUE --queue-balance 4;;FAIL
+-j NFQUEUE --queue-balance :;;FAIL
+-j NFQUEUE --queue-balance :4;-j NFQUEUE --queue-balance 0:4;OK
+-j NFQUEUE --queue-balance 4:;-j NFQUEUE --queue-balance 4:65535;OK
+-j NFQUEUE --queue-balance 3:4;=;OK
+-j NFQUEUE --queue-balance 4:4;;FAIL
+-j NFQUEUE --queue-balance 4:3;;FAIL
 -j NFQUEUE --queue-num 10 --queue-bypass;=;OK
 -j NFQUEUE --queue-balance 0:6 --queue-cpu-fanout --queue-bypass;-j NFQUEUE --queue-balance 0:6 --queue-bypass --queue-cpu-fanout;OK
 -j NFQUEUE --queue-bypass --queue-balance 0:6 --queue-cpu-fanout;-j NFQUEUE --queue-balance 0:6 --queue-bypass --queue-cpu-fanout;OK

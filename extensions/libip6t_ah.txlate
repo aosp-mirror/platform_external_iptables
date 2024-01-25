@@ -15,3 +15,9 @@ nft 'add rule ip6 filter INPUT ah spi 500 ah hdrlength != 120 counter drop'
 
 ip6tables-translate -A INPUT -m ah --ahspi 500 --ahlen 120 --ahres -j ACCEPT
 nft 'add rule ip6 filter INPUT ah spi 500 ah hdrlength 120 ah reserved 1 counter accept'
+
+ip6tables-translate -A INPUT -m ah --ahspi 0:4294967295
+nft 'add rule ip6 filter INPUT meta l4proto ah counter'
+
+ip6tables-translate -A INPUT -m ah ! --ahspi 0:4294967295
+nft 'add rule ip6 filter INPUT meta l4proto ah counter'
