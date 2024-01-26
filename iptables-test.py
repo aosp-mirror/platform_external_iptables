@@ -143,7 +143,8 @@ def run_test(iptables, rule, rule_save, res, filename, lineno, netns):
         return -1
 
     # find the rule
-    matching = out.find(rule_save.encode('utf-8'))
+    matching = out.find("\n-A {}\n".format(rule_save).encode('utf-8'))
+
     if matching < 0:
         if res == "OK":
             reason = "cannot find: " + iptables + " -I " + rule
@@ -469,6 +470,9 @@ def run_test_file(filename, netns):
                 rule_save = chain + " " + item[0]
             else:
                 rule_save = chain + " " + item[1]
+
+            if iptables == EBTABLES and rule_save.find('-j') < 0:
+                rule_save += " -j CONTINUE"
 
             res = item[2].rstrip()
             if len(item) > 3:
