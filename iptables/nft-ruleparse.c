@@ -94,7 +94,7 @@ __nft_create_target(struct nft_xt_ctx *ctx, const char *name, size_t tgsize)
 	if (!target)
 		return NULL;
 
-	size = XT_ALIGN(sizeof(*target->t)) + tgsize ?: target->size;
+	size = XT_ALIGN(sizeof(*target->t)) + (tgsize ?: target->size);
 
 	target->t = xtables_calloc(1, size);
 	target->t->u.target_size = size;
