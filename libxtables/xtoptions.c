@@ -289,12 +289,15 @@ static void xtopt_parse_mint(struct xt_option_call *cb)
 	const struct xt_option_entry *entry = cb->entry;
 	const char *arg;
 	size_t esize = xtopt_esize_by_type(entry->type);
-	const uintmax_t lmax = xtopt_max_by_type(entry->type);
+	uintmax_t lmax = xtopt_max_by_type(entry->type);
+	uintmax_t value, lmin = entry->min;
 	void *put = XTOPT_MKPTR(cb);
-	uintmax_t value, lmin = 0;
 	unsigned int maxiter;
 	char *end = "";
 	char sep = ':';
+
+	if (entry->max && entry->max < lmax)
+		lmax = entry->max;
 
 	maxiter = entry->size / esize;
 	if (maxiter == 0)
@@ -312,7 +315,7 @@ static void xtopt_parse_mint(struct xt_option_call *cb)
 		if (*arg == '\0' || *arg == sep) {
 			/* Default range components when field not spec'd. */
 			end = (char *)arg;
-			value = (cb->nvals == 1) ? lmax : 0;
+			value = (cb->nvals == 1) ? lmax : lmin;
 		} else {
 			if (!xtables_strtoul(arg, &end, &value, lmin, lmax))
 				xt_params->exit_err(PARAMETER_PROBLEM,
