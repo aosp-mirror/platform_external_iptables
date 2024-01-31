@@ -798,6 +798,9 @@ static void command_match(struct iptables_command_state *cs, bool invert)
 	else if (m->extra_opts != NULL)
 		opts = xtables_merge_options(xt_params->orig_opts, opts,
 					     m->extra_opts, &m->option_offset);
+	else
+		return;
+
 	if (opts == NULL)
 		xtables_error(OTHER_PROBLEM, "can't alloc memory!");
 	xt_params->opts = opts;
@@ -856,10 +859,13 @@ void command_jump(struct iptables_command_state *cs, const char *jumpto)
 		opts = xtables_options_xfrm(xt_params->orig_opts, opts,
 					    cs->target->x6_options,
 					    &cs->target->option_offset);
-	else
+	else if (cs->target->extra_opts != NULL)
 		opts = xtables_merge_options(xt_params->orig_opts, opts,
 					     cs->target->extra_opts,
 					     &cs->target->option_offset);
+	else
+		return;
+
 	if (opts == NULL)
 		xtables_error(OTHER_PROBLEM, "can't alloc memory!");
 	xt_params->opts = opts;
@@ -1484,10 +1490,10 @@ void do_parse(int argc, char *argv[],
 	   demand-load a protocol. */
 	opterr = 0;
 
-	xt_params->opts = xt_params->orig_opts;
 	while ((cs->c = getopt_long(argc, argv,
 				    optstring_lookup(afinfo->family),
-				    xt_params->opts, NULL)) != -1) {
+				    xt_params->opts ?: xt_params->orig_opts,
+				    NULL)) != -1) {
 		switch (cs->c) {
 			/*
 			 * Command selection
