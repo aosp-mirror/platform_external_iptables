@@ -1420,6 +1420,10 @@ void xtables_rule_matches_free(struct xtables_rule_match **matches)
 			free(matchp->match->m);
 			matchp->match->m = NULL;
 		}
+		if (matchp->match->udata_size) {
+			free(matchp->match->udata);
+			matchp->match->udata = NULL;
+		}
 		if (matchp->match == matchp->match->next) {
 			free(matchp->match);
 			matchp->match = NULL;
