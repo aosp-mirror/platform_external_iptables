@@ -141,7 +141,6 @@ struct xtables_globals ebtables_globals = {
 	.compat_rev		= nft_compatible_revision,
 };
 
-#define opts ebtables_globals.opts
 #define prog_name ebtables_globals.program_name
 #define prog_vers ebtables_globals.program_version
 
@@ -281,6 +280,7 @@ static int list_rules(struct nft_handle *h, const char *chain, const char *table
 /* This code is very similar to iptables/xtables.c:command_match() */
 static void ebt_load_match(const char *name)
 {
+	struct option *opts = xt_params->opts;
 	struct xtables_match *m;
 	size_t size;
 
@@ -305,10 +305,12 @@ static void ebt_load_match(const char *name)
 					     m->extra_opts, &m->option_offset);
 	if (opts == NULL)
 		xtables_error(OTHER_PROBLEM, "Can't alloc memory");
+	xt_params->opts = opts;
 }
 
 static void ebt_load_watcher(const char *name)
 {
+	struct option *opts = xt_params->opts;
 	struct xtables_target *watcher;
 	size_t size;
 
@@ -337,11 +339,12 @@ static void ebt_load_watcher(const char *name)
 					     &watcher->option_offset);
 	if (opts == NULL)
 		xtables_error(OTHER_PROBLEM, "Can't alloc memory");
+	xt_params->opts = opts;
 }
 
 static void ebt_load_match_extensions(void)
 {
-	opts = ebt_original_options;
+	xt_params->opts = ebt_original_options;
 	ebt_load_match("802_3");
 	ebt_load_match("arp");
 	ebt_load_match("ip");
@@ -358,7 +361,7 @@ static void ebt_load_match_extensions(void)
 
 	/* assign them back so do_parse() may
 	 * reset opts to orig_opts upon each call */
-	xt_params->orig_opts = opts;
+	xt_params->orig_opts = xt_params->opts;
 }
 
 void ebt_add_match(struct xtables_match *m,
@@ -528,6 +531,7 @@ int nft_init_eb(struct nft_handle *h, const char *pname)
 
 void nft_fini_eb(struct nft_handle *h)
 {
+	struct option *opts = xt_params->opts;
 	struct xtables_match *match;
 	struct xtables_target *target;
 
