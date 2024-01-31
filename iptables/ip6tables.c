@@ -892,10 +892,7 @@ int do_command6(int argc, char *argv[], char **table,
 		e = NULL;
 	}
 
-	free(saddrs);
-	free(smasks);
-	free(daddrs);
-	free(dmasks);
+	xtables_clear_args(&args);
 	xtables_free_opts(1);
 
 	return ret;

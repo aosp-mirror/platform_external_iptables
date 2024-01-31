@@ -2185,3 +2185,11 @@ make_delete_mask(const struct xtables_rule_match *matches,
 
 	return mask;
 }
+
+void xtables_clear_args(struct xtables_args *args)
+{
+	free(args->s.addr.ptr);
+	free(args->s.mask.ptr);
+	free(args->d.addr.ptr);
+	free(args->d.mask.ptr);
+}

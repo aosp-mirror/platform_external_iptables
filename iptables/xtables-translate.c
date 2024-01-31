@@ -349,17 +349,7 @@ static int do_command_xlate(struct nft_handle *h, int argc, char *argv[],
 
 	h->ops->clear_cs(&cs);
 
-	if (h->family == AF_INET) {
-		free(args.s.addr.v4);
-		free(args.s.mask.v4);
-		free(args.d.addr.v4);
-		free(args.d.mask.v4);
-	} else if (h->family == AF_INET6) {
-		free(args.s.addr.v6);
-		free(args.s.mask.v6);
-		free(args.d.addr.v6);
-		free(args.d.mask.v6);
-	}
+	xtables_clear_args(&args);
 	xtables_free_opts(1);
 
 	return ret;

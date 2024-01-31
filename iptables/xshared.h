@@ -333,4 +333,6 @@ unsigned char *make_delete_mask(const struct xtables_rule_match *matches,
 
 void iface_to_mask(const char *ifname, unsigned char *mask);
 
+void xtables_clear_args(struct xtables_args *args);
+
 #endif /* IPTABLES_XSHARED_H */
