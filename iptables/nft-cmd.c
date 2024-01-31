@@ -65,6 +65,7 @@ void nft_cmd_free(struct nft_cmd *cmd)
 	switch (cmd->command) {
 	case NFT_COMPAT_RULE_CHECK:
 	case NFT_COMPAT_RULE_DELETE:
+	case NFT_COMPAT_RULE_CHANGE_COUNTERS:
 		if (cmd->obj.rule)
 			nftnl_rule_free(cmd->obj.rule);
 		break;
