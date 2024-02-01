@@ -7,13 +7,13 @@
 -p udp -m udp --sport 1024:65535;=;OK
 -p udp -m udp --sport 1024:;-p udp -m udp --sport 1024:65535;OK
 -p udp -m udp --sport :;-p udp -m udp;OK
--p udp -m udp ! --sport :;-p udp -m udp;OK
+-p udp -m udp ! --sport :;-p udp -m udp ! --sport 0:65535;OK
 -p udp -m udp --sport :4;-p udp -m udp --sport 0:4;OK
 -p udp -m udp --sport 4:;-p udp -m udp --sport 4:65535;OK
 -p udp -m udp --sport 4:4;-p udp -m udp --sport 4;OK
 -p udp -m udp --sport 4:3;;FAIL
 -p udp -m udp --dport :;-p udp -m udp;OK
--p udp -m udp ! --dport :;-p udp -m udp;OK
+-p udp -m udp ! --dport :;-p udp -m udp ! --dport 0:65535;OK
 -p udp -m udp --dport :4;-p udp -m udp --dport 0:4;OK
 -p udp -m udp --dport 4:;-p udp -m udp --dport 4:65535;OK
 -p udp -m udp --dport 4:4;-p udp -m udp --dport 4;OK

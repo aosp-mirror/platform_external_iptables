@@ -32,7 +32,7 @@ iptables-translate -A INPUT -p tcp ! --tcp-option 23
 nft 'add rule ip filter INPUT tcp option 23 missing counter'
 
 iptables-translate -I OUTPUT -p tcp --sport 0:65535 -j ACCEPT
-nft 'insert rule ip filter OUTPUT counter accept'
+nft 'insert rule ip filter OUTPUT meta l4proto tcp counter accept'
 
 iptables-translate -I OUTPUT -p tcp ! --sport 0:65535 -j ACCEPT
-nft 'insert rule ip filter OUTPUT counter accept'
+nft 'insert rule ip filter OUTPUT tcp sport != 0-65535 counter accept'
