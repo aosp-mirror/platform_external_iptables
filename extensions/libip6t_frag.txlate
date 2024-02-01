@@ -17,7 +17,7 @@ ip6tables-translate -t filter -A INPUT -m frag --fraglast -j ACCEPT
 nft 'add rule ip6 filter INPUT frag more-fragments 0 counter accept'
 
 ip6tables-translate -t filter -A INPUT -m frag --fragid 0:4294967295
-nft 'add rule ip6 filter INPUT counter'
+nft 'add rule ip6 filter INPUT exthdr frag exists counter'
 
 ip6tables-translate -t filter -A INPUT -m frag ! --fragid 0:4294967295
-nft 'add rule ip6 filter INPUT counter'
+nft 'add rule ip6 filter INPUT frag id != 0-4294967295 counter'
