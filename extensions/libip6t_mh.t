@@ -5,7 +5,7 @@
 -p mobility-header -m mh ! --mh-type 4;=;OK
 -p mobility-header -m mh --mh-type 4:123;=;OK
 -p mobility-header -m mh --mh-type :;-p mobility-header -m mh;OK
--p mobility-header -m mh ! --mh-type :;-p mobility-header -m mh;OK
+-p mobility-header -m mh ! --mh-type :;-p mobility-header -m mh ! --mh-type 0:255;OK
 -p mobility-header -m mh --mh-type :3;-p mobility-header -m mh --mh-type 0:3;OK
 -p mobility-header -m mh --mh-type 3:;-p mobility-header -m mh --mh-type 3:255;OK
 -p mobility-header -m mh --mh-type 3:3;-p mobility-header -m mh --mh-type 3;OK

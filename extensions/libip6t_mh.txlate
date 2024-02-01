@@ -8,7 +8,7 @@ ip6tables-translate -A INPUT -p mh --mh-type 0:255 -j ACCEPT
 nft 'add rule ip6 filter INPUT meta l4proto mobility-header counter accept'
 
 ip6tables-translate -A INPUT -m mh --mh-type 0:255 -j ACCEPT
-nft 'add rule ip6 filter INPUT counter accept'
+nft 'add rule ip6 filter INPUT exthdr mh exists counter accept'
 
 ip6tables-translate -A INPUT -p mh ! --mh-type 0:255 -j ACCEPT
-nft 'add rule ip6 filter INPUT meta l4proto mobility-header counter accept'
+nft 'add rule ip6 filter INPUT meta l4proto mobility-header mh type != 0-255 counter accept'
