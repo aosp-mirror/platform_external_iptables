@@ -1324,7 +1324,7 @@ static int add_nft_tcpudp(struct nft_handle *h,struct nftnl_rule *r,
 		return 0;
 	}
 
-	if (src[0] || src[1] < 0xffff) {
+	if (src[0] || src[1] < UINT16_MAX || invert_src) {
 		expr = gen_payload(h, NFT_PAYLOAD_TRANSPORT_HEADER, 0, 2, &reg);
 		if (!expr)
 			return -ENOMEM;
@@ -1335,7 +1335,7 @@ static int add_nft_tcpudp(struct nft_handle *h,struct nftnl_rule *r,
 			return ret;
 	}
 
-	if (dst[0] || dst[1] < 0xffff) {
+	if (dst[0] || dst[1] < UINT16_MAX || invert_dst) {
 		expr = gen_payload(h, NFT_PAYLOAD_TRANSPORT_HEADER, 2, 2, &reg);
 		if (!expr)
 			return -ENOMEM;

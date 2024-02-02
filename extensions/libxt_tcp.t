@@ -7,13 +7,13 @@
 -p tcp -m tcp --sport 1024:65535;=;OK
 -p tcp -m tcp --sport 1024:;-p tcp -m tcp --sport 1024:65535;OK
 -p tcp -m tcp --sport :;-p tcp -m tcp;OK
--p tcp -m tcp ! --sport :;-p tcp -m tcp;OK;LEGACY;-p tcp
+-p tcp -m tcp ! --sport :;-p tcp -m tcp;OK
 -p tcp -m tcp --sport :4;-p tcp -m tcp --sport 0:4;OK
 -p tcp -m tcp --sport 4:;-p tcp -m tcp --sport 4:65535;OK
 -p tcp -m tcp --sport 4:4;-p tcp -m tcp --sport 4;OK
 -p tcp -m tcp --sport 4:3;;FAIL
 -p tcp -m tcp --dport :;-p tcp -m tcp;OK
--p tcp -m tcp ! --dport :;-p tcp -m tcp;OK;LEGACY;-p tcp
+-p tcp -m tcp ! --dport :;-p tcp -m tcp;OK
 -p tcp -m tcp --dport :4;-p tcp -m tcp --dport 0:4;OK
 -p tcp -m tcp --dport 4:;-p tcp -m tcp --dport 4:65535;OK
 -p tcp -m tcp --dport 4:4;-p tcp -m tcp --dport 4;OK
