@@ -3750,6 +3750,27 @@ const char *nft_strerror(int err)
 	return strerror(err);
 }
 
+static int l4proto_expr_get_dreg(struct nftnl_expr *e, uint32_t *dregp)
+{
+	const char *name = nftnl_expr_get_str(e, NFTNL_EXPR_NAME);
+	uint32_t poff = offsetof(struct iphdr, protocol);
+	uint32_t pbase = NFT_PAYLOAD_NETWORK_HEADER;
+
+	if (!strcmp(name, "payload") &&
+	    nftnl_expr_get_u32(e, NFTNL_EXPR_PAYLOAD_BASE) == pbase &&
+	    nftnl_expr_get_u32(e, NFTNL_EXPR_PAYLOAD_OFFSET) == poff &&
+	    nftnl_expr_get_u32(e, NFTNL_EXPR_PAYLOAD_LEN) == sizeof(uint8_t)) {
+		*dregp = nftnl_expr_get_u32(e, NFTNL_EXPR_PAYLOAD_DREG);
+		return 0;
+	}
+	if (!strcmp(name, "meta") &&
+	    nftnl_expr_get_u32(e, NFTNL_EXPR_META_KEY) == NFT_META_L4PROTO) {
+		*dregp = nftnl_expr_get_u32(e, NFTNL_EXPR_META_DREG);
+		return 0;
+	}
+	return -1;
+}
+
 static int recover_rule_compat(struct nftnl_rule *r)
 {
 	struct nftnl_expr_iter *iter;
@@ -3766,11 +3787,9 @@ next_expr:
 	if (!e)
 		goto out;
 
-	if (strcmp("meta", nftnl_expr_get_str(e, NFTNL_EXPR_NAME)) ||
-	    nftnl_expr_get_u32(e, NFTNL_EXPR_META_KEY) != NFT_META_L4PROTO)
+	/* may be 'ip protocol' or 'meta l4proto' with identical RHS */
+	if (l4proto_expr_get_dreg(e, &reg) < 0)
 		goto next_expr;
-
-	reg = nftnl_expr_get_u32(e, NFTNL_EXPR_META_DREG);
 
 	e = nftnl_expr_iter_next(iter);
 	if (!e)
