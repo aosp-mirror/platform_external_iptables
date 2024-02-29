@@ -193,22 +193,17 @@ static int nft_ipv6_xlate(const struct iptables_command_state *cs,
 		     cs->fw6.ipv6.invflags & IP6T_INV_VIA_OUT);
 
 	if (cs->fw6.ipv6.proto != 0) {
-		const struct protoent *pent =
-			getprotobynumber(cs->fw6.ipv6.proto);
-		char protonum[sizeof("65535")];
-		const char *name = protonum;
+		const char *pname = proto_to_name(cs->fw6.ipv6.proto, 0);
 
-		snprintf(protonum, sizeof(protonum), "%u",
-			 cs->fw6.ipv6.proto);
-
-		if (!pent || !xlate_find_match(cs, pent->p_name)) {
-			if (pent)
-				name = pent->p_name;
-			xt_xlate_add(xl, "meta l4proto %s%s ",
-				   cs->fw6.ipv6.invflags & IP6T_INV_PROTO ?
-					"!= " : "", name);
+		if (!pname || !xlate_find_match(cs, pname)) {
+			xt_xlate_add(xl, "meta l4proto");
+			if (cs->fw6.ipv6.invflags & IP6T_INV_PROTO)
+				xt_xlate_add(xl, " !=");
+			if (pname)
+				xt_xlate_add(xl, "%s", pname);
+			else
+				xt_xlate_add(xl, "%hu", cs->fw6.ipv6.proto);
 		}
-
 	}
 
 	xlate_ipv6_addr("ip6 saddr", &cs->fw6.ipv6.src, &cs->fw6.ipv6.smsk,

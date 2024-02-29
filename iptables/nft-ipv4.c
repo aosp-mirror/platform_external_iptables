@@ -214,20 +214,16 @@ static int nft_ipv4_xlate(const struct iptables_command_state *cs,
 	}
 
 	if (cs->fw.ip.proto != 0) {
-		const struct protoent *pent =
-			getprotobynumber(cs->fw.ip.proto);
-		char protonum[sizeof("65535")];
-		const char *name = protonum;
+		const char *pname = proto_to_name(cs->fw.ip.proto, 0);
 
-		snprintf(protonum, sizeof(protonum), "%u",
-			 cs->fw.ip.proto);
-
-		if (!pent || !xlate_find_match(cs, pent->p_name)) {
-			if (pent)
-				name = pent->p_name;
-			xt_xlate_add(xl, "ip protocol %s%s ",
-				   cs->fw.ip.invflags & IPT_INV_PROTO ?
-					"!= " : "", name);
+		if (!pname || !xlate_find_match(cs, pname)) {
+			xt_xlate_add(xl, "ip protocol");
+			if (cs->fw.ip.invflags & IPT_INV_PROTO)
+				xt_xlate_add(xl, " !=");
+			if (pname)
+				xt_xlate_add(xl, "%s", pname);
+			else
+				xt_xlate_add(xl, "%hu", cs->fw.ip.proto);
 		}
 	}
 

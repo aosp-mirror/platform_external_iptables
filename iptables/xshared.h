@@ -335,4 +335,6 @@ void iface_to_mask(const char *ifname, unsigned char *mask);
 
 void xtables_clear_args(struct xtables_args *args);
 
+const char *proto_to_name(uint16_t proto, int nolookup);
+
 #endif /* IPTABLES_XSHARED_H */

@@ -62,7 +62,7 @@ static void print_extension_helps(const struct xtables_target *t,
 	}
 }
 
-static const char *
+const char *
 proto_to_name(uint16_t proto, int nolookup)
 {
 	unsigned int i;
