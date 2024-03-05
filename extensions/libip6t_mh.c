@@ -214,11 +214,9 @@ static int mh_xlate(struct xt_xlate *xl,
 {
 	const struct ip6t_mh *mhinfo = (struct ip6t_mh *)params->match->data;
 	bool inv_type = mhinfo->invflags & IP6T_MH_INV_TYPE;
-	uint8_t proto = ((const struct ip6t_ip6 *)params->ip)->proto;
 
 	if (skip_types_match(mhinfo->types[0], mhinfo->types[1], inv_type)) {
-		if (proto != IPPROTO_MH)
-			xt_xlate_add(xl, "exthdr mh exists");
+		xt_xlate_add(xl, "exthdr mh exists");
 		return 1;
 	}
 
