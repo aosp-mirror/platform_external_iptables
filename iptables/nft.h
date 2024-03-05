@@ -242,6 +242,7 @@ int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table, boo
 struct xt_buf;
 
 bool xlate_find_match(const struct iptables_command_state *cs, const char *p_name);
+bool xlate_find_protomatch(const struct iptables_command_state *cs, uint16_t proto);
 int xlate_matches(const struct iptables_command_state *cs, struct xt_xlate *xl);
 int xlate_action(const struct iptables_command_state *cs, bool goto_set,
 		 struct xt_xlate *xl);

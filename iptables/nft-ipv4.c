@@ -200,6 +200,7 @@ static void xlate_ipv4_addr(const char *selector, const struct in_addr *addr,
 static int nft_ipv4_xlate(const struct iptables_command_state *cs,
 			  struct xt_xlate *xl)
 {
+	uint16_t proto = cs->fw.ip.proto;
 	const char *comment;
 	int ret;
 
@@ -213,18 +214,16 @@ static int nft_ipv4_xlate(const struct iptables_command_state *cs,
 			   cs->fw.ip.invflags & IPT_INV_FRAG? "" : "!= ", 0);
 	}
 
-	if (cs->fw.ip.proto != 0) {
-		const char *pname = proto_to_name(cs->fw.ip.proto, 0);
+	if (proto != 0 && !xlate_find_protomatch(cs, proto)) {
+		const char *pname = proto_to_name(proto, 0);
 
-		if (!pname || !xlate_find_match(cs, pname)) {
-			xt_xlate_add(xl, "ip protocol");
-			if (cs->fw.ip.invflags & IPT_INV_PROTO)
-				xt_xlate_add(xl, " !=");
-			if (pname)
-				xt_xlate_add(xl, "%s", pname);
-			else
-				xt_xlate_add(xl, "%hu", cs->fw.ip.proto);
-		}
+		xt_xlate_add(xl, "ip protocol");
+		if (cs->fw.ip.invflags & IPT_INV_PROTO)
+			xt_xlate_add(xl, " !=");
+		if (pname)
+			xt_xlate_add(xl, "%s", pname);
+		else
+			xt_xlate_add(xl, "%hu", proto);
 	}
 
 	xlate_ipv4_addr("ip saddr", &cs->fw.ip.src, &cs->fw.ip.smsk,

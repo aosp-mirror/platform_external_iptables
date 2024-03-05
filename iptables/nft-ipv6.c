@@ -184,6 +184,7 @@ static void xlate_ipv6_addr(const char *selector, const struct in6_addr *addr,
 static int nft_ipv6_xlate(const struct iptables_command_state *cs,
 			  struct xt_xlate *xl)
 {
+	uint16_t proto = cs->fw6.ipv6.proto;
 	const char *comment;
 	int ret;
 
@@ -192,18 +193,16 @@ static int nft_ipv6_xlate(const struct iptables_command_state *cs,
 	xlate_ifname(xl, "oifname", cs->fw6.ipv6.outiface,
 		     cs->fw6.ipv6.invflags & IP6T_INV_VIA_OUT);
 
-	if (cs->fw6.ipv6.proto != 0) {
-		const char *pname = proto_to_name(cs->fw6.ipv6.proto, 0);
+	if (proto != 0 && !xlate_find_protomatch(cs, proto)) {
+		const char *pname = proto_to_name(proto, 0);
 
-		if (!pname || !xlate_find_match(cs, pname)) {
-			xt_xlate_add(xl, "meta l4proto");
-			if (cs->fw6.ipv6.invflags & IP6T_INV_PROTO)
-				xt_xlate_add(xl, " !=");
-			if (pname)
-				xt_xlate_add(xl, "%s", pname);
-			else
-				xt_xlate_add(xl, "%hu", cs->fw6.ipv6.proto);
-		}
+		xt_xlate_add(xl, "meta l4proto");
+		if (cs->fw6.ipv6.invflags & IP6T_INV_PROTO)
+			xt_xlate_add(xl, " !=");
+		if (pname)
+			xt_xlate_add(xl, "%s", pname);
+		else
+			xt_xlate_add(xl, "%hu", proto);
 	}
 
 	xlate_ipv6_addr("ip6 saddr", &cs->fw6.ipv6.src, &cs->fw6.ipv6.smsk,

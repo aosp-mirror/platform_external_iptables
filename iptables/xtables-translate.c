@@ -131,12 +131,27 @@ bool xlate_find_match(const struct iptables_command_state *cs, const char *p_nam
 {
 	struct xtables_rule_match *matchp;
 
-	/* Skip redundant protocol, eg. ip protocol tcp tcp dport */
 	for (matchp = cs->matches; matchp; matchp = matchp->next) {
 		if (strcmp(matchp->match->name, p_name) == 0)
 			return true;
 	}
 	return false;
+}
+
+bool xlate_find_protomatch(const struct iptables_command_state *cs,
+			   uint16_t proto)
+{
+	struct protoent *pent;
+	int i;
+
+	/* Skip redundant protocol, eg. ip protocol tcp tcp dport */
+	for (i = 0; xtables_chain_protos[i].name != NULL; i++) {
+		if (xtables_chain_protos[i].num == proto &&
+		    xlate_find_match(cs, xtables_chain_protos[i].name))
+			return true;
+	}
+	pent = getprotobynumber(proto);
+	return pent && xlate_find_match(cs, pent->p_name);
 }
 
 const char *family2str[] = {
