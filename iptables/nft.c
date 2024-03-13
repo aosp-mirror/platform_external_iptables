@@ -1307,13 +1307,11 @@ static int add_nft_tcpudp(struct nft_handle *h,struct nftnl_rule *r,
 	uint8_t reg;
 	int ret;
 
-	if (src[0] && src[0] == src[1] &&
+	if (!invert_src &&
+	    src[0] && src[0] == src[1] &&
 	    dst[0] && dst[0] == dst[1] &&
 	    invert_src == invert_dst) {
 		uint32_t combined = dst[0] | (src[0] << 16);
-
-		if (invert_src)
-			op = NFT_CMP_NEQ;
 
 		expr = gen_payload(h, NFT_PAYLOAD_TRANSPORT_HEADER, 0, 4, &reg);
 		if (!expr)
