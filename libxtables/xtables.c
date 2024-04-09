@@ -1513,11 +1513,9 @@ void xtables_param_act(unsigned int status, const char *p1, ...)
 
 const char *xtables_ipaddr_to_numeric(const struct in_addr *addrp)
 {
-	static char buf[16];
-	const unsigned char *bytep = (const void *)&addrp->s_addr;
+	static char buf[INET_ADDRSTRLEN];
 
-	sprintf(buf, "%u.%u.%u.%u", bytep[0], bytep[1], bytep[2], bytep[3]);
-	return buf;
+	return inet_ntop(AF_INET, addrp, buf, sizeof(buf));
 }
 
 static const char *ipaddr_to_host(const struct in_addr *addr)
@@ -1577,13 +1575,14 @@ int xtables_ipmask_to_cidr(const struct in_addr *mask)
 
 const char *xtables_ipmask_to_numeric(const struct in_addr *mask)
 {
-	static char buf[20];
+	static char buf[INET_ADDRSTRLEN + 1];
 	uint32_t cidr;
 
 	cidr = xtables_ipmask_to_cidr(mask);
 	if (cidr == (unsigned int)-1) {
 		/* mask was not a decent combination of 1's and 0's */
-		sprintf(buf, "/%s", xtables_ipaddr_to_numeric(mask));
+		buf[0] = '/';
+		inet_ntop(AF_INET, mask, buf + 1, sizeof(buf) - 1);
 		return buf;
 	} else if (cidr == 32) {
 		/* we don't want to see "/32" */
@@ -1863,9 +1862,8 @@ void xtables_ipparse_any(const char *name, struct in_addr **addrpp,
 
 const char *xtables_ip6addr_to_numeric(const struct in6_addr *addrp)
 {
-	/* 0000:0000:0000:0000:0000:0000:000.000.000.000
-	 * 0000:0000:0000:0000:0000:0000:0000:0000 */
-	static char buf[50+1];
+	static char buf[INET6_ADDRSTRLEN];
+
 	return inet_ntop(AF_INET6, addrp, buf, sizeof(buf));
 }
 
@@ -1923,12 +1921,12 @@ int xtables_ip6mask_to_cidr(const struct in6_addr *k)
 
 const char *xtables_ip6mask_to_numeric(const struct in6_addr *addrp)
 {
-	static char buf[50+2];
+	static char buf[INET6_ADDRSTRLEN + 1];
 	int l = xtables_ip6mask_to_cidr(addrp);
 
 	if (l == -1) {
 		strcpy(buf, "/");
-		strcat(buf, xtables_ip6addr_to_numeric(addrp));
+		inet_ntop(AF_INET6, addrp, buf + 1, sizeof(buf) - 1);
 		return buf;
 	}
 	/* we don't want to see "/128" */
