@@ -1885,7 +1885,7 @@ void do_parse(int argc, char *argv[],
 			set_option(p->ops, &cs->options, OPT_COUNTERS,
 				   &args->invflags, invert);
 			args->pcnt = optarg;
-			args->bcnt = strchr(args->pcnt + 1, ',');
+			args->bcnt = strchr(args->pcnt, ',');
 			if (args->bcnt)
 			    args->bcnt++;
 			if (!args->bcnt && xs_has_arg(argc, argv))
