@@ -97,7 +97,9 @@ Number of addresses remembered per table.
 Number of packets per address remembered.
 .TP
 \fBip_list_hash_size\fP=\fI0\fP
-Hash table size. 0 means to calculate it based on ip_list_tot, default: 512.
+Hash table size. 0 means to calculate it based on ip_list_tot by rounding it up
+to the next power of two (with \fBip_list_tot\fP defaulting to \fI100\fP,
+\fBip_list_hash_size\fP will calculate to \fI128\fP by default).
 .TP
 \fBip_list_perms\fP=\fI0644\fP
 Permissions for /proc/net/xt_recent/* files.
