@@ -18,6 +18,8 @@ This specifies a range of queues to use. Packets are then balanced across the gi
 This is useful for multicore systems: start multiple instances of the userspace program on
 queues x, x+1, .. x+n and use "\-\-queue\-balance \fIx\fP\fB:\fP\fIx+n\fP".
 Packets belonging to the same connection are put into the same nfqueue.
+Due to implementation details, a lower range value of 0 limits the higher range
+value to 65534, i.e. one can only balance between at most 65535 queues.
 .PP
 .TP
 \fB\-\-queue\-bypass\fP
