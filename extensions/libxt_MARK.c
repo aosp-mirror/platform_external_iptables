@@ -77,8 +77,7 @@ static void mark_tg_help(void)
 "  --set-mark value[/mask]   Clear bits in mask and OR value into nfmark\n"
 "  --and-mark bits           Binary AND the nfmark with bits\n"
 "  --or-mark bits            Binary OR the nfmark with bits\n"
-"  --xor-mark bits           Binary XOR the nfmark with bits\n"
-"\n");
+"  --xor-mark bits           Binary XOR the nfmark with bits\n");
 }
 
 static void MARK_parse_v0(struct xt_option_call *cb)
@@ -367,6 +366,8 @@ static int MARK_xlate(struct xt_xlate *xl,
 	case XT_MARK_OR:
 		xt_xlate_add(xl, "mark or 0x%x ", (uint32_t)markinfo->mark);
 		break;
+	default:
+		return 0;
 	}
 
 	return 1;
