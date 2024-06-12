@@ -373,9 +373,9 @@ static bool nft_bridge_is_same(const struct iptables_command_state *cs_a,
 	int i;
 
 	if (a->ethproto != b->ethproto ||
-	    /* FIXME: a->flags != b->flags || */
+	    a->bitmask != b->bitmask ||
 	    a->invflags != b->invflags) {
-		DEBUGP("different proto/flags/invflags\n");
+		DEBUGP("different proto/bitmask/invflags\n");
 		return false;
 	}
 
