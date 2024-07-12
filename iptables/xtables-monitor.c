@@ -106,6 +106,9 @@ static int rule_cb(const struct nlmsghdr *nlh, void *data)
 	case NFPROTO_ARP:
 		printf("-0 ");
 		break;
+	case NFPROTO_BRIDGE:
+		printf("ebtables ");
+		break;
 	default:
 		puts("");
 		goto err_free;

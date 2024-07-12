@@ -55,7 +55,7 @@ monitorcheck ip6tables -A FORWARD -j ACCEPT
 EXP="\
  EVENT: nft: NEW table: table filter bridge flags 0 use 1 handle 0
  EVENT: nft: NEW chain: bridge filter FORWARD use 1 type filter hook forward prio -200 policy accept packets 0 bytes 0 flags 1
- EVENT: "
+ EVENT: ebtables -t filter -A FORWARD -j ACCEPT"
 monitorcheck ebtables -A FORWARD -j ACCEPT
 
 EXP="\
@@ -73,7 +73,7 @@ monitorcheck ip6tables -N foo
 # FIXME
 EXP="\
  EVENT: nft: NEW chain: bridge filter foo use 1
- EVENT: "
+ EVENT: ebtables -t filter -A foo -j ACCEPT"
 monitorcheck ebtables -N foo
 
 EXP=" EVENT: -0 -t filter -N foo"
@@ -86,8 +86,7 @@ monitorcheck iptables -A FORWARD -i eth1 -o eth2 -p tcp --dport 22 -j ACCEPT
 EXP=" EVENT: -6 -t filter -A FORWARD -i eth1 -o eth2 -p udp -m udp --sport 1337 -j ACCEPT"
 monitorcheck ip6tables -A FORWARD -i eth1 -o eth2 -p udp --sport 1337 -j ACCEPT
 
-# FIXME
-EXP=" EVENT: "
+EXP=" EVENT: ebtables -t filter -A FORWARD -p IPv4 -i eth1 -o eth2 --ip-proto udp --ip-sport 1337 -j ACCEPT"
 monitorcheck ebtables -A FORWARD -i eth1 -o eth2 -p ip --ip-protocol udp --ip-source-port 1337 -j ACCEPT
 
 EXP=" EVENT: -0 -t filter -A INPUT -j ACCEPT -i eth1 -s 1.2.3.4 --src-mac 01:02:03:04:05:06"
@@ -99,8 +98,7 @@ monitorcheck iptables -D FORWARD -i eth1 -o eth2 -p tcp --dport 22 -j ACCEPT
 EXP=" EVENT: -6 -t filter -D FORWARD -i eth1 -o eth2 -p udp -m udp --sport 1337 -j ACCEPT"
 monitorcheck ip6tables -D FORWARD -i eth1 -o eth2 -p udp --sport 1337 -j ACCEPT
 
-# FIXME
-EXP=" EVENT: "
+EXP=" EVENT: ebtables -t filter -D FORWARD -p IPv4 -i eth1 -o eth2 --ip-proto udp --ip-sport 1337 -j ACCEPT"
 monitorcheck ebtables -D FORWARD -i eth1 -o eth2 -p ip --ip-protocol udp --ip-source-port 1337 -j ACCEPT
 
 EXP=" EVENT: -0 -t filter -D INPUT -j ACCEPT -i eth1 -s 1.2.3.4 --src-mac 01:02:03:04:05:06"
@@ -114,7 +112,7 @@ monitorcheck ip6tables -X foo
 
 # FIXME
 EXP="\
- EVENT: 
+ EVENT: ebtables -t filter -D foo -j ACCEPT
  EVENT: nft: DEL chain: bridge filter foo use 0"
 monitorcheck ebtables -X foo
 
@@ -127,8 +125,7 @@ monitorcheck iptables -F FORWARD
 EXP=" EVENT: -6 -t filter -D FORWARD -j ACCEPT"
 monitorcheck ip6tables -F FORWARD
 
-# FIXME
-EXP=" EVENT: "
+EXP=" EVENT: ebtables -t filter -D FORWARD -j ACCEPT"
 monitorcheck ebtables -F FORWARD
 
 EXP=" EVENT: -0 -t filter -D INPUT -j ACCEPT"
