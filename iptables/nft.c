@@ -1813,7 +1813,7 @@ nft_rule_print_save(struct nft_handle *h, const struct nftnl_rule *r,
 	return ret;
 }
 
-static bool nft_rule_is_policy_rule(struct nftnl_rule *r)
+bool nft_rule_is_policy_rule(struct nftnl_rule *r)
 {
 	const struct nftnl_udata *tb[UDATA_TYPE_MAX + 1] = {};
 	const void *data;

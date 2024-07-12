@@ -51,7 +51,6 @@ EXP="\
  EVENT: -6 -t filter -A FORWARD -j ACCEPT"
 monitorcheck ip6tables -A FORWARD -j ACCEPT
 
-# FIXME
 EXP="\
  EVENT: nft: NEW table: table filter bridge flags 0 use 1 handle 0
  EVENT: nft: NEW chain: bridge filter FORWARD use 1 type filter hook forward prio -200 policy accept packets 0 bytes 0 flags 1
@@ -70,10 +69,7 @@ monitorcheck iptables -N foo
 EXP=" EVENT: -6 -t filter -N foo"
 monitorcheck ip6tables -N foo
 
-# FIXME
-EXP="\
- EVENT: nft: NEW chain: bridge filter foo use 1
- EVENT: ebtables -t filter -A foo -j ACCEPT"
+EXP=" EVENT: nft: NEW chain: bridge filter foo use 1"
 monitorcheck ebtables -N foo
 
 EXP=" EVENT: -0 -t filter -N foo"
@@ -110,10 +106,7 @@ monitorcheck iptables -X foo
 EXP=" EVENT: -6 -t filter -X foo"
 monitorcheck ip6tables -X foo
 
-# FIXME
-EXP="\
- EVENT: ebtables -t filter -D foo -j ACCEPT
- EVENT: nft: DEL chain: bridge filter foo use 0"
+EXP=" EVENT: nft: DEL chain: bridge filter foo use 0"
 monitorcheck ebtables -X foo
 
 EXP=" EVENT: -0 -t filter -X foo"
