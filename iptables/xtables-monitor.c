@@ -92,7 +92,9 @@ static int rule_cb(const struct nlmsghdr *nlh, void *data)
 	if (arg->nfproto && arg->nfproto != family)
 		goto err_free;
 
+	xtables_set_nfproto(family);
 	arg->h->ops = nft_family_ops_lookup(family);
+	arg->h->family = family;
 
 	if (arg->is_event)
 		printf(" EVENT: ");
