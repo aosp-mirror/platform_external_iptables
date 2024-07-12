@@ -151,6 +151,9 @@ static int chain_cb(const struct nlmsghdr *nlh, void *data)
 	case NFPROTO_IPV6:
 		family = 6;
 		break;
+	case NFPROTO_ARP:
+		family = 0;
+		break;
 	default:
 		nftnl_chain_snprintf(buf, sizeof(buf), c, NFTNL_OUTPUT_DEFAULT, 0);
 		printf("nft: %s chain: %s\n",
