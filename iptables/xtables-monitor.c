@@ -153,7 +153,8 @@ static int chain_cb(const struct nlmsghdr *nlh, void *data)
 		break;
 	default:
 		nftnl_chain_snprintf(buf, sizeof(buf), c, NFTNL_OUTPUT_DEFAULT, 0);
-		printf("# nft: %s\n", buf);
+		printf("nft: %s chain: %s\n",
+		       type == NFT_MSG_NEWCHAIN ? "NEW" : "DEL", buf);
 		goto err_free;
 	}
 
