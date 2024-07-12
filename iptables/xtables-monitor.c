@@ -70,6 +70,22 @@ err:
 	return MNL_CB_OK;
 }
 
+static const char *family_cmd(int family)
+{
+	switch (family) {
+	case NFPROTO_IPV4:
+		return "iptables";
+	case NFPROTO_IPV6:
+		return "ip6tables";
+	case NFPROTO_ARP:
+		return "arptables";
+	case NFPROTO_BRIDGE:
+		return "ebtables";
+	default:
+		return NULL;
+	}
+}
+
 static bool counters;
 static bool trace;
 static bool events;
@@ -103,27 +119,16 @@ static int rule_cb(const struct nlmsghdr *nlh, void *data)
 	    nft_rule_is_policy_rule(r))
 		goto err_free;
 
-	if (arg->is_event)
-		printf(" EVENT: ");
-	switch (family) {
-	case AF_INET:
-	case AF_INET6:
-		printf("-%c ", family == AF_INET ? '4' : '6');
-		break;
-	case NFPROTO_ARP:
-		printf("-0 ");
-		break;
-	case NFPROTO_BRIDGE:
-		printf("ebtables ");
-		break;
-	default:
-		puts("");
+	if (!family_cmd(family))
 		goto err_free;
-	}
 
-	printf("-t %s ", nftnl_rule_get_str(r, NFTNL_RULE_TABLE));
-	nft_rule_print_save(arg->h, r, type == NFT_MSG_NEWRULE ? NFT_RULE_APPEND :
-							   NFT_RULE_DEL,
+	printf("%s%s -t %s ",
+	       arg->is_event ? " EVENT: " : "",
+	       family_cmd(family),
+	       nftnl_rule_get_str(r, NFTNL_RULE_TABLE));
+	nft_rule_print_save(arg->h, r,
+			    type == NFT_MSG_NEWRULE ? NFT_RULE_APPEND
+						    : NFT_RULE_DEL,
 			    counters ? 0 : FMT_NOCOUNTS);
 err_free:
 	nftnl_rule_free(r);
@@ -150,29 +155,18 @@ static int chain_cb(const struct nlmsghdr *nlh, void *data)
 	if (arg->nfproto && arg->nfproto != family)
 		goto err_free;
 
-	if (nftnl_chain_is_set(c, NFTNL_CHAIN_PRIO))
-		family = -1;
-
 	printf(" EVENT: ");
-	switch (family) {
-	case NFPROTO_IPV4:
-		family = 4;
-		break;
-	case NFPROTO_IPV6:
-		family = 6;
-		break;
-	case NFPROTO_ARP:
-		family = 0;
-		break;
-	default:
-		nftnl_chain_snprintf(buf, sizeof(buf), c, NFTNL_OUTPUT_DEFAULT, 0);
+
+	if (nftnl_chain_is_set(c, NFTNL_CHAIN_PRIO) || !family_cmd(family)) {
+		nftnl_chain_snprintf(buf, sizeof(buf),
+				     c, NFTNL_OUTPUT_DEFAULT, 0);
 		printf("nft: %s chain: %s\n",
 		       type == NFT_MSG_NEWCHAIN ? "NEW" : "DEL", buf);
 		goto err_free;
 	}
 
-	printf("-%d -t %s -%c %s\n",
-			family,
+	printf("%s -t %s -%c %s\n",
+			family_cmd(family),
 			nftnl_chain_get_str(c, NFTNL_CHAIN_TABLE),
 			type == NFT_MSG_NEWCHAIN ? 'N' : 'X',
 			nftnl_chain_get_str(c, NFTNL_CHAIN_NAME));
