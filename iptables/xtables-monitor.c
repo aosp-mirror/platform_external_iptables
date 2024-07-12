@@ -544,7 +544,6 @@ static int trace_cb(const struct nlmsghdr *nlh, struct cb_arg *arg)
 err_free:
 	nftnl_trace_free(nlt);
 err:
-	fflush(stdout);
 	return MNL_CB_OK;
 }
 
@@ -576,6 +575,7 @@ static int monitor_cb(const struct nlmsghdr *nlh, void *data)
 		break;
 	}
 
+	fflush(stdout);
 	return ret;
 }
 
