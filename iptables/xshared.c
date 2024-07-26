@@ -757,7 +757,7 @@ void print_ifaces(const char *iniface, const char *outiface, uint8_t invflags,
 	printf(FMT("%-6s ", "out %s "), iface);
 }
 
-void save_iface(char letter, const char *iface, int invert)
+static void save_iface(char letter, const char *iface, int invert)
 {
 	if (!strlen(iface) || (!strcmp(iface, "+") && !invert))
 		return;
