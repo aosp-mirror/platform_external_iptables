@@ -759,10 +759,8 @@ void print_ifaces(const char *iniface, const char *outiface, uint8_t invflags,
 
 static void save_iface(char letter, const char *iface, int invert)
 {
-	if (!strlen(iface) || (!strcmp(iface, "+") && !invert))
-		return;
-
-	printf("%s -%c %s", invert ? " !" : "", letter, iface);
+	if (iface && strlen(iface) && (strcmp(iface, "+") || invert))
+		printf("%s -%c %s", invert ? " !" : "", letter, iface);
 }
 
 static void command_match(struct iptables_command_state *cs, bool invert)
@@ -1095,12 +1093,8 @@ void print_rule_details(unsigned int linenum, const struct xt_counters *ctrs,
 void save_rule_details(const char *iniface, const char *outiface,
 		       uint16_t proto, int frag, uint8_t invflags)
 {
-	if (iniface != NULL) {
-		save_iface('i', iniface, invflags & IPT_INV_VIA_IN);
-	}
-	if (outiface != NULL) {
-		save_iface('o', outiface, invflags & IPT_INV_VIA_OUT);
-	}
+	save_iface('i', iniface, invflags & IPT_INV_VIA_IN);
+	save_iface('o', outiface, invflags & IPT_INV_VIA_OUT);
 
 	if (proto > 0) {
 		const char *pname = proto_to_name(proto, true);
