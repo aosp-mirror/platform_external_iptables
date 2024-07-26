@@ -759,7 +759,7 @@ void print_ifaces(const char *iniface, const char *outiface, uint8_t invflags,
 
 void save_iface(char letter, const char *iface, int invert)
 {
-	if (!strlen(iface) || !strcmp(iface, "+"))
+	if (!strlen(iface) || (!strcmp(iface, "+") && !invert))
 		return;
 
 	printf("%s -%c %s", invert ? " !" : "", letter, iface);

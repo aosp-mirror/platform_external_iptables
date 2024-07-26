@@ -9,6 +9,8 @@
 -j ACCEPT ! -i lo;=;OK
 -i ppp+;=;OK
 ! -i ppp+;=;OK
+-i + -j ACCEPT;-j ACCEPT;OK
+! -i +;=;OK
 -i lo --destination-mac 11:22:33:44:55:66;-i lo --dst-mac 11:22:33:44:55:66;OK
 --source-mac Unicast;--src-mac 00:00:00:00:00:00/01:00:00:00:00:00;OK
 ! --src-mac Multicast;! --src-mac 01:00:00:00:00:00/01:00:00:00:00:00;OK
