@@ -1171,11 +1171,21 @@ void xtables_register_match(struct xtables_match *me)
 	me->next = *pos;
 	*pos = me;
 #ifdef DEBUG
-	printf("%s: inserted match %s (family %d, revision %d):\n",
-			__func__, me->name, me->family, me->revision);
-	for (pos = &xtables_pending_matches; *pos; pos = &(*pos)->next) {
-		printf("%s:\tmatch %s (family %d, revision %d)\n", __func__,
-		       (*pos)->name, (*pos)->family, (*pos)->revision);
+#define printmatch(m, sfx)						\
+	printf("match %s (", (m)->name);				\
+	if ((m)->real_name)						\
+		printf("alias %s, ", (m)->real_name);			\
+	printf("family %d, revision %d)%s", (m)->family, (m)->revision, sfx);
+
+	{
+		int i = 1;
+
+		printf("%s: inserted ", __func__);
+		printmatch(me, ":\n");
+		for (pos = &xtables_pending_matches; *pos; pos = &(*pos)->next) {
+			printf("pos %d:\t", i++);
+			printmatch(*pos, "\n");
+		}
 	}
 #endif
 }
