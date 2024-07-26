@@ -212,7 +212,7 @@ static bool nft_rule_to_ebtables_command_state(struct nft_handle *h,
 
 static void print_iface(const char *option, const char *name, bool invert)
 {
-	if (*name)
+	if (*name && (strcmp(name, "+") || invert))
 		printf("%s%s %s ", invert ? "! " : "", option, name);
 }
 
