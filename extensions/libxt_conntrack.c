@@ -1102,32 +1102,6 @@ static void state_ct23_parse(struct xt_option_call *cb)
 		sinfo->invert_flags |= XT_CONNTRACK_STATE;
 }
 
-static void state_print_state(unsigned int statemask)
-{
-	const char *sep = "";
-
-	if (statemask & XT_CONNTRACK_STATE_INVALID) {
-		printf("%sINVALID", sep);
-		sep = ",";
-	}
-	if (statemask & XT_CONNTRACK_STATE_BIT(IP_CT_NEW)) {
-		printf("%sNEW", sep);
-		sep = ",";
-	}
-	if (statemask & XT_CONNTRACK_STATE_BIT(IP_CT_RELATED)) {
-		printf("%sRELATED", sep);
-		sep = ",";
-	}
-	if (statemask & XT_CONNTRACK_STATE_BIT(IP_CT_ESTABLISHED)) {
-		printf("%sESTABLISHED", sep);
-		sep = ",";
-	}
-	if (statemask & XT_CONNTRACK_STATE_UNTRACKED) {
-		printf("%sUNTRACKED", sep);
-		sep = ",";
-	}
-}
-
 static void
 state_print(const void *ip,
       const struct xt_entry_match *match,
@@ -1135,16 +1109,16 @@ state_print(const void *ip,
 {
 	const struct xt_state_info *sinfo = (const void *)match->data;
 
-	printf(" state ");
-	state_print_state(sinfo->statemask);
+	printf(" state");
+	print_state(sinfo->statemask);
 }
 
 static void state_save(const void *ip, const struct xt_entry_match *match)
 {
 	const struct xt_state_info *sinfo = (const void *)match->data;
 
-	printf(" --state ");
-	state_print_state(sinfo->statemask);
+	printf(" --state");
+	print_state(sinfo->statemask);
 }
 
 static void state_xlate_print(struct xt_xlate *xl, unsigned int statemask, int inverted)
