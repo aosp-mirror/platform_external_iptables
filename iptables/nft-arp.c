@@ -356,6 +356,8 @@ nft_arp_save_rule(const struct iptables_command_state *cs, unsigned int format)
 	printf("\n");
 }
 
+static void nft_arp_init_cs(struct iptables_command_state *cs);
+
 static void
 nft_arp_print_rule(struct nft_handle *h, struct nftnl_rule *r,
 		   unsigned int num, unsigned int format)
@@ -365,6 +367,7 @@ nft_arp_print_rule(struct nft_handle *h, struct nftnl_rule *r,
 	if (format & FMT_LINENUMBERS)
 		printf("%u ", num);
 
+	nft_arp_init_cs(&cs);
 	nft_rule_to_iptables_command_state(h, r, &cs);
 
 	nft_arp_print_rule_details(&cs, format);

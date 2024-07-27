@@ -1797,6 +1797,8 @@ nft_rule_print_save(struct nft_handle *h, const struct nftnl_rule *r,
 	struct nft_family_ops *ops = h->ops;
 	bool ret;
 
+	if (ops->init_cs)
+		ops->init_cs(&cs);
 	ret = ops->rule_to_cs(h, r, &cs);
 
 	if (!(format & (FMT_NOCOUNTS | FMT_C_COUNTS)))
@@ -2395,6 +2397,11 @@ static bool nft_rule_cmp(struct nft_handle *h, struct nftnl_rule *r,
 	struct iptables_command_state _cs = {}, this = {}, *cs = &_cs;
 	bool ret = false, ret_this, ret_that;
 
+	if (h->ops->init_cs) {
+		h->ops->init_cs(&this);
+		h->ops->init_cs(cs);
+	}
+
 	ret_this = h->ops->rule_to_cs(h, r, &this);
 	ret_that = h->ops->rule_to_cs(h, rule, cs);
 
@@ -2679,6 +2686,8 @@ static int nft_rule_change_counters(struct nft_handle *h, const char *table,
 		(unsigned long long)
 		nftnl_rule_get_u64(r, NFTNL_RULE_HANDLE));
 
+	if (h->ops->init_cs)
+		h->ops->init_cs(&cs);
 	h->ops->rule_to_cs(h, r, &cs);
 
 	if (counter_op & CTR_OP_INC_PKTS)
@@ -2976,6 +2985,8 @@ int nft_rule_zero_counters(struct nft_handle *h, const char *chain,
 		goto error;
 	}
 
+	if (h->ops->init_cs)
+		h->ops->init_cs(&cs);
 	h->ops->rule_to_cs(h, r, &cs);
 	cs.counters.pcnt = cs.counters.bcnt = 0;
 	new_rule = nft_rule_new(h, &ctx, chain, table, &cs);
