@@ -3853,7 +3853,7 @@ static int __nft_chain_zero_counters(struct nft_chain *nc, void *data)
 		if (!o)
 			return -1;
 		/* may skip if it is a fake entry */
-		o->skip = !nftnl_chain_is_set(c, NFTNL_CHAIN_HANDLE);
+		o->skip = nc->fake;
 	}
 
 	iter = nftnl_rule_iter_create(c);
