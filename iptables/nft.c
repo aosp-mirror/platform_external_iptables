@@ -721,7 +721,7 @@ static void nft_chain_builtin_add(struct nft_handle *h,
 
 	if (!fake)
 		batch_chain_add(h, NFT_COMPAT_CHAIN_ADD, c);
-	nft_cache_add_chain(h, table, c);
+	nft_cache_add_chain(h, table, c, fake);
 }
 
 /* find if built-in table already exists */
@@ -765,14 +765,19 @@ nft_chain_builtin_find(const struct builtin_table *t, const char *chain)
 static void nft_chain_builtin_init(struct nft_handle *h,
 				   const struct builtin_table *table)
 {
+	struct nft_chain *c;
 	int i;
 
 	/* Initialize built-in chains if they don't exist yet */
 	for (i=0; i < NF_INET_NUMHOOKS && table->chains[i].name != NULL; i++) {
-		if (nft_chain_find(h, table->name, table->chains[i].name))
-			continue;
-
-		nft_chain_builtin_add(h, table, &table->chains[i], false);
+		c = nft_chain_find(h, table->name, table->chains[i].name);
+		if (!c) {
+			nft_chain_builtin_add(h, table,
+					      &table->chains[i], false);
+		} else if (c->fake) {
+			batch_chain_add(h, NFT_COMPAT_CHAIN_ADD, c->nftnl);
+			c->fake = false;
+		}
 	}
 }
 
@@ -799,6 +804,7 @@ static int nft_xt_builtin_init(struct nft_handle *h, const char *table,
 {
 	const struct builtin_table *t;
 	const struct builtin_chain *c;
+	struct nft_chain *nc;
 
 	if (!h->cache_init)
 		return 0;
@@ -819,10 +825,13 @@ static int nft_xt_builtin_init(struct nft_handle *h, const char *table,
 	if (!c)
 		return -1;
 
-	if (h->cache->table[t->type].base_chains[c->hook])
-		return 0;
-
-	nft_chain_builtin_add(h, t, c, false);
+	nc = h->cache->table[t->type].base_chains[c->hook];
+	if (!nc) {
+		nft_chain_builtin_add(h, t, c, false);
+	} else if (nc->fake) {
+		batch_chain_add(h, NFT_COMPAT_CHAIN_ADD, nc->nftnl);
+		nc->fake = false;
+	}
 	return 0;
 }
 
@@ -2091,7 +2100,7 @@ int nft_chain_user_add(struct nft_handle *h, const char *chain, const char *tabl
 	if (!batch_chain_add(h, NFT_COMPAT_CHAIN_USER_ADD, c))
 		return 0;
 
-	nft_cache_add_chain(h, t, c);
+	nft_cache_add_chain(h, t, c, false);
 
 	/* the core expects 1 for success and 0 for error */
 	return 1;
@@ -2118,7 +2127,7 @@ int nft_chain_restore(struct nft_handle *h, const char *chain, const char *table
 		nftnl_chain_set_str(c, NFTNL_CHAIN_NAME, chain);
 		created = true;
 
-		nft_cache_add_chain(h, t, c);
+		nft_cache_add_chain(h, t, c, false);
 	} else {
 		c = nc->nftnl;
 
