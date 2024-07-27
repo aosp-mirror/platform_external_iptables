@@ -299,7 +299,8 @@ after_devdst:
 		sep = " ";
 	}
 
-	if (fw->arp.arpop_mask != 0) {
+	if (fw->arp.arpop_mask != 65535 || fw->arp.arpop != 0 ||
+	    fw->arp.invflags & IPT_INV_ARPOP) {
 		int tmp = ntohs(fw->arp.arpop);
 
 		printf("%s%s", sep, fw->arp.invflags & IPT_INV_ARPOP
@@ -329,7 +330,8 @@ after_devdst:
 		sep = " ";
 	}
 
-	if (fw->arp.arpro_mask != 0) {
+	if (fw->arp.arpro_mask != 65535 || fw->arp.arpro != 0 ||
+	    fw->arp.invflags & IPT_INV_PROTO) {
 		int tmp = ntohs(fw->arp.arpro);
 
 		printf("%s%s", sep, fw->arp.invflags & IPT_INV_PROTO
