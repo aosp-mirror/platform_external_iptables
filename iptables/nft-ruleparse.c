@@ -891,7 +891,6 @@ bool nft_rule_to_iptables_command_state(struct nft_handle *h,
 					const struct nftnl_rule *r,
 					struct iptables_command_state *cs)
 {
-	struct nftnl_expr_iter *iter;
 	struct nftnl_expr *expr;
 	struct nft_xt_ctx ctx = {
 		.cs = cs,
@@ -900,12 +899,11 @@ bool nft_rule_to_iptables_command_state(struct nft_handle *h,
 	};
 	bool ret = true;
 
-	iter = nftnl_expr_iter_create(r);
-	if (iter == NULL)
+	ctx.iter = nftnl_expr_iter_create(r);
+	if (ctx.iter == NULL)
 		return false;
 
-	ctx.iter = iter;
-	expr = nftnl_expr_iter_next(iter);
+	expr = nftnl_expr_iter_next(ctx.iter);
 	while (expr != NULL) {
 		const char *name =
 			nftnl_expr_get_str(expr, NFTNL_EXPR_NAME);
@@ -941,10 +939,10 @@ bool nft_rule_to_iptables_command_state(struct nft_handle *h,
 			ret = false;
 		}
 
-		expr = nftnl_expr_iter_next(iter);
+		expr = nftnl_expr_iter_next(ctx.iter);
 	}
 
-	nftnl_expr_iter_destroy(iter);
+	nftnl_expr_iter_destroy(ctx.iter);
 
 	if (nftnl_rule_is_set(r, NFTNL_RULE_USERDATA)) {
 		const void *data;
