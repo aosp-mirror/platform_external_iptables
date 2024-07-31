@@ -557,7 +557,6 @@ int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table,
 		.argc = argc,
 		.argv = argv,
 		.jumpto	= "",
-		.eb.bitmask = EBT_NOPROTO,
 	};
 	const struct builtin_table *t;
 	struct xtables_args args = {
@@ -571,6 +570,9 @@ int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table,
 		.ops		= &h->ops->cmd_parse,
 	};
 	int ret = 0;
+
+	if (h->ops->init_cs)
+		h->ops->init_cs(&cs);
 
 	do_parse(argc, argv, &p, &cs, &args);
 

@@ -203,12 +203,9 @@ static int nft_bridge_add(struct nft_handle *h, struct nft_rule_ctx *ctx,
 	return _add_action(r, cs);
 }
 
-static bool nft_rule_to_ebtables_command_state(struct nft_handle *h,
-					       const struct nftnl_rule *r,
-					       struct iptables_command_state *cs)
+static void nft_bridge_init_cs(struct iptables_command_state *cs)
 {
 	cs->eb.bitmask = EBT_NOPROTO;
-	return nft_rule_to_iptables_command_state(h, r, cs);
 }
 
 static void print_iface(const char *option, const char *name, bool invert)
@@ -353,7 +350,8 @@ static void nft_bridge_print_rule(struct nft_handle *h, struct nftnl_rule *r,
 	if (format & FMT_LINENUMBERS)
 		printf("%d. ", num);
 
-	nft_rule_to_ebtables_command_state(h, r, &cs);
+	nft_bridge_init_cs(&cs);
+	nft_rule_to_iptables_command_state(h, r, &cs);
 	__nft_bridge_save_rule(&cs, format);
 	ebt_cs_clean(&cs);
 }
@@ -699,7 +697,8 @@ struct nft_family_ops nft_family_ops_bridge = {
 	.print_rule		= nft_bridge_print_rule,
 	.save_rule		= nft_bridge_save_rule,
 	.save_chain		= nft_bridge_save_chain,
-	.rule_to_cs		= nft_rule_to_ebtables_command_state,
+	.rule_to_cs		= nft_rule_to_iptables_command_state,
+	.init_cs		= nft_bridge_init_cs,
 	.clear_cs		= ebt_cs_clean,
 	.xlate			= nft_bridge_xlate,
 };
