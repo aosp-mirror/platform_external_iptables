@@ -2392,25 +2392,22 @@ static int __nft_rule_del(struct nft_handle *h, struct nftnl_rule *r)
 }
 
 static bool nft_rule_cmp(struct nft_handle *h, struct nftnl_rule *r,
-			 struct nftnl_rule *rule)
+			 struct iptables_command_state *cs)
 {
-	struct iptables_command_state _cs = {}, this = {}, *cs = &_cs;
-	bool ret = false, ret_this, ret_that;
+	struct iptables_command_state this = {};
+	bool ret = false, ret_this;
 
-	if (h->ops->init_cs) {
+	if (h->ops->init_cs)
 		h->ops->init_cs(&this);
-		h->ops->init_cs(cs);
-	}
 
 	ret_this = h->ops->rule_to_cs(h, r, &this);
-	ret_that = h->ops->rule_to_cs(h, rule, cs);
 
-	DEBUGP("comparing with... ");
+	DEBUGP("with ... ");
 #ifdef DEBUG_DEL
 	nft_rule_print_save(h, r, NFT_RULE_APPEND, 0);
 #endif
-	if (!ret_this || !ret_that)
-		DEBUGP("Cannot convert rules: %d %d\n", ret_this, ret_that);
+	if (!ret_this)
+		DEBUGP("Cannot convert rule: %d\n", ret_this);
 
 	if (!h->ops->is_same(cs, &this))
 		goto out;
@@ -2434,7 +2431,6 @@ static bool nft_rule_cmp(struct nft_handle *h, struct nftnl_rule *r,
 	ret = true;
 out:
 	h->ops->clear_cs(&this);
-	h->ops->clear_cs(cs);
 	return ret;
 }
 
@@ -2442,6 +2438,7 @@ static struct nftnl_rule *
 nft_rule_find(struct nft_handle *h, struct nft_chain *nc,
 	      struct nftnl_rule *rule, int rulenum)
 {
+	struct iptables_command_state cs = {};
 	struct nftnl_chain *c = nc->nftnl;
 	struct nftnl_rule *r;
 	struct nftnl_rule_iter *iter;
@@ -2455,15 +2452,28 @@ nft_rule_find(struct nft_handle *h, struct nft_chain *nc,
 	if (iter == NULL)
 		return 0;
 
+	if (h->ops->init_cs)
+		h->ops->init_cs(&cs);
+
+	if (!h->ops->rule_to_cs(h, rule, &cs))
+		return NULL;
+
+	DEBUGP("comparing ... ");
+#ifdef DEBUG_DEL
+	nft_rule_print_save(h, rule, NFT_RULE_APPEND, 0);
+#endif
+
 	r = nftnl_rule_iter_next(iter);
 	while (r != NULL) {
-		found = nft_rule_cmp(h, r, rule);
+		found = nft_rule_cmp(h, r, &cs);
 		if (found)
 			break;
 		r = nftnl_rule_iter_next(iter);
 	}
 
 	nftnl_rule_iter_destroy(iter);
+
+	h->ops->clear_cs(&cs);
 
 	return found ? r : NULL;
 }
