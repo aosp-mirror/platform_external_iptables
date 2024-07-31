@@ -46,6 +46,7 @@ void ebt_cs_clean(struct iptables_command_state *cs)
 		free(m);
 		m = nm;
 	}
+	cs->match_list = NULL;
 
 	if (cs->target) {
 		free(cs->target->t);
