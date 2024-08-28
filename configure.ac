@@ -206,6 +206,25 @@ if test "x$enable_profiling" = "xyes"; then
 	regular_LDFLAGS+=" -lgcov --coverage"
 fi
 
+AC_MSG_CHECKING([whether the build is using musl-libc])
+enable_musl_build=""
+
+AC_COMPILE_IFELSE(
+	[AC_LANG_PROGRAM([[#include <netinet/if_ether.h>]],
+	[[
+	#if ! defined(__UAPI_DEF_ETHHDR) || __UAPI_DEF_ETHHDR != 0
+		#error error trying musl...
+	#endif
+	]]
+	)],
+	[enable_musl_build="yes"],[enable_musl_build="no"]
+)
+AC_MSG_RESULT([${enable_musl_build}])
+
+if test "x$enable_musl_build" = "xyes"; then
+	regular_CFLAGS+=" -D__UAPI_DEF_ETHHDR=0"
+fi
+
 define([EXPAND_VARIABLE],
 [$2=[$]$1
 if test $prefix = 'NONE'; then
@@ -277,7 +296,8 @@ Build parameters:
   Installation prefix (--prefix):	${prefix}
   Xtables extension directory:		${e_xtlibdir}
   Pkg-config directory:			${e_pkgconfigdir}
-  Xtables lock file:			${xt_lock_name}"
+  Xtables lock file:			${xt_lock_name}
+  Build against musl-libc:		${enable_musl_build}"
 
 if [[ -n "$ksourcedir" ]]; then
 	echo "  Kernel source directory:		${ksourcedir}"
