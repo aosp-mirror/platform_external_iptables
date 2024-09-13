@@ -178,6 +178,8 @@ static int tproxy_tg_xlate(struct xt_xlate *xl,
 		xt_xlate_add(xl, "meta mark set meta mark & 0x%x xor 0x%x",
 			     ~mask, info->mark_value);
 
+	/* unlike TPROXY target, tproxy statement is non-terminal */
+	xt_xlate_add(xl, "accept");
 	return 1;
 }
 
