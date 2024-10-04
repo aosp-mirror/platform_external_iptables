@@ -80,7 +80,7 @@ struct xtables_rule_match;
 struct xtables_target;
 
 #define OPTSTRING_COMMON "-:A:C:D:E:F::I:L::M:N:P:R:S::VX::Z::" "c:d:i:j:o:p:s:t:v"
-#define IPT_OPTSTRING	OPTSTRING_COMMON "W::" "46bfg:h::m:nw::x"
+#define IPT_OPTSTRING	OPTSTRING_COMMON "W::" "46fg:h::m:nw::x"
 #define ARPT_OPTSTRING	OPTSTRING_COMMON "h::l:nx" /* "m:" */
 #define EBT_OPTSTRING	OPTSTRING_COMMON "h"
 
