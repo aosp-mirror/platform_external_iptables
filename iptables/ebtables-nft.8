@@ -358,7 +358,8 @@ When talking to the kernel, use this
 to try to automatically load missing kernel modules.
 .TP
 .B --concurrent
-Use a file lock to support concurrent scripts updating the ebtables kernel tables.
+This would use a file lock to support concurrent scripts updating the ebtables
+kernel tables. It is not needed with \fBebtables-nft\fP though and thus ignored.
 
 .SS
 RULE SPECIFICATIONS
