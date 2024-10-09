@@ -132,6 +132,8 @@ def run_test(iptables, rule, rule_save, res, filename, lineno, netns):
                             stdin=subprocess.PIPE,
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = proc.communicate()
+    if len(err):
+        print(err, file=log_file)
 
     #
     # check for segfaults
@@ -333,6 +335,8 @@ def run_test_file_fast(iptables, filename, netns):
                             stderr = subprocess.PIPE)
     restore_data = "\n".join(restore_data) + "\n"
     out, err = proc.communicate(input = restore_data)
+    if len(err):
+        print(err, file=log_file)
 
     if proc.returncode == -11:
         reason = iptables + "-restore segfaults!"
@@ -358,6 +362,8 @@ def run_test_file_fast(iptables, filename, netns):
                             stdout = subprocess.PIPE,
                             stderr = subprocess.PIPE)
     out, err = proc.communicate()
+    if len(err):
+        print(err, file=log_file)
 
     if proc.returncode == -11:
         reason = iptables + "-save segfaults!"
