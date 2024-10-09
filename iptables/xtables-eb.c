@@ -619,7 +619,7 @@ int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table,
 					 cs.options&OPT_LIST_C);
 		else if (p.command & CMD_LIST_RULES)
 			ret = nft_cmd_rule_list_save(h, p.chain, p.table,
-						     p.rulenum - 1,
+						     p.rulenum,
 						     cs.options & OPT_VERBOSE);
 		if (ret && (p.command & CMD_ZERO))
 			ret = nft_cmd_chain_zero_counters(h, p.chain, p.table,
