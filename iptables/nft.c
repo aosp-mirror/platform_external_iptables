@@ -2978,7 +2978,6 @@ int nft_rule_zero_counters(struct nft_handle *h, const char *chain,
 		.command = NFT_COMPAT_RULE_APPEND,
 	};
 	struct nft_chain *c;
-	int ret = 0;
 
 	nft_fn = nft_rule_delete;
 
@@ -2991,8 +2990,7 @@ int nft_rule_zero_counters(struct nft_handle *h, const char *chain,
 	r = nft_rule_find(h, c, NULL, rulenum);
 	if (r == NULL) {
 		errno = ENOENT;
-		ret = 1;
-		goto error;
+		return 0;
 	}
 
 	if (h->ops->init_cs)
@@ -3005,10 +3003,7 @@ int nft_rule_zero_counters(struct nft_handle *h, const char *chain,
 	if (!new_rule)
 		return 1;
 
-	ret = nft_rule_append(h, chain, table, new_rule, r, false);
-
-error:
-	return ret;
+	return nft_rule_append(h, chain, table, new_rule, r, false);
 }
 
 static void nft_table_print_debug(struct nft_handle *h,
