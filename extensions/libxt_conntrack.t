@@ -8,10 +8,6 @@
 -m conntrack --ctstate wrong;;FAIL
 # should we convert this to output "tcp" instead of 6?
 -m conntrack --ctproto tcp;-m conntrack --ctproto 6;OK
--m conntrack --ctorigsrc 1.1.1.1;=;OK
--m conntrack --ctorigdst 1.1.1.1;=;OK
--m conntrack --ctreplsrc 1.1.1.1;=;OK
--m conntrack --ctrepldst 1.1.1.1;=;OK
 -m conntrack --ctexpire 0;=;OK
 -m conntrack --ctexpire 4294967295;=;OK
 -m conntrack --ctexpire 0:4294967295;=;OK

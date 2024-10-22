@@ -385,44 +385,20 @@ def run_test_file_fast(iptables, filename, netns):
 
     return tests
 
-def run_test_file(filename, netns):
+def _run_test_file(iptables, filename, netns, suffix):
     '''
     Runs a test file
 
+    :param iptables: string with the iptables command to execute
     :param filename: name of the file with the test rules
     :param netns: network namespace to perform test run in
     '''
-    #
-    # if this is not a test file, skip.
-    #
-    if not filename.endswith(".t"):
-        return 0, 0
-
-    if "libipt_" in filename:
-        iptables = IPTABLES
-    elif "libip6t_" in filename:
-        iptables = IP6TABLES
-    elif "libxt_"  in filename:
-        iptables = IPTABLES
-    elif "libarpt_" in filename:
-        # only supported with nf_tables backend
-        if EXECUTABLE != "xtables-nft-multi":
-           return 0, 0
-        iptables = ARPTABLES
-    elif "libebt_" in filename:
-        # only supported with nf_tables backend
-        if EXECUTABLE != "xtables-nft-multi":
-           return 0, 0
-        iptables = EBTABLES
-    else:
-        # default to iptables if not known prefix
-        iptables = IPTABLES
 
     fast_failed = False
     if fast_run_possible(filename):
         tests = run_test_file_fast(iptables, filename, netns)
         if tests > 0:
-            print(filename + ": " + maybe_colored('green', "OK", STDOUT_IS_TTY))
+            print(filename + ": " + maybe_colored('green', "OK", STDOUT_IS_TTY) + suffix)
             return tests, tests
         fast_failed = True
 
@@ -503,14 +479,60 @@ def run_test_file(filename, netns):
     if netns:
         execute_cmd("ip netns del " + netns, filename)
     if total_test_passed:
-        suffix = ""
         if fast_failed:
-            suffix = maybe_colored('red', " but fast mode failed!", STDOUT_IS_TTY)
+            suffix += maybe_colored('red', " but fast mode failed!", STDOUT_IS_TTY)
         print(filename + ": " + maybe_colored('green', "OK", STDOUT_IS_TTY) + suffix)
 
     f.close()
     return tests, passed
 
+def run_test_file(filename, netns):
+    '''
+    Runs a test file
+
+    :param filename: name of the file with the test rules
+    :param netns: network namespace to perform test run in
+    '''
+    #
+    # if this is not a test file, skip.
+    #
+    if not filename.endswith(".t"):
+        return 0, 0
+
+    if "libipt_" in filename:
+        xtables = [ IPTABLES ]
+    elif "libip6t_" in filename:
+        xtables = [ IP6TABLES ]
+    elif "libxt_"  in filename:
+        xtables = [ IPTABLES, IP6TABLES ]
+    elif "libarpt_" in filename:
+        # only supported with nf_tables backend
+        if EXECUTABLE != "xtables-nft-multi":
+           return 0, 0
+        xtables = [ ARPTABLES ]
+    elif "libebt_" in filename:
+        # only supported with nf_tables backend
+        if EXECUTABLE != "xtables-nft-multi":
+           return 0, 0
+        xtables = [ EBTABLES ]
+    else:
+        # default to iptables if not known prefix
+        xtables = [ IPTABLES ]
+
+    tests = 0
+    passed = 0
+    print_result = False
+    suffix = ""
+    for iptables in xtables:
+        if len(xtables) > 1:
+            suffix = "({})".format(iptables)
+
+        file_tests, file_passed = _run_test_file(iptables, filename, netns, suffix)
+        if file_tests:
+            tests += file_tests
+            passed += file_passed
+
+    return tests, passed
 
 def show_missing():
     '''
