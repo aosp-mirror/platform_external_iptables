@@ -47,12 +47,12 @@ def maybe_colored(color, text, isatty):
     )
 
 
-def print_error(reason, filename=None, lineno=None):
+def print_error(reason, filename=None, lineno=None, log_file=sys.stderr):
     '''
     Prints an error with nice colors, indicating file and line number.
     '''
-    print(filename + ": " + maybe_colored('red', "ERROR", STDERR_IS_TTY) +
-        ": line %d (%s)" % (lineno, reason), file=sys.stderr)
+    print(filename + ": " + maybe_colored('red', "ERROR", log_file.isatty()) +
+        ": line %d (%s)" % (lineno, reason), file=log_file)
 
 
 def delete_rule(iptables, rule, filename, lineno, netns = None):
@@ -69,7 +69,7 @@ def delete_rule(iptables, rule, filename, lineno, netns = None):
     return 0
 
 
-def run_test(iptables, rule, rule_save, res, filename, lineno, netns):
+def run_test(iptables, rule, rule_save, res, filename, lineno, netns, stderr=sys.stderr):
     '''
     Executes an unit test. Returns the output of delete_rule().
 
@@ -93,7 +93,7 @@ def run_test(iptables, rule, rule_save, res, filename, lineno, netns):
     if ret:
         if res != "FAIL":
             reason = "cannot load: " + cmd
-            print_error(reason, filename, lineno)
+            print_error(reason, filename, lineno, stderr)
             return -1
         else:
             # do not report this error
@@ -101,7 +101,7 @@ def run_test(iptables, rule, rule_save, res, filename, lineno, netns):
     else:
         if res == "FAIL":
             reason = "should fail: " + cmd
-            print_error(reason, filename, lineno)
+            print_error(reason, filename, lineno, stderr)
             delete_rule(iptables, rule, filename, lineno, netns)
             return -1
 
@@ -140,7 +140,7 @@ def run_test(iptables, rule, rule_save, res, filename, lineno, netns):
     #
     if proc.returncode == -11:
         reason = command + " segfaults!"
-        print_error(reason, filename, lineno)
+        print_error(reason, filename, lineno, stderr)
         delete_rule(iptables, rule, filename, lineno, netns)
         return -1
 
@@ -150,7 +150,7 @@ def run_test(iptables, rule, rule_save, res, filename, lineno, netns):
     if matching < 0:
         if res == "OK":
             reason = "cannot find: " + iptables + " -I " + rule
-            print_error(reason, filename, lineno)
+            print_error(reason, filename, lineno, stderr)
             delete_rule(iptables, rule, filename, lineno, netns)
             return -1
         else:
@@ -159,7 +159,7 @@ def run_test(iptables, rule, rule_save, res, filename, lineno, netns):
     else:
         if res != "OK":
             reason = "should not match: " + cmd
-            print_error(reason, filename, lineno)
+            print_error(reason, filename, lineno, stderr)
             delete_rule(iptables, rule, filename, lineno, netns)
             return -1
 
@@ -298,7 +298,7 @@ def run_test_file_fast(iptables, filename, netns):
             if res != "OK":
                 rule = chain + " -t " + table + " " + item[0]
                 ret = run_test(iptables, rule, rule_save,
-                               res, filename, lineno + 1, netns)
+                               res, filename, lineno + 1, netns, log_file)
 
                 if ret < 0:
                     return -1
