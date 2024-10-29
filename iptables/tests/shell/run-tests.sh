@@ -87,6 +87,17 @@ if [ "$HOST" != "y" ]; then
 	XTABLES_LEGACY_MULTI="$(dirname $0)/../../xtables-legacy-multi"
 
 	export XTABLES_LIBDIR=${TESTDIR}/../../../extensions
+
+	# maybe this is 'make distcheck' calling us from a build tree
+	if [ ! -e "$XTABLES_NFT_MULTI" -a \
+	     ! -e "$XTABLES_LEGACY_MULTI" -a \
+	     -e "./iptables/xtables-nft-multi" -a \
+	     -e "./iptables/xtables-legacy-multi" ]; then
+		msg_warn "Running in separate build-tree, using binaries from $PWD/iptables"
+		XTABLES_NFT_MULTI="$PWD/iptables/xtables-nft-multi"
+		XTABLES_LEGACY_MULTI="$PWD/iptables/xtables-legacy-multi"
+		export XTABLES_LIBDIR="$PWD/extensions"
+	fi
 else
 	XTABLES_NFT_MULTI="xtables-nft-multi"
 	XTABLES_LEGACY_MULTI="xtables-legacy-multi"
