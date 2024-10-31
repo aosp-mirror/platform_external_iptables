@@ -108,10 +108,10 @@ static inline const char *ebt_target_name(unsigned int verdict)
 })								\
 
 void ebt_cs_clean(struct iptables_command_state *cs);
-void ebt_add_match(struct xtables_match *m,
-			  struct iptables_command_state *cs);
-void ebt_add_watcher(struct xtables_target *watcher,
-                     struct iptables_command_state *cs);
+struct xtables_match *ebt_add_match(struct xtables_match *m,
+				    struct iptables_command_state *cs);
+struct xtables_target *ebt_add_watcher(struct xtables_target *watcher,
+				       struct iptables_command_state *cs);
 int ebt_command_default(struct iptables_command_state *cs,
 			struct xtables_globals *unused, bool ebt_invert);
 

@@ -367,8 +367,8 @@ static void ebt_load_match_extensions(void)
 	ebt_load_watcher("nflog");
 }
 
-void ebt_add_match(struct xtables_match *m,
-		   struct iptables_command_state *cs)
+struct xtables_match *ebt_add_match(struct xtables_match *m,
+				    struct iptables_command_state *cs)
 {
 	struct xtables_rule_match **rule_matches = &cs->matches;
 	struct xtables_match *newm;
@@ -397,10 +397,12 @@ void ebt_add_match(struct xtables_match *m,
 	for (matchp = &cs->match_list; *matchp; matchp = &(*matchp)->next)
 		;
 	*matchp = newnode;
+
+	return newm;
 }
 
-void ebt_add_watcher(struct xtables_target *watcher,
-		     struct iptables_command_state *cs)
+struct xtables_target *ebt_add_watcher(struct xtables_target *watcher,
+				       struct iptables_command_state *cs)
 {
 	struct ebt_match *newnode, **matchp;
 	struct xtables_target *clone;
@@ -425,6 +427,8 @@ void ebt_add_watcher(struct xtables_target *watcher,
 	for (matchp = &cs->match_list; *matchp; matchp = &(*matchp)->next)
 		;
 	*matchp = newnode;
+
+	return clone;
 }
 
 int ebt_command_default(struct iptables_command_state *cs,
@@ -476,8 +480,8 @@ int ebt_command_default(struct iptables_command_state *cs,
 		if (cs->c < m->option_offset ||
 		    cs->c >= m->option_offset + XT_OPTION_OFFSET_SCALE)
 			continue;
+		m = ebt_add_match(m, cs);
 		xtables_option_mpcall(cs->c, cs->argv, ebt_invert, m, &cs->eb);
-		ebt_add_match(m, cs);
 		return 0;
 	}
 
@@ -491,8 +495,8 @@ int ebt_command_default(struct iptables_command_state *cs,
 		if (cs->c < t->option_offset ||
 		    cs->c >= t->option_offset + XT_OPTION_OFFSET_SCALE)
 			continue;
+		t = ebt_add_watcher(t, cs);
 		xtables_option_tpcall(cs->c, cs->argv, ebt_invert, t, &cs->eb);
-		ebt_add_watcher(t, cs);
 		return 0;
 	}
 	if (cs->c == ':')
