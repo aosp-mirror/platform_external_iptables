@@ -371,23 +371,17 @@ struct xtables_match *ebt_add_match(struct xtables_match *m,
 				    struct iptables_command_state *cs)
 {
 	struct xtables_rule_match **rule_matches = &cs->matches;
-	struct xtables_match *newm;
 	struct ebt_match *newnode, **matchp;
-	struct xt_entry_match *m2;
+	struct xtables_match *newm;
 
 	newm = xtables_find_match(m->name, XTF_LOAD_MUST_SUCCEED, rule_matches);
 	if (newm == NULL)
 		xtables_error(OTHER_PROBLEM,
 			      "Unable to add match %s", m->name);
 
-	m2 = xtables_calloc(1, newm->m->u.match_size);
-	memcpy(m2, newm->m, newm->m->u.match_size);
-	memset(newm->m->data, 0, newm->size);
+	newm->m = xtables_calloc(1, m->m->u.match_size);
+	memcpy(newm->m, m->m, m->m->u.match_size);
 	xs_init_match(newm);
-	newm->m = m2;
-
-	newm->mflags = m->mflags;
-	m->mflags = 0;
 
 	/* glue code for watchers */
 	newnode = xtables_calloc(1, sizeof(struct ebt_match));
@@ -409,16 +403,12 @@ struct xtables_target *ebt_add_watcher(struct xtables_target *watcher,
 
 	clone = xtables_malloc(sizeof(struct xtables_target));
 	memcpy(clone, watcher, sizeof(struct xtables_target));
-	clone->udata = NULL;
-	clone->tflags = watcher->tflags;
 	clone->next = clone;
+	clone->udata = NULL;
+	xs_init_target(clone);
 
 	clone->t = xtables_calloc(1, watcher->t->u.target_size);
 	memcpy(clone->t, watcher->t, watcher->t->u.target_size);
-
-	memset(watcher->t->data, 0, watcher->size);
-	xs_init_target(watcher);
-	watcher->tflags = 0;
 
 
 	newnode = xtables_calloc(1, sizeof(struct ebt_match));
