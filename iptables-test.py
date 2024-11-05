@@ -241,10 +241,14 @@ def variant_res(res, variant, alt_res=None):
 
 def fast_run_possible(filename):
     '''
-    Keep things simple, run only for simple test files:
+    Return true if fast test run is possible.
+
+    To keep things simple, run only for simple test files:
     - no external commands
     - no multiple tables
     - no variant-specific results
+
+    :param filename: test file to inspect
     '''
     table = None
     rulecount = 0
@@ -266,6 +270,9 @@ def fast_run_possible(filename):
 def run_test_file_fast(iptables, filename, netns):
     '''
     Run a test file, but fast
+
+    Add all non-failing rules at once by use of iptables-restore, then check
+    all rules' listing at once by use of iptables-save.
 
     :param filename: name of the file with the test rules
     :param netns: network namespace to perform test run in
