@@ -58,10 +58,23 @@ def print_error(reason, filename=None, lineno=None, log_file=sys.stderr):
 def delete_rule(iptables, rule, filename, lineno, netns = None):
     '''
     Removes an iptables rule
+
+    Remove any --set-counters arguments, --delete rejects them.
     '''
+    delrule = rule.split()
+    for i in range(len(delrule)):
+        if delrule[i] in ['-c', '--set-counters']:
+            delrule.pop(i)
+            if ',' in delrule.pop(i):
+                break
+            if len(delrule) > i and delrule[i].isnumeric():
+                delrule.pop(i)
+            break
+    rule = " ".join(delrule)
+
     cmd = iptables + " -D " + rule
     ret = execute_cmd(cmd, filename, lineno, netns)
-    if ret == 1:
+    if ret != 0:
         reason = "cannot delete: " + iptables + " -I " + rule
         print_error(reason, filename, lineno)
         return -1
