@@ -188,8 +188,10 @@ def run_test(name, payload):
 
 def load_test_files():
     test_files = total_tests = total_passed = total_error = total_failed = 0
-    tests = sorted(os.listdir("extensions"))
-    for test in ['extensions/' + f for f in tests if f.endswith(".txlate")]:
+    tests_path = os.path.join(os.path.dirname(sys.argv[0]), "extensions")
+    tests = sorted(os.listdir(tests_path))
+    for test in [os.path.join(tests_path, f)
+                 for f in tests if f.endswith(".txlate")]:
         with open(test, "r") as payload:
             tests, passed, failed, errors = run_test(test, payload)
             test_files += 1
