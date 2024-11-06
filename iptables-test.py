@@ -30,6 +30,7 @@ EBTABLES_SAVE = "ebtables-save"
 #IP6TABLES_SAVE = ['xtables-save','-6']
 
 EXTENSIONS_PATH = "extensions"
+TESTS_PATH = os.path.join(os.path.dirname(sys.argv[0]), "extensions")
 LOGFILE="/tmp/iptables-test.log"
 log_file = None
 
@@ -558,7 +559,7 @@ def show_missing():
     '''
     Show the list of missing test files
     '''
-    file_list = os.listdir(EXTENSIONS_PATH)
+    file_list = os.listdir(TESTS_PATH)
     testfiles = [i for i in file_list if i.endswith('.t')]
     libfiles = [i for i in file_list
                 if i.startswith('lib') and i.endswith('.c')]
@@ -669,8 +670,8 @@ def main():
         if args.filename:
             file_list = args.filename
         else:
-            file_list = [os.path.join(EXTENSIONS_PATH, i)
-                         for i in os.listdir(EXTENSIONS_PATH)
+            file_list = [os.path.join(TESTS_PATH, i)
+                         for i in os.listdir(TESTS_PATH)
                          if i.endswith('.t')]
             file_list.sort()
 
