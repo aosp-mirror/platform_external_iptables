@@ -165,7 +165,7 @@ do_test() {
 
 	rc_spec=`echo $(basename ${testfile}) | cut -d _ -f2-`
 
-	msg_info "[EXECUTING]   $testfile"
+	[ -t 1 ] && msg_info "[EXECUTING]   $testfile"
 
 	if [ "$VERBOSE" = "y" ]; then
 		XT_MULTI=$xtables_multi unshare -n ${testfile}
@@ -173,7 +173,7 @@ do_test() {
 	else
 		XT_MULTI=$xtables_multi unshare -n ${testfile} > /dev/null 2>&1
 		rc_got=$?
-		echo -en "\033[1A\033[K" # clean the [EXECUTING] foobar line
+		[ -t 1 ] && echo -en "\033[1A\033[K" # clean the [EXECUTING] foobar line
 	fi
 
 	if [ "$rc_got" == "$rc_spec" ] ; then
