@@ -11,7 +11,7 @@ esac
 
 coproc RESTORE { $XT_MULTI iptables-restore; }
 echo "*filter" >&${RESTORE[1]}
-
+sleep 0.5
 
 $XT_MULTI iptables -A FORWARD -j ACCEPT &
 ipt_pid=$!
