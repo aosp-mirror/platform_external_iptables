@@ -64,6 +64,7 @@
 #endif
 #include <getopt.h>
 #include "iptables/internal.h"
+#include "xtables_internal.h"
 
 #define NPROTO	255
 
