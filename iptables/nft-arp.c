@@ -459,10 +459,7 @@ static void nft_arp_post_parse(int command,
 	cs->arp.arp.invflags = args->invflags;
 
 	memcpy(cs->arp.arp.iniface, args->iniface, IFNAMSIZ);
-	memcpy(cs->arp.arp.iniface_mask, args->iniface_mask, IFNAMSIZ);
-
 	memcpy(cs->arp.arp.outiface, args->outiface, IFNAMSIZ);
-	memcpy(cs->arp.arp.outiface_mask, args->outiface_mask, IFNAMSIZ);
 
 	cs->arp.counters.pcnt = args->pcnt_cnt;
 	cs->arp.counters.bcnt = args->bcnt_cnt;
