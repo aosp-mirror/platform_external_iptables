@@ -99,11 +99,7 @@ static bool nft_ipv6_is_same(const struct iptables_command_state *a,
 	}
 
 	return is_same_interfaces(a->fw6.ipv6.iniface, a->fw6.ipv6.outiface,
-				  a->fw6.ipv6.iniface_mask,
-				  a->fw6.ipv6.outiface_mask,
-				  b->fw6.ipv6.iniface, b->fw6.ipv6.outiface,
-				  b->fw6.ipv6.iniface_mask,
-				  b->fw6.ipv6.outiface_mask);
+				  b->fw6.ipv6.iniface, b->fw6.ipv6.outiface);
 }
 
 static void nft_ipv6_set_goto_flag(struct iptables_command_state *cs)

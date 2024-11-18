@@ -385,14 +385,8 @@ static bool nft_arp_is_same(const struct iptables_command_state *cs_a,
 		return false;
 	}
 
-	return is_same_interfaces(a->arp.iniface,
-				  a->arp.outiface,
-				  (unsigned char *)a->arp.iniface_mask,
-				  (unsigned char *)a->arp.outiface_mask,
-				  b->arp.iniface,
-				  b->arp.outiface,
-				  (unsigned char *)b->arp.iniface_mask,
-				  (unsigned char *)b->arp.outiface_mask);
+	return is_same_interfaces(a->arp.iniface, a->arp.outiface,
+				  b->arp.iniface, b->arp.outiface);
 }
 
 static void nft_arp_save_chain(const struct nftnl_chain *c, const char *policy)
