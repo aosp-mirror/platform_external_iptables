@@ -1,2 +1,3 @@
 set noparent
 file:platform/packages/modules/Connectivity:main:/OWNERS_core_networking
+include platform/system/core:/janitors/OWNERS #{LAST_RESORT_SUGGESTION}
