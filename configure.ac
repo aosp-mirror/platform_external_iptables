@@ -202,8 +202,8 @@ fi;
 pkgdatadir='${datadir}/xtables';
 
 if test "x$enable_profiling" = "xyes"; then
-	regular_CFLAGS+=" -fprofile-arcs -ftest-coverage"
-	regular_LDFLAGS+=" -lgcov --coverage"
+	regular_CFLAGS="$regular_CFLAGS -fprofile-arcs -ftest-coverage"
+	regular_LDFLAGS="$regular_LDFLAGS -lgcov --coverage"
 fi
 
 AC_MSG_CHECKING([whether the build is using musl-libc])
@@ -222,7 +222,7 @@ AC_COMPILE_IFELSE(
 AC_MSG_RESULT([${enable_musl_build}])
 
 if test "x$enable_musl_build" = "xyes"; then
-	regular_CFLAGS+=" -D__UAPI_DEF_ETHHDR=0"
+	regular_CFLAGS="$regular_CFLAGS -D__UAPI_DEF_ETHHDR=0"
 fi
 
 define([EXPAND_VARIABLE],
