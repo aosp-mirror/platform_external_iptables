@@ -94,7 +94,7 @@ __nft_create_target(struct nft_xt_ctx *ctx, const char *name, size_t tgsize)
 	if (!target)
 		return NULL;
 
-	size = XT_ALIGN(sizeof(*target->t)) + tgsize ?: target->size;
+	size = XT_ALIGN(sizeof(*target->t)) + (tgsize ?: target->size);
 
 	target->t = xtables_calloc(1, size);
 	target->t->u.target_size = size;
@@ -891,7 +891,6 @@ bool nft_rule_to_iptables_command_state(struct nft_handle *h,
 					const struct nftnl_rule *r,
 					struct iptables_command_state *cs)
 {
-	struct nftnl_expr_iter *iter;
 	struct nftnl_expr *expr;
 	struct nft_xt_ctx ctx = {
 		.cs = cs,
@@ -900,12 +899,11 @@ bool nft_rule_to_iptables_command_state(struct nft_handle *h,
 	};
 	bool ret = true;
 
-	iter = nftnl_expr_iter_create(r);
-	if (iter == NULL)
+	ctx.iter = nftnl_expr_iter_create(r);
+	if (ctx.iter == NULL)
 		return false;
 
-	ctx.iter = iter;
-	expr = nftnl_expr_iter_next(iter);
+	expr = nftnl_expr_iter_next(ctx.iter);
 	while (expr != NULL) {
 		const char *name =
 			nftnl_expr_get_str(expr, NFTNL_EXPR_NAME);
@@ -941,10 +939,10 @@ bool nft_rule_to_iptables_command_state(struct nft_handle *h,
 			ret = false;
 		}
 
-		expr = nftnl_expr_iter_next(iter);
+		expr = nftnl_expr_iter_next(ctx.iter);
 	}
 
-	nftnl_expr_iter_destroy(iter);
+	nftnl_expr_iter_destroy(ctx.iter);
 
 	if (nftnl_rule_is_set(r, NFTNL_RULE_USERDATA)) {
 		const void *data;
@@ -983,18 +981,14 @@ bool nft_rule_to_iptables_command_state(struct nft_handle *h,
 	return ret;
 }
 
-static void parse_ifname(const char *name, unsigned int len,
-			 char *dst, unsigned char *mask)
+static void parse_ifname(const char *name, unsigned int len, char *dst)
 {
 	if (len == 0)
 		return;
 
 	memcpy(dst, name, len);
-	if (name[len - 1] == '\0') {
-		if (mask)
-			memset(mask, 0xff, strlen(name) + 1);
+	if (name[len - 1] == '\0')
 		return;
-	}
 
 	if (len >= IFNAMSIZ)
 		return;
@@ -1004,12 +998,9 @@ static void parse_ifname(const char *name, unsigned int len,
 	if (len >= IFNAMSIZ)
 		return;
 	dst[len++] = 0;
-	if (mask)
-		memset(mask, 0xff, len - 2);
 }
 
-static void parse_invalid_iface(char *iface, unsigned char *mask,
-				uint8_t *invflags, uint8_t invbit)
+static void parse_invalid_iface(char *iface, uint8_t *invflags, uint8_t invbit)
 {
 	if (*invflags & invbit || strcmp(iface, "INVAL/D"))
 		return;
@@ -1018,9 +1009,6 @@ static void parse_invalid_iface(char *iface, unsigned char *mask,
 	*invflags |= invbit;
 	iface[0] = '+';
 	iface[1] = '\0';
-	mask[0] = 0xff;
-	mask[1] = 0xff;
-	memset(mask + 2, 0, IFNAMSIZ - 2);
 }
 
 static uint32_t get_meta_mask(struct nft_xt_ctx *ctx, enum nft_registers sreg)
@@ -1071,8 +1059,7 @@ static int parse_meta_pkttype(struct nft_xt_ctx *ctx, struct nftnl_expr *e)
 }
 
 int parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e, uint8_t key,
-	       char *iniface, unsigned char *iniface_mask,
-	       char *outiface, unsigned char *outiface_mask, uint8_t *invflags)
+	       char *iniface, char *outiface, uint8_t *invflags)
 {
 	uint32_t value;
 	const void *ifname;
@@ -1085,8 +1072,6 @@ int parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e, uint8_t key,
 			*invflags |= IPT_INV_VIA_IN;
 
 		if_indextoname(value, iniface);
-
-		memset(iniface_mask, 0xff, strlen(iniface)+1);
 		break;
 	case NFT_META_OIF:
 		value = nftnl_expr_get_u32(e, NFTNL_EXPR_CMP_DATA);
@@ -1094,8 +1079,6 @@ int parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e, uint8_t key,
 			*invflags |= IPT_INV_VIA_OUT;
 
 		if_indextoname(value, outiface);
-
-		memset(outiface_mask, 0xff, strlen(outiface)+1);
 		break;
 	case NFT_META_BRI_IIFNAME:
 	case NFT_META_IIFNAME:
@@ -1103,9 +1086,8 @@ int parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e, uint8_t key,
 		if (nftnl_expr_get_u32(e, NFTNL_EXPR_CMP_OP) == NFT_CMP_NEQ)
 			*invflags |= IPT_INV_VIA_IN;
 
-		parse_ifname(ifname, len, iniface, iniface_mask);
-		parse_invalid_iface(iniface, iniface_mask,
-				    invflags, IPT_INV_VIA_IN);
+		parse_ifname(ifname, len, iniface);
+		parse_invalid_iface(iniface, invflags, IPT_INV_VIA_IN);
 		break;
 	case NFT_META_BRI_OIFNAME:
 	case NFT_META_OIFNAME:
@@ -1113,9 +1095,8 @@ int parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e, uint8_t key,
 		if (nftnl_expr_get_u32(e, NFTNL_EXPR_CMP_OP) == NFT_CMP_NEQ)
 			*invflags |= IPT_INV_VIA_OUT;
 
-		parse_ifname(ifname, len, outiface, outiface_mask);
-		parse_invalid_iface(outiface, outiface_mask,
-				    invflags, IPT_INV_VIA_OUT);
+		parse_ifname(ifname, len, outiface);
+		parse_invalid_iface(outiface, invflags, IPT_INV_VIA_OUT);
 		break;
 	case NFT_META_MARK:
 		parse_meta_mark(ctx, e);

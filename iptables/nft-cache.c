@@ -244,10 +244,10 @@ nft_cache_add_base_chain(struct nft_handle *h, const struct builtin_table *t,
 }
 
 int nft_cache_add_chain(struct nft_handle *h, const struct builtin_table *t,
-			struct nftnl_chain *c)
+			struct nftnl_chain *c, bool fake)
 {
 	const char *cname = nftnl_chain_get_str(c, NFTNL_CHAIN_NAME);
-	struct nft_chain *nc = nft_chain_alloc(c);
+	struct nft_chain *nc = nft_chain_alloc(c, fake);
 	int ret;
 
 	if (nftnl_chain_is_set(c, NFTNL_CHAIN_HOOKNUM)) {
@@ -349,7 +349,7 @@ static int nftnl_chain_list_cb(const struct nlmsghdr *nlh, void *data)
 		goto out;
 	}
 
-	nft_cache_add_chain(h, t, c);
+	nft_cache_add_chain(h, t, c, false);
 	return MNL_CB_OK;
 out:
 	nftnl_chain_free(c);

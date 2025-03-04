@@ -1,3 +1,9 @@
+arptables-translate -A OUTPUT --proto-type ipv4 -s 1.2.3.4 -j ACCEPT
+nft 'add rule arp filter OUTPUT arp htype 1 arp hlen 6 arp plen 4 arp ptype 0x800 arp saddr ip 1.2.3.4 counter accept'
+
+arptables-translate -I OUTPUT -o oifname
+nft 'insert rule arp filter OUTPUT oifname "oifname" arp htype 1 arp hlen 6 arp plen 4 counter'
+
 iptables-translate -I OUTPUT -p udp -d 8.8.8.8 -j ACCEPT
 nft 'insert rule ip filter OUTPUT ip protocol udp ip daddr 8.8.8.8 counter accept'
 
@@ -57,6 +63,36 @@ nft 'insert rule ip6 filter INPUT counter'
 
 ip6tables-translate -I INPUT ! -s ::/0
 nft 'insert rule ip6 filter INPUT ip6 saddr != ::/0 counter'
+
+iptables-translate -A FORWARD -p 132
+nft 'add rule ip filter FORWARD ip protocol sctp counter'
+
+ip6tables-translate -A FORWARD -p 132
+nft 'add rule ip6 filter FORWARD meta l4proto sctp counter'
+
+iptables-translate -A FORWARD ! -p 132
+nft 'add rule ip filter FORWARD ip protocol != sctp counter'
+
+ip6tables-translate -A FORWARD ! -p 132
+nft 'add rule ip6 filter FORWARD meta l4proto != sctp counter'
+
+iptables-translate -A FORWARD -p 141
+nft 'add rule ip filter FORWARD ip protocol 141 counter'
+
+ip6tables-translate -A FORWARD -p 141
+nft 'add rule ip6 filter FORWARD meta l4proto 141 counter'
+
+iptables-translate -A FORWARD ! -p 141
+nft 'add rule ip filter FORWARD ip protocol != 141 counter'
+
+ip6tables-translate -A FORWARD ! -p 141
+nft 'add rule ip6 filter FORWARD meta l4proto != 141 counter'
+
+iptables-translate -A FORWARD -m tcp --dport 22 -p tcp
+nft 'add rule ip filter FORWARD tcp dport 22 counter'
+
+ip6tables-translate -A FORWARD -m tcp --dport 22 -p tcp
+nft 'add rule ip6 filter FORWARD tcp dport 22 counter'
 
 ebtables-translate -I INPUT -i iname --logical-in ilogname -s 0:0:0:0:0:0
 nft 'insert rule bridge filter INPUT iifname "iname" meta ibrname "ilogname" ether saddr 00:00:00:00:00:00 counter'

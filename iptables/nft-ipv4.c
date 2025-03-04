@@ -161,8 +161,7 @@ static void nft_ipv4_save_rule(const struct iptables_command_state *cs,
 	save_ipv4_addr('d', &cs->fw.ip.dst, &cs->fw.ip.dmsk,
 		       cs->fw.ip.invflags & IPT_INV_DSTIP);
 
-	save_rule_details(cs->fw.ip.iniface, cs->fw.ip.iniface_mask,
-			  cs->fw.ip.outiface, cs->fw.ip.outiface_mask,
+	save_rule_details(cs->fw.ip.iniface, cs->fw.ip.outiface,
 			  cs->fw.ip.proto, cs->fw.ip.flags & IPT_F_FRAG,
 			  cs->fw.ip.invflags);
 
@@ -201,6 +200,7 @@ static void xlate_ipv4_addr(const char *selector, const struct in_addr *addr,
 static int nft_ipv4_xlate(const struct iptables_command_state *cs,
 			  struct xt_xlate *xl)
 {
+	uint16_t proto = cs->fw.ip.proto;
 	const char *comment;
 	int ret;
 
@@ -214,22 +214,16 @@ static int nft_ipv4_xlate(const struct iptables_command_state *cs,
 			   cs->fw.ip.invflags & IPT_INV_FRAG? "" : "!= ", 0);
 	}
 
-	if (cs->fw.ip.proto != 0) {
-		const struct protoent *pent =
-			getprotobynumber(cs->fw.ip.proto);
-		char protonum[sizeof("65535")];
-		const char *name = protonum;
+	if (proto != 0 && !xlate_find_protomatch(cs, proto)) {
+		const char *pname = proto_to_name(proto, 0);
 
-		snprintf(protonum, sizeof(protonum), "%u",
-			 cs->fw.ip.proto);
-
-		if (!pent || !xlate_find_match(cs, pent->p_name)) {
-			if (pent)
-				name = pent->p_name;
-			xt_xlate_add(xl, "ip protocol %s%s ",
-				   cs->fw.ip.invflags & IPT_INV_PROTO ?
-					"!= " : "", name);
-		}
+		xt_xlate_add(xl, "ip protocol");
+		if (cs->fw.ip.invflags & IPT_INV_PROTO)
+			xt_xlate_add(xl, " !=");
+		if (pname)
+			xt_xlate_add(xl, "%s", pname);
+		else
+			xt_xlate_add(xl, "%hu", proto);
 	}
 
 	xlate_ipv4_addr("ip saddr", &cs->fw.ip.src, &cs->fw.ip.smsk,
@@ -353,6 +347,10 @@ struct nft_family_ops nft_family_ops_ipv4 = {
 	.cmd_parse		= {
 		.proto_parse	= ipv4_proto_parse,
 		.post_parse	= ipv4_post_parse,
+		.option_name	= ip46t_option_name,
+		.option_invert	= ip46t_option_invert,
+		.command_default = command_default,
+		.print_help	= xtables_printhelp,
 	},
 	.rule_to_cs		= nft_rule_to_iptables_command_state,
 	.clear_cs		= xtables_clear_iptables_command_state,

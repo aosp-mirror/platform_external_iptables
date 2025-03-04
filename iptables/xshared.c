@@ -62,7 +62,7 @@ static void print_extension_helps(const struct xtables_target *t,
 	}
 }
 
-static const char *
+const char *
 proto_to_name(uint16_t proto, int nolookup)
 {
 	unsigned int i;
@@ -122,8 +122,8 @@ static struct xtables_match *load_proto(struct iptables_command_state *cs)
 			  cs->options & OPT_NUMERIC, &cs->matches);
 }
 
-static int command_default(struct iptables_command_state *cs,
-			   struct xtables_globals *gl, bool invert)
+int command_default(struct iptables_command_state *cs,
+		    struct xtables_globals *gl, bool invert)
 {
 	struct xtables_rule_match *matchp;
 	struct xtables_match *m;
@@ -270,7 +270,7 @@ static int xtables_lock(int wait)
 		return XT_LOCK_FAILED;
 	}
 
-	if (wait != -1) {
+	if (wait > 0) {
 		sigact_alarm.sa_handler = alarm_ignore;
 		sigact_alarm.sa_flags = SA_RESETHAND;
 		sigemptyset(&sigact_alarm.sa_mask);
@@ -278,7 +278,7 @@ static int xtables_lock(int wait)
 		alarm(wait);
 	}
 
-	if (flock(fd, LOCK_EX) == 0)
+	if (flock(fd, LOCK_EX | (wait ? 0 : LOCK_NB)) == 0)
 		return fd;
 
 	if (errno == EINTR) {
@@ -757,29 +757,10 @@ void print_ifaces(const char *iniface, const char *outiface, uint8_t invflags,
 	printf(FMT("%-6s ", "out %s "), iface);
 }
 
-/* This assumes that mask is contiguous, and byte-bounded. */
-void save_iface(char letter, const char *iface,
-		const unsigned char *mask, int invert)
+static void save_iface(char letter, const char *iface, int invert)
 {
-	unsigned int i;
-
-	if (mask[0] == 0)
-		return;
-
-	printf("%s -%c ", invert ? " !" : "", letter);
-
-	for (i = 0; i < IFNAMSIZ; i++) {
-		if (mask[i] != 0) {
-			if (iface[i] != '\0')
-				printf("%c", iface[i]);
-		} else {
-			/* we can access iface[i-1] here, because
-			 * a few lines above we make sure that mask[0] != 0 */
-			if (iface[i-1] != '\0')
-				printf("+");
-			break;
-		}
-	}
+	if (iface && strlen(iface) && (strcmp(iface, "+") || invert))
+		printf("%s -%c %s", invert ? " !" : "", letter, iface);
 }
 
 static void command_match(struct iptables_command_state *cs, bool invert)
@@ -815,6 +796,9 @@ static void command_match(struct iptables_command_state *cs, bool invert)
 	else if (m->extra_opts != NULL)
 		opts = xtables_merge_options(xt_params->orig_opts, opts,
 					     m->extra_opts, &m->option_offset);
+	else
+		return;
+
 	if (opts == NULL)
 		xtables_error(OTHER_PROBLEM, "can't alloc memory!");
 	xt_params->opts = opts;
@@ -873,10 +857,13 @@ void command_jump(struct iptables_command_state *cs, const char *jumpto)
 		opts = xtables_options_xfrm(xt_params->orig_opts, opts,
 					    cs->target->x6_options,
 					    &cs->target->option_offset);
-	else
+	else if (cs->target->extra_opts != NULL)
 		opts = xtables_merge_options(xt_params->orig_opts, opts,
 					     cs->target->extra_opts,
 					     &cs->target->option_offset);
+	else
+		return;
+
 	if (opts == NULL)
 		xtables_error(OTHER_PROBLEM, "can't alloc memory!");
 	xt_params->opts = opts;
@@ -920,123 +907,137 @@ static int parse_rulenumber(const char *rule)
 	return rulenum;
 }
 
-#define NUMBER_OF_OPT	ARRAY_SIZE(optflags)
-static const char optflags[]
-= { 'n', 's', 'd', 'p', 'j', 'v', 'x', 'i', 'o', '0', 'c', 'f', 2, 3, 'l', 4, 5, 6 };
-
-/* Table of legal combinations of commands and options.  If any of the
- * given commands make an option legal, that option is legal (applies to
- * CMD_LIST and CMD_ZERO only).
- * Key:
- *  +  compulsory
- *  x  illegal
- *     optional
- */
-static const char commands_v_options[NUMBER_OF_CMD][NUMBER_OF_OPT] =
-/* Well, it's better than "Re: Linux vs FreeBSD" */
+static void parse_rule_range(struct xt_cmd_parse *p, const char *argv)
 {
-	/*     -n  -s  -d  -p  -j  -v  -x  -i  -o --line -c -f 2 3 l 4 5 6 */
-/*INSERT*/    {'x',' ',' ',' ',' ',' ','x',' ',' ','x',' ',' ',' ',' ',' ',' ',' ',' '},
-/*DELETE*/    {'x',' ',' ',' ',' ',' ','x',' ',' ','x','x',' ',' ',' ',' ',' ',' ',' '},
-/*DELETE_NUM*/{'x','x','x','x','x',' ','x','x','x','x','x','x','x','x','x','x','x','x'},
-/*REPLACE*/   {'x',' ',' ',' ',' ',' ','x',' ',' ','x',' ',' ',' ',' ',' ',' ',' ',' '},
-/*APPEND*/    {'x',' ',' ',' ',' ',' ','x',' ',' ','x',' ',' ',' ',' ',' ',' ',' ',' '},
-/*LIST*/      {' ','x','x','x','x',' ',' ','x','x',' ','x','x','x','x','x','x','x','x'},
-/*FLUSH*/     {'x','x','x','x','x',' ','x','x','x','x','x','x','x','x','x','x','x','x'},
-/*ZERO*/      {'x','x','x','x','x',' ','x','x','x','x','x','x','x','x','x','x','x','x'},
-/*NEW_CHAIN*/ {'x','x','x','x','x',' ','x','x','x','x','x','x','x','x','x','x','x','x'},
-/*DEL_CHAIN*/ {'x','x','x','x','x',' ','x','x','x','x','x','x','x','x','x','x','x','x'},
-/*SET_POLICY*/{'x','x','x','x','x',' ','x','x','x','x',' ','x','x','x','x','x','x','x'},
-/*RENAME*/    {'x','x','x','x','x',' ','x','x','x','x','x','x','x','x','x','x','x','x'},
-/*LIST_RULES*/{'x','x','x','x','x',' ','x','x','x','x','x','x','x','x','x','x','x','x'},
-/*ZERO_NUM*/  {'x','x','x','x','x',' ','x','x','x','x','x','x','x','x','x','x','x','x'},
-/*CHECK*/     {'x',' ',' ',' ',' ',' ','x',' ',' ','x','x',' ',' ',' ',' ',' ',' ',' '},
+	char *colon = strchr(argv, ':'), *buffer;
+
+	if (colon) {
+		if (!p->rule_ranges)
+			xtables_error(PARAMETER_PROBLEM,
+				      "Rule ranges are not supported");
+
+		*colon = '\0';
+		if (*(colon + 1) == '\0')
+			p->rulenum_end = -1; /* Until the last rule */
+		else {
+			p->rulenum_end = strtol(colon + 1, &buffer, 10);
+			if (*buffer != '\0' || p->rulenum_end == 0)
+				xtables_error(PARAMETER_PROBLEM,
+					      "Invalid rule range end`%s'",
+					      colon + 1);
+		}
+	}
+	if (colon == argv)
+		p->rulenum = 1; /* Beginning with the first rule */
+	else {
+		p->rulenum = strtol(argv, &buffer, 10);
+		if (*buffer != '\0' || p->rulenum == 0)
+			xtables_error(PARAMETER_PROBLEM,
+				      "Invalid rule number `%s'", argv);
+	}
+	if (!colon)
+		p->rulenum_end = p->rulenum;
+}
+
+/* list the commands an option is allowed with */
+#define CMD_IDRAC	CMD_INSERT | CMD_DELETE | CMD_REPLACE | \
+			CMD_APPEND | CMD_CHECK | CMD_CHANGE_COUNTERS
+static const unsigned int options_v_commands[NUMBER_OF_OPT] = {
+/*OPT_NUMERIC*/		CMD_LIST,
+/*OPT_SOURCE*/		CMD_IDRAC,
+/*OPT_DESTINATION*/	CMD_IDRAC,
+/*OPT_PROTOCOL*/	CMD_IDRAC,
+/*OPT_JUMP*/		CMD_IDRAC,
+/*OPT_VERBOSE*/		UINT_MAX,
+/*OPT_EXPANDED*/	CMD_LIST,
+/*OPT_VIANAMEIN*/	CMD_IDRAC,
+/*OPT_VIANAMEOUT*/	CMD_IDRAC,
+/*OPT_LINENUMBERS*/	CMD_LIST,
+/*OPT_COUNTERS*/	CMD_INSERT | CMD_REPLACE | CMD_APPEND | CMD_SET_POLICY,
+/*OPT_FRAGMENT*/	CMD_IDRAC,
+/*OPT_S_MAC*/		CMD_IDRAC,
+/*OPT_D_MAC*/		CMD_IDRAC,
+/*OPT_H_LENGTH*/	CMD_IDRAC,
+/*OPT_OPCODE*/		CMD_IDRAC,
+/*OPT_H_TYPE*/		CMD_IDRAC,
+/*OPT_P_TYPE*/		CMD_IDRAC,
+/*OPT_LOGICALIN*/	CMD_IDRAC,
+/*OPT_LOGICALOUT*/	CMD_IDRAC,
+/*OPT_LIST_C*/		CMD_LIST,
+/*OPT_LIST_X*/		CMD_LIST,
+/*OPT_LIST_MAC2*/	CMD_LIST,
 };
+#undef CMD_IDRAC
 
-static void generic_opt_check(int command, int options)
+static void generic_opt_check(struct xt_cmd_parse_ops *ops,
+			      int command, int options)
 {
-	int i, j, legal = 0;
+	int i, optval;
 
 	/* Check that commands are valid with options. Complicated by the
 	 * fact that if an option is legal with *any* command given, it is
 	 * legal overall (ie. -z and -l).
 	 */
-	for (i = 0; i < NUMBER_OF_OPT; i++) {
-		legal = 0; /* -1 => illegal, 1 => legal, 0 => undecided. */
-
-		for (j = 0; j < NUMBER_OF_CMD; j++) {
-			if (!(command & (1<<j)))
-				continue;
-
-			if (!(options & (1<<i))) {
-				if (commands_v_options[j][i] == '+')
-					xtables_error(PARAMETER_PROBLEM,
-						      "You need to supply the `-%c' option for this command",
-						      optflags[i]);
-			} else {
-				if (commands_v_options[j][i] != 'x')
-					legal = 1;
-				else if (legal == 0)
-					legal = -1;
-			}
-		}
-		if (legal == -1)
+	for (i = 0, optval = 1; i < NUMBER_OF_OPT; optval = (1 << ++i)) {
+		if ((options & optval) &&
+		    (options_v_commands[i] & command) != command)
 			xtables_error(PARAMETER_PROBLEM,
-				      "Illegal option `-%c' with this command",
-				      optflags[i]);
+				      "Illegal option `%s' with this command",
+				      ops->option_name(optval));
 	}
 }
 
-static char opt2char(int option)
+const char *ip46t_option_name(int option)
 {
-	const char *ptr;
-
-	for (ptr = optflags; option > 1; option >>= 1, ptr++)
-		;
-
-	return *ptr;
+	switch (option) {
+	case OPT_NUMERIC:	return "--numeric";
+	case OPT_SOURCE:	return "--source";
+	case OPT_DESTINATION:	return "--destination";
+	case OPT_PROTOCOL:	return "--protocol";
+	case OPT_JUMP:		return "--jump";
+	case OPT_VERBOSE:	return "--verbose";
+	case OPT_EXPANDED:	return "--exact";
+	case OPT_VIANAMEIN:	return "--in-interface";
+	case OPT_VIANAMEOUT:	return "--out-interface";
+	case OPT_LINENUMBERS:	return "--line-numbers";
+	case OPT_COUNTERS:	return "--set-counters";
+	case OPT_FRAGMENT:	return "--fragments";
+	default:		return "unknown option";
+	}
 }
 
-static const int inverse_for_options[NUMBER_OF_OPT] =
+int ip46t_option_invert(int option)
 {
-/* -n */ 0,
-/* -s */ IPT_INV_SRCIP,
-/* -d */ IPT_INV_DSTIP,
-/* -p */ XT_INV_PROTO,
-/* -j */ 0,
-/* -v */ 0,
-/* -x */ 0,
-/* -i */ IPT_INV_VIA_IN,
-/* -o */ IPT_INV_VIA_OUT,
-/*--line*/ 0,
-/* -c */ 0,
-/* -f */ IPT_INV_FRAG,
-/* 2 */ IPT_INV_SRCDEVADDR,
-/* 3 */ IPT_INV_TGTDEVADDR,
-/* -l */ IPT_INV_ARPHLN,
-/* 4 */ IPT_INV_ARPOP,
-/* 5 */ IPT_INV_ARPHRD,
-/* 6 */ IPT_INV_PROTO,
-};
+	switch (option) {
+	case OPT_SOURCE:	return IPT_INV_SRCIP;
+	case OPT_DESTINATION:	return IPT_INV_DSTIP;
+	case OPT_PROTOCOL:	return XT_INV_PROTO;
+	case OPT_VIANAMEIN:	return IPT_INV_VIA_IN;
+	case OPT_VIANAMEOUT:	return IPT_INV_VIA_OUT;
+	case OPT_FRAGMENT:	return IPT_INV_FRAG;
+	default:		return -1;
+	}
+}
 
 static void
-set_option(unsigned int *options, unsigned int option, uint16_t *invflg,
-	   bool invert)
+set_option(struct xt_cmd_parse_ops *ops,
+	   unsigned int *options, unsigned int option,
+	   uint16_t *invflg, bool invert)
 {
 	if (*options & option)
-		xtables_error(PARAMETER_PROBLEM, "multiple -%c flags not allowed",
-			   opt2char(option));
+		xtables_error(PARAMETER_PROBLEM,
+			      "multiple %s options not allowed",
+			      ops->option_name(option));
 	*options |= option;
 
 	if (invert) {
-		unsigned int i;
-		for (i = 0; 1 << i != option; i++);
+		int invopt = ops->option_invert(option);
 
-		if (!inverse_for_options[i])
+		if (invopt < 0)
 			xtables_error(PARAMETER_PROBLEM,
-				   "cannot have ! before -%c",
-				   opt2char(option));
-		*invflg |= inverse_for_options[i];
+				      "cannot have ! before %s",
+				      ops->option_name(option));
+		*invflg |= invopt;
 	}
 }
 
@@ -1083,27 +1084,20 @@ void print_rule_details(unsigned int linenum, const struct xt_counters *ctrs,
 
 	fputc(invflags & XT_INV_PROTO ? '!' : ' ', stdout);
 
-	if (((format & (FMT_NUMERIC | FMT_NOTABLE)) == FMT_NUMERIC) || !pname)
-		printf(FMT("%-4hu ", "%hu "), proto);
-	else
+	if (pname)
 		printf(FMT("%-4s ", "%s "), pname);
+	else
+		printf(FMT("%-4hu ", "%hu "), proto);
 }
 
-void save_rule_details(const char *iniface, unsigned const char *iniface_mask,
-		       const char *outiface, unsigned const char *outiface_mask,
+void save_rule_details(const char *iniface, const char *outiface,
 		       uint16_t proto, int frag, uint8_t invflags)
 {
-	if (iniface != NULL) {
-		save_iface('i', iniface, iniface_mask,
-			    invflags & IPT_INV_VIA_IN);
-	}
-	if (outiface != NULL) {
-		save_iface('o', outiface, outiface_mask,
-			    invflags & IPT_INV_VIA_OUT);
-	}
+	save_iface('i', iniface, invflags & IPT_INV_VIA_IN);
+	save_iface('o', outiface, invflags & IPT_INV_VIA_OUT);
 
 	if (proto > 0) {
-		const char *pname = proto_to_name(proto, 0);
+		const char *pname = proto_to_name(proto, true);
 
 		if (invflags & XT_INV_PROTO)
 			printf(" !");
@@ -1151,9 +1145,9 @@ int print_match_save(const struct xt_entry_match *e, const void *ip)
 	return 0;
 }
 
-static void
-xtables_printhelp(const struct xtables_rule_match *matches)
+void xtables_printhelp(struct iptables_command_state *cs)
 {
+	const struct xtables_rule_match *matches = cs->matches;
 	const char *prog_name = xt_params->program_name;
 	const char *prog_vers = xt_params->program_version;
 
@@ -1312,6 +1306,7 @@ static void check_inverse(struct xtables_args *args, const char option[],
 {
 	switch (args->family) {
 	case NFPROTO_ARP:
+	case NFPROTO_BRIDGE:
 		break;
 	default:
 		return;
@@ -1365,10 +1360,105 @@ void xtables_clear_iptables_command_state(struct iptables_command_state *cs)
 	}
 }
 
+void iface_to_mask(const char *iface, unsigned char *mask)
+{
+	unsigned int len = strlen(iface);
+
+	memset(mask, 0, IFNAMSIZ);
+
+	if (!len) {
+		return;
+	} else if (iface[len - 1] == '+') {
+		memset(mask, 0xff, len - 1);
+		/* Don't remove `+' here! -HW */
+	} else {
+		/* Include nul-terminator in match */
+		memset(mask, 0xff, len + 1);
+	}
+}
+
+static void parse_interface(const char *arg, char *iface)
+{
+	unsigned int len = strlen(arg);
+
+	memset(iface, 0, IFNAMSIZ);
+
+	if (!len)
+		return;
+	if (len >= IFNAMSIZ)
+		xtables_error(PARAMETER_PROBLEM,
+			      "interface name `%s' must be shorter than %d characters",
+			      arg, IFNAMSIZ);
+
+	if (strchr(arg, '/') || strchr(arg, ' '))
+		fprintf(stderr,
+			"Warning: weird character in interface `%s' ('/' and ' ' are not allowed by the kernel).\n",
+			arg);
+
+	strcpy(iface, arg);
+}
+
+static bool
+parse_signed_counter(char *argv, unsigned long long *val, uint8_t *ctr_op,
+		     uint8_t flag_inc, uint8_t flag_dec)
+{
+	char *endptr, *p = argv;
+
+	switch (*p) {
+	case '+':
+		*ctr_op |= flag_inc;
+		p++;
+		break;
+	case '-':
+		*ctr_op |= flag_dec;
+		p++;
+		break;
+	}
+	*val = strtoull(p, &endptr, 10);
+	return *endptr == '\0';
+}
+
+static void parse_change_counters_rule(int argc, char **argv,
+				       struct xt_cmd_parse *p,
+				       struct xtables_args *args)
+{
+	if (optind + 1 >= argc ||
+	    (argv[optind][0] == '-' && !isdigit(argv[optind][1])) ||
+	    (argv[optind + 1][0] == '-' && !isdigit(argv[optind + 1][1])))
+		xtables_error(PARAMETER_PROBLEM,
+			      "The command -C needs at least 2 arguments");
+	if (optind + 2 < argc &&
+	    (argv[optind + 2][0] != '-' || isdigit(argv[optind + 2][1]))) {
+		if (optind + 3 != argc)
+			xtables_error(PARAMETER_PROBLEM,
+				      "No extra options allowed with -C start_nr[:end_nr] pcnt bcnt");
+		parse_rule_range(p, argv[optind++]);
+	}
+
+	if (!parse_signed_counter(argv[optind++], &args->pcnt_cnt,
+				  &args->counter_op,
+				  CTR_OP_INC_PKTS, CTR_OP_DEC_PKTS) ||
+	    !parse_signed_counter(argv[optind++], &args->bcnt_cnt,
+				  &args->counter_op,
+				  CTR_OP_INC_BYTES, CTR_OP_DEC_BYTES))
+		xtables_error(PARAMETER_PROBLEM,
+			      "Packet counter '%s' invalid", argv[optind - 1]);
+}
+
+static void option_test_and_reject(struct xt_cmd_parse *p,
+				   struct iptables_command_state *cs,
+				   unsigned int option)
+{
+	if (cs->options & option)
+		xtables_error(PARAMETER_PROBLEM, "Can't use %s with %s",
+			      p->ops->option_name(option), p->chain);
+}
+
 void do_parse(int argc, char *argv[],
 	      struct xt_cmd_parse *p, struct iptables_command_state *cs,
 	      struct xtables_args *args)
 {
+	bool family_is_bridge = args->family == NFPROTO_BRIDGE;
 	struct xtables_match *m;
 	struct xtables_rule_match *matchp;
 	bool wait_interval_set = false;
@@ -1394,10 +1484,10 @@ void do_parse(int argc, char *argv[],
 	   demand-load a protocol. */
 	opterr = 0;
 
-	xt_params->opts = xt_params->orig_opts;
 	while ((cs->c = getopt_long(argc, argv,
 				    optstring_lookup(afinfo->family),
-				    xt_params->opts, NULL)) != -1) {
+				    xt_params->opts ?: xt_params->orig_opts,
+				    NULL)) != -1) {
 		switch (cs->c) {
 			/*
 			 * Command selection
@@ -1408,6 +1498,15 @@ void do_parse(int argc, char *argv[],
 			break;
 
 		case 'C':
+			if (family_is_bridge) {
+				add_command(&p->command, CMD_CHANGE_COUNTERS,
+					    CMD_NONE, invert);
+				p->chain = optarg;
+				parse_change_counters_rule(argc, argv, p, args);
+				break;
+			}
+			/* fall through */
+		case 14: /* ebtables --check */
 			add_command(&p->command, CMD_CHECK, CMD_NONE, invert);
 			p->chain = optarg;
 			break;
@@ -1416,7 +1515,7 @@ void do_parse(int argc, char *argv[],
 			add_command(&p->command, CMD_DELETE, CMD_NONE, invert);
 			p->chain = optarg;
 			if (xs_has_arg(argc, argv)) {
-				p->rulenum = parse_rulenumber(argv[optind++]);
+				parse_rule_range(p, argv[optind++]);
 				p->command = CMD_DELETE_NUM;
 			}
 			break;
@@ -1515,27 +1614,28 @@ void do_parse(int argc, char *argv[],
 			break;
 
 		case 'P':
-			add_command(&p->command, CMD_SET_POLICY, CMD_NONE,
+			add_command(&p->command, CMD_SET_POLICY,
+				    family_is_bridge ? CMD_NEW_CHAIN : CMD_NONE,
 				    invert);
-			p->chain = optarg;
-			if (xs_has_arg(argc, argv))
+			if (p->command & CMD_NEW_CHAIN) {
+				p->policy = optarg;
+			} else if (xs_has_arg(argc, argv)) {
+				p->chain = optarg;
 				p->policy = argv[optind++];
-			else
+			} else {
 				xtables_error(PARAMETER_PROBLEM,
 					   "-%c requires a chain and a policy",
 					   cmd2char(CMD_SET_POLICY));
+			}
 			break;
 
 		case 'h':
-			if (!optarg)
-				optarg = argv[optind];
-
 			/* iptables -p icmp -h */
 			if (!cs->matches && cs->protocol)
 				xtables_find_match(cs->protocol,
 					XTF_TRY_LOAD, &cs->matches);
 
-			xtables_printhelp(cs->matches);
+			p->ops->print_help(cs);
 			xtables_clear_iptables_command_state(cs);
 			xtables_free_opts(1);
 			xtables_fini();
@@ -1546,7 +1646,7 @@ void do_parse(int argc, char *argv[],
 			 */
 		case 'p':
 			check_inverse(args, optarg, &invert, argc, argv);
-			set_option(&cs->options, OPT_PROTOCOL,
+			set_option(p->ops, &cs->options, OPT_PROTOCOL,
 				   &args->invflags, invert);
 
 			/* Canonicalize into lower case */
@@ -1555,12 +1655,6 @@ void do_parse(int argc, char *argv[],
 				*cs->protocol = tolower(*cs->protocol);
 
 			cs->protocol = optarg;
-			args->proto = xtables_parse_protocol(cs->protocol);
-
-			if (args->proto == 0 &&
-			    (args->invflags & XT_INV_PROTO))
-				xtables_error(PARAMETER_PROBLEM,
-					   "rule would never match protocol");
 
 			/* This needs to happen here to parse extensions */
 			if (p->ops->proto_parse)
@@ -1569,22 +1663,22 @@ void do_parse(int argc, char *argv[],
 
 		case 's':
 			check_inverse(args, optarg, &invert, argc, argv);
-			set_option(&cs->options, OPT_SOURCE,
+			set_option(p->ops, &cs->options, OPT_SOURCE,
 				   &args->invflags, invert);
 			args->shostnetworkmask = optarg;
 			break;
 
 		case 'd':
 			check_inverse(args, optarg, &invert, argc, argv);
-			set_option(&cs->options, OPT_DESTINATION,
+			set_option(p->ops, &cs->options, OPT_DESTINATION,
 				   &args->invflags, invert);
 			args->dhostnetworkmask = optarg;
 			break;
 
 #ifdef IPT_F_GOTO
 		case 'g':
-			set_option(&cs->options, OPT_JUMP, &args->invflags,
-				   invert);
+			set_option(p->ops, &cs->options, OPT_JUMP,
+				   &args->invflags, invert);
 			args->goto_set = true;
 			cs->jumpto = xt_parse_target(optarg);
 			break;
@@ -1592,22 +1686,22 @@ void do_parse(int argc, char *argv[],
 
 		case 2:/* src-mac */
 			check_inverse(args, optarg, &invert, argc, argv);
-			set_option(&cs->options, OPT_S_MAC, &args->invflags,
-				   invert);
+			set_option(p->ops, &cs->options, OPT_S_MAC,
+				   &args->invflags, invert);
 			args->src_mac = optarg;
 			break;
 
 		case 3:/* dst-mac */
 			check_inverse(args, optarg, &invert, argc, argv);
-			set_option(&cs->options, OPT_D_MAC, &args->invflags,
-				   invert);
+			set_option(p->ops, &cs->options, OPT_D_MAC,
+				   &args->invflags, invert);
 			args->dst_mac = optarg;
 			break;
 
 		case 'l':/* hardware length */
 			check_inverse(args, optarg, &invert, argc, argv);
-			set_option(&cs->options, OPT_H_LENGTH, &args->invflags,
-				   invert);
+			set_option(p->ops, &cs->options, OPT_H_LENGTH,
+				   &args->invflags, invert);
 			args->arp_hlen = optarg;
 			break;
 
@@ -1615,49 +1709,85 @@ void do_parse(int argc, char *argv[],
 			xtables_error(PARAMETER_PROBLEM, "not supported");
 		case 4:/* opcode */
 			check_inverse(args, optarg, &invert, argc, argv);
-			set_option(&cs->options, OPT_OPCODE, &args->invflags,
-				   invert);
+			set_option(p->ops, &cs->options, OPT_OPCODE,
+				   &args->invflags, invert);
 			args->arp_opcode = optarg;
 			break;
 
 		case 5:/* h-type */
 			check_inverse(args, optarg, &invert, argc, argv);
-			set_option(&cs->options, OPT_H_TYPE, &args->invflags,
-				   invert);
+			set_option(p->ops, &cs->options, OPT_H_TYPE,
+				   &args->invflags, invert);
 			args->arp_htype = optarg;
 			break;
 
 		case 6:/* proto-type */
 			check_inverse(args, optarg, &invert, argc, argv);
-			set_option(&cs->options, OPT_P_TYPE, &args->invflags,
-				   invert);
+			set_option(p->ops, &cs->options, OPT_P_TYPE,
+				   &args->invflags, invert);
 			args->arp_ptype = optarg;
 			break;
 
+		case 11: /* ebtables --init-table */
+			if (p->restore)
+				xtables_error(PARAMETER_PROBLEM,
+					      "--init-table is not supported in daemon mode");
+			add_command(&p->command, CMD_INIT_TABLE, CMD_NONE, invert);
+			break;
+
+		case 12 : /* ebtables --Lmac2 */
+			set_option(p->ops, &cs->options, OPT_LIST_MAC2,
+				   &args->invflags, invert);
+			break;
+
+		case 13 : /* ebtables --concurrent */
+			break;
+
+		case 15 : /* ebtables --logical-in */
+			check_inverse(args, optarg, &invert, argc, argv);
+			set_option(p->ops, &cs->options, OPT_LOGICALIN,
+				   &args->invflags, invert);
+			parse_interface(optarg, args->bri_iniface);
+			break;
+
+		case 16 : /* ebtables --logical-out */
+			check_inverse(args, optarg, &invert, argc, argv);
+			set_option(p->ops, &cs->options, OPT_LOGICALOUT,
+				   &args->invflags, invert);
+			parse_interface(optarg, args->bri_outiface);
+			break;
+
+		case 17 : /* ebtables --Lc */
+			set_option(p->ops, &cs->options, OPT_LIST_C,
+				   &args->invflags, invert);
+			break;
+
+		case 19 : /* ebtables --Lx */
+			set_option(p->ops, &cs->options, OPT_LIST_X,
+				   &args->invflags, invert);
+			break;
+
 		case 'j':
-			set_option(&cs->options, OPT_JUMP, &args->invflags,
-				   invert);
-			command_jump(cs, optarg);
+			set_option(p->ops, &cs->options, OPT_JUMP,
+				   &args->invflags, invert);
+			if (strcmp(optarg, "CONTINUE"))
+				command_jump(cs, optarg);
 			break;
 
 		case 'i':
 			check_empty_interface(args, optarg);
 			check_inverse(args, optarg, &invert, argc, argv);
-			set_option(&cs->options, OPT_VIANAMEIN,
+			set_option(p->ops, &cs->options, OPT_VIANAMEIN,
 				   &args->invflags, invert);
-			xtables_parse_interface(optarg,
-						args->iniface,
-						args->iniface_mask);
+			parse_interface(optarg, args->iniface);
 			break;
 
 		case 'o':
 			check_empty_interface(args, optarg);
 			check_inverse(args, optarg, &invert, argc, argv);
-			set_option(&cs->options, OPT_VIANAMEOUT,
+			set_option(p->ops, &cs->options, OPT_VIANAMEOUT,
 				   &args->invflags, invert);
-			xtables_parse_interface(optarg,
-						args->outiface,
-						args->outiface_mask);
+			parse_interface(optarg, args->outiface);
 			break;
 
 		case 'f':
@@ -1666,14 +1796,14 @@ void do_parse(int argc, char *argv[],
 					"`-f' is not supported in IPv6, "
 					"use -m frag instead");
 			}
-			set_option(&cs->options, OPT_FRAGMENT, &args->invflags,
-				   invert);
+			set_option(p->ops, &cs->options, OPT_FRAGMENT,
+				   &args->invflags, invert);
 			args->flags |= IPT_F_FRAG;
 			break;
 
 		case 'v':
 			if (!p->verbose)
-				set_option(&cs->options, OPT_VERBOSE,
+				set_option(p->ops, &cs->options, OPT_VERBOSE,
 					   &args->invflags, invert);
 			p->verbose++;
 			break;
@@ -1683,8 +1813,8 @@ void do_parse(int argc, char *argv[],
 			break;
 
 		case 'n':
-			set_option(&cs->options, OPT_NUMERIC, &args->invflags,
-				   invert);
+			set_option(p->ops, &cs->options, OPT_NUMERIC,
+				   &args->invflags, invert);
 			break;
 
 		case 't':
@@ -1700,8 +1830,8 @@ void do_parse(int argc, char *argv[],
 			break;
 
 		case 'x':
-			set_option(&cs->options, OPT_EXPANDED, &args->invflags,
-				   invert);
+			set_option(p->ops, &cs->options, OPT_EXPANDED,
+				   &args->invflags, invert);
 			break;
 
 		case 'V':
@@ -1736,7 +1866,8 @@ void do_parse(int argc, char *argv[],
 			break;
 
 		case '0':
-			set_option(&cs->options, OPT_LINENUMBERS,
+		case 18 : /* ebtables --Ln */
+			set_option(p->ops, &cs->options, OPT_LINENUMBERS,
 				   &args->invflags, invert);
 			break;
 
@@ -1745,28 +1876,28 @@ void do_parse(int argc, char *argv[],
 			break;
 
 		case 'c':
-			set_option(&cs->options, OPT_COUNTERS, &args->invflags,
-				   invert);
+			set_option(p->ops, &cs->options, OPT_COUNTERS,
+				   &args->invflags, invert);
 			args->pcnt = optarg;
-			args->bcnt = strchr(args->pcnt + 1, ',');
+			args->bcnt = strchr(args->pcnt, ',');
 			if (args->bcnt)
 			    args->bcnt++;
 			if (!args->bcnt && xs_has_arg(argc, argv))
 				args->bcnt = argv[optind++];
 			if (!args->bcnt)
 				xtables_error(PARAMETER_PROBLEM,
-					"-%c requires packet and byte counter",
-					opt2char(OPT_COUNTERS));
+					      "%s requires packet and byte counter",
+					      p->ops->option_name(OPT_COUNTERS));
 
 			if (sscanf(args->pcnt, "%llu", &args->pcnt_cnt) != 1)
 				xtables_error(PARAMETER_PROBLEM,
-					"-%c packet counter not numeric",
-					opt2char(OPT_COUNTERS));
+					      "%s packet counter not numeric",
+					      p->ops->option_name(OPT_COUNTERS));
 
 			if (sscanf(args->bcnt, "%llu", &args->bcnt_cnt) != 1)
 				xtables_error(PARAMETER_PROBLEM,
-					"-%c byte counter not numeric",
-					opt2char(OPT_COUNTERS));
+					      "%s byte counter not numeric",
+					      p->ops->option_name(OPT_COUNTERS));
 			break;
 
 		case '4':
@@ -1801,7 +1932,8 @@ void do_parse(int argc, char *argv[],
 			exit_tryhelp(2, p->line);
 
 		default:
-			if (command_default(cs, xt_params, invert))
+			check_inverse(args, optarg, &invert, argc, argv);
+			if (p->ops->command_default(cs, xt_params, invert))
 				/* cf. ip6tables.c */
 				continue;
 			break;
@@ -1809,7 +1941,8 @@ void do_parse(int argc, char *argv[],
 		invert = false;
 	}
 
-	if (strcmp(p->table, "nat") == 0 &&
+	if (!family_is_bridge &&
+	    strcmp(p->table, "nat") == 0 &&
 	    ((p->policy != NULL && strcmp(p->policy, "DROP") == 0) ||
 	    (cs->jumpto != NULL && strcmp(cs->jumpto, "DROP") == 0)))
 		xtables_error(PARAMETER_PROBLEM,
@@ -1839,12 +1972,7 @@ void do_parse(int argc, char *argv[],
 	if (p->ops->post_parse)
 		p->ops->post_parse(p->command, cs, args);
 
-	if (p->command == CMD_REPLACE &&
-	    (args->s.naddrs != 1 || args->d.naddrs != 1))
-		xtables_error(PARAMETER_PROBLEM, "Replacement rule does not "
-			   "specify a unique address");
-
-	generic_opt_check(p->command, cs->options);
+	generic_opt_check(p->ops, p->command, cs->options);
 
 	if (p->chain != NULL && strlen(p->chain) >= XT_EXTENSION_MAXNAMELEN)
 		xtables_error(PARAMETER_PROBLEM,
@@ -1853,28 +1981,24 @@ void do_parse(int argc, char *argv[],
 
 	if (p->command == CMD_APPEND ||
 	    p->command == CMD_DELETE ||
-	    p->command == CMD_DELETE_NUM ||
 	    p->command == CMD_CHECK ||
 	    p->command == CMD_INSERT ||
-	    p->command == CMD_REPLACE) {
+	    p->command == CMD_REPLACE ||
+	    p->command == CMD_CHANGE_COUNTERS) {
 		if (strcmp(p->chain, "PREROUTING") == 0
 		    || strcmp(p->chain, "INPUT") == 0) {
 			/* -o not valid with incoming packets. */
-			if (cs->options & OPT_VIANAMEOUT)
-				xtables_error(PARAMETER_PROBLEM,
-					   "Can't use -%c with %s\n",
-					   opt2char(OPT_VIANAMEOUT),
-					   p->chain);
+			option_test_and_reject(p, cs, OPT_VIANAMEOUT);
+			/* same with --logical-out */
+			option_test_and_reject(p, cs, OPT_LOGICALOUT);
 		}
 
 		if (strcmp(p->chain, "POSTROUTING") == 0
 		    || strcmp(p->chain, "OUTPUT") == 0) {
 			/* -i not valid with outgoing packets */
-			if (cs->options & OPT_VIANAMEIN)
-				xtables_error(PARAMETER_PROBLEM,
-					   "Can't use -%c with %s\n",
-					   opt2char(OPT_VIANAMEIN),
-					   p->chain);
+			option_test_and_reject(p, cs, OPT_VIANAMEIN);
+			/* same with --logical-in */
+			option_test_and_reject(p, cs, OPT_LOGICALIN);
 		}
 	}
 }
@@ -1882,7 +2006,13 @@ void do_parse(int argc, char *argv[],
 void ipv4_proto_parse(struct iptables_command_state *cs,
 		      struct xtables_args *args)
 {
-	cs->fw.ip.proto = args->proto;
+	cs->fw.ip.proto = xtables_parse_protocol(cs->protocol);
+
+	if (cs->fw.ip.proto == 0 &&
+	    (args->invflags & XT_INV_PROTO))
+		xtables_error(PARAMETER_PROBLEM,
+			      "rule would never match protocol");
+
 	cs->fw.ip.invflags = args->invflags;
 }
 
@@ -1898,7 +2028,13 @@ static int is_exthdr(uint16_t proto)
 void ipv6_proto_parse(struct iptables_command_state *cs,
 		      struct xtables_args *args)
 {
-	cs->fw6.ipv6.proto = args->proto;
+	cs->fw6.ipv6.proto = xtables_parse_protocol(cs->protocol);
+
+	if (cs->fw6.ipv6.proto == 0 &&
+	    (args->invflags & XT_INV_PROTO))
+		xtables_error(PARAMETER_PROBLEM,
+			      "rule would never match protocol");
+
 	cs->fw6.ipv6.invflags = args->invflags;
 
 	/* this is needed for ip6tables-legacy only */
@@ -1923,12 +2059,7 @@ void ipv4_post_parse(int command, struct iptables_command_state *cs,
 	cs->fw.ip.invflags = args->invflags;
 
 	memcpy(cs->fw.ip.iniface, args->iniface, IFNAMSIZ);
-	memcpy(cs->fw.ip.iniface_mask,
-	       args->iniface_mask, IFNAMSIZ*sizeof(unsigned char));
-
 	memcpy(cs->fw.ip.outiface, args->outiface, IFNAMSIZ);
-	memcpy(cs->fw.ip.outiface_mask,
-	       args->outiface_mask, IFNAMSIZ*sizeof(unsigned char));
 
 	if (args->goto_set)
 		cs->fw.ip.flags |= IPT_F_GOTO;
@@ -2047,4 +2178,12 @@ make_delete_mask(const struct xtables_rule_match *matches,
 	       + target->userspacesize);
 
 	return mask;
+}
+
+void xtables_clear_args(struct xtables_args *args)
+{
+	free(args->s.addr.ptr);
+	free(args->s.mask.ptr);
+	free(args->d.addr.ptr);
+	free(args->d.mask.ptr);
 }

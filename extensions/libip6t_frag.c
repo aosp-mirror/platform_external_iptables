@@ -89,13 +89,18 @@ static void frag_parse(struct xt_option_call *cb)
 	}
 }
 
+static bool skip_ids_match(uint32_t min, uint32_t max, bool inv)
+{
+	return min == 0 && max == UINT32_MAX && !inv;
+}
+
 static void
 print_ids(const char *name, uint32_t min, uint32_t max,
 	    int invert)
 {
 	const char *inv = invert ? "!" : "";
 
-	if (min != 0 || max != 0xFFFFFFFF || invert) {
+	if (!skip_ids_match(min, max, invert)) {
 		printf("%s", name);
 		if (min == max)
 			printf(":%s%u", inv, min);
@@ -139,11 +144,10 @@ static void frag_print(const void *ip, const struct xt_entry_match *match,
 static void frag_save(const void *ip, const struct xt_entry_match *match)
 {
 	const struct ip6t_frag *fraginfo = (struct ip6t_frag *)match->data;
+	bool inv_ids = fraginfo->invflags & IP6T_FRAG_INV_IDS;
 
-	if (!(fraginfo->ids[0] == 0
-	    && fraginfo->ids[1] == 0xFFFFFFFF)) {
-		printf("%s --fragid ",
-			(fraginfo->invflags & IP6T_FRAG_INV_IDS) ? " !" : "");
+	if (!skip_ids_match(fraginfo->ids[0], fraginfo->ids[1], inv_ids)) {
+		printf("%s --fragid ", inv_ids ? " !" : "");
 		if (fraginfo->ids[0]
 		    != fraginfo->ids[1])
 			printf("%u:%u",
@@ -173,22 +177,27 @@ static void frag_save(const void *ip, const struct xt_entry_match *match)
 		printf(" --fraglast");
 }
 
+#define XLATE_FLAGS (IP6T_FRAG_RES | IP6T_FRAG_FST | \
+		     IP6T_FRAG_MF | IP6T_FRAG_NMF)
+
 static int frag_xlate(struct xt_xlate *xl,
 		      const struct xt_xlate_mt_params *params)
 {
 	const struct ip6t_frag *fraginfo =
 		(struct ip6t_frag *)params->match->data;
+	bool inv_ids = fraginfo->invflags & IP6T_FRAG_INV_IDS;
 
-	if (!(fraginfo->ids[0] == 0 && fraginfo->ids[1] == 0xFFFFFFFF)) {
-		xt_xlate_add(xl, "frag id %s",
-			     (fraginfo->invflags & IP6T_FRAG_INV_IDS) ?
-			     "!= " : "");
+	if (!skip_ids_match(fraginfo->ids[0], fraginfo->ids[1], inv_ids)) {
+		xt_xlate_add(xl, "frag id %s", inv_ids ?  "!= " : "");
 		if (fraginfo->ids[0] != fraginfo->ids[1])
 			xt_xlate_add(xl, "%u-%u", fraginfo->ids[0],
 				     fraginfo->ids[1]);
 		else
 			xt_xlate_add(xl, "%u", fraginfo->ids[0]);
 
+	} else if (!(fraginfo->flags & XLATE_FLAGS)) {
+		xt_xlate_add(xl, "exthdr frag exists");
+		return 1;
 	}
 
 	/* ignore ineffective IP6T_FRAG_LEN bit */

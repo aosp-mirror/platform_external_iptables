@@ -12,6 +12,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <netinet/ether.h>
 #include <netinet/in.h>
 #include <net/if.h>
 #include <linux/types.h>
@@ -61,7 +62,6 @@ struct in_addr;
  * %XTTYPE_SYSLOGLEVEL:	syslog level by name or number
  * %XTTYPE_HOST:	one host or address (ptr: union nf_inet_addr)
  * %XTTYPE_HOSTMASK:	one host or address, with an optional prefix length
- * 			(ptr: union nf_inet_addr; only host portion is stored)
  * %XTTYPE_PROTOCOL:	protocol number/name from /etc/protocols (ptr: uint8_t)
  * %XTTYPE_PORT:	16-bit port name or number (supports %XTOPT_NBO)
  * %XTTYPE_PORTRC:	colon-separated port range (names acceptable),
@@ -69,6 +69,7 @@ struct in_addr;
  * %XTTYPE_PLEN:	prefix length
  * %XTTYPE_PLENMASK:	prefix length (ptr: union nf_inet_addr)
  * %XTTYPE_ETHERMAC:	Ethernet MAC address in hex form
+ * %XTTYPE_ETHERMACMASK: Ethernet MAC address in hex form with optional mask
  */
 enum xt_option_type {
 	XTTYPE_NONE,
@@ -93,6 +94,7 @@ enum xt_option_type {
 	XTTYPE_PLEN,
 	XTTYPE_PLENMASK,
 	XTTYPE_ETHERMAC,
+	XTTYPE_ETHERMACMASK,
 };
 
 /**
@@ -122,6 +124,7 @@ enum xt_option_flags {
  * @size:	size of the item pointed to by @ptroff; this is a safeguard
  * @min:	lowest allowed value (for singular integral types)
  * @max:	highest allowed value (for singular integral types)
+ * @base:	assumed base of parsed value for integer types (default 0)
  */
 struct xt_option_entry {
 	const char *name;
@@ -129,7 +132,7 @@ struct xt_option_entry {
 	unsigned int id, excl, also, flags;
 	unsigned int ptroff;
 	size_t size;
-	unsigned int min, max;
+	unsigned int min, max, base;
 };
 
 /**
@@ -167,7 +170,9 @@ struct xt_option_call {
 		struct {
 			uint32_t mark, mask;
 		};
-		uint8_t ethermac[6];
+		struct {
+			uint8_t ethermac[ETH_ALEN], ethermacmask[ETH_ALEN];
+		};
 	} val;
 	/* Wished for a world where the ones below were gone: */
 	union {

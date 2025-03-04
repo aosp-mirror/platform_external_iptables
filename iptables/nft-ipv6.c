@@ -147,8 +147,7 @@ static void nft_ipv6_save_rule(const struct iptables_command_state *cs,
 	save_ipv6_addr('d', &cs->fw6.ipv6.dst, &cs->fw6.ipv6.dmsk,
 		       cs->fw6.ipv6.invflags & IP6T_INV_DSTIP);
 
-	save_rule_details(cs->fw6.ipv6.iniface, cs->fw6.ipv6.iniface_mask,
-			  cs->fw6.ipv6.outiface, cs->fw6.ipv6.outiface_mask,
+	save_rule_details(cs->fw6.ipv6.iniface, cs->fw6.ipv6.outiface,
 			  cs->fw6.ipv6.proto, 0, cs->fw6.ipv6.invflags);
 
 	save_matches_and_target(cs, cs->fw6.ipv6.flags & IP6T_F_GOTO,
@@ -185,6 +184,7 @@ static void xlate_ipv6_addr(const char *selector, const struct in6_addr *addr,
 static int nft_ipv6_xlate(const struct iptables_command_state *cs,
 			  struct xt_xlate *xl)
 {
+	uint16_t proto = cs->fw6.ipv6.proto;
 	const char *comment;
 	int ret;
 
@@ -193,23 +193,16 @@ static int nft_ipv6_xlate(const struct iptables_command_state *cs,
 	xlate_ifname(xl, "oifname", cs->fw6.ipv6.outiface,
 		     cs->fw6.ipv6.invflags & IP6T_INV_VIA_OUT);
 
-	if (cs->fw6.ipv6.proto != 0) {
-		const struct protoent *pent =
-			getprotobynumber(cs->fw6.ipv6.proto);
-		char protonum[sizeof("65535")];
-		const char *name = protonum;
+	if (proto != 0 && !xlate_find_protomatch(cs, proto)) {
+		const char *pname = proto_to_name(proto, 0);
 
-		snprintf(protonum, sizeof(protonum), "%u",
-			 cs->fw6.ipv6.proto);
-
-		if (!pent || !xlate_find_match(cs, pent->p_name)) {
-			if (pent)
-				name = pent->p_name;
-			xt_xlate_add(xl, "meta l4proto %s%s ",
-				   cs->fw6.ipv6.invflags & IP6T_INV_PROTO ?
-					"!= " : "", name);
-		}
-
+		xt_xlate_add(xl, "meta l4proto");
+		if (cs->fw6.ipv6.invflags & IP6T_INV_PROTO)
+			xt_xlate_add(xl, " !=");
+		if (pname)
+			xt_xlate_add(xl, "%s", pname);
+		else
+			xt_xlate_add(xl, "%hu", proto);
 	}
 
 	xlate_ipv6_addr("ip6 saddr", &cs->fw6.ipv6.src, &cs->fw6.ipv6.smsk,
@@ -344,6 +337,10 @@ struct nft_family_ops nft_family_ops_ipv6 = {
 	.cmd_parse		= {
 		.proto_parse	= ipv6_proto_parse,
 		.post_parse	= ipv6_post_parse,
+		.option_name	= ip46t_option_name,
+		.option_invert	= ip46t_option_invert,
+		.command_default = command_default,
+		.print_help	= xtables_printhelp,
 	},
 	.rule_to_cs		= nft_rule_to_iptables_command_state,
 	.clear_cs		= xtables_clear_iptables_command_state,
