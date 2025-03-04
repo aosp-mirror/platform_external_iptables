@@ -32,6 +32,10 @@
 #define IPPROTO_UDPLITE	136
 #endif
 
+#ifndef ETH_ALEN
+#define ETH_ALEN 6
+#endif
+
 #include <xtables-version.h>
 
 struct in_addr;
