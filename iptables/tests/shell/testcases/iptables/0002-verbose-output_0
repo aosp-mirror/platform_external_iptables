@@ -21,8 +21,8 @@ EXPECT='Chain INPUT (policy ACCEPT 0 packets, 0 bytes)
 
 Chain FORWARD (policy ACCEPT 0 packets, 0 bytes)
  pkts bytes target     prot opt in     out     source               destination
-    0     0 ACCEPT     all  --  eth2   eth3    10.0.0.1             10.0.0.2
-    0     0 ACCEPT     all  --  eth2   eth3    10.0.0.4             10.0.0.5
+    0     0 ACCEPT     0    --  eth2   eth3    10.0.0.1             10.0.0.2
+    0     0 ACCEPT     0    --  eth2   eth3    10.0.0.4             10.0.0.5
 
 Chain OUTPUT (policy ACCEPT 0 packets, 0 bytes)
  pkts bytes target     prot opt in     out     source               destination'

@@ -1083,9 +1083,7 @@ void print_rule_details(unsigned int linenum, const struct xt_counters *ctrs,
 
 	fputc(invflags & XT_INV_PROTO ? '!' : ' ', stdout);
 
-	if (!proto)
-		printf(FMT("%-4s ", "%s "), "all");
-	else if (((format & (FMT_NUMERIC | FMT_NOTABLE)) == FMT_NUMERIC) || !pname)
+	if (((format & (FMT_NUMERIC | FMT_NOTABLE)) == FMT_NUMERIC) || !pname)
 		printf(FMT("%-4hu ", "%hu "), proto);
 	else
 		printf(FMT("%-4s ", "%s "), pname);
