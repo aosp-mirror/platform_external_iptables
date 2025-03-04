@@ -2104,12 +2104,7 @@ void ipv6_post_parse(int command, struct iptables_command_state *cs,
 	cs->fw6.ipv6.invflags = args->invflags;
 
 	memcpy(cs->fw6.ipv6.iniface, args->iniface, IFNAMSIZ);
-	memcpy(cs->fw6.ipv6.iniface_mask,
-	       args->iniface_mask, IFNAMSIZ*sizeof(unsigned char));
-
 	memcpy(cs->fw6.ipv6.outiface, args->outiface, IFNAMSIZ);
-	memcpy(cs->fw6.ipv6.outiface_mask,
-	       args->outiface_mask, IFNAMSIZ*sizeof(unsigned char));
 
 	if (args->goto_set)
 		cs->fw6.ipv6.flags |= IP6T_F_GOTO;
