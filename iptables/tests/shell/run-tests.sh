@@ -87,6 +87,17 @@ if [ "$HOST" != "y" ]; then
 	XTABLES_LEGACY_MULTI="$(dirname $0)/../../xtables-legacy-multi"
 
 	export XTABLES_LIBDIR=${TESTDIR}/../../../extensions
+
+	# maybe this is 'make distcheck' calling us from a build tree
+	if [ ! -e "$XTABLES_NFT_MULTI" -a \
+	     ! -e "$XTABLES_LEGACY_MULTI" -a \
+	     -e "./iptables/xtables-nft-multi" -a \
+	     -e "./iptables/xtables-legacy-multi" ]; then
+		msg_warn "Running in separate build-tree, using binaries from $PWD/iptables"
+		XTABLES_NFT_MULTI="$PWD/iptables/xtables-nft-multi"
+		XTABLES_LEGACY_MULTI="$PWD/iptables/xtables-legacy-multi"
+		export XTABLES_LIBDIR="$PWD/extensions"
+	fi
 else
 	XTABLES_NFT_MULTI="xtables-nft-multi"
 	XTABLES_LEGACY_MULTI="xtables-legacy-multi"
@@ -154,7 +165,7 @@ do_test() {
 
 	rc_spec=`echo $(basename ${testfile}) | cut -d _ -f2-`
 
-	msg_info "[EXECUTING]   $testfile"
+	[ -t 1 ] && msg_info "[EXECUTING]   $testfile"
 
 	if [ "$VERBOSE" = "y" ]; then
 		XT_MULTI=$xtables_multi unshare -n ${testfile}
@@ -162,7 +173,7 @@ do_test() {
 	else
 		XT_MULTI=$xtables_multi unshare -n ${testfile} > /dev/null 2>&1
 		rc_got=$?
-		echo -en "\033[1A\033[K" # clean the [EXECUTING] foobar line
+		[ -t 1 ] && echo -en "\033[1A\033[K" # clean the [EXECUTING] foobar line
 	fi
 
 	if [ "$rc_got" == "$rc_spec" ] ; then

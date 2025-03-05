@@ -9,6 +9,7 @@ extern int xtables_ip4_restore_main(int, char **);
 extern int xtables_ip6_main(int, char **);
 extern int xtables_ip6_save_main(int, char **);
 extern int xtables_ip6_restore_main(int, char **);
+extern int xtables_arp_xlate_main(int, char **);
 extern int xtables_ip4_xlate_main(int, char **);
 extern int xtables_ip6_xlate_main(int, char **);
 extern int xtables_eb_xlate_main(int, char **);

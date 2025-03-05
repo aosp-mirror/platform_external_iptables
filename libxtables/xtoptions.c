@@ -21,6 +21,7 @@
 #include <arpa/inet.h>
 #include <netinet/ip.h>
 #include "xtables.h"
+#include "xtables_internal.h"
 #ifndef IPTOS_NORMALSVC
 #	define IPTOS_NORMALSVC 0
 #endif
@@ -57,13 +58,26 @@ static const size_t xtopt_psize[] = {
 	[XTTYPE_STRING]      = -1,
 	[XTTYPE_SYSLOGLEVEL] = sizeof(uint8_t),
 	[XTTYPE_HOST]        = sizeof(union nf_inet_addr),
-	[XTTYPE_HOSTMASK]    = sizeof(union nf_inet_addr),
 	[XTTYPE_PROTOCOL]    = sizeof(uint8_t),
 	[XTTYPE_PORT]        = sizeof(uint16_t),
 	[XTTYPE_PORTRC]      = sizeof(uint16_t[2]),
 	[XTTYPE_PLENMASK]    = sizeof(union nf_inet_addr),
 	[XTTYPE_ETHERMAC]    = sizeof(uint8_t[6]),
 };
+
+/**
+ * Return a sanitized afinfo->family value, covering for NFPROTO_ARP
+ */
+static uint8_t afinfo_family(void)
+{
+	switch (afinfo->family) {
+	case NFPROTO_ARP:
+	case NFPROTO_BRIDGE:
+		return NFPROTO_IPV4;
+	default:
+		return afinfo->family;
+	}
+}
 
 /**
  * Creates getopt options from the x6-style option map, and assigns each a
@@ -73,56 +87,22 @@ struct option *
 xtables_options_xfrm(struct option *orig_opts, struct option *oldopts,
 		     const struct xt_option_entry *entry, unsigned int *offset)
 {
-	unsigned int num_orig, num_old = 0, num_new, i;
+	int num_new, i;
 	struct option *merge, *mp;
 
-	if (entry == NULL)
-		return oldopts;
-	for (num_orig = 0; orig_opts[num_orig].name != NULL; ++num_orig)
-		;
-	if (oldopts != NULL)
-		for (num_old = 0; oldopts[num_old].name != NULL; ++num_old)
-			;
 	for (num_new = 0; entry[num_new].name != NULL; ++num_new)
 		;
 
-	/*
-	 * Since @oldopts also has @orig_opts already (and does so at the
-	 * start), skip these entries.
-	 */
-	if (oldopts != NULL) {
-		oldopts += num_orig;
-		num_old -= num_orig;
+	mp = xtables_calloc(num_new + 1, sizeof(*mp));
+	for (i = 0; i < num_new; i++) {
+		mp[i].name	= entry[i].name;
+		mp[i].has_arg	= entry[i].type != XTTYPE_NONE;
+		mp[i].val	= entry[i].id;
 	}
 
-	merge = malloc(sizeof(*mp) * (num_orig + num_old + num_new + 1));
-	if (merge == NULL)
-		return NULL;
+	merge = xtables_merge_options(orig_opts, oldopts, mp, offset);
 
-	/* Let the base options -[ADI...] have precedence over everything */
-	memcpy(merge, orig_opts, sizeof(*mp) * num_orig);
-	mp = merge + num_orig;
-
-	/* Second, the new options */
-	xt_params->option_offset += XT_OPTION_OFFSET_SCALE;
-	*offset = xt_params->option_offset;
-
-	for (i = 0; i < num_new; ++i, ++mp, ++entry) {
-		mp->name         = entry->name;
-		mp->has_arg      = entry->type != XTTYPE_NONE;
-		mp->flag         = NULL;
-		mp->val          = entry->id + *offset;
-	}
-
-	/* Third, the old options */
-	if (oldopts != NULL) {
-		memcpy(mp, oldopts, sizeof(*mp) * num_old);
-		mp += num_old;
-	}
-	xtables_free_opts(0);
-
-	/* Clear trailing entry */
-	memset(mp, 0, sizeof(*mp));
+	free(mp);
 	return merge;
 }
 
@@ -169,6 +149,14 @@ static size_t xtopt_esize_by_type(enum xt_option_type type)
 	}
 }
 
+static uint64_t htonll(uint64_t val)
+{
+	uint32_t high = val >> 32;
+	uint32_t low = val & UINT32_MAX;
+
+	return (uint64_t)htonl(low) << 32 | htonl(high);
+}
+
 /**
  * Require a simple integer.
  */
@@ -183,7 +171,8 @@ static void xtopt_parse_int(struct xt_option_call *cb)
 	if (cb->entry->max != 0)
 		lmax = cb->entry->max;
 
-	if (!xtables_strtoul(cb->arg, NULL, &value, lmin, lmax))
+	if (!xtables_strtoul_base(cb->arg, NULL, &value,
+				  lmin, lmax, cb->entry->base))
 		xt_params->exit_err(PARAMETER_PROBLEM,
 			"%s: bad value for option \"--%s\", "
 			"or out of range (%ju-%ju).\n",
@@ -195,14 +184,20 @@ static void xtopt_parse_int(struct xt_option_call *cb)
 			*(uint8_t *)XTOPT_MKPTR(cb) = cb->val.u8;
 	} else if (entry->type == XTTYPE_UINT16) {
 		cb->val.u16 = value;
+		if (entry->flags & XTOPT_NBO)
+			cb->val.u16 = htons(cb->val.u16);
 		if (entry->flags & XTOPT_PUT)
 			*(uint16_t *)XTOPT_MKPTR(cb) = cb->val.u16;
 	} else if (entry->type == XTTYPE_UINT32) {
 		cb->val.u32 = value;
+		if (entry->flags & XTOPT_NBO)
+			cb->val.u32 = htonl(cb->val.u32);
 		if (entry->flags & XTOPT_PUT)
 			*(uint32_t *)XTOPT_MKPTR(cb) = cb->val.u32;
 	} else if (entry->type == XTTYPE_UINT64) {
 		cb->val.u64 = value;
+		if (entry->flags & XTOPT_NBO)
+			cb->val.u64 = htonll(cb->val.u64);
 		if (entry->flags & XTOPT_PUT)
 			*(uint64_t *)XTOPT_MKPTR(cb) = cb->val.u64;
 	}
@@ -237,17 +232,25 @@ static void xtopt_parse_float(struct xt_option_call *cb)
 static void xtopt_mint_value_to_cb(struct xt_option_call *cb, uintmax_t value)
 {
 	const struct xt_option_entry *entry = cb->entry;
+	uint8_t i = cb->nvals;
 
-	if (cb->nvals >= ARRAY_SIZE(cb->val.u32_range))
+	if (i >= ARRAY_SIZE(cb->val.u32_range))
 		return;
-	if (entry->type == XTTYPE_UINT8RC)
-		cb->val.u8_range[cb->nvals] = value;
-	else if (entry->type == XTTYPE_UINT16RC)
-		cb->val.u16_range[cb->nvals] = value;
-	else if (entry->type == XTTYPE_UINT32RC)
-		cb->val.u32_range[cb->nvals] = value;
-	else if (entry->type == XTTYPE_UINT64RC)
-		cb->val.u64_range[cb->nvals] = value;
+	if (entry->type == XTTYPE_UINT8RC) {
+		cb->val.u8_range[i] = value;
+	} else if (entry->type == XTTYPE_UINT16RC) {
+		cb->val.u16_range[i] = value;
+		if (entry->flags & XTOPT_NBO)
+			cb->val.u16_range[i] = htons(cb->val.u16_range[i]);
+	} else if (entry->type == XTTYPE_UINT32RC) {
+		cb->val.u32_range[i] = value;
+		if (entry->flags & XTOPT_NBO)
+			cb->val.u32_range[i] = htonl(cb->val.u32_range[i]);
+	} else if (entry->type == XTTYPE_UINT64RC) {
+		cb->val.u64_range[i] = value;
+		if (entry->flags & XTOPT_NBO)
+			cb->val.u64_range[i] = htonll(cb->val.u64_range[i]);
+	}
 }
 
 /**
@@ -287,12 +290,15 @@ static void xtopt_parse_mint(struct xt_option_call *cb)
 	const struct xt_option_entry *entry = cb->entry;
 	const char *arg;
 	size_t esize = xtopt_esize_by_type(entry->type);
-	const uintmax_t lmax = xtopt_max_by_type(entry->type);
+	uintmax_t lmax = xtopt_max_by_type(entry->type);
+	uintmax_t value, lmin = entry->min;
 	void *put = XTOPT_MKPTR(cb);
 	unsigned int maxiter;
-	uintmax_t value;
 	char *end = "";
 	char sep = ':';
+
+	if (entry->max && entry->max < lmax)
+		lmax = entry->max;
 
 	maxiter = entry->size / esize;
 	if (maxiter == 0)
@@ -310,18 +316,19 @@ static void xtopt_parse_mint(struct xt_option_call *cb)
 		if (*arg == '\0' || *arg == sep) {
 			/* Default range components when field not spec'd. */
 			end = (char *)arg;
-			value = (cb->nvals == 1) ? lmax : 0;
+			value = (cb->nvals == 1) ? lmax : lmin;
 		} else {
-			if (!xtables_strtoul(arg, &end, &value, 0, lmax))
+			if (!xtables_strtoul(arg, &end, &value, lmin, lmax))
 				xt_params->exit_err(PARAMETER_PROBLEM,
 					"%s: bad value for option \"--%s\" near "
-					"\"%s\", or out of range (0-%ju).\n",
-					cb->ext_name, entry->name, arg, lmax);
+					"\"%s\", or out of range (%ju-%ju).\n",
+					cb->ext_name, entry->name, arg, lmin, lmax);
 			if (*end != '\0' && *end != sep)
 				xt_params->exit_err(PARAMETER_PROBLEM,
 					"%s: Argument to \"--%s\" has "
 					"unexpected characters near \"%s\".\n",
 					cb->ext_name, entry->name, end);
+			lmin = value;
 		}
 		xtopt_mint_value_to_cb(cb, value);
 		++cb->nvals;
@@ -496,7 +503,7 @@ static socklen_t xtables_sa_hostlen(unsigned int afproto)
  */
 static void xtopt_parse_host(struct xt_option_call *cb)
 {
-	struct addrinfo hints = {.ai_family = afinfo->family};
+	struct addrinfo hints = {.ai_family = afinfo_family()};
 	unsigned int adcount = 0;
 	struct addrinfo *res, *p;
 	int ret;
@@ -507,7 +514,7 @@ static void xtopt_parse_host(struct xt_option_call *cb)
 			"getaddrinfo: %s\n", gai_strerror(ret));
 
 	memset(&cb->val.hmask, 0xFF, sizeof(cb->val.hmask));
-	cb->val.hlen = (afinfo->family == NFPROTO_IPV4) ? 32 : 128;
+	cb->val.hlen = (afinfo_family() == NFPROTO_IPV4) ? 32 : 128;
 
 	for (p = res; p != NULL; p = p->ai_next) {
 		if (adcount == 0) {
@@ -601,7 +608,7 @@ static void xtopt_parse_mport(struct xt_option_call *cb)
 	const struct xt_option_entry *entry = cb->entry;
 	char *lo_arg, *wp_arg, *arg;
 	unsigned int maxiter;
-	int value;
+	int value, prev = 0;
 
 	wp_arg = lo_arg = xtables_strdup(cb->arg);
 
@@ -631,6 +638,11 @@ static void xtopt_parse_mport(struct xt_option_call *cb)
 			xt_params->exit_err(PARAMETER_PROBLEM,
 				"Port \"%s\" does not resolve to "
 				"anything.\n", arg);
+		if (value < prev)
+			xt_params->exit_err(PARAMETER_PROBLEM,
+				"Port range %d-%d is negative.\n",
+				prev, value);
+		prev = value;
 		if (entry->flags & XTOPT_NBO)
 			value = htons(value);
 		if (cb->nvals < ARRAY_SIZE(cb->val.port_range))
@@ -650,7 +662,7 @@ static void xtopt_parse_mport(struct xt_option_call *cb)
 
 static int xtopt_parse_mask(struct xt_option_call *cb)
 {
-	struct addrinfo hints = {.ai_family = afinfo->family,
+	struct addrinfo hints = {.ai_family = afinfo_family(),
 				 .ai_flags = AI_NUMERICHOST };
 	struct addrinfo *res;
 	int ret;
@@ -662,7 +674,7 @@ static int xtopt_parse_mask(struct xt_option_call *cb)
 	memcpy(&cb->val.hmask, xtables_sa_host(res->ai_addr, res->ai_family),
 	       xtables_sa_hostlen(res->ai_family));
 
-	switch(afinfo->family) {
+	switch(afinfo_family()) {
 	case AF_INET:
 		cb->val.hlen = xtables_ipmask_to_cidr(&cb->val.hmask.in);
 		break;
@@ -684,7 +696,7 @@ static void xtopt_parse_plen(struct xt_option_call *cb)
 	const struct xt_option_entry *entry = cb->entry;
 	unsigned int prefix_len = 128; /* happiness is a warm gcc */
 
-	cb->val.hlen = (afinfo->family == NFPROTO_IPV4) ? 32 : 128;
+	cb->val.hlen = (afinfo_family() == NFPROTO_IPV4) ? 32 : 128;
 	if (!xtables_strtoui(cb->arg, NULL, &prefix_len, 0, cb->val.hlen)) {
 		/* Is this mask expressed in full format? e.g. 255.255.255.0 */
 		if (xtopt_parse_mask(cb))
@@ -711,6 +723,10 @@ static void xtopt_parse_plenmask(struct xt_option_call *cb)
 
 	xtopt_parse_plen(cb);
 
+	/* may not be convertible to CIDR notation */
+	if (cb->val.hlen == (uint8_t)-1)
+		goto out_put;
+
 	memset(mask, 0xFF, sizeof(union nf_inet_addr));
 	/* This shifting is AF-independent. */
 	if (cb->val.hlen == 0) {
@@ -731,6 +747,7 @@ static void xtopt_parse_plenmask(struct xt_option_call *cb)
 	mask[1] = htonl(mask[1]);
 	mask[2] = htonl(mask[2]);
 	mask[3] = htonl(mask[3]);
+out_put:
 	if (entry->flags & XTOPT_PUT)
 		memcpy(XTOPT_MKPTR(cb), mask, sizeof(union nf_inet_addr));
 }
@@ -785,6 +802,15 @@ static void xtopt_parse_ethermac(struct xt_option_call *cb)
 	xt_params->exit_err(PARAMETER_PROBLEM, "Invalid MAC address specified.");
 }
 
+static void xtopt_parse_ethermacmask(struct xt_option_call *cb)
+{
+	memset(cb->val.ethermacmask, 0xff, ETH_ALEN);
+	if (xtables_parse_mac_and_mask(cb->arg, cb->val.ethermac,
+				       cb->val.ethermacmask))
+		xt_params->exit_err(PARAMETER_PROBLEM,
+				    "Invalid MAC/mask address specified.");
+}
+
 static void (*const xtopt_subparse[])(struct xt_option_call *) = {
 	[XTTYPE_UINT8]       = xtopt_parse_int,
 	[XTTYPE_UINT16]      = xtopt_parse_int,
@@ -807,6 +833,7 @@ static void (*const xtopt_subparse[])(struct xt_option_call *) = {
 	[XTTYPE_PLEN]        = xtopt_parse_plen,
 	[XTTYPE_PLENMASK]    = xtopt_parse_plenmask,
 	[XTTYPE_ETHERMAC]    = xtopt_parse_ethermac,
+	[XTTYPE_ETHERMACMASK]= xtopt_parse_ethermacmask,
 };
 
 /**

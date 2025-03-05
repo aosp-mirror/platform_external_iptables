@@ -43,10 +43,10 @@ static void bramong_print_help(void)
 {
 	printf(
 "`among' options:\n"
-"--among-dst      [!] list      : matches if ether dst is in list\n"
-"--among-src      [!] list      : matches if ether src is in list\n"
-"--among-dst-file [!] file      : obtain dst list from file\n"
-"--among-src-file [!] file      : obtain src list from file\n"
+"[!] --among-dst      list      : matches if ether dst is in list\n"
+"[!] --among-src      list      : matches if ether src is in list\n"
+"[!] --among-dst-file file      : obtain dst list from file\n"
+"[!] --among-src-file file      : obtain src list from file\n"
 "list has form:\n"
 " xx:xx:xx:xx:xx:xx[=ip.ip.ip.ip],yy:yy:yy:yy:yy:yy[=ip.ip.ip.ip]"
 ",...,zz:zz:zz:zz:zz:zz[=ip.ip.ip.ip][,]\n"
@@ -188,10 +188,10 @@ static int bramong_parse(int c, char **argv, int invert,
 }
 
 static void __bramong_print(struct nft_among_pair *pairs,
-			    int cnt, bool inv, bool have_ip)
+			    int cnt, bool have_ip)
 {
-	const char *isep = inv ? "! " : "";
 	char abuf[INET_ADDRSTRLEN];
+	const char *isep = "";
 	int i;
 
 	for (i = 0; i < cnt; i++) {
@@ -212,14 +212,13 @@ static void bramong_print(const void *ip, const struct xt_entry_match *match,
 	struct nft_among_data *data = (struct nft_among_data *)match->data;
 
 	if (data->src.cnt) {
-		printf("--among-src ");
-		__bramong_print(data->pairs,
-				data->src.cnt, data->src.inv, data->src.ip);
+		printf("%s--among-src ", data->src.inv ? "! " : "");
+		__bramong_print(data->pairs, data->src.cnt, data->src.ip);
 	}
 	if (data->dst.cnt) {
-		printf("--among-dst ");
+		printf("%s--among-dst ", data->dst.inv ? "! " : "");
 		__bramong_print(data->pairs + data->src.cnt,
-				data->dst.cnt, data->dst.inv, data->dst.ip);
+				data->dst.cnt, data->dst.ip);
 	}
 }
 

@@ -71,27 +71,35 @@ bf_client_ip1="10.167.11.2"
 pktsize=64
 
 # --among-src [mac,IP]
+among="$bf_bridge_mac0=$bf_bridge_ip0,$bf_client_mac1=$bf_client_ip1"
 ip netns exec "$nsb" $XT_MULTI ebtables -F
-ip netns exec "$nsb" $XT_MULTI ebtables -A FORWARD -p ip --ip-dst $bf_server_ip1 --among-src $bf_bridge_mac0=$bf_bridge_ip0,$bf_client_mac1=$bf_client_ip1 -j DROP > /dev/null
+ip netns exec "$nsb" $XT_MULTI ebtables -A FORWARD \
+	-p ip --ip-dst $bf_server_ip1 --among-src "$among" -j DROP > /dev/null
 ip netns exec "$nsc" ping -q $bf_server_ip1 -c 1 -s $pktsize -W 1 >/dev/null
 assert_fail $? "--among-src [match]"
 
 # ip netns exec "$nsb" $XT_MULTI ebtables -L --Ln --Lc
 
+among="$bf_bridge_mac0=$bf_bridge_ip0,$bf_client_mac1=$bf_client_ip1"
 ip netns exec "$nsb" $XT_MULTI ebtables -F
-ip netns exec "$nsb" $XT_MULTI ebtables -A FORWARD -p ip --ip-dst $bf_server_ip1 --among-src ! $bf_bridge_mac0=$bf_bridge_ip0,$bf_client_mac1=$bf_client_ip1 -j DROP > /dev/null
+ip netns exec "$nsb" $XT_MULTI ebtables -A FORWARD \
+	-p ip --ip-dst $bf_server_ip1 ! --among-src "$among" -j DROP > /dev/null
 ip netns exec "$nsc" ping $bf_server_ip1 -c 1 -s $pktsize -W 1 >/dev/null
 assert_pass $? "--among-src [not match]"
 
 # --among-dst [mac,IP]
+among="$bf_client_mac1=$bf_client_ip1,$bf_server_mac1=$bf_server_ip1"
 ip netns exec "$nsb" $XT_MULTI ebtables -F
-ip netns exec "$nsb" $XT_MULTI ebtables -A FORWARD -p ip --ip-src $bf_client_ip1 --among-dst $bf_client_mac1=$bf_client_ip1,$bf_server_mac1=$bf_server_ip1 -j DROP > /dev/null
+ip netns exec "$nsb" $XT_MULTI ebtables -A FORWARD \
+	-p ip --ip-src $bf_client_ip1 --among-dst "$among" -j DROP > /dev/null
 ip netns exec "$nsc" ping -q $bf_server_ip1 -c 1 -s $pktsize -W 1 > /dev/null
 assert_fail $? "--among-dst [match]"
 
-# --among-dst ! [mac,IP]
+# ! --among-dst [mac,IP]
+among="$bf_client_mac1=$bf_client_ip1,$bf_server_mac1=$bf_server_ip1"
 ip netns exec "$nsb" $XT_MULTI ebtables -F
-ip netns exec "$nsb" $XT_MULTI ebtables -A FORWARD -p ip --ip-src $bf_client_ip1 --among-dst ! $bf_client_mac1=$bf_client_ip1,$bf_server_mac1=$bf_server_ip1 -j DROP > /dev/null
+ip netns exec "$nsb" $XT_MULTI ebtables -A FORWARD \
+	-p ip --ip-src $bf_client_ip1 ! --among-dst "$among" -j DROP > /dev/null
 ip netns exec "$nsc" ping -q $bf_server_ip1 -c 1 -s $pktsize -W 1 > /dev/null
 assert_pass $? "--among-dst [not match]"
 
