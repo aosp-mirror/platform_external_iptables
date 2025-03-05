@@ -264,10 +264,7 @@ int do_commandx(struct nft_handle *h, int argc, char *argv[], char **table,
 
 	h->ops->clear_cs(&cs);
 
-	free(args.s.addr.ptr);
-	free(args.s.mask.ptr);
-	free(args.d.addr.ptr);
-	free(args.d.mask.ptr);
+	xtables_clear_args(&args);
 	xtables_free_opts(1);
 
 	return ret;

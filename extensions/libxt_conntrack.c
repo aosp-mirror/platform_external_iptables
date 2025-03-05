@@ -1102,32 +1102,6 @@ static void state_ct23_parse(struct xt_option_call *cb)
 		sinfo->invert_flags |= XT_CONNTRACK_STATE;
 }
 
-static void state_print_state(unsigned int statemask)
-{
-	const char *sep = "";
-
-	if (statemask & XT_CONNTRACK_STATE_INVALID) {
-		printf("%sINVALID", sep);
-		sep = ",";
-	}
-	if (statemask & XT_CONNTRACK_STATE_BIT(IP_CT_NEW)) {
-		printf("%sNEW", sep);
-		sep = ",";
-	}
-	if (statemask & XT_CONNTRACK_STATE_BIT(IP_CT_RELATED)) {
-		printf("%sRELATED", sep);
-		sep = ",";
-	}
-	if (statemask & XT_CONNTRACK_STATE_BIT(IP_CT_ESTABLISHED)) {
-		printf("%sESTABLISHED", sep);
-		sep = ",";
-	}
-	if (statemask & XT_CONNTRACK_STATE_UNTRACKED) {
-		printf("%sUNTRACKED", sep);
-		sep = ",";
-	}
-}
-
 static void
 state_print(const void *ip,
       const struct xt_entry_match *match,
@@ -1135,16 +1109,16 @@ state_print(const void *ip,
 {
 	const struct xt_state_info *sinfo = (const void *)match->data;
 
-	printf(" state ");
-	state_print_state(sinfo->statemask);
+	printf(" state");
+	print_state(sinfo->statemask);
 }
 
 static void state_save(const void *ip, const struct xt_entry_match *match)
 {
 	const struct xt_state_info *sinfo = (const void *)match->data;
 
-	printf(" --state ");
-	state_print_state(sinfo->statemask);
+	printf(" --state");
+	print_state(sinfo->statemask);
 }
 
 static void state_xlate_print(struct xt_xlate *xl, unsigned int statemask, int inverted)
@@ -1502,8 +1476,8 @@ static struct xtables_match conntrack_mt_reg[] = {
 		.size          = XT_ALIGN(sizeof(struct xt_conntrack_mtinfo1)),
 		.userspacesize = XT_ALIGN(sizeof(struct xt_conntrack_mtinfo1)),
 		.help          = state_help,
-		.print         = state_print,
-		.save          = state_save,
+		.print         = conntrack1_mt4_print,
+		.save          = conntrack1_mt4_save,
 		.x6_parse      = state_ct1_parse,
 		.x6_options    = state_opts,
 	},
@@ -1517,8 +1491,8 @@ static struct xtables_match conntrack_mt_reg[] = {
 		.size          = XT_ALIGN(sizeof(struct xt_conntrack_mtinfo2)),
 		.userspacesize = XT_ALIGN(sizeof(struct xt_conntrack_mtinfo2)),
 		.help          = state_help,
-		.print         = state_print,
-		.save          = state_save,
+		.print         = conntrack2_mt_print,
+		.save          = conntrack2_mt_save,
 		.x6_parse      = state_ct23_parse,
 		.x6_options    = state_opts,
 	},
@@ -1532,8 +1506,8 @@ static struct xtables_match conntrack_mt_reg[] = {
 		.size          = XT_ALIGN(sizeof(struct xt_conntrack_mtinfo3)),
 		.userspacesize = XT_ALIGN(sizeof(struct xt_conntrack_mtinfo3)),
 		.help          = state_help,
-		.print         = state_print,
-		.save          = state_save,
+		.print         = conntrack3_mt_print,
+		.save          = conntrack3_mt_save,
 		.x6_parse      = state_ct23_parse,
 		.x6_options    = state_opts,
 		.xlate         = state_xlate,

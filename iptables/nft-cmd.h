@@ -22,6 +22,7 @@ struct nft_cmd {
 	} obj;
 	const char			*policy;
 	struct xt_counters		counters;
+	uint8_t				counter_op;
 	const char			*rename;
 	int				counters_save;
 	struct {
@@ -77,6 +78,10 @@ int nft_cmd_rule_list_save(struct nft_handle *h, const char *chain,
 			   const char *table, int rulenum, int counters);
 int ebt_cmd_user_chain_policy(struct nft_handle *h, const char *table,
 			      const char *chain, const char *policy);
+int nft_cmd_rule_change_counters(struct nft_handle *h,
+				 const char *chain, const char *table,
+				 struct iptables_command_state *cs,
+				 int rule_nr, uint8_t counter_op, bool verbose);
 void nft_cmd_table_new(struct nft_handle *h, const char *table);
 
 #endif /* _NFT_CMD_H_ */
