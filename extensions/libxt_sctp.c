@@ -7,6 +7,7 @@
  * libipt_ecn.c borrowed heavily from libipt_dscp.c
  *
  */
+#include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
@@ -354,6 +355,7 @@ print_chunk_flags(uint32_t chunknum, uint8_t chunk_flags, uint8_t chunk_flags_ma
 
 	for (i = 7; i >= 0; i--) {
 		if (chunk_flags_mask & (1 << i)) {
+			assert(chunknum < ARRAY_SIZE(sctp_chunk_names));
 			if (chunk_flags & (1 << i)) {
 				printf("%c", sctp_chunk_names[chunknum].valid_flags[7-i]);
 			} else {

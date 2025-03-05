@@ -44,9 +44,10 @@ response for a packet so classed would then terminate the healthy connection.
 .PP
 So, instead of:
 .PP
--A INPUT ... -j REJECT
+\-A INPUT ... \-j REJECT
 .PP
 do consider using:
 .PP
--A INPUT ... -m conntrack --ctstate INVALID -j DROP
--A INPUT ... -j REJECT
+\-A INPUT ... \-m conntrack \-\-ctstate INVALID \-j DROP
+.br
+\-A INPUT ... \-j REJECT
