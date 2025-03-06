@@ -72,6 +72,7 @@ enum obj_update_type {
 	NFT_COMPAT_RULE_SAVE,
 	NFT_COMPAT_RULE_ZERO,
 	NFT_COMPAT_BRIDGE_USER_CHAIN_UPDATE,
+	NFT_COMPAT_RULE_CHANGE_COUNTERS,
 };
 
 struct cache_chain {
@@ -184,6 +185,7 @@ int nft_rule_list_save(struct nft_handle *h, const char *chain, const char *tabl
 int nft_rule_save(struct nft_handle *h, const char *table, unsigned int format);
 int nft_rule_flush(struct nft_handle *h, const char *chain, const char *table, bool verbose);
 int nft_rule_zero_counters(struct nft_handle *h, const char *chain, const char *table, int rulenum);
+bool nft_rule_is_policy_rule(struct nftnl_rule *r);
 
 /*
  * Operations used in userspace tools
@@ -233,7 +235,6 @@ int do_commandarp(struct nft_handle *h, int argc, char *argv[], char **table, bo
 /* For xtables-eb.c */
 int nft_init_eb(struct nft_handle *h, const char *pname);
 void nft_fini_eb(struct nft_handle *h);
-int ebt_get_current_chain(const char *chain);
 int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table, bool restore);
 
 /*
@@ -242,6 +243,7 @@ int do_commandeb(struct nft_handle *h, int argc, char *argv[], char **table, boo
 struct xt_buf;
 
 bool xlate_find_match(const struct iptables_command_state *cs, const char *p_name);
+bool xlate_find_protomatch(const struct iptables_command_state *cs, uint16_t proto);
 int xlate_matches(const struct iptables_command_state *cs, struct xt_xlate *xl);
 int xlate_action(const struct iptables_command_state *cs, bool goto_set,
 		 struct xt_xlate *xl);

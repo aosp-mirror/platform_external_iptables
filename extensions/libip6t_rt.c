@@ -152,13 +152,18 @@ static void rt_parse(struct xt_option_call *cb)
 	}
 }
 
+static bool skip_segsleft_match(uint32_t min, uint32_t max, bool inv)
+{
+	return min == 0 && max == UINT32_MAX && !inv;
+}
+
 static void
 print_nums(const char *name, uint32_t min, uint32_t max,
 	    int invert)
 {
 	const char *inv = invert ? "!" : "";
 
-	if (min != 0 || max != 0xFFFFFFFF || invert) {
+	if (!skip_segsleft_match(min, max, invert)) {
 		printf(" %s", name);
 		if (min == max) {
 			printf(":%s", inv);
@@ -210,6 +215,7 @@ static void rt_print(const void *ip, const struct xt_entry_match *match,
 static void rt_save(const void *ip, const struct xt_entry_match *match)
 {
 	const struct ip6t_rt *rtinfo = (struct ip6t_rt *)match->data;
+	bool inv_sgs = rtinfo->invflags & IP6T_RT_INV_SGS;
 
 	if (rtinfo->flags & IP6T_RT_TYP) {
 		printf("%s --rt-type %u",
@@ -217,10 +223,9 @@ static void rt_save(const void *ip, const struct xt_entry_match *match)
 			rtinfo->rt_type);
 	}
 
-	if (!(rtinfo->segsleft[0] == 0
-	    && rtinfo->segsleft[1] == 0xFFFFFFFF)) {
-		printf("%s --rt-segsleft ",
-			(rtinfo->invflags & IP6T_RT_INV_SGS) ? " !" : "");
+	if (!skip_segsleft_match(rtinfo->segsleft[0],
+				 rtinfo->segsleft[1], inv_sgs)) {
+		printf("%s --rt-segsleft ", inv_sgs ? " !" : "");
 		if (rtinfo->segsleft[0]
 		    != rtinfo->segsleft[1])
 			printf("%u:%u",
@@ -244,10 +249,14 @@ static void rt_save(const void *ip, const struct xt_entry_match *match)
 
 }
 
+#define XLATE_FLAGS (IP6T_RT_TYP | IP6T_RT_LEN | \
+		     IP6T_RT_RES | IP6T_RT_FST | IP6T_RT_FST_NSTRICT)
+
 static int rt_xlate(struct xt_xlate *xl,
 		    const struct xt_xlate_mt_params *params)
 {
 	const struct ip6t_rt *rtinfo = (struct ip6t_rt *)params->match->data;
+	bool inv_sgs = rtinfo->invflags & IP6T_RT_INV_SGS;
 
 	if (rtinfo->flags & IP6T_RT_TYP) {
 		xt_xlate_add(xl, "rt type%s %u",
@@ -255,15 +264,18 @@ static int rt_xlate(struct xt_xlate *xl,
 			      rtinfo->rt_type);
 	}
 
-	if (!(rtinfo->segsleft[0] == 0 && rtinfo->segsleft[1] == 0xFFFFFFFF)) {
-		xt_xlate_add(xl, "rt seg-left%s ",
-			     (rtinfo->invflags & IP6T_RT_INV_SGS) ? " !=" : "");
+	if (!skip_segsleft_match(rtinfo->segsleft[0],
+				 rtinfo->segsleft[1], inv_sgs)) {
+		xt_xlate_add(xl, "rt seg-left%s ", inv_sgs ? " !=" : "");
 
 		if (rtinfo->segsleft[0] != rtinfo->segsleft[1])
 			xt_xlate_add(xl, "%u-%u", rtinfo->segsleft[0],
 					rtinfo->segsleft[1]);
 		else
 			xt_xlate_add(xl, "%u", rtinfo->segsleft[0]);
+	} else if (!(rtinfo->flags & XLATE_FLAGS)) {
+		xt_xlate_add(xl, "exthdr rt exists");
+		return 1;
 	}
 
 	if (rtinfo->flags & IP6T_RT_LEN) {

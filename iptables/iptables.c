@@ -516,8 +516,7 @@ void print_rule4(const struct ipt_entry *e,
 	save_ipv4_addr('d', &e->ip.dst, &e->ip.dmsk,
 			e->ip.invflags & IPT_INV_DSTIP);
 
-	save_rule_details(e->ip.iniface, e->ip.iniface_mask,
-			  e->ip.outiface, e->ip.outiface_mask,
+	save_rule_details(e->ip.iniface, e->ip.outiface,
 			  e->ip.proto, e->ip.flags & IPT_F_FRAG,
 			  e->ip.invflags);
 
@@ -663,6 +662,10 @@ int do_command4(int argc, char *argv[], char **table,
 	struct xt_cmd_parse_ops cmd_parse_ops = {
 		.proto_parse	= ipv4_proto_parse,
 		.post_parse	= ipv4_post_parse,
+		.option_name	= ip46t_option_name,
+		.option_invert	= ip46t_option_invert,
+		.command_default = command_default,
+		.print_help	= xtables_printhelp,
 	};
 	struct xt_cmd_parse p = {
 		.table		= *table,
@@ -704,6 +707,9 @@ int do_command4(int argc, char *argv[], char **table,
 	daddrs		= args.d.addr.v4;
 	smasks		= args.s.mask.v4;
 	dmasks		= args.d.mask.v4;
+
+	iface_to_mask(cs.fw.ip.iniface, cs.fw.ip.iniface_mask);
+	iface_to_mask(cs.fw.ip.outiface, cs.fw.ip.outiface_mask);
 
 	/* Attempt to acquire the xtables lock */
 	if (!restore)
@@ -881,10 +887,7 @@ int do_command4(int argc, char *argv[], char **table,
 		e = NULL;
 	}
 
-	free(saddrs);
-	free(smasks);
-	free(daddrs);
-	free(dmasks);
+	xtables_clear_args(&args);
 	xtables_free_opts(1);
 
 	return ret;

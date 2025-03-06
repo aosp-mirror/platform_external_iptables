@@ -43,7 +43,8 @@ static void nft_bridge_parse_meta(struct nft_xt_ctx *ctx,
 		return;
 	}
 
-	if (parse_meta(ctx, e, reg->meta_dreg.key, iifname, NULL, oifname, NULL, &invflags) < 0) {
+	if (parse_meta(ctx, e, reg->meta_dreg.key,
+		       iifname, oifname, &invflags) < 0) {
 		ctx->errmsg = "unknown meta key";
 		return;
 	}

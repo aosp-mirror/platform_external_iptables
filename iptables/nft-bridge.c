@@ -46,6 +46,7 @@ void ebt_cs_clean(struct iptables_command_state *cs)
 		free(m);
 		m = nm;
 	}
+	cs->match_list = NULL;
 
 	if (cs->target) {
 		free(cs->target->t);
@@ -134,14 +135,14 @@ static int nft_bridge_add(struct nft_handle *h, struct nft_rule_ctx *ctx,
 	struct ebt_entry *fw = &cs->eb;
 	uint32_t op;
 
-	if (fw->bitmask & EBT_ISOURCE) {
+	if (fw->bitmask & EBT_SOURCEMAC) {
 		op = nft_invflags2cmp(fw->invflags, EBT_ISOURCE);
 		add_addr(h, r, NFT_PAYLOAD_LL_HEADER,
 			 offsetof(struct ethhdr, h_source),
 			 fw->sourcemac, fw->sourcemsk, ETH_ALEN, op);
 	}
 
-	if (fw->bitmask & EBT_IDEST) {
+	if (fw->bitmask & EBT_DESTMAC) {
 		op = nft_invflags2cmp(fw->invflags, EBT_IDEST);
 		add_addr(h, r, NFT_PAYLOAD_LL_HEADER,
 			 offsetof(struct ethhdr, h_dest),
@@ -202,18 +203,15 @@ static int nft_bridge_add(struct nft_handle *h, struct nft_rule_ctx *ctx,
 	return _add_action(r, cs);
 }
 
-static bool nft_rule_to_ebtables_command_state(struct nft_handle *h,
-					       const struct nftnl_rule *r,
-					       struct iptables_command_state *cs)
+static void nft_bridge_init_cs(struct iptables_command_state *cs)
 {
 	cs->eb.bitmask = EBT_NOPROTO;
-	return nft_rule_to_iptables_command_state(h, r, cs);
 }
 
 static void print_iface(const char *option, const char *name, bool invert)
 {
-	if (*name)
-		printf("%s%s %s ", option, invert ? " !" : "", name);
+	if (*name && (strcmp(name, "+") || invert))
+		printf("%s%s %s ", invert ? "! " : "", option, name);
 }
 
 static void nft_bridge_print_table_header(const char *tablename)
@@ -258,9 +256,7 @@ static void print_mac(char option, const unsigned char *mac,
 		      const unsigned char *mask,
 		      bool invert)
 {
-	printf("-%c ", option);
-	if (invert)
-		printf("! ");
+	printf("%s-%c ", invert ? "! " : "", option);
 	ebt_print_mac_and_mask(mac, mask);
 	printf(" ");
 }
@@ -275,9 +271,7 @@ static void print_protocol(uint16_t ethproto, bool invert, unsigned int bitmask)
 	if (bitmask & EBT_NOPROTO)
 		return;
 
-	printf("-p ");
-	if (invert)
-		printf("! ");
+	printf("%s-p ", invert ? "! " : "");
 
 	if (bitmask & EBT_802_3) {
 		printf("Length ");
@@ -354,9 +348,10 @@ static void nft_bridge_print_rule(struct nft_handle *h, struct nftnl_rule *r,
 	struct iptables_command_state cs = {};
 
 	if (format & FMT_LINENUMBERS)
-		printf("%d ", num);
+		printf("%d. ", num);
 
-	nft_rule_to_ebtables_command_state(h, r, &cs);
+	nft_bridge_init_cs(&cs);
+	nft_rule_to_iptables_command_state(h, r, &cs);
 	__nft_bridge_save_rule(&cs, format);
 	ebt_cs_clean(&cs);
 }
@@ -377,9 +372,9 @@ static bool nft_bridge_is_same(const struct iptables_command_state *cs_a,
 	int i;
 
 	if (a->ethproto != b->ethproto ||
-	    /* FIXME: a->flags != b->flags || */
+	    a->bitmask != b->bitmask ||
 	    a->invflags != b->invflags) {
-		DEBUGP("different proto/flags/invflags\n");
+		DEBUGP("different proto/bitmask/invflags\n");
 		return false;
 	}
 
@@ -571,17 +566,139 @@ static int nft_bridge_xlate(const struct iptables_command_state *cs,
 	return ret;
 }
 
+static const char *nft_bridge_option_name(int option)
+{
+	switch (option) {
+	/* ebtables specific ones */
+	case OPT_LOGICALIN:	return "--logical-in";
+	case OPT_LOGICALOUT:	return "--logical-out";
+	case OPT_LINENUMBERS:	return "--Ln";
+	case OPT_LIST_C:	return "--Lc";
+	case OPT_LIST_X:	return "--Lx";
+	case OPT_LIST_MAC2:	return "--Lmac2";
+	default:		return ip46t_option_name(option);
+	}
+}
+
+static int nft_bridge_option_invert(int option)
+{
+	switch (option) {
+	case OPT_SOURCE:	return EBT_ISOURCE;
+	case OPT_DESTINATION:	return EBT_IDEST;
+	case OPT_PROTOCOL:	return EBT_IPROTO;
+	case OPT_VIANAMEIN:	return EBT_IIN;
+	case OPT_VIANAMEOUT:	return EBT_IOUT;
+	case OPT_LOGICALIN:	return EBT_ILOGICALIN;
+	case OPT_LOGICALOUT:	return EBT_ILOGICALOUT;
+	default:		return -1;
+	}
+}
+
+static void nft_bridge_proto_parse(struct iptables_command_state *cs,
+				   struct xtables_args *args)
+{
+	char *buffer;
+	int i;
+
+	cs->eb.bitmask &= ~((unsigned int)EBT_NOPROTO);
+
+	i = strtol(cs->protocol, &buffer, 16);
+	if (*buffer == '\0' && (i < 0 || i > 0xFFFF))
+		xtables_error(PARAMETER_PROBLEM,
+			      "Problem with the specified protocol");
+	if (*buffer != '\0') {
+		struct xt_ethertypeent *ent;
+
+		if (!strcmp(cs->protocol, "length")) {
+			cs->eb.bitmask |= EBT_802_3;
+			return;
+		}
+		ent = xtables_getethertypebyname(cs->protocol);
+		if (!ent)
+			xtables_error(PARAMETER_PROBLEM,
+				      "Problem with the specified Ethernet protocol '%s', perhaps "XT_PATH_ETHERTYPES " is missing",
+				      cs->protocol);
+		cs->eb.ethproto = ent->e_ethertype;
+	} else
+		cs->eb.ethproto = i;
+
+	if (cs->eb.ethproto < 0x0600)
+		xtables_error(PARAMETER_PROBLEM,
+			      "Sorry, protocols have values above or equal to 0x0600");
+}
+
+static void nft_bridge_post_parse(int command,
+				  struct iptables_command_state *cs,
+				  struct xtables_args *args)
+{
+	struct ebt_match *match;
+
+	cs->eb.invflags = args->invflags;
+
+	memcpy(cs->eb.in, args->iniface, IFNAMSIZ);
+	memcpy(cs->eb.out, args->outiface, IFNAMSIZ);
+	memcpy(cs->eb.logical_in, args->bri_iniface, IFNAMSIZ);
+	memcpy(cs->eb.logical_out, args->bri_outiface, IFNAMSIZ);
+
+	cs->counters.pcnt = args->pcnt_cnt;
+	cs->counters.bcnt = args->bcnt_cnt;
+
+	if (args->shostnetworkmask) {
+		if (xtables_parse_mac_and_mask(args->shostnetworkmask,
+					       cs->eb.sourcemac,
+					       cs->eb.sourcemsk))
+			xtables_error(PARAMETER_PROBLEM,
+				      "Problem with specified source mac '%s'",
+				      args->shostnetworkmask);
+		cs->eb.bitmask |= EBT_SOURCEMAC;
+	}
+	if (args->dhostnetworkmask) {
+		if (xtables_parse_mac_and_mask(args->dhostnetworkmask,
+					       cs->eb.destmac,
+					       cs->eb.destmsk))
+			xtables_error(PARAMETER_PROBLEM,
+				      "Problem with specified destination mac '%s'",
+				      args->dhostnetworkmask);
+		cs->eb.bitmask |= EBT_DESTMAC;
+	}
+
+	if ((cs->options & (OPT_LIST_X | OPT_LINENUMBERS)) ==
+			(OPT_LIST_X | OPT_LINENUMBERS))
+		xtables_error(PARAMETER_PROBLEM,
+			      "--Lx is not compatible with --Ln");
+
+	/* So, the extensions can work with the host endian.
+	 * The kernel does not have to do this of course */
+	cs->eb.ethproto = htons(cs->eb.ethproto);
+
+	for (match = cs->match_list; match; match = match->next) {
+		if (match->ismatch)
+			continue;
+
+		xtables_option_tfcall(match->u.watcher);
+	}
+}
+
 struct nft_family_ops nft_family_ops_bridge = {
 	.add			= nft_bridge_add,
 	.is_same		= nft_bridge_is_same,
 	.print_payload		= NULL,
 	.rule_parse		= &nft_ruleparse_ops_bridge,
+	.cmd_parse		= {
+		.proto_parse	= nft_bridge_proto_parse,
+		.post_parse	= nft_bridge_post_parse,
+		.option_name	= nft_bridge_option_name,
+		.option_invert	= nft_bridge_option_invert,
+		.command_default = ebt_command_default,
+		.print_help	= nft_bridge_print_help,
+	},
 	.print_table_header	= nft_bridge_print_table_header,
 	.print_header		= nft_bridge_print_header,
 	.print_rule		= nft_bridge_print_rule,
 	.save_rule		= nft_bridge_save_rule,
 	.save_chain		= nft_bridge_save_chain,
-	.rule_to_cs		= nft_rule_to_ebtables_command_state,
+	.rule_to_cs		= nft_rule_to_iptables_command_state,
+	.init_cs		= nft_bridge_init_cs,
 	.clear_cs		= ebt_cs_clean,
 	.xlate			= nft_bridge_xlate,
 };
