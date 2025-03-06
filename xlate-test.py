@@ -14,7 +14,7 @@ def run_proc(args, shell = False, input = None):
     output, error = process.communicate(input)
     return (process.returncode, output, error)
 
-keywords = ("iptables-translate", "ip6tables-translate", "ebtables-translate")
+keywords = ("iptables-translate", "ip6tables-translate", "arptables-translate", "ebtables-translate")
 xtables_nft_multi = 'xtables-nft-multi'
 
 if sys.stdout.isatty():
@@ -41,9 +41,10 @@ def green(string):
 
 
 def test_one_xlate(name, sourceline, expected, result):
-    rc, output, error = run_proc([xtables_nft_multi] + shlex.split(sourceline))
+    cmd = [xtables_nft_multi] + shlex.split(sourceline)
+    rc, output, error = run_proc(cmd)
     if rc != 0:
-        result.append(name + ": " + red("Error: ") + "iptables-translate failure")
+        result.append(name + ": " + red("Error: ") + "Call failed: " + " ".join(cmd))
         result.append(error)
         return False
 
@@ -95,6 +96,8 @@ def test_one_replay(name, sourceline, expected, result):
     fam = ""
     if srccmd.startswith("ip6"):
         fam = "ip6 "
+    elif srccmd.startswith("arp"):
+        fam = "arp "
     elif srccmd.startswith("ebt"):
         fam = "bridge "
 
@@ -185,8 +188,10 @@ def run_test(name, payload):
 
 def load_test_files():
     test_files = total_tests = total_passed = total_error = total_failed = 0
-    tests = sorted(os.listdir("extensions"))
-    for test in ['extensions/' + f for f in tests if f.endswith(".txlate")]:
+    tests_path = os.path.join(os.path.dirname(sys.argv[0]), "extensions")
+    tests = sorted(os.listdir(tests_path))
+    for test in [os.path.join(tests_path, f)
+                 for f in tests if f.endswith(".txlate")]:
         with open(test, "r") as payload:
             tests, passed, failed, errors = run_test(test, payload)
             test_files += 1

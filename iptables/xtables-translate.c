@@ -131,7 +131,6 @@ bool xlate_find_match(const struct iptables_command_state *cs, const char *p_nam
 {
 	struct xtables_rule_match *matchp;
 
-	/* Skip redundant protocol, eg. ip protocol tcp tcp dport */
 	for (matchp = cs->matches; matchp; matchp = matchp->next) {
 		if (strcmp(matchp->match->name, p_name) == 0)
 			return true;
@@ -139,7 +138,24 @@ bool xlate_find_match(const struct iptables_command_state *cs, const char *p_nam
 	return false;
 }
 
+bool xlate_find_protomatch(const struct iptables_command_state *cs,
+			   uint16_t proto)
+{
+	struct protoent *pent;
+	int i;
+
+	/* Skip redundant protocol, eg. ip protocol tcp tcp dport */
+	for (i = 0; xtables_chain_protos[i].name != NULL; i++) {
+		if (xtables_chain_protos[i].num == proto &&
+		    xlate_find_match(cs, xtables_chain_protos[i].name))
+			return true;
+	}
+	pent = getprotobynumber(proto);
+	return pent && xlate_find_match(cs, pent->p_name);
+}
+
 const char *family2str[] = {
+	[NFPROTO_ARP]	= "arp",
 	[NFPROTO_IPV4]	= "ip",
 	[NFPROTO_IPV6]	= "ip6",
 };
@@ -196,6 +212,15 @@ static int xlate(struct nft_handle *h, struct xt_cmd_parse *p,
 
 	for (i = 0; i < args->s.naddrs; i++) {
 		switch (h->family) {
+		case NFPROTO_ARP:
+			cs->arp.arp.src.s_addr = args->s.addr.v4[i].s_addr;
+			cs->arp.arp.smsk.s_addr = args->s.mask.v4[i].s_addr;
+			for (j = 0; j < args->d.naddrs; j++) {
+				cs->arp.arp.tgt.s_addr = args->d.addr.v4[j].s_addr;
+				cs->arp.arp.tmsk.s_addr = args->d.mask.v4[j].s_addr;
+				ret = cb(h, p, cs, append);
+			}
+			break;
 		case AF_INET:
 			cs->fw.ip.src.s_addr = args->s.addr.v4[i].s_addr;
 			cs->fw.ip.smsk.s_addr = args->s.mask.v4[i].s_addr;
@@ -249,7 +274,6 @@ static int do_command_xlate(struct nft_handle *h, int argc, char *argv[],
 		.table		= *table,
 		.restore	= restore,
 		.line		= line,
-		.xlate		= true,
 		.ops		= &h->ops->cmd_parse,
 	};
 	struct iptables_command_state cs = {
@@ -340,17 +364,7 @@ static int do_command_xlate(struct nft_handle *h, int argc, char *argv[],
 
 	h->ops->clear_cs(&cs);
 
-	if (h->family == AF_INET) {
-		free(args.s.addr.v4);
-		free(args.s.mask.v4);
-		free(args.d.addr.v4);
-		free(args.d.mask.v4);
-	} else if (h->family == AF_INET6) {
-		free(args.s.addr.v6);
-		free(args.s.mask.v6);
-		free(args.d.addr.v6);
-		free(args.d.mask.v6);
-	}
+	xtables_clear_args(&args);
 	xtables_free_opts(1);
 
 	return ret;
@@ -475,7 +489,24 @@ static int xtables_xlate_main_common(struct nft_handle *h,
 
 	xtables_globals.program_name = progname;
 	xtables_globals.compat_rev = dummy_compat_rev;
-	ret = xtables_init_all(&xtables_globals, family);
+
+	switch (family) {
+	case NFPROTO_IPV4:
+		ret = xtables_init_all(&xtables_globals, family);
+		break;
+	case NFPROTO_IPV6:
+		ret = xtables_init_all(&xtables_globals, family);
+		break;
+	case NFPROTO_ARP:
+		arptables_globals.program_name = progname;
+		arptables_globals.compat_rev = dummy_compat_rev;
+		ret = xtables_init_all(&arptables_globals, family);
+		break;
+	default:
+		ret = -1;
+		break;
+	}
+
 	if (ret < 0) {
 		fprintf(stderr, "%s/%s Failed to initialize xtables\n",
 			xtables_globals.program_name,
@@ -588,6 +619,12 @@ static int xtables_restore_xlate_main(int family, const char *progname,
 	xtables_fini();
 	fclose(p.in);
 	exit(0);
+}
+
+int xtables_arp_xlate_main(int argc, char *argv[])
+{
+	return xtables_xlate_main(NFPROTO_ARP, "arptables-translate",
+				  argc, argv);
 }
 
 int xtables_ip4_xlate_main(int argc, char *argv[])

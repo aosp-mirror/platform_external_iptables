@@ -42,8 +42,7 @@ static void nft_ipv6_parse_meta(struct nft_xt_ctx *ctx,
 	}
 
 	if (parse_meta(ctx, e, reg->meta_dreg.key, cs->fw6.ipv6.iniface,
-		   cs->fw6.ipv6.iniface_mask, cs->fw6.ipv6.outiface,
-		   cs->fw6.ipv6.outiface_mask, &cs->fw6.ipv6.invflags) == 0)
+		       cs->fw6.ipv6.outiface, &cs->fw6.ipv6.invflags) == 0)
 		return;
 
 	ctx->errmsg = "unknown ipv6 meta key";

@@ -12,12 +12,13 @@
 
 #include "nft-chain.h"
 
-struct nft_chain *nft_chain_alloc(struct nftnl_chain *nftnl)
+struct nft_chain *nft_chain_alloc(struct nftnl_chain *nftnl, bool fake)
 {
 	struct nft_chain *c = xtables_malloc(sizeof(*c));
 
 	INIT_LIST_HEAD(&c->head);
 	c->nftnl = nftnl;
+	c->fake = fake;
 
 	return c;
 }

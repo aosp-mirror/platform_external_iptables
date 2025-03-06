@@ -343,4 +343,4 @@ filter() {
 	awk '/^table /{exit} /^(  \[|$)/{print}'
 }
 
-diff -u -Z <(filter <<< "$EXPECT") <(nft --debug=netlink list ruleset | filter)
+diff -u -Z -B <(filter <<< "$EXPECT") <(nft --debug=netlink list ruleset | filter)
