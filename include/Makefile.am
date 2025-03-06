@@ -11,7 +11,7 @@ nobase_include_HEADERS = \
 	libiptc/ipt_kernel_headers.h libiptc/libiptc.h \
 	libiptc/libip6tc.h libiptc/libxtc.h libiptc/xtcshared.h
 
-EXTRA_DIST = iptables linux iptables.h ip6tables.h
+EXTRA_DIST = iptables linux iptables.h ip6tables.h xtables_internal.h
 
 uninstall-hook:
 	dir=${includedir}/libiptc; { \
