@@ -128,8 +128,7 @@ bool nft_rule_to_iptables_command_state(struct nft_handle *h,
 #define max(x, y) ((x) > (y) ? (x) : (y))
 
 int parse_meta(struct nft_xt_ctx *ctx, struct nftnl_expr *e, uint8_t key,
-	       char *iniface, unsigned char *iniface_mask, char *outiface,
-	       unsigned char *outiface_mask, uint8_t *invflags);
+	       char *iniface, char *outiface, uint8_t *invflags);
 
 int nft_parse_hl(struct nft_xt_ctx *ctx, struct nftnl_expr *e,
 		 struct iptables_command_state *cs);
