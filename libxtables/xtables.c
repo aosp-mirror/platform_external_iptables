@@ -64,6 +64,7 @@
 #endif
 #include <getopt.h>
 #include "iptables/internal.h"
+#include "xtables_internal.h"
 
 #define NPROTO	255
 
@@ -111,10 +112,8 @@ void basic_exit_err(enum xtables_exittype status, const char *msg, ...)
 
 void xtables_free_opts(int unused)
 {
-	if (xt_params->opts != xt_params->orig_opts) {
-		free(xt_params->opts);
-		xt_params->opts = NULL;
-	}
+	free(xt_params->opts);
+	xt_params->opts = NULL;
 }
 
 struct option *xtables_merge_options(struct option *orig_opts,
@@ -580,23 +579,23 @@ int xtables_load_ko(const char *modprobe, bool quiet)
 }
 
 /**
- * xtables_strtou{i,l} - string to number conversion
+ * xtables_strtoul_base - string to number conversion
  * @s:	input string
  * @end:	like strtoul's "end" pointer
  * @value:	pointer for result
  * @min:	minimum accepted value
  * @max:	maximum accepted value
+ * @base:	assumed base of value
  *
  * If @end is NULL, we assume the caller wants a "strict strtoul", and hence
  * "15a" is rejected.
  * In either case, the value obtained is compared for min-max compliance.
- * Base is always 0, i.e. autodetect depending on @s.
  *
  * Returns true/false whether number was accepted. On failure, *value has
  * undefined contents.
  */
-bool xtables_strtoul(const char *s, char **end, uintmax_t *value,
-                     uintmax_t min, uintmax_t max)
+bool xtables_strtoul_base(const char *s, char **end, uintmax_t *value,
+			  uintmax_t min, uintmax_t max, unsigned int base)
 {
 	uintmax_t v;
 	const char *p;
@@ -608,7 +607,7 @@ bool xtables_strtoul(const char *s, char **end, uintmax_t *value,
 		;
 	if (*p == '-')
 		return false;
-	v = strtoumax(s, &my_end, 0);
+	v = strtoumax(s, &my_end, base);
 	if (my_end == s)
 		return false;
 	if (end != NULL)
@@ -623,6 +622,12 @@ bool xtables_strtoul(const char *s, char **end, uintmax_t *value,
 	}
 
 	return false;
+}
+
+bool xtables_strtoul(const char *s, char **end, uintmax_t *value,
+		     uintmax_t min, uintmax_t max)
+{
+	return xtables_strtoul_base(s, end, value, min, max, 0);
 }
 
 bool xtables_strtoui(const char *s, char **end, unsigned int *value,
@@ -1169,11 +1174,21 @@ void xtables_register_match(struct xtables_match *me)
 	me->next = *pos;
 	*pos = me;
 #ifdef DEBUG
-	printf("%s: inserted match %s (family %d, revision %d):\n",
-			__func__, me->name, me->family, me->revision);
-	for (pos = &xtables_pending_matches; *pos; pos = &(*pos)->next) {
-		printf("%s:\tmatch %s (family %d, revision %d)\n", __func__,
-		       (*pos)->name, (*pos)->family, (*pos)->revision);
+#define printmatch(m, sfx)						\
+	printf("match %s (", (m)->name);				\
+	if ((m)->real_name)						\
+		printf("alias %s, ", (m)->real_name);			\
+	printf("family %d, revision %d)%s", (m)->family, (m)->revision, sfx);
+
+	{
+		int i = 1;
+
+		printf("%s: inserted ", __func__);
+		printmatch(me, ":\n");
+		for (pos = &xtables_pending_matches; *pos; pos = &(*pos)->next) {
+			printf("pos %d:\t", i++);
+			printmatch(*pos, "\n");
+		}
 	}
 #endif
 }
@@ -1416,6 +1431,10 @@ void xtables_rule_matches_free(struct xtables_rule_match **matches)
 			free(matchp->match->m);
 			matchp->match->m = NULL;
 		}
+		if (matchp->match->udata_size) {
+			free(matchp->match->udata);
+			matchp->match->udata = NULL;
+		}
 		if (matchp->match == matchp->match->next) {
 			free(matchp->match);
 			matchp->match = NULL;
@@ -1507,11 +1526,9 @@ void xtables_param_act(unsigned int status, const char *p1, ...)
 
 const char *xtables_ipaddr_to_numeric(const struct in_addr *addrp)
 {
-	static char buf[16];
-	const unsigned char *bytep = (const void *)&addrp->s_addr;
+	static char buf[INET_ADDRSTRLEN];
 
-	sprintf(buf, "%u.%u.%u.%u", bytep[0], bytep[1], bytep[2], bytep[3]);
-	return buf;
+	return inet_ntop(AF_INET, addrp, buf, sizeof(buf));
 }
 
 static const char *ipaddr_to_host(const struct in_addr *addr)
@@ -1571,13 +1588,14 @@ int xtables_ipmask_to_cidr(const struct in_addr *mask)
 
 const char *xtables_ipmask_to_numeric(const struct in_addr *mask)
 {
-	static char buf[20];
+	static char buf[INET_ADDRSTRLEN + 1];
 	uint32_t cidr;
 
 	cidr = xtables_ipmask_to_cidr(mask);
 	if (cidr == (unsigned int)-1) {
 		/* mask was not a decent combination of 1's and 0's */
-		sprintf(buf, "/%s", xtables_ipaddr_to_numeric(mask));
+		buf[0] = '/';
+		inet_ntop(AF_INET, mask, buf + 1, sizeof(buf) - 1);
 		return buf;
 	} else if (cidr == 32) {
 		/* we don't want to see "/32" */
@@ -1857,9 +1875,8 @@ void xtables_ipparse_any(const char *name, struct in_addr **addrpp,
 
 const char *xtables_ip6addr_to_numeric(const struct in6_addr *addrp)
 {
-	/* 0000:0000:0000:0000:0000:0000:000.000.000.000
-	 * 0000:0000:0000:0000:0000:0000:0000:0000 */
-	static char buf[50+1];
+	static char buf[INET6_ADDRSTRLEN];
+
 	return inet_ntop(AF_INET6, addrp, buf, sizeof(buf));
 }
 
@@ -1917,12 +1934,12 @@ int xtables_ip6mask_to_cidr(const struct in6_addr *k)
 
 const char *xtables_ip6mask_to_numeric(const struct in6_addr *addrp)
 {
-	static char buf[50+2];
+	static char buf[INET6_ADDRSTRLEN + 1];
 	int l = xtables_ip6mask_to_cidr(addrp);
 
 	if (l == -1) {
 		strcpy(buf, "/");
-		strcat(buf, xtables_ip6addr_to_numeric(addrp));
+		inet_ntop(AF_INET6, addrp, buf + 1, sizeof(buf) - 1);
 		return buf;
 	}
 	/* we don't want to see "/128" */
@@ -2197,6 +2214,8 @@ const struct xtables_pprot xtables_chain_protos[] = {
 	{"mobility-header", IPPROTO_MH},
 	{"ipv6-mh",   IPPROTO_MH},
 	{"mh",        IPPROTO_MH},
+	{"dccp",      IPPROTO_DCCP},
+	{"ipcomp",    IPPROTO_COMP},
 	{"all",       0},
 	{NULL},
 };

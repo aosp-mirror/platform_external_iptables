@@ -509,8 +509,7 @@ void print_rule6(const struct ip6t_entry *e,
 	save_ipv6_addr('d', &e->ipv6.dst, &e->ipv6.dmsk,
 		       e->ipv6.invflags & IP6T_INV_DSTIP);
 
-	save_rule_details(e->ipv6.iniface, e->ipv6.iniface_mask,
-			  e->ipv6.outiface, e->ipv6.outiface_mask,
+	save_rule_details(e->ipv6.iniface, e->ipv6.outiface,
 			  e->ipv6.proto, 0, e->ipv6.invflags);
 
 #if 0
@@ -669,6 +668,10 @@ int do_command6(int argc, char *argv[], char **table,
 	struct xt_cmd_parse_ops cmd_parse_ops = {
 		.proto_parse	= ipv6_proto_parse,
 		.post_parse	= ipv6_post_parse,
+		.option_name	= ip46t_option_name,
+		.option_invert	= ip46t_option_invert,
+		.command_default = command_default,
+		.print_help	= xtables_printhelp,
 	};
 	struct xt_cmd_parse p = {
 		.table		= *table,
@@ -711,6 +714,9 @@ int do_command6(int argc, char *argv[], char **table,
 	daddrs		= args.d.addr.v6;
 	smasks		= args.s.mask.v6;
 	dmasks		= args.d.mask.v6;
+
+	iface_to_mask(cs.fw6.ipv6.iniface, cs.fw6.ipv6.iniface_mask);
+	iface_to_mask(cs.fw6.ipv6.outiface, cs.fw6.ipv6.outiface_mask);
 
 	/* Attempt to acquire the xtables lock */
 	if (!restore)
@@ -886,10 +892,7 @@ int do_command6(int argc, char *argv[], char **table,
 		e = NULL;
 	}
 
-	free(saddrs);
-	free(smasks);
-	free(daddrs);
-	free(dmasks);
+	xtables_clear_args(&args);
 	xtables_free_opts(1);
 
 	return ret;

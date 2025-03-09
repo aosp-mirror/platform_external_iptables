@@ -32,11 +32,6 @@ struct xt_connmark_target_info {
 };
 
 enum {
-	D_SHIFT_LEFT = 0,
-	D_SHIFT_RIGHT,
-};
-
-enum {
 	O_SET_MARK = 0,
 	O_SAVE_MARK,
 	O_RESTORE_MARK,

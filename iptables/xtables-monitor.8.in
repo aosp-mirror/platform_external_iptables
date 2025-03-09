@@ -43,7 +43,7 @@ Restrict output to IPv6.
 .PP
 The first line shows a packet entering rule set evaluation.
 The protocol number is shown (AF_INET in this case), then a packet
-identifier number that allows to correlate messages coming from rule set evaluation of
+identifier number that allows one to correlate messages coming from rule set evaluation of
 this packet.  After this, the rule that was matched by the packet is shown.
 This is the TRACE rule that turns on tracing events for this packet.
 

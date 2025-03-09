@@ -41,9 +41,8 @@ static void nft_ipv4_parse_meta(struct nft_xt_ctx *ctx,
 		break;
 	}
 
-	if (parse_meta(ctx, e, reg->meta_dreg.key, cs->fw.ip.iniface, cs->fw.ip.iniface_mask,
-		   cs->fw.ip.outiface, cs->fw.ip.outiface_mask,
-		   &cs->fw.ip.invflags) == 0)
+	if (parse_meta(ctx, e, reg->meta_dreg.key, cs->fw.ip.iniface,
+		       cs->fw.ip.outiface, &cs->fw.ip.invflags) == 0)
 		return;
 
 	ctx->errmsg = "unknown ipv4 meta key";

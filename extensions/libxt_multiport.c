@@ -248,7 +248,7 @@ static void multiport_parse6_v1(struct xt_option_call *cb)
 static void multiport_check(struct xt_fcheck_call *cb)
 {
 	if (cb->xflags == 0)
-		xtables_error(PARAMETER_PROBLEM, "multiport expection an option");
+		xtables_error(PARAMETER_PROBLEM, "no ports specified");
 }
 
 static const char *
