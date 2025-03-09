@@ -11,6 +11,7 @@ struct nft_chain {
 	struct hlist_node	hnode;
 	struct nft_chain	**base_slot;
 	struct nftnl_chain	*nftnl;
+	bool			fake;
 };
 
 #define CHAIN_NAME_HSIZE	512
@@ -20,7 +21,7 @@ struct nft_chain_list {
 	struct hlist_head	names[CHAIN_NAME_HSIZE];
 };
 
-struct nft_chain *nft_chain_alloc(struct nftnl_chain *nftnl);
+struct nft_chain *nft_chain_alloc(struct nftnl_chain *nftnl, bool fake);
 void nft_chain_free(struct nft_chain *c);
 
 struct nft_chain_list *nft_chain_list_alloc(void);

@@ -1,6 +1,6 @@
 .TP
 [\fB!\fP] \fB\-\-cpu\fP \fInumber\fP
-Match cpu handling this packet. cpus are numbered from 0 to NR_CPUS-1
+Match cpu handling this packet. cpus are numbered from 0 to NR_CPUS\-1
 Can be used in combination with RPS (Remote Packet Steering) or
 multiqueue NICs to spread network traffic on different queues.
 .PP

@@ -146,7 +146,7 @@ parse_dirs_v0(const char *opt_arg, struct xt_set_info_v0 *info)
 			info->u.flags[i++] |= IPSET_DST;
 		else
 			xtables_error(PARAMETER_PROBLEM,
-				"You must spefify (the comma separated list of) 'src' or 'dst'.");
+				"You must specify (the comma separated list of) 'src' or 'dst'.");
 	}
 
 	if (tmp)
@@ -170,7 +170,7 @@ parse_dirs(const char *opt_arg, struct xt_set_info *info)
 			info->flags |= (1 << info->dim);
 		else if (strncmp(ptr, "dst", 3) != 0)
 			xtables_error(PARAMETER_PROBLEM,
-				"You must spefify (the comma separated list of) 'src' or 'dst'.");
+				"You must specify (the comma separated list of) 'src' or 'dst'.");
 	}
 
 	if (tmp)
